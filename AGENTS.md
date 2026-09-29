@@ -9,6 +9,7 @@ Muc tieu cua file nay la giup AI biet chuc nang nao nam o folder nao, tranh code
 - Chi co 3 role: `Guest`, `User`, `Admin`.
 - Khong them role moi neu chua duoc nhom thong nhat.
 - Khong them tinh nang ngoai MVP trong `docs/mvp.md`.
+- Neu cac file huong dan mau thuan nhau, thu tu uu tien la: yeu cau moi nhat cua nhom -> `docs/mvp.md` -> `contracts/` -> `AGENTS.md` -> `STRUCTURE.md` -> README.
 - Khong commit secret, API key Gemini, connection string that, file upload that, du lieu suc khoe that.
 - Frontend khong tu quyet dinh quyen han; backend phai kiem tra quyen lai.
 - AI/Gemini chi goi tu backend, khong goi truc tiep tu frontend.
@@ -150,10 +151,12 @@ Khong dat logic nghiep vu rieng cua mot feature vao `shared`.
 | Dang ky/dang nhap | `frontend/src/features/auth` | `Application/Features/Auth` | `Domain/Entities`, `Domain/Enums` | `Infrastructure/Identity`, `Infrastructure/Persistence` | `Api/Controllers` |
 | Ho so user | `frontend/src/features/profile` | `Application/Features/Profiles` | `Domain/Entities`, `Domain/ValueObjects` | `Infrastructure/Persistence` | `Api/Controllers` |
 | Cong thuc | `frontend/src/features/recipes` | `Application/Features/Recipes` | `Domain/Entities`, `Domain/Rules` | `Infrastructure/Persistence`, `Infrastructure/Storage` | `Api/Controllers` |
+| Admin quan ly cong thuc | `frontend/src/features/admin/recipes` | `Application/Features/Recipes` | `Domain/Entities`, `Domain/Rules` | `Infrastructure/Persistence`, `Infrastructure/Storage` | `Api/Controllers` |
 | Nguyen lieu | `frontend/src/features/admin/ingredients` | `Application/Features/Ingredients` | `Domain/Entities`, `Domain/Enums` | `Infrastructure/Persistence` | `Api/Controllers` |
 | Bai viet | `frontend/src/features/articles` | `Application/Features/Articles` | `Domain/Entities`, `Domain/Enums` | `Infrastructure/Persistence`, `Infrastructure/Storage` | `Api/Controllers` |
 | Video | `frontend/src/features/videos` | `Application/Features/Videos` | `Domain/Entities`, `Domain/Enums` | `Infrastructure/Persistence`, `Infrastructure/Storage` | `Api/Controllers` |
 | Binh luan | `frontend/src/features/comments` | `Application/Features/Comments` | `Domain/Entities` | `Infrastructure/Persistence` | `Api/Controllers` |
+| Admin quan ly binh luan | `frontend/src/features/admin/comments` | `Application/Features/Comments` | `Domain/Entities`, `Domain/Enums` | `Infrastructure/Persistence` | `Api/Controllers` |
 | AI Flag Check | `frontend/src/features/admin/moderation` | `Application/Features/Moderation` | `Domain/Enums`, `Domain/Rules` | `Infrastructure/AI/Gemini`, `Infrastructure/Persistence` | `Api/Controllers` |
 | Admin duyet noi dung | `frontend/src/features/admin/moderation` | `Application/Features/Moderation` | `Domain/Entities`, `Domain/Enums` | `Infrastructure/Persistence` | `Api/Controllers` |
 | Chat AI | `frontend/src/features/ai-chat` | `Application/Features/AiChat` | `Domain/Entities` neu luu lich su | `Infrastructure/AI/Gemini`, `Infrastructure/Persistence` | `Api/Controllers` |
@@ -163,6 +166,7 @@ Khong dat logic nghiep vu rieng cua mot feature vao `shared`.
 | Nha hang | `frontend/src/features/restaurants` va `frontend/src/features/admin/restaurants` | `Application/Features/Restaurants` | `Domain/Entities` | `Infrastructure/Persistence` | `Api/Controllers` |
 | Danh muc | `frontend/src/features/admin/categories` | `Application/Features/Categories` | `Domain/Entities` | `Infrastructure/Persistence` | `Api/Controllers` |
 | Thanh vien | `frontend/src/features/admin/members` | `Application/Features/Administration` hoac `Application/Features/Auth` | `Domain/Entities`, `Domain/Enums` | `Infrastructure/Identity`, `Infrastructure/Persistence` | `Api/Controllers` |
+| Admin dashboard | `frontend/src/features/admin/dashboard` | `Application/Features/Administration`, `Application/Features/Moderation` | `Domain/Entities`, `Domain/Enums` | `Infrastructure/Persistence` | `Api/Controllers` |
 | Favorite | `frontend/src/features/favorites` | `Application/Features/Favorites` | `Domain/Entities` | `Infrastructure/Persistence` | `Api/Controllers` |
 
 ## 5. Phan chia 5 nguoi de de quan ly
@@ -215,6 +219,17 @@ Neu mot feature can ca FE va BE, hai nguoi phai thong nhat API contract truoc kh
 8. Api tao controller goi Application.
 9. Frontend tao page/component/api client trong `frontend/src/features/<feature>`.
 10. Test build FE/BE.
+
+Khi giao task cho Vibe Code/AI, nen dua prompt theo mau:
+
+```text
+Doc AGENTS.md, docs/mvp.md va contracts/README.md truoc.
+Hay lam tinh nang: <ten tinh nang>.
+Pham vi role: <Guest/User/Admin>.
+Folder duoc sua: <frontend folder>, <backend Application/Domain/Infrastructure/Api folder>.
+Khong them tinh nang ngoai MVP. Khong doi cau truc folder.
+Sau khi lam xong, chay build/lint va ghi ro file da sua.
+```
 
 Lenh bat buoc truoc khi commit:
 
