@@ -1,6 +1,8 @@
 # Frontend
 
-Thư mục ứng dụng web React + TypeScript của Vegetarian Support. Hiện chỉ có cây thư mục, chưa có mã nguồn hoặc package ứng dụng.
+Ứng dụng React + TypeScript chạy bằng Vite. Dùng Node.js 24 LTS; `npm ci`, sau đó `npm run dev` để chạy tại http://localhost:5173. `npm run build` tạo bản build trong `dist/`; `npm run lint` kiểm tra mã nguồn.
+
+App hiện đang để trắng để nhóm tự xây màn hình theo module. Vite đã cấu hình proxy `/api` tới localhost:5080; backend cần chạy riêng khi bắt đầu tích hợp API. SQL Server/Gemini và các tính năng bên dưới chưa được triển khai.
 
 Phạm vi: giao diện Guest/User/Admin; gọi backend theo hợp đồng API; xử lý loading, empty, error và trạng thái quyền truy cập.
 

@@ -17,4 +17,17 @@ Thumbs.db
 uploads/
 coverage/
 
-# Add framework-specific generated directories after choosing the stack.
+# React / Vite
+node_modules/
+dist/
+*.tsbuildinfo
+
+# .NET / Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+appsettings.Local.json
+.local/

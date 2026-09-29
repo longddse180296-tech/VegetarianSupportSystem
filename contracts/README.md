@@ -2,7 +2,7 @@
 
 FE và BE thống nhất endpoint, request/response, mã lỗi, phân trang, trạng thái xử lý và ví dụ trước khi triển khai một tính năng.
 
-Khi triển khai ASP.NET Core .NET 10, chọn một nguồn đặc tả OpenAPI chính thức: sinh từ backend hoặc quản lý tại đây. Không duy trì hai bản thủ công cạnh tranh nhau. Hiện chưa tạo đặc tả endpoint.
+Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường Development tại `/openapi/v1.json`. Không duy trì thêm một bản đặc tả thủ công cạnh tranh trong thư mục này. Endpoint hiện có chỉ là `/api/health` để kiểm tra server sống.
 
 Phân biệt bắt buộc:
 

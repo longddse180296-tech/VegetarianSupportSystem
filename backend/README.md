@@ -1,8 +1,20 @@
 # Backend
 
-Thư mục ASP.NET Core Web API, C#, .NET 10 của Vegetarian Support; cơ sở dữ liệu SQL Server, tích hợp Gemini API từ backend. Hiện chỉ có cây thư mục, chưa có solution/project .NET hoặc mã nguồn.
+ASP.NET Core Web API, C#, .NET 10 của Vegetarian Support. SQL Server đã có package EF Core và `AppDbContext` rỗng để sẵn sàng triển khai dữ liệu. Gemini là tích hợp dự kiến, chưa được cấu hình hoặc gọi trong khung hiện tại.
 
-Các lớp dự kiến: `VegetarianSupport.Api`, `VegetarianSupport.Application`, `VegetarianSupport.Domain`, `VegetarianSupport.Infrastructure`. Đây đang là thư mục, chưa phải project có thể build.
+Solution `Backend.sln` gồm bốn project Clean Architecture: `Api`, `Application`, `Domain`, `Infrastructure`. Api tham chiếu Application/Infrastructure; Infrastructure tham chiếu Application; Application tham chiếu Domain.
+
+Từ thư mục backend: `dotnet build Backend.sln -c Release`, rồi `dotnet run --project src/Api --launch-profile http`. API chạy tại http://localhost:5080; `/api/health` trả trạng thái tiến trình, không kiểm tra SQL Server/Gemini. `/openapi/v1.json` chỉ bật trong Development. Chưa có Swagger UI.
+
+Package SQL hiện có:
+
+- `Microsoft.EntityFrameworkCore.SqlServer` trong `Infrastructure`.
+- `Microsoft.EntityFrameworkCore.Tools` trong `Infrastructure`.
+- `Microsoft.EntityFrameworkCore.Design` trong `Api`.
+
+Connection string mẫu nằm trong `src/Api/appsettings.json`. Khi làm thật nên chuyển giá trị local vào `appsettings.Development.json` hoặc user secrets tùy cách nhóm thống nhất.
+
+HTTP local giúp chạy profile phát triển không cần cài chứng chỉ. Môi trường ngoài Development bật chuyển hướng HTTPS; cần cấu hình HTTPS trên host triển khai.
 
 Phân chia trách nhiệm đề xuất cho 3 thành viên:
 

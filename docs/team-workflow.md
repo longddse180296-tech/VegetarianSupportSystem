@@ -2,7 +2,7 @@
 
 ## Repository
 
-Một repository cho 5 thành viên. Thư mục FE/BE độc lập, dùng chung đặc tả và hợp đồng API. Stack đã chốt: React + TypeScript, ASP.NET Core .NET 10, SQL Server và Gemini API. Hiện chỉ tạo cấu trúc; chưa cài công cụ build hoặc orchestration.
+Một repository cho 5 thành viên. Thư mục FE/BE độc lập, dùng chung đặc tả và hợp đồng API. Stack đã chốt: React + TypeScript, ASP.NET Core .NET 10, SQL Server và Gemini API. Khung FE/BE đã có lệnh build/run trong README; SQL Server/Gemini và nghiệp vụ chưa triển khai.
 
 ## Nhánh và pull request
 
