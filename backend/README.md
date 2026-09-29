@@ -4,7 +4,7 @@ ASP.NET Core Web API, C#, .NET 10 của Vegetarian Support. SQL Server đã có 
 
 Solution `Backend.sln` gồm bốn project Clean Architecture: `Api`, `Application`, `Domain`, `Infrastructure`. Api tham chiếu Application/Infrastructure; Infrastructure tham chiếu Application; Application tham chiếu Domain.
 
-Từ thư mục backend: `dotnet build Backend.sln -c Release`, rồi `dotnet run --project src/Api --launch-profile http`. API chạy tại http://localhost:5080; `/api/health` trả trạng thái tiến trình, không kiểm tra SQL Server/Gemini. `/openapi/v1.json` chỉ bật trong Development. Chưa có Swagger UI.
+Từ thư mục backend: `dotnet build Backend.sln -c Release`, rồi `dotnet run --project src/Api --launch-profile http`. API chạy tại http://localhost:5080. Hiện chưa có controller nghiệp vụ. `/openapi/v1.json` chỉ bật trong Development. Chưa có Swagger UI.
 
 Package SQL hiện có:
 

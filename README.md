@@ -2,7 +2,7 @@
 
 Monorepo cho nhóm 2 frontend và 3 backend.
 
-Trạng thái: khung React và bốn project .NET 10 đã có thể build/run. Frontend đang là app trắng để nhóm tự xây giao diện. Backend có `/api/health`, OpenAPI Development và package EF Core SQL Server. Chưa triển khai nghiệp vụ, database schema, Gemini hoặc CI/deploy.
+Trạng thái: khung React và bốn project .NET 10 đã có thể build/run. Frontend đang là app trắng để nhóm tự xây giao diện. Backend có OpenAPI Development và package EF Core SQL Server, chưa có controller nghiệp vụ. Chưa triển khai nghiệp vụ, database schema, Gemini hoặc CI/deploy.
 
 ## Chạy trên máy
 
@@ -25,7 +25,7 @@ npm run dev
 ```
 
 - Frontend: http://localhost:5173
-- API: http://localhost:5080/api/health
+- API base: http://localhost:5080
 - OpenAPI JSON trong môi trường Development: http://localhost:5080/openapi/v1.json
 - Dừng mỗi tiến trình bằng Ctrl+C trong terminal tương ứng.
 
