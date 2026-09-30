@@ -82,6 +82,10 @@ Dung cho:
 
 Khong dat controller o `Infrastructure`.
 
+### Tests
+
+Test backend hien dat trong `backend/tests/Domain.Tests/`; kiem tra cac quy tac chuyen trang thai nghiep vu bang `dotnet test backend/Backend.sln -c Release`. Khong dua test vao cac tang production.
+
 ## 3. Kien truc frontend
 
 Frontend nam trong `frontend/src/`.
@@ -307,4 +311,3 @@ Neu duoc hoi “Tai sao Gemini goi tu backend?”, tra loi:
 - Khong doi cau truc folder neu khong cap nhat `STRUCTURE.md` va file nay.
 - Khong dua code nghiep vu vao sai tang chi de cho nhanh.
 - Khong commit file build: `bin/`, `obj/`, `node_modules/`, `dist/`, `.local/`.
-

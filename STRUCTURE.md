@@ -2,7 +2,7 @@
 
 Khung hiện tại dùng monorepo với frontend và backend tách thư mục. Backend theo Clean Architecture, dùng tên project ngắn để dễ nhìn trong Visual Studio: `Api`, `Application`, `Domain`, `Infrastructure`.
 
-Frontend hiện là app trắng có thể build/run bằng Vite. Backend có OpenAPI Development và EF Core SQL Server packages; các module nghiệp vụ vẫn là thư mục rỗng để nhóm triển khai tiếp.
+Frontend hiện là app trắng có thể build/run bằng Vite. Backend có OpenAPI Development, EF Core SQL Server và nền Moderation/AiChat; các module MVP còn lại tiếp tục triển khai sau.
 
 ```text
 vegetarian-support/
@@ -57,6 +57,7 @@ backend/src/Infrastructure/Persistence/Migrations/
 backend/src/Infrastructure/Persistence/Seeding/
 backend/src/Infrastructure/Storage/
 backend/tests/
+backend/tests/Domain.Tests/
 backend/tests/IntegrationTests/
 backend/tests/UnitTests/
 contracts/
