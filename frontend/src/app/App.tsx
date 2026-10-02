@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from '../features/auth'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage'
-import { UserLayout } from './layouts/UserLayout'
+import { ProfilePage } from '../features/profile'
 import { AdminLayout } from './layouts/AdminLayout'
 
 const AppContent: React.FC = () => {
@@ -54,29 +54,7 @@ const AppContent: React.FC = () => {
   }
 
   // User Section (e.g., /profile)
-  return (
-    <UserLayout
-      activeMenu="profile"
-      onNavigate={handleNavigate}
-      userName={user?.fullName || 'Nguyễn Văn An'}
-      userEmail={user?.email || 'nguyen.an@example.com'}
-      userRole={user?.role || 'User'}
-      onLogout={async () => {
-        await logout()
-        setCurrentPath('/auth/login')
-      }}
-    >
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Hồ sơ cá nhân (Profile Module)</h2>
-        <p className="text-sm text-slate-600 mb-4">
-          Đang sẵn sàng cho Phase 3. Đăng nhập thành công với tài khoản người dùng.
-        </p>
-        <div className="p-4 bg-emerald-50 text-emerald-800 rounded-lg text-sm border border-emerald-200">
-          ✓ Tên: <strong>{user?.fullName}</strong> | Email: <strong>{user?.email}</strong> | Vai trò: <strong>{user?.role}</strong>
-        </div>
-      </div>
-    </UserLayout>
-  )
+  return <ProfilePage onNavigate={handleNavigate} />
 }
 
 export default function App() {
