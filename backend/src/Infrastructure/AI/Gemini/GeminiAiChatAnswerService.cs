@@ -17,9 +17,17 @@ public sealed class GeminiAiChatAnswerService(IGeminiService geminiService) : IA
                 turn.Role == AiChatMessageRole.User ? "user" : "assistant",
                 turn.Content)).ToArray());
 
-        var response = await geminiService.GenerateChatReplyAsync(request, cancellationToken);
-        return response.IsAvailable && !string.IsNullOrWhiteSpace(response.Answer)
-            ? AiChatAnswerResult.FromAnswer(response.Answer.Trim())
-            : AiChatAnswerResult.Unavailable();
+        try
+        {
+            var response = await geminiService.GenerateChatReplyAsync(request, cancellationToken);
+            return response.IsAvailable && !string.IsNullOrWhiteSpace(response.Answer)
+                ? AiChatAnswerResult.FromAnswer(response.Answer.Trim())
+                : AiChatAnswerResult.Unavailable();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TimeoutException
+                                   || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            return AiChatAnswerResult.Unavailable();
+        }
     }
 }

@@ -116,7 +116,7 @@ public sealed class ModerationService(IModerationRepository repository)
 
         try
         {
-            submission.RetryAiCheck();
+            submission.RetryAiCheck(DateTimeOffset.UtcNow);
         }
         catch (InvalidOperationException ex)
         {
@@ -144,7 +144,8 @@ public sealed class ModerationService(IModerationRepository repository)
                 result.Summary,
                 result.CheckedScope,
                 result.UncheckedScope,
-                DateTimeOffset.UtcNow);
+                DateTimeOffset.UtcNow,
+                result.FlagReason);
         }
         catch (ArgumentException ex)
         {
@@ -218,7 +219,7 @@ public sealed class ModerationService(IModerationRepository repository)
                 var previous = await repository.GetCurrentPublishedAsync(submission.ContentId, ct);
                 if (previous is not null && previous.Id != submission.Id)
                 {
-                    previous.SupersedePublishedVersion();
+                    previous.SupersedePublishedVersion(DateTimeOffset.UtcNow);
                     await repository.SaveChangesAsync(ct);
                 }
 

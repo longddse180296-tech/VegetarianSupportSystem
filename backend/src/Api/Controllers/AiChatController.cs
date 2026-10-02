@@ -124,6 +124,7 @@ public sealed class AiChatController(
     [AllowAnonymous]
     public ActionResult<AiChatGuestSessionInfo> GetGuestSession()
     {
+        if (User.Identity?.IsAuthenticated == true) return Forbid();
         return Ok(guestChatService.GetSessionInfo(ReadGuestState()));
     }
 
@@ -133,6 +134,7 @@ public sealed class AiChatController(
         [FromBody] AiChatMessageRequest request,
         CancellationToken cancellationToken)
     {
+        if (User.Identity?.IsAuthenticated == true) return Forbid();
         if (!TryNormalizePrompt(request.Content, out var content))
         {
             return InvalidPrompt();

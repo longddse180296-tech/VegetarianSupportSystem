@@ -1,6 +1,7 @@
 using Application.Abstractions.AI;
 using Application.Features.AiChat;
 using Application.Features.Moderation;
+using Infrastructure.AI;
 using Infrastructure.AI.Gemini;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
@@ -23,8 +24,17 @@ public static class DependencyInjection
 
         services.AddScoped<IAiChatRepository, AiChatRepository>();
         services.AddScoped<IModerationRepository, ModerationRepository>();
-        services.AddScoped<IGeminiService, GeminiService>();
-        services.AddScoped<IAiChatAnswerService, GeminiAiChatAnswerService>();
+        services.AddHttpClient<IGeminiService, GeminiService>(client =>
+            client.Timeout = TimeSpan.FromSeconds(45));
+        if (bool.TryParse(configuration["AiChat:UseMockResponses"], out var useMockResponses)
+            && useMockResponses)
+        {
+            services.AddScoped<IAiChatAnswerService, MockAiChatAnswerService>();
+        }
+        else
+        {
+            services.AddScoped<IAiChatAnswerService, GeminiAiChatAnswerService>();
+        }
 
         return services;
     }

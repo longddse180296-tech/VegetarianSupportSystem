@@ -25,6 +25,8 @@ public sealed class ModerationSubmission
         TextContent = textContent;
         MediaReference = mediaReference;
         SubmittedAt = submittedAt;
+        CreatedAtUtc = submittedAt;
+        UpdatedAtUtc = submittedAt;
         AiFlagStatus = AiFlagStatus.Checking;
         AdminReviewStatus = AdminReviewStatus.Submitted;
     }
@@ -40,10 +42,13 @@ public sealed class ModerationSubmission
     public AiFlagStatus AiFlagStatus { get; private set; }
     public AdminReviewStatus AdminReviewStatus { get; private set; }
     public string? AiSummary { get; private set; }
+    public string? AiFlagReason { get; private set; }
     public string? AiCheckedScope { get; private set; }
     public string? AiUncheckedScope { get; private set; }
     public DateTimeOffset? AiCheckedAt { get; private set; }
     public DateTimeOffset SubmittedAt { get; private set; }
+    public DateTimeOffset CreatedAtUtc { get; private set; }
+    public DateTimeOffset UpdatedAtUtc { get; private set; }
     public bool IsCurrentPublished { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
     public ICollection<ModerationDecision> Decisions { get; private set; } = new List<ModerationDecision>();
@@ -75,7 +80,8 @@ public sealed class ModerationSubmission
         string summary,
         string? checkedScope,
         string? uncheckedScope,
-        DateTimeOffset checkedAt)
+        DateTimeOffset checkedAt,
+        string? flagReason = null)
     {
         if (AiFlagStatus != AiFlagStatus.Checking)
             throw new InvalidOperationException("AI result can only complete a pending check.");
@@ -89,6 +95,16 @@ public sealed class ModerationSubmission
         if (checkedScope?.Length > 2_000 || uncheckedScope?.Length > 2_000)
             throw new ArgumentException("AI scope is too long.");
 
+        if (flagReason?.Length > 2_000)
+            throw new ArgumentException("AI flag reason is too long.", nameof(flagReason));
+
+        if (status == AiFlagStatus.Flagged && string.IsNullOrWhiteSpace(flagReason))
+            throw new ArgumentException("A flagged result requires a reason.", nameof(flagReason));
+
+        if (status is (AiFlagStatus.Passed or AiFlagStatus.Failed)
+            && !string.IsNullOrWhiteSpace(flagReason))
+            throw new ArgumentException("Only flagged or partial results can have a flag reason.", nameof(flagReason));
+
         if (status != AiFlagStatus.Failed && string.IsNullOrWhiteSpace(checkedScope))
             throw new ArgumentException("Checked scope is required for an AI result.", nameof(checkedScope));
 
@@ -101,24 +117,28 @@ public sealed class ModerationSubmission
 
         AiFlagStatus = status;
         AiSummary = summary.Trim();
+        AiFlagReason = string.IsNullOrWhiteSpace(flagReason) ? null : flagReason.Trim();
         AiCheckedScope = checkedScope?.Trim();
         AiUncheckedScope = uncheckedScope?.Trim();
         AiCheckedAt = checkedAt;
+        UpdatedAtUtc = checkedAt;
 
         if (status != AiFlagStatus.Failed)
             AdminReviewStatus = AdminReviewStatus.PendingAdminReview;
     }
 
-    public void RetryAiCheck()
+    public void RetryAiCheck(DateTimeOffset retriedAt)
     {
         if (AiFlagStatus != AiFlagStatus.Failed || AdminReviewStatus != AdminReviewStatus.Submitted)
             throw new InvalidOperationException("Only a failed AI check can be retried.");
 
         AiFlagStatus = AiFlagStatus.Checking;
         AiSummary = null;
+        AiFlagReason = null;
         AiCheckedScope = null;
         AiUncheckedScope = null;
         AiCheckedAt = null;
+        UpdatedAtUtc = retriedAt;
     }
 
     public ModerationDecision Decide(
@@ -157,17 +177,20 @@ public sealed class ModerationSubmission
             IsCurrentPublished = decision == ModerationDecisionType.Approve;
         }
 
+        UpdatedAtUtc = decidedAt;
+
         var record = new ModerationDecision(
             Id, Version, decision, adminUserId.Trim(), reason.Trim(), decidedAt);
         Decisions.Add(record);
         return record;
     }
 
-    public void SupersedePublishedVersion()
+    public void SupersedePublishedVersion(DateTimeOffset supersededAt)
     {
         if (AdminReviewStatus != AdminReviewStatus.Published || !IsCurrentPublished)
             throw new InvalidOperationException("Only a published version can be superseded.");
 
         IsCurrentPublished = false;
+        UpdatedAtUtc = supersededAt;
     }
 }

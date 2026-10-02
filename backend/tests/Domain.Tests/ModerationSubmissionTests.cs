@@ -44,7 +44,7 @@ public sealed class ModerationSubmissionTests
         Assert.Throws<InvalidOperationException>(() =>
             submission.Decide(ModerationDecisionType.Approve, "admin", "reviewed", DateTimeOffset.UtcNow));
 
-        submission.RetryAiCheck();
+        submission.RetryAiCheck(DateTimeOffset.UtcNow);
 
         Assert.Equal(AiFlagStatus.Checking, submission.AiFlagStatus);
         Assert.Null(submission.AiSummary);
@@ -81,6 +81,29 @@ public sealed class ModerationSubmissionTests
 
         Assert.Equal(AiFlagStatus.Checking, submission.AiFlagStatus);
         Assert.Equal(AdminReviewStatus.Submitted, submission.AdminReviewStatus);
+    }
+
+    [Fact]
+    public void FlaggedResultRequiresReasonAndTracksUpdateTime()
+    {
+        var createdAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var checkedAt = createdAt.AddMinutes(1);
+        var submission = ModerationSubmission.Submit(
+            Guid.NewGuid(), 1, ModeratedContentType.Article, "author", "Title", "Body", null,
+            createdAt);
+
+        Assert.Throws<ArgumentException>(() => submission.RecordAiResult(
+            AiFlagStatus.Flagged, "Needs review", "title and text", null, checkedAt));
+        Assert.Equal(createdAt, submission.UpdatedAtUtc);
+
+        submission.RecordAiResult(
+            AiFlagStatus.Flagged, "Needs review", "title and text", null, checkedAt,
+            "Health claim needs evidence");
+
+        Assert.Equal("Health claim needs evidence", submission.AiFlagReason);
+        Assert.Equal(createdAt, submission.CreatedAtUtc);
+        Assert.Equal(checkedAt, submission.UpdatedAtUtc);
+        Assert.Equal(AdminReviewStatus.PendingAdminReview, submission.AdminReviewStatus);
     }
 
     private static ModerationSubmission NewSubmission() => ModerationSubmission.Submit(

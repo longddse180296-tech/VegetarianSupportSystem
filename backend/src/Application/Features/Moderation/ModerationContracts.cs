@@ -14,7 +14,8 @@ public sealed record ModerationAiResult(
     AiFlagStatus Status,
     string Summary,
     string? CheckedScope,
-    string? UncheckedScope);
+    string? UncheckedScope,
+    string? FlagReason);
 
 public sealed record ModerationSearch(
     string? OwnerUserId,

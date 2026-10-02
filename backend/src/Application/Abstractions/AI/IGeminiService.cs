@@ -12,6 +12,10 @@ public interface IGeminiService
     Task<GeminiChatResponse> GenerateChatReplyAsync(
         GeminiChatRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<GeminiDishImageResponse> AnalyzeDishImageAsync(
+        GeminiDishImageRequest request,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record GeminiModerationRequest(
@@ -26,7 +30,8 @@ public sealed record GeminiModerationResponse(
     AiFlagStatus? AiFlagStatus,
     string? Summary,
     string? CheckedScope,
-    string? UncheckedScope);
+    string? UncheckedScope,
+    string? ErrorCode = null);
 
 public sealed record GeminiChatTurn(string Role, string Text);
 
@@ -34,4 +39,17 @@ public sealed record GeminiChatRequest(
     string Prompt,
     IReadOnlyList<GeminiChatTurn> History);
 
-public sealed record GeminiChatResponse(bool IsAvailable, string? Answer);
+public sealed record GeminiChatResponse(
+    bool IsAvailable,
+    string? Answer,
+    string? ErrorCode = null);
+
+public sealed record GeminiDishImageRequest(byte[] ImageBytes, string MimeType);
+
+public sealed record GeminiDishImageResponse(
+    bool IsAvailable,
+    string? SuggestedDishName,
+    IReadOnlyList<string> VisibleIngredients,
+    IReadOnlyList<string> UnknownFactors,
+    IReadOnlyList<string> FollowUpQuestions,
+    string? ErrorCode = null);

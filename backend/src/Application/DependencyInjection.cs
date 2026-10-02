@@ -1,4 +1,5 @@
 using Application.Features.AiChat;
+using Application.Features.FoodScanning;
 using Application.Features.Moderation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,6 +11,7 @@ public static class DependencyInjection
     {
         services.AddScoped<AiChatService>();
         services.AddScoped<AiChatGuestService>();
+        services.AddScoped<FoodScanningService>();
         services.AddScoped<ModerationService>();
         return services;
     }
