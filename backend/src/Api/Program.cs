@@ -1,7 +1,10 @@
 using Api.Configuration;
 using Application;
+using Application.Features.Auth;
 using Infrastructure;
+using Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
@@ -56,11 +59,47 @@ if (!string.IsNullOrEmpty(jwtSigningKey) && Encoding.UTF8.GetByteCount(jwtSignin
 {
     throw new InvalidOperationException("Authentication:Jwt:SigningKey must contain at least 32 UTF-8 bytes.");
 }
+if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience)
+    || string.IsNullOrWhiteSpace(jwtSigningKey))
+{
+    throw new InvalidOperationException("Authentication:Jwt:Issuer, Audience and SigningKey must be configured.");
+}
+builder.Services.AddSingleton<IAccessTokenIssuer>(
+    new JwtAccessTokenIssuer(jwtIssuer, jwtAudience, jwtSigningKey));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var ids = context.Principal?.FindAll("sub").ToArray() ?? [];
+                var roles = context.Principal?.FindAll("role").ToArray() ?? [];
+                var tokenIds = context.Principal?.FindAll("jti").ToArray() ?? [];
+                if (ids.Length != 1 || roles.Length != 1 ||
+                    tokenIds.Length != 1 || !Guid.TryParseExact(tokenIds[0].Value, "N", out _) ||
+                    string.IsNullOrWhiteSpace(ids[0].Value) ||
+                    roles[0].Value is not ("User" or "Admin"))
+                {
+                    context.Fail("Invalid account claims.");
+                    return;
+                }
+
+                var accounts = context.HttpContext.RequestServices.GetRequiredService<IUserAccountRepository>();
+                var user = await accounts.FindByIdAsync(ids[0].Value, context.HttpContext.RequestAborted);
+                if (user is null || user.IsLocked || user.Role.ToString() != roles[0].Value)
+                {
+                    context.Fail("Account is unavailable or role has changed.");
+                    return;
+                }
+
+                var revokedTokens = context.HttpContext.RequestServices.GetRequiredService<IRevokedAccessTokenRepository>();
+                if (await revokedTokens.IsRevokedAsync(tokenIds[0].Value, context.HttpContext.RequestAborted))
+                    context.Fail("Token has been revoked.");
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -74,12 +113,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 : new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSigningKey)),
             NameClaimType = "sub",
             RoleClaimType = "role",
-            ClockSkew = TimeSpan.FromMinutes(1)
+            ClockSkew = TimeSpan.Zero
         };
     });
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())

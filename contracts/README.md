@@ -6,6 +6,8 @@ Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường De
 
 Hợp đồng backend nhận ảnh món ăn và đánh giá sau khi User xác nhận nguyên liệu ở [food-scanning.md](food-scanning.md).
 
+Hợp đồng đăng ký, đăng nhập, JWT và Admin seed ở [auth.md](auth.md).
+
 Phân biệt bắt buộc:
 
 - Role: Guest (chưa đăng nhập), User, Admin.

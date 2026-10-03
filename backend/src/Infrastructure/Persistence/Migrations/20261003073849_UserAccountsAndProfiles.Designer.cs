@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261003073849_UserAccountsAndProfiles")]
+    partial class UserAccountsAndProfiles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -196,22 +199,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId", "SubmittedAt");
 
                     b.ToTable("ModerationSubmissions", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.RevokedAccessToken", b =>
-                {
-                    b.Property<string>("TokenId")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<DateTimeOffset>("ExpiresAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("TokenId");
-
-                    b.HasIndex("ExpiresAtUtc");
-
-                    b.ToTable("RevokedAccessTokens", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.User", b =>
