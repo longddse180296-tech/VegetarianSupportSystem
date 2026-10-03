@@ -32,6 +32,8 @@ Khong dao nguoc dependency. `Domain` khong duoc tham chieu `Application`, `Infra
 
 Folder: `backend/src/Api/`
 
+Kiem tra quyen dat trong `Api/Authorization`. Hien chua can folder `Api/Configuration` va `Api/Middleware`; chi tao khi co code thuc te can tach.
+
 Dung cho:
 
 - Controllers va endpoints HTTP.
@@ -45,6 +47,8 @@ Khong dat business rule, EF query phuc tap, Gemini prompt, hay logic tinh toan n
 ### Application
 
 Folder: `backend/src/Application/`
+
+Khong giu folder `Application/Abstractions` rong. Interface repository rieng cua feature dat trong feature tuong ung.
 
 Dung cho:
 
@@ -212,6 +216,8 @@ Day la goi y chia viec. Nhom co the doi ten nguoi nhung nen giu ranh gioi module
 Neu mot feature can ca FE va BE, hai nguoi phai thong nhat API contract truoc khi code.
 
 ## 6. Quy trinh code mot tinh nang
+
+Core Data BE 2: DTO dat trong `Application/Features/<Feature>/Dtos`, tach file theo type; service dieu phoi, validation va mapping tach ro. Repository implementation dat trong `Infrastructure/Persistence/Repositories`. Khong gom lai nhieu request/response/exception vao file Contracts. Xem `backend/CORE_DATA.md` de biet ban do code, seed, test va quy trinh migration chung.
 
 1. Doc phan lien quan trong `docs/mvp.md`.
 2. Xac dinh role nao duoc dung tinh nang.

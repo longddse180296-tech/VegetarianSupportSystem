@@ -69,7 +69,7 @@ Frontend và backend có dependency, cấu hình môi trường, kiểm thử v�
 
 ## Bắt đầu
 
-1. Xem [hướng dẫn cho AI/coder](AGENTS.md), [cấu trúc thư mục](STRUCTURE.md) và đặc tả MVP.
+1. Xem [hướng dẫn cho AI/coder](AGENTS.md), [phân chia công việc](docs/work-assignment.md), [cấu trúc thư mục](STRUCTURE.md) và đặc tả MVP.
 2. Chạy khung FE/BE theo hướng dẫn trên; không khởi tạo Git repository lồng bên trong.
 3. Thống nhất hợp đồng API cho tính năng đầu tiên.
 4. Làm từng tính năng trên nhánh ngắn hạn, gửi pull request về `main`.

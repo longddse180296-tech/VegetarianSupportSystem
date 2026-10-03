@@ -8,6 +8,8 @@ Hợp đồng backend nhận ảnh món ăn và đánh giá sau khi User xác nh
 
 Hợp đồng đăng ký, đăng nhập, JWT và Admin seed ở [auth.md](auth.md).
 
+Quy ước nghiệp vụ và tích hợp của Categories, Ingredients, Recipes được ghi tại [Core Data tuần 1](core-data.md). Không duy trì thêm một bản OpenAPI thủ công cạnh tranh trong thư mục này.
+
 Phân biệt bắt buộc:
 
 - Role: Guest (chưa đăng nhập), User, Admin.

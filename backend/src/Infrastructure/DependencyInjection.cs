@@ -5,6 +5,9 @@ using Application.Features.Moderation;
 using Infrastructure.AI;
 using Infrastructure.AI.Gemini;
 using Infrastructure.Identity;
+using Application.Features.Categories;
+using Application.Features.Ingredients;
+using Application.Features.Recipes;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +44,9 @@ public static class DependencyInjection
             services.AddScoped<IAiChatAnswerService, GeminiAiChatAnswerService>();
         }
 
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IIngredientRepository, IngredientRepository>();
+        services.AddScoped<IRecipeRepository, RecipeRepository>();
         return services;
     }
 }
