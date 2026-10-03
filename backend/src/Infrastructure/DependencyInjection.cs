@@ -1,8 +1,10 @@
 using Application.Abstractions.AI;
 using Application.Features.AiChat;
+using Application.Features.Auth;
 using Application.Features.Moderation;
 using Infrastructure.AI;
 using Infrastructure.AI.Gemini;
+using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +25,8 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IAiChatRepository, AiChatRepository>();
+        services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddSingleton<IAccountPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IModerationRepository, ModerationRepository>();
         services.AddHttpClient<IGeminiService, GeminiService>(client =>
             client.Timeout = TimeSpan.FromSeconds(45));

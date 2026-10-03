@@ -2,11 +2,19 @@
 
 Monorepo cho nhóm 2 frontend và 3 backend.
 
-Trạng thái: khung React và bốn project .NET 10 đã có thể build/run. Frontend đang là app trắng để nhóm tự xây giao diện. Backend có nền Moderation/AiChat, API scan ảnh món ăn, OpenAPI Development, EF Core SQL Server và migration ban đầu. Gemini được gọi từ backend khi cấu hình key local; chưa nối Auth thật, hồ sơ scan, lưu lịch sử scan hoặc áp dụng migration trên SQL Server. Các module MVP khác và CI/deploy chưa triển khai.
+Trạng thái: khung React và bốn project .NET 10 đã có thể build/run. Frontend đang là app trắng để nhóm tự xây giao diện. Backend có đăng ký/đăng nhập JWT, nền Moderation/AiChat, API scan ảnh món ăn, OpenAPI Development và EF Core SQL Server. Gemini được gọi từ backend khi cấu hình key local; chưa nối hồ sơ scan, lưu lịch sử scan hoặc áp dụng migration trên SQL Server. Các module MVP khác và CI/deploy chưa triển khai.
 
 ## Chạy trên máy
 
-Yêu cầu: .NET SDK 10 stable và Node.js 24 LTS (kèm npm). Không cần SQL Server hoặc Gemini API key cho khung hiện tại vì chưa có query/migration chạy khi khởi động.
+Yêu cầu: .NET SDK 10 stable và Node.js 24 LTS (kèm npm). Đăng ký, đăng nhập và endpoint cần quyền yêu cầu SQL Server đã áp dụng migration. Không cần Gemini API key nếu dùng mock trong Development.
+
+Sau khi cấu hình SQL Server local, áp dụng migration bằng:
+
+```powershell
+dotnet ef database update --project backend/src/Infrastructure --startup-project backend/src/Api
+```
+
+Để tạo Admin đầu tiên, xem [quy trình seed nội bộ](contracts/auth.md#admin-ban-đầu). Mật khẩu seed và JWT signing key phải lấy từ biến môi trường hoặc secret store, không thêm vào repo.
 
 Mở hai terminal tại thư mục repository.
 
@@ -28,7 +36,7 @@ npm run dev
 - API base: http://localhost:5080
 - Swagger UI trong môi trường Development: http://localhost:5080/swagger
 - OpenAPI JSON trong môi trường Development: http://localhost:5080/openapi/v1.json
-- Thử scan ảnh món ăn: lấy token role `User` ở `POST /api/dev-auth/token`, bấm Authorize trong Swagger, rồi gửi ảnh ở `POST /api/food-scans/dish-image`. Xác nhận nguyên liệu và gọi `POST /api/food-scans/evaluate`. Xem [hợp đồng scan](contracts/food-scanning.md).
+- Thử scan ảnh món ăn: đăng ký tại `POST /api/auth/register` hoặc đăng nhập tại `POST /api/auth/login`, bấm Authorize trong Swagger với `accessToken`, rồi gửi ảnh ở `POST /api/food-scans/dish-image`. Xác nhận nguyên liệu và gọi `POST /api/food-scans/evaluate`. Xem [hợp đồng scan](contracts/food-scanning.md) và [hợp đồng auth](contracts/auth.md).
 - Dừng mỗi tiến trình bằng Ctrl+C trong terminal tương ứng.
 
 Vite chuyển tiếp `/api` sang backend nên không cần cấu hình CORS để chạy local theo cách này. Có thể sao chép `frontend/.env.example` thành `frontend/.env.local` để đổi đích proxy; không đặt secrets vào frontend. Nếu cổng 5173 đã có ứng dụng khác, Vite báo lỗi thay vì âm thầm đổi cổng.
