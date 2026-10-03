@@ -17,7 +17,7 @@ public sealed class BearerOpenApiTransformer : IOpenApiDocumentTransformer
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",
             BearerFormat = "JWT",
-            Description = "Token từ POST /api/auth/login hoặc /api/auth/register; /api/dev-auth/token chỉ dùng trong Development."
+            Description = "Token đăng nhập; trong Development có thể lấy tại POST /api/dev-auth/token."
         };
 
         foreach (var (path, pathItem) in document.Paths)

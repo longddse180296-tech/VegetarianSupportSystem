@@ -6,9 +6,9 @@ Ngày cập nhật: 02/10/2026. JSON dùng `camelCase`; enum được serialize 
 
 - Guest là người chưa đăng nhập, không có user ID trong DB. Hai endpoint `/ai-chat/guest/*` dùng cookie session phía server và trả `403` cho người đã đăng nhập.
 - Endpoint tài khoản cần Bearer JWT hợp lệ với claim `sub` và `role` là `User` hoặc `Admin`; endpoint `/admin/moderation/*` cần `role=Admin`. User ID và role của các endpoint nghiệp vụ không nhận từ request body.
-- API kiểm tra issuer, audience, hạn token, chữ ký và đối chiếu `sub`/`role` với tài khoản đang hoạt động trong DB. Cấu hình qua `Authentication__Jwt__Issuer`, `Authentication__Jwt__Audience`, `Authentication__Jwt__SigningKey` (ít nhất 32 byte UTF-8), đặt trong môi trường hoặc secret store. Token thật lấy tại `/api/auth/register` hoặc `/api/auth/login`; xem [auth.md](auth.md).
+- API kiểm tra issuer, audience, hạn token và chữ ký. Cấu hình qua `Authentication__Jwt__Issuer`, `Authentication__Jwt__Audience`, `Authentication__Jwt__SigningKey` (ít nhất 32 byte UTF-8), đặt trong môi trường hoặc secret store. Chưa có endpoint đăng ký/đăng nhập để phát token trong đợt này.
 - Thiếu token/token không hợp lệ: `401`; role sai: `403`. Cả hai mã được khai báo trong OpenAPI cho endpoint cần quyền. Danh tính hợp lệ là tiền đề để dùng các endpoint cần DB.
-- **Chỉ trong Development**, `POST /api/dev-auth/token` nhận ID và role của tài khoản có thật để thử endpoint; token trả về phải khớp tài khoản trong DB khi sử dụng. Token hết hạn sau 1 giờ; nếu không cấu hình signing key cố định thì token cũ hết hiệu lực mỗi lần restart backend. Endpoint này không được ánh xạ ngoài Development và không thay cho đăng nhập thật.
+- Khi chưa có đăng nhập của BE 1, **chỉ trong Development**, `POST /api/dev-auth/token` nhận `{ "userId": "local-user", "role": "User" }` hoặc role `Admin`, trả `accessToken`, `tokenType`, `role`, `userId`, `expiresAtUtc`. Dán riêng giá trị `accessToken` vào nút **Authorize** của Swagger UI. Token hết hạn sau 1 giờ; nếu không cấu hình signing key cố định thì token cũ hết hiệu lực mỗi lần restart backend. Endpoint này không được ánh xạ ngoài Development và không thay cho đăng nhập thật.
 
 ## Moderation
 

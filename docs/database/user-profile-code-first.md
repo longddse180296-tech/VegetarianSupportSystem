@@ -17,6 +17,6 @@ Users (1) ── (0..1) UserProfiles
 - Tên dị ứng/thực phẩm tránh tạm lưu văn bản do người dùng nhập. Chưa liên kết với bảng nguyên liệu Admin vì danh mục đó chưa có; việc chuẩn hóa tên để so khớp nguyên liệu cần làm ở use case scan/thực đơn.
 - `BirthDate` giúp tuổi không bị lỗi thời; `SexForEnergyEstimate` là lựa chọn tùy ý phục vụ công thức năng lượng, không phải role. Công thức BMI/TDEE và ngưỡng vẫn cần chốt trước khi tính toán. Kết quả scan/thực đơn cần lưu snapshot hồ sơ khi các module đó được triển khai.
 - `PasswordHash` chỉ chứa kết quả băm do tầng Auth tạo; entity không tự băm hay xác thực mật khẩu. Không lưu mật khẩu thô.
-- `IsLocked`, `LockReason`, `LockedAtUtc` phục vụ quản lý thành viên; đăng nhập và xác thực JWT đều đối chiếu trạng thái khóa tài khoản.
+- `IsLocked`, `LockReason`, `LockedAtUtc` phục vụ quản lý thành viên; việc kiểm tra khóa tài khoản phải đặt trong luồng đăng nhập/ủy quyền sau này.
 
-Migration `UserAccountsAndProfiles` đã được tạo nhưng chưa áp dụng trên SQL Server. Vì model Moderation hiện hành có ba cột chưa nằm trong migration đầu tiên, migration này cũng bổ sung `AiFlagReason`, `CreatedAtUtc` và `UpdatedAtUtc` cho `ModerationSubmissions` để snapshot EF khớp model hiện hành.
+Entity, `DbSet` và EF configuration đã sẵn sàng cho code-first. Chưa tạo hoặc áp dụng migration: model hiện có ba cột Moderation chưa nằm trong migration đầu tiên, nên EF sẽ tự gom chúng vào migration mới. Người phụ trách migration chung cần phối hợp để tránh đưa thay đổi Moderation vào phần việc tài khoản/hồ sơ.
