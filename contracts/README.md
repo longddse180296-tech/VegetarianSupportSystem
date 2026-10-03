@@ -8,6 +8,10 @@ Hợp đồng backend nhận ảnh món ăn và đánh giá sau khi User xác nh
 
 Hợp đồng đăng ký, đăng nhập, JWT và Admin seed ở [auth.md](auth.md).
 
+Hợp đồng xem/cập nhật hồ sơ cá nhân, dị ứng và thực phẩm cần tránh ở [profile.md](profile.md).
+
+Hợp đồng danh sách, chi tiết và khóa/mở khóa thành viên Admin ở [admin-members.md](admin-members.md).
+
 Phân biệt bắt buộc:
 
 - Role: Guest (chưa đăng nhập), User, Admin.

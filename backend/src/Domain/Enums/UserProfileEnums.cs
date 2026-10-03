@@ -21,3 +21,11 @@ public enum WeightGoal
     Maintain,
     Gain
 }
+
+public enum AdultBmiCategory
+{
+    Underweight,
+    HealthyWeight,
+    Overweight,
+    Obesity
+}
