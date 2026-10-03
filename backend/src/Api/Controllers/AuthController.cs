@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 using Application.Features.Auth;
 using Microsoft.AspNetCore.Authorization;
@@ -6,11 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace Api.Controllers;
 
 [ApiController]
-[AllowAnonymous]
 [Route("api/auth")]
 public sealed class AuthController(AuthService authService) : ControllerBase
 {
     [HttpPost("register")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthResponse>> Register(
         [FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -37,6 +38,7 @@ public sealed class AuthController(AuthService authService) : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthResponse>> Login(
         [FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
@@ -48,6 +50,30 @@ public sealed class AuthController(AuthService authService) : ControllerBase
                 Title = "Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa."
             })
             : Ok(AuthResponse.From(result));
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<AuthenticatedUser>> Me(CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+        var user = await authService.GetCurrentUserAsync(userId, cancellationToken);
+        return user is null ? Unauthorized() : Ok(user);
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        var tokenId = User.FindFirst("jti")?.Value;
+        var expiresAt = User.FindFirst("exp")?.Value;
+        if (string.IsNullOrWhiteSpace(tokenId) ||
+            !long.TryParse(expiresAt, NumberStyles.None, CultureInfo.InvariantCulture, out var expirySeconds))
+            return Unauthorized();
+
+        await authService.LogoutAsync(tokenId, DateTimeOffset.FromUnixTimeSeconds(expirySeconds), cancellationToken);
+        return NoContent();
     }
 
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

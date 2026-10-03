@@ -17,6 +17,7 @@ public sealed class DevelopmentTokenIssuer(string issuer, string audience, strin
             claims:
             [
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
                 new Claim("role", role)
             ],
             expires: expiresAtUtc.UtcDateTime,

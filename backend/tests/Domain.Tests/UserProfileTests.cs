@@ -59,6 +59,10 @@ public sealed class UserProfileTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => profile.SetBodyData(
             null, null, -1, null, null, null, Now));
+        Assert.Throws<ArgumentOutOfRangeException>(() => profile.SetBodyData(
+            null, null, 0, null, null, null, Now));
+        Assert.Throws<ArgumentOutOfRangeException>(() => profile.SetBodyData(
+            null, null, null, -1, null, null, Now));
 
         profile.SetBodyData(new DateOnly(2000, 1, 1), SexForEnergyEstimate.Female,
             165, 60, ActivityLevel.ModeratelyActive, WeightGoal.Maintain, Now);

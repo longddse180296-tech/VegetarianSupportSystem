@@ -6,6 +6,7 @@ namespace Infrastructure.Persistence;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<RevokedAccessToken> RevokedAccessTokens => Set<RevokedAccessToken>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<UserAllergy> UserAllergies => Set<UserAllergy>();
     public DbSet<UserAvoidedFood> UserAvoidedFoods => Set<UserAvoidedFood>();

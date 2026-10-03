@@ -6,7 +6,8 @@ namespace Application.Features.Auth;
 public sealed class AuthService(
     IUserAccountRepository accounts,
     IAccountPasswordHasher passwordHasher,
-    IAccessTokenIssuer tokenIssuer)
+    IAccessTokenIssuer tokenIssuer,
+    IRevokedAccessTokenRepository revokedTokens)
 {
     public async Task<AuthResult> RegisterAsync(
         string? fullName, string? email, string? password, string? confirmPassword,
@@ -19,8 +20,9 @@ public sealed class AuthService(
         if (string.IsNullOrWhiteSpace(address) || address.Length > 254 ||
             !new EmailAddressAttribute().IsValid(address))
             throw new ArgumentException("Email không hợp lệ.", nameof(email));
-        if (password is null || password.Length is < 8 or > 128)
-            throw new ArgumentException("Mật khẩu phải dài từ 8 đến 128 ký tự.", nameof(password));
+        if (password is null || password.Length is < 6 or > 128 ||
+            password.Any(char.IsWhiteSpace))
+            throw new ArgumentException("Mật khẩu phải dài 6–128 ký tự và không chứa khoảng trắng.", nameof(password));
         if (password != confirmPassword)
             throw new ArgumentException("Xác nhận mật khẩu không khớp.", nameof(confirmPassword));
 
@@ -42,7 +44,19 @@ public sealed class AuthService(
         return Result(user);
     }
 
+    public async Task<AuthenticatedUser?> GetCurrentUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await accounts.FindByIdAsync(userId, cancellationToken);
+        return user is null || user.IsLocked ? null : ToAuthenticatedUser(user);
+    }
+
+    public Task LogoutAsync(string tokenId, DateTimeOffset expiresAtUtc, CancellationToken cancellationToken) =>
+        revokedTokens.RevokeAsync(tokenId, expiresAtUtc, cancellationToken);
+
     private AuthResult Result(User user) => new(
-        new AuthenticatedUser(user.Id, user.FullName, user.Email, user.Role.ToString()),
+        ToAuthenticatedUser(user),
         tokenIssuer.Issue(user));
+
+    private static AuthenticatedUser ToAuthenticatedUser(User user) =>
+        new(user.Id, user.FullName, user.Email, user.Role.ToString(), user.IsLocked);
 }

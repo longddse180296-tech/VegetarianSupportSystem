@@ -77,7 +77,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             {
                 var ids = context.Principal?.FindAll("sub").ToArray() ?? [];
                 var roles = context.Principal?.FindAll("role").ToArray() ?? [];
+                var tokenIds = context.Principal?.FindAll("jti").ToArray() ?? [];
                 if (ids.Length != 1 || roles.Length != 1 ||
+                    tokenIds.Length != 1 || !Guid.TryParseExact(tokenIds[0].Value, "N", out _) ||
                     string.IsNullOrWhiteSpace(ids[0].Value) ||
                     roles[0].Value is not ("User" or "Admin"))
                 {
@@ -88,7 +90,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var accounts = context.HttpContext.RequestServices.GetRequiredService<IUserAccountRepository>();
                 var user = await accounts.FindByIdAsync(ids[0].Value, context.HttpContext.RequestAborted);
                 if (user is null || user.IsLocked || user.Role.ToString() != roles[0].Value)
+                {
                     context.Fail("Account is unavailable or role has changed.");
+                    return;
+                }
+
+                var revokedTokens = context.HttpContext.RequestServices.GetRequiredService<IRevokedAccessTokenRepository>();
+                if (await revokedTokens.IsRevokedAsync(tokenIds[0].Value, context.HttpContext.RequestAborted))
+                    context.Fail("Token has been revoked.");
             }
         };
         options.TokenValidationParameters = new TokenValidationParameters
@@ -104,7 +113,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 : new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSigningKey)),
             NameClaimType = "sub",
             RoleClaimType = "role",
-            ClockSkew = TimeSpan.FromMinutes(1)
+            ClockSkew = TimeSpan.Zero
         };
     });
 builder.Services.AddAuthorization();

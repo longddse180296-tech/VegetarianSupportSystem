@@ -17,8 +17,9 @@ public static class InitialAdminSeeder
         var password = configuration["InitialAdmin:Password"];
         if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(email) ||
             !new EmailAddressAttribute().IsValid(email) ||
-            password is null || password.Length is < 12 or > 128)
-            throw new InvalidOperationException("InitialAdmin requires FullName, Email, and a 12-128 character Password from a secret source.");
+            password is null || password.Length is < 6 or > 128 ||
+            password.Any(char.IsWhiteSpace))
+            throw new InvalidOperationException("InitialAdmin requires FullName, Email, and a 6-128 character Password without whitespace from a secret source.");
 
         using var scope = services.CreateScope();
         var accounts = scope.ServiceProvider.GetRequiredService<IUserAccountRepository>();

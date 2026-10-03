@@ -26,6 +26,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAiChatRepository, AiChatRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddScoped<IRevokedAccessTokenRepository, RevokedAccessTokenRepository>();
         services.AddSingleton<IAccountPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IModerationRepository, ModerationRepository>();
         services.AddHttpClient<IGeminiService, GeminiService>(client =>
