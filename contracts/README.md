@@ -2,7 +2,7 @@
 
 FE và BE thống nhất endpoint, request/response, mã lỗi, phân trang, trạng thái xử lý và ví dụ trước khi triển khai một tính năng.
 
-Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường Development tại `/openapi/v1.json`. Không duy trì thêm một bản đặc tả thủ công cạnh tranh trong thư mục này. Hiện chưa tạo endpoint nghiệp vụ.
+Nguồn OpenAPI chính được sinh từ backend trong môi trường Development tại `/openapi/v1.json`. Không duy trì thêm một bản OpenAPI thủ công cạnh tranh trong thư mục này. Quy ước nghiệp vụ và tích hợp của Categories, Ingredients, Recipes được ghi tại [Core Data tuần 1](core-data.md).
 
 Phân biệt bắt buộc:
 
