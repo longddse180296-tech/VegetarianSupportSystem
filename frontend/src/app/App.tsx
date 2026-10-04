@@ -5,6 +5,10 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage'
 import { ProfilePage } from '../features/profile'
 import { MembersPage } from '../features/admin/members'
+import { PublicLayout } from './layouts/PublicLayout'
+import RecipeList from '../features/recipes/pages/RecipeList'
+import RecipeDetail from '../features/recipes/pages/RecipeDetail'
+import AiChatShell from '../features/ai-chat/AiChatShell'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -19,7 +23,7 @@ const getInitialPath = (): string => {
 
 const AppContent: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<string>(getInitialPath)
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
 
   // Sync route with URL hash so user can navigate directly
   useEffect(() => {
@@ -41,6 +45,24 @@ const AppContent: React.FC = () => {
   }
 
   const renderCurrentView = () => {
+    const isRecipeList = currentPath === '/recipes' || currentPath === 'recipes'
+    const isRecipeDetail = currentPath === '/recipes/r1'
+    const isAiChat = currentPath === '/ai-chat' || currentPath === 'aichat'
+
+    if (isRecipeList || isRecipeDetail || isAiChat) {
+      return (
+        <PublicLayout
+          activeNav={isAiChat ? 'ai-chat' : 'recipes'}
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          {isAiChat ? <AiChatShell /> : isRecipeDetail ? <RecipeDetail /> : <RecipeList />}
+        </PublicLayout>
+      )
+    }
+
     // Auth pages
     if (currentPath === '/auth/login' || (!user && currentPath === '/')) {
       return <LoginPage onNavigate={handleNavigate} />
