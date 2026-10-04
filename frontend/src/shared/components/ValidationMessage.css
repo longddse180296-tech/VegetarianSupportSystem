@@ -1,0 +1,16 @@
+.validation-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #dc2626;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.validation-message .validation-icon {
+  flex-shrink: 0;
+  display: flex;
+  margin-top: 1px;
+}
