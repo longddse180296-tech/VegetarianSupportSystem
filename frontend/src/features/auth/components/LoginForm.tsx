@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Info, AlertCircle } from 'lucide-react'
+import { ApiError } from '../../../shared/api/apiClient'
 import type { LoginCredentials } from '../types'
 
 interface LoginFormProps {
@@ -15,8 +16,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onNavigateToForgotPassword,
   isLoading = false,
 }) => {
-  const [email, setEmail] = useState('nguyen.an@example.com')
-  const [password, setPassword] = useState('Matkhau123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -49,9 +50,24 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     }
 
     try {
-      await onSubmit({ email, password, rememberMe })
+      await onSubmit({ email: email.trim(), password, rememberMe })
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setErrorMessage(err.title || 'Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.')
+        } else if (err.status === 400 && err.errors) {
+          const errorsMap: { email?: string; password?: string } = {}
+          for (const [key, msgs] of Object.entries(err.errors)) {
+            const lowerKey = key.toLowerCase()
+            if (lowerKey.includes('email')) errorsMap.email = msgs[0]
+            if (lowerKey.includes('password')) errorsMap.password = msgs[0]
+          }
+          setFieldErrors(errorsMap)
+          setErrorMessage(err.message || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.')
+        } else {
+          setErrorMessage(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.')
+        }
+      } else if (err instanceof Error) {
         setErrorMessage(err.message)
       } else {
         setErrorMessage('Đăng nhập thất bại. Vui lòng thử lại.')
@@ -198,7 +214,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </button>
       </div>
 
-      {/* System Error Guidelines Box (Matching Figma bottom box) */}
+      {/* System Error Guidelines Box */}
       <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-600 flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5 font-semibold text-slate-700">
           <Info className="w-3.5 h-3.5 text-slate-500" />
@@ -209,7 +225,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             • Email trống / sai định dạng: <span className="text-rose-600 font-medium">&ldquo;Email không hợp lệ.&rdquo;</span>
           </li>
           <li>
-            • Sai tài khoản: <span className="text-rose-600 font-medium">&ldquo;Email hoặc mật khẩu không chính xác.&rdquo;</span>
+            • Sai tài khoản / khóa: <span className="text-rose-600 font-medium">&ldquo;Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.&rdquo;</span>
           </li>
         </ul>
       </div>
