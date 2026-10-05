@@ -19,7 +19,10 @@ const INITIAL_STATE: RecipeDetailState = {
   status: 'loading',
 };
 
-const DEFAULT_RECIPE_ID = 'r1';
+interface RecipeDetailPageProps {
+  recipeId: string;
+  onNavigate?: (path: string) => void;
+}
 
 function InfoCell({ label, value }: { label: string; value: string }) {
   return (
@@ -30,37 +33,47 @@ function InfoCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function RecipeDetailPage() {
+export default function RecipeDetailPage({ recipeId, onNavigate }: RecipeDetailPageProps) {
   const [state, setState] = useState<RecipeDetailState>(INITIAL_STATE);
-  const cancelledRef = useRef(false);
+  const requestRef = useRef(0);
 
-  const load = useCallback(async (id: string) => {
-    setState((prev) => ({ ...prev, status: 'loading', errorMessage: undefined }));
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
+    if (onNavigate) {
+      e.preventDefault();
+      onNavigate(path);
+    }
+  };
+
+  const load = useCallback(async () => {
+    const request = ++requestRef.current;
+    setState({ data: null, status: 'loading' });
     try {
-      const data = await fetchRecipeDetail(id);
-      if (cancelledRef.current) return;
+      const data = await fetchRecipeDetail(recipeId);
+      if (request !== requestRef.current) return;
       setState({ data, status: 'success' });
     } catch (err) {
-      if (cancelledRef.current) return;
+      if (request !== requestRef.current) return;
       setState({
         data: null,
         status: 'error',
         errorMessage: err instanceof Error ? err.message : 'Không xác định',
       });
     }
-  }, []);
+  }, [recipeId]);
 
   useEffect(() => {
-    cancelledRef.current = false;
+    let cancelled = false;
+    window.scrollTo(0, 0);
     Promise.resolve().then(() => {
-      if (!cancelledRef.current) void load(DEFAULT_RECIPE_ID);
+      if (!cancelled) void load();
     });
     return () => {
-      cancelledRef.current = true;
+      cancelled = true;
+      requestRef.current += 1;
     };
   }, [load]);
 
-  const handleRetry = () => load(DEFAULT_RECIPE_ID);
+  const handleRetry = () => load();
 
   const isLoading = state.status === 'loading';
   const isError = state.status === 'error';
@@ -72,15 +85,15 @@ export default function RecipeDetailPage() {
         <nav className="breadcrumbs" aria-label="Breadcrumb">
           <ol className="breadcrumbs-list">
             <li className="breadcrumbs-item">
-              <a href="#home">Trang chủ</a>
+              <a href="#/" onClick={(e) => handleNavClick(e, '/')}>Trang chủ</a>
             </li>
             <li className="breadcrumbs-separator" aria-hidden="true">/</li>
             <li className="breadcrumbs-item">
-              <a href="#recipes">Công thức</a>
+              <a href="#/recipes" onClick={(e) => handleNavClick(e, '/recipes')}>Công thức</a>
             </li>
             <li className="breadcrumbs-separator" aria-hidden="true">/</li>
             <li className="breadcrumbs-item breadcrumbs-current" aria-current="page">
-              {hasData ? state.data?.name : 'Đậu hũ sốt nấm'}
+              {hasData ? state.data?.name : 'Chi tiết công thức'}
             </li>
           </ol>
         </nav>
@@ -105,8 +118,8 @@ export default function RecipeDetailPage() {
 
         {!isLoading && !isError && !hasData && (
           <EmptyState
-            title="Công thức không tồn tại"
-            description="Công thức bạn đang tìm kiếm có thể đã bị gỡ hoặc chưa được cập nhật. Vui lòng thử lại sau hoặc xem các công thức khác."
+            title="Chưa có dữ liệu chi tiết công thức"
+            description="Công thức này chưa được cập nhật hoặc không tồn tại. Dữ liệu mẫu hiện chỉ có chi tiết món Đậu hũ sốt nấm. Bạn có thể quay lại danh sách bằng liên kết Công thức phía trên."
           />
         )}
 
@@ -121,7 +134,7 @@ export default function RecipeDetailPage() {
                 />
               </div>
               <div className="recipe-hero-info">
-                <span className="recipe-hero-category-tag">Món chính</span>
+                <span className="recipe-hero-category-tag">{state.data.category}</span>
                 <h1 className="recipe-hero-title">{state.data.name}</h1>
                 <p className="recipe-hero-description">{state.data.description}</p>
                 <div className="recipe-info-grid" role="grid">

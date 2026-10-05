@@ -3,9 +3,18 @@ import './RecipeCard.css';
 
 interface RecipeCardProps {
   recipe: RecipeSummary;
+  onNavigate?: (path: string) => void;
 }
 
-export default function RecipeCard({ recipe }: RecipeCardProps) {
+export default function RecipeCard({ recipe, onNavigate }: RecipeCardProps) {
+  const detailPath = `/recipes/${encodeURIComponent(recipe.id)}`;
+
+  const handleViewClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (onNavigate) {
+      e.preventDefault();
+      onNavigate(detailPath);
+    }
+  };
   return (
     <article className="recipe-card" aria-label={`Công thức ${recipe.name}`}>
       <div className="recipe-card-image-wrap">
@@ -66,9 +75,9 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           </div>
           <span className="suitability-value">{recipe.suitabilityScore}%</span>
         </div>
-        <button type="button" className="recipe-card-btn">
+        <a href={`#${detailPath}`} className="recipe-card-btn" onClick={handleViewClick}>
           Xem công thức
-        </button>
+        </a>
       </div>
     </article>
   );

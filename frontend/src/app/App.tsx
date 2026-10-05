@@ -46,7 +46,16 @@ const AppContent: React.FC = () => {
 
   const renderCurrentView = () => {
     const isRecipeList = currentPath === '/recipes' || currentPath === 'recipes'
-    const isRecipeDetail = currentPath === '/recipes/r1'
+    const recipeMatch = currentPath.match(/^\/recipes\/([^/]+)\/?$/)
+    let recipeId: string | null = null
+    if (recipeMatch) {
+      try {
+        recipeId = decodeURIComponent(recipeMatch[1])
+      } catch {
+        recipeId = ''
+      }
+    }
+    const isRecipeDetail = recipeId !== null
     const isAiChat = currentPath === '/ai-chat' || currentPath === 'aichat'
 
     if (isRecipeList || isRecipeDetail || isAiChat) {
@@ -58,7 +67,9 @@ const AppContent: React.FC = () => {
           userName={user?.fullName}
           onLogout={() => { void logout() }}
         >
-          {isAiChat ? <AiChatShell /> : isRecipeDetail ? <RecipeDetail /> : <RecipeList />}
+          {isAiChat ? <AiChatShell /> : recipeId !== null ? (
+            <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={handleNavigate} />
+          ) : <RecipeList onNavigate={handleNavigate} />}
         </PublicLayout>
       )
     }

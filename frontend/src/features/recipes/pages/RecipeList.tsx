@@ -27,7 +27,11 @@ const INITIAL_STATE: RecipeListState = {
   status: 'loading',
 };
 
-export default function RecipeList() {
+interface RecipeListPageProps {
+  onNavigate?: (path: string) => void;
+}
+
+export default function RecipeList({ onNavigate }: RecipeListPageProps) {
   const [filters, setFilters] = useState<RecipeFilterValues>(DEFAULT_FILTER_VALUES);
   const [state, setState] = useState<RecipeListState>(INITIAL_STATE);
   const cancelledRef = useRef(false);
@@ -208,7 +212,7 @@ export default function RecipeList() {
             {!isLoading && !isError && state.items.length > 0 && (
               <div className="recipe-grid" aria-label="Danh sách công thức món chay">
                 {state.items.map((recipe) => (
-                  <RecipeCard key={recipe.id} recipe={recipe} />
+                  <RecipeCard key={recipe.id} recipe={recipe} onNavigate={onNavigate} />
                 ))}
               </div>
             )}

@@ -135,6 +135,9 @@
 }
 
 .recipe-card-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
   margin-top: auto;
   padding: 9px 12px;
   background: #eaf5ed;
