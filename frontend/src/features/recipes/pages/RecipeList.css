@@ -174,7 +174,97 @@
 
 .recipe-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
   width: 100%;
+}
+
+@media (max-width: 1080px) {
+  .recipe-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .recipe-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .recipe-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.recipe-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 6px;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: #6b8471;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pagination-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #3f5c47;
+  border: 1px solid #d8e8dc;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #eaf5ed;
+  color: #2f7a45;
+  border-color: #b9d9c1;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-btn.pagination-active {
+  background: #2f7a45;
+  color: #ffffff;
+  border-color: #2f7a45;
+  box-shadow: 0 2px 8px rgba(47, 122, 69, 0.2);
+}
+
+.pagination-btn.pagination-nav {
+  background: #f4faf5;
+  color: #4a6652;
+  font-size: 12px;
+}
+
+.pagination-ellipsis {
+  padding: 0 4px;
+  color: #8aa291;
+  font-weight: 700;
+  font-size: 12px;
 }

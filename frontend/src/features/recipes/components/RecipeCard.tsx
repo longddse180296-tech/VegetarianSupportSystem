@@ -15,6 +15,14 @@ export default function RecipeCard({ recipe, onNavigate }: RecipeCardProps) {
       onNavigate(detailPath);
     }
   };
+
+  const isFullVegan = recipe.suitableDiets.length >= 4 ||
+    recipe.suitableDiets.some((d) => d.startsWith('Thuần chay'));
+
+  const description = `Công thức ${recipe.name} dinh dưỡng, dễ làm, phù hợp ${recipe.suitableDiets
+    .slice(0, 2)
+    .join(', ')} và chế độ ăn lành mạnh tại nhà.`;
+
   return (
     <article className="recipe-card" aria-label={`Công thức ${recipe.name}`}>
       <div className="recipe-card-image-wrap">
@@ -48,24 +56,23 @@ export default function RecipeCard({ recipe, onNavigate }: RecipeCardProps) {
             {recipe.caloriesPerServing} kcal
           </span>
         </div>
+        {isFullVegan && (
+          <span className="badge badge-vegan" title="100% Thuần chay Vegan">
+            100% Vegan
+          </span>
+        )}
       </div>
       <div className="recipe-card-body">
         <span className="recipe-card-category">{recipe.category}</span>
         <h3 className="recipe-card-name" title={recipe.name}>
           {recipe.name}
         </h3>
-        <div className="recipe-card-suitability" aria-label={`Độ phù hợp ${recipe.suitabilityScore} phần trăm`}>
+        <p className="recipe-card-desc">
+          {description}
+        </p>
+        <div className="recipe-card-suitability" aria-label={`Tỷ lệ thực vật ${recipe.suitabilityScore} phần trăm`}>
           <div className="suitability-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 2l2.9 6.3L22 9.3l-5 4.7 1.3 7L12 17.8 5.7 21l1.3-7L2 9.3l7.1-1L12 2z"
-                fill="#e4c242"
-                stroke="#c6a232"
-                strokeWidth="1.2"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span>Độ phù hợp</span>
+            <span>Tỷ lệ thực vật</span>
           </div>
           <div className="suitability-bar" role="progressbar" aria-valuenow={recipe.suitabilityScore} aria-valuemin={0} aria-valuemax={100}>
             <div

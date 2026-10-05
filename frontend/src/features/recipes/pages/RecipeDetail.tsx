@@ -141,9 +141,9 @@ export default function RecipeDetailPage({ recipeId, onNavigate }: RecipeDetailP
                   <InfoCell label="Chuẩn bị" value={`${state.data.timing.prepMinutes} phút`} />
                   <InfoCell label="Thời gian nấu" value={`${state.data.timing.cookMinutes} phút`} />
                   <InfoCell label="Tổng thời gian" value={`${state.data.timing.totalMinutes} phút`} />
-                  <InfoCell label="Khẩu phần" value={state.data.servings} />
+                  <InfoCell label="Số người" value={state.data.servings} />
                   <InfoCell label="Năng lượng" value={`${state.data.caloriesPerServing} kcal`} />
-                  <InfoCell label="Độ khó" value={state.data.difficultyLabel} />
+                  <InfoCell label="Chất đạm (Protein)" value={`${state.data.nutrition.proteinG}g`} />
                 </div>
               </div>
             </section>
@@ -180,7 +180,6 @@ export default function RecipeDetailPage({ recipeId, onNavigate }: RecipeDetailP
                         {step.order}
                       </div>
                       <div className="steps-body">
-                        <div className="steps-title">{step.title}</div>
                         <p className="steps-description">{step.description}</p>
                       </div>
                     </li>

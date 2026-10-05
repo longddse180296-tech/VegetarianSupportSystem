@@ -430,24 +430,29 @@ function buildMockDetailFor(recipe: RecipeSummary): RecipeDetail {
 export async function fetchRecipeDetail(id: string): Promise<RecipeDetail | null> {
   if (!id.trim()) return null;
 
+  let usedMockFallback = false;
   try {
     const res = await fetch(`/api/recipes/${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: { Accept: 'application/json' },
     });
-    if (res.status === 404) return null;
     if (res.ok) {
       const data = (await res.json()) as RecipeDetail;
       return data;
     }
+    usedMockFallback = true;
   } catch {
-    // fallthrough to mock
+    usedMockFallback = true;
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  if (usedMockFallback) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-  if (id === MOCK_RECIPE_DETAIL.id) return MOCK_RECIPE_DETAIL;
-  const match = MOCK_RECIPES.find((r) => r.id === id);
-  if (match) return buildMockDetailFor(match);
+    if (id === MOCK_RECIPE_DETAIL.id) return MOCK_RECIPE_DETAIL;
+    const match = MOCK_RECIPES.find((r) => r.id === id);
+    if (match) return buildMockDetailFor(match);
+    return null;
+  }
+
   return null;
 }
