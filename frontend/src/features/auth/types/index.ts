@@ -6,7 +6,8 @@ export interface User {
   email: string
   role: UserRole
   avatarUrl?: string
-  createdAt: string
+  createdAt?: string
+  isLocked?: boolean
 }
 
 export interface LoginCredentials {
@@ -20,7 +21,7 @@ export interface RegisterPayload {
   email: string
   password: string
   confirmPassword: string
-  agreeTerms: boolean
+  agreeTerms?: boolean
 }
 
 export interface ForgotPasswordPayload {
@@ -28,12 +29,17 @@ export interface ForgotPasswordPayload {
 }
 
 export interface AuthResponse {
-  token: string
+  accessToken: string
+  tokenType: string
+  expiresAtUtc: string
   user: User
-  expiresAt: string
+  token?: string
+  expiresAt?: string
 }
 
 export interface ApiError {
   message: string
   field?: string
+  status?: number
+  errors?: Record<string, string[]>
 }

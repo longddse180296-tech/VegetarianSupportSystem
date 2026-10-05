@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react'
+import { ApiError } from '../../../shared/api/apiClient'
 import type { RegisterPayload } from '../types'
 
 interface RegisterFormProps {
@@ -23,11 +24,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   onNavigateToLogin,
   isLoading = false,
 }) => {
-  const [fullName, setFullName] = useState('Nguyễn Văn An')
-  const [email, setEmail] = useState('nguyen.an@example.com')
-  const [password, setPassword] = useState('Matkhau123')
-  const [confirmPassword, setConfirmPassword] = useState('Matkhau123')
-  const [agreeTerms, setAgreeTerms] = useState(true)
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [agreeTerms, setAgreeTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -36,23 +37,27 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const validate = (): boolean => {
     const errors: Record<string, string> = {}
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const trimmedName = fullName.trim()
+    const trimmedEmail = email.trim()
 
-    if (!fullName.trim()) {
+    if (!trimmedName) {
       errors.fullName = 'Họ tên không được để trống.'
+    } else if (trimmedName.length > 150) {
+      errors.fullName = 'Họ tên không vượt quá 150 ký tự.'
     }
 
-    if (!email.trim() || !emailRegex.test(email.trim())) {
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
       errors.email = 'Email không hợp lệ.'
+    } else if (trimmedEmail.length > 254) {
+      errors.email = 'Email không vượt quá 254 ký tự.'
     }
 
-    if (!password || password.length < 8) {
-      errors.password = 'Mật khẩu tối thiểu 8 ký tự.'
-    } else {
-      const hasLetter = /[a-zA-Z]/.test(password)
-      const hasNumber = /[0-9]/.test(password)
-      if (!hasLetter || !hasNumber) {
-        errors.password = 'Mật khẩu phải bao gồm cả chữ và số.'
-      }
+    if (!password) {
+      errors.password = 'Vui lòng nhập mật khẩu.'
+    } else if (password.length < 6 || password.length > 128) {
+      errors.password = 'Mật khẩu phải dài từ 6 đến 128 ký tự.'
+    } else if (/\s/.test(password)) {
+      errors.password = 'Mật khẩu không được chứa khoảng trắng.'
     }
 
     if (password !== confirmPassword) {
@@ -77,14 +82,38 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
     try {
       await onSubmit({
-        fullName,
-        email,
+        fullName: fullName.trim(),
+        email: email.trim(),
         password,
         confirmPassword,
         agreeTerms,
       })
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (err instanceof ApiError) {
+        if (err.status === 409) {
+          const msg = err.title || 'Email đã được đăng ký.'
+          setFieldErrors((prev) => ({ ...prev, email: msg }))
+          setErrorMessage(msg)
+        } else if (err.status === 400 && err.errors) {
+          const newFieldErrors: Record<string, string> = {}
+          for (const [key, msgs] of Object.entries(err.errors)) {
+            const lowerKey = key.toLowerCase()
+            if (lowerKey.includes('fullname') || lowerKey.includes('name')) {
+              newFieldErrors.fullName = msgs[0]
+            } else if (lowerKey.includes('email')) {
+              newFieldErrors.email = msgs[0]
+            } else if (lowerKey.includes('confirmpassword')) {
+              newFieldErrors.confirmPassword = msgs[0]
+            } else if (lowerKey.includes('password')) {
+              newFieldErrors.password = msgs[0]
+            }
+          }
+          setFieldErrors(newFieldErrors)
+          setErrorMessage(err.message || 'Thông tin đăng ký không hợp lệ.')
+        } else {
+          setErrorMessage(err.message || 'Đăng ký không thành công. Vui lòng thử lại.')
+        }
+      } else if (err instanceof Error) {
         setErrorMessage(err.message)
       } else {
         setErrorMessage('Đăng ký không thành công. Vui lòng thử lại.')
@@ -185,7 +214,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                 setPassword(e.target.value)
                 if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined })
               }}
-              placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
+              placeholder="Nhập mật khẩu (6–128 ký tự)"
               disabled={isLoading}
               className={`w-full pl-10 pr-10 py-2 text-sm rounded-lg border bg-white text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:cursor-not-allowed ${
                 fieldErrors.password
@@ -203,7 +232,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             </button>
           </div>
           <span className="text-[11px] text-slate-400">
-            Mật khẩu tối thiểu 8 ký tự, bao gồm chữ và số.
+            Mật khẩu dài 6–128 ký tự, không chứa khoảng trắng.
           </span>
           {fieldErrors.password && (
             <span className="text-xs text-rose-600 font-medium">{fieldErrors.password}</span>
@@ -314,9 +343,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           <span>Quy chuẩn xác thực hệ thống:</span>
         </div>
         <ul className="flex flex-col gap-1 pl-4 text-slate-600 text-[11px]">
-          <li>• Họ tên không được để trống</li>
+          <li>• Họ tên không được để trống (1–150 ký tự)</li>
           <li>• Email hợp lệ &amp; chưa tồn tại trên hệ thống</li>
-          <li>• Mật khẩu tối thiểu 8 ký tự &amp; xác nhận mật khẩu trùng khớp</li>
+          <li>• Mật khẩu dài 6–128 ký tự, không chứa khoảng trắng</li>
+          <li>• Mật khẩu xác nhận phải trùng khớp</li>
           <li>• Yêu cầu tích chọn đồng ý Điều khoản sử dụng</li>
         </ul>
       </div>

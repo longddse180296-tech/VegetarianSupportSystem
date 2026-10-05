@@ -6,10 +6,10 @@ export interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   isAdmin: boolean
-  login: (credentials: LoginCredentials) => Promise<void>
-  register: (payload: RegisterPayload) => Promise<void>
+  login: (credentials: LoginCredentials) => Promise<User>
+  register: (payload: RegisterPayload) => Promise<User>
   logout: () => Promise<void>
-  refreshUser: () => Promise<void>
+  refreshUser: () => Promise<User | null>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)

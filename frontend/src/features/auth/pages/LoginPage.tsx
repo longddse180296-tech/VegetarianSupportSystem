@@ -13,10 +13,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   const { login, isLoading, user } = useAuth()
 
   const handleLogin = async (credentials: LoginCredentials) => {
-    await login(credentials)
+    const loggedInUser = await login(credentials)
     if (onNavigate) {
-      // If user is Admin, navigate to /admin/members, else /profile
-      if (credentials.email.toLowerCase().includes('admin')) {
+      if (loggedInUser?.role === 'Admin') {
         onNavigate('/admin/members')
       } else {
         onNavigate('/profile')
