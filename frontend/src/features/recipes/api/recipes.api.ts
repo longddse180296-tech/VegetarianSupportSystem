@@ -367,12 +367,75 @@ const MOCK_RECIPE_DETAIL: RecipeDetail = {
   ],
 };
 
-export async function fetchRecipeDetail(id: string): Promise<RecipeDetail> {
+const DEFAULT_INGREDIENTS: RecipeDetail['ingredients'] = [
+  { name: 'Đậu hũ', amount: '220g' },
+  { name: 'Nấm', amount: '90g' },
+  { name: 'Cà rốt', amount: '40g' },
+  { name: 'Hạt tiêu trắng', amount: '20g' },
+  { name: 'Nước tương', amount: '2 muỗng canh' },
+  { name: 'Đường cát', amount: '1 muỗng cà phê' },
+  { name: 'Tỏi', amount: 'vừa đủ' },
+];
+
+const DEFAULT_STEPS: RecipeDetail['steps'] = [
+  { order: 1, title: 'Bước 1', description: 'Thái cà rốt hạt lựu, nấu nhuyễn cà chua mịn như dạ.' },
+  { order: 2, title: 'Bước 2', description: 'Phi thơm tỏi với dầu ăn nóng.' },
+  { order: 3, title: 'Bước 3', description: 'Áp chảo đậu hũ hai mặt vàng đều.' },
+  { order: 4, title: 'Bước 4', description: 'Cho nấm vào đảo đều đến chín tới.' },
+  { order: 5, title: 'Bước 5', description: 'Thêm nước tương, tiêu bột và đường vào.' },
+  { order: 6, title: 'Bước 6', description: 'Đun nhỏ lửa đến khi gia vị hòa quyện hoàn toàn.' },
+];
+
+function buildMockDetailFor(recipe: RecipeSummary): RecipeDetail {
+  const cookMinutes = recipe.cookTimeMinutes;
+  const prepMinutes = Math.max(5, Math.floor(cookMinutes / 3));
+  const totalMinutes = prepMinutes + cookMinutes;
+  const calories = recipe.caloriesPerServing;
+  const protein = Math.max(5, Math.floor(calories * 0.12 / 4));
+  const carbs = Math.max(15, Math.floor(calories * 0.5 / 4));
+  const fat = Math.max(5, Math.floor(calories * 0.3 / 9));
+
+  return {
+    id: recipe.id,
+    name: recipe.name,
+    category: recipe.category,
+    imageUrl: recipe.imageUrl,
+    description: `Công thức ${recipe.name} ngon miệng, dinh dưỡng, dễ thực hiện tại nhà với các nguyên liệu thuần chay quen thuộc.`,
+    servings: '2 khẩu phần (M)',
+    caloriesPerServing: calories,
+    suitableDietLabel:
+      recipe.suitableDiets.length >= 4
+        ? 'Mọi chế độ ăn'
+        : recipe.suitableDiets.join(', '),
+    difficultyLabel: cookMinutes <= 20 ? 'Dễ' : cookMinutes <= 40 ? 'Trung bình' : 'Khó',
+    timing: {
+      prepMinutes,
+      cookMinutes,
+      totalMinutes,
+    },
+    ingredients: DEFAULT_INGREDIENTS,
+    steps: DEFAULT_STEPS,
+    nutrition: {
+      caloriesKcal: calories,
+      proteinG: protein,
+      carbsG: carbs,
+      fatG: fat,
+    },
+    relatedArticles: MOCK_RECIPE_DETAIL.relatedArticles,
+    relatedVideos: MOCK_RECIPE_DETAIL.relatedVideos,
+    relatedRestaurants: MOCK_RECIPE_DETAIL.relatedRestaurants,
+  };
+}
+
+export async function fetchRecipeDetail(id: string): Promise<RecipeDetail | null> {
+  if (!id.trim()) return null;
+
   try {
     const res = await fetch(`/api/recipes/${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: { Accept: 'application/json' },
     });
+    if (res.status === 404) return null;
     if (res.ok) {
       const data = (await res.json()) as RecipeDetail;
       return data;
@@ -382,5 +445,9 @@ export async function fetchRecipeDetail(id: string): Promise<RecipeDetail> {
   }
 
   await new Promise((resolve) => setTimeout(resolve, 500));
-  return MOCK_RECIPE_DETAIL;
+
+  if (id === MOCK_RECIPE_DETAIL.id) return MOCK_RECIPE_DETAIL;
+  const match = MOCK_RECIPES.find((r) => r.id === id);
+  if (match) return buildMockDetailFor(match);
+  return null;
 }
