@@ -110,18 +110,13 @@ export default function RecipeList({ onNavigate }: RecipeListPageProps) {
       <header className="recipe-list-hero">
         <div className="hero-inner">
           <span className="hero-eyebrow" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2a4 4 0 0 1 4 4c0 2-1 3-2 4 2 1 4 2 4 5a7 7 0 1 1-14 0c0-3 2-4 4-5-1-1-2-2-2-4a4 4 0 0 1 6-3.46A4 4 0 0 1 12 2z"
-                fill="#2f7a45"
-              />
-            </svg>
-            Kho tàng định dưỡng thuần chay
+            <span aria-hidden="true" style={{ marginRight: 4 }}>🌱</span>
+            Hỗ trợ dining chay: Thuần chay (Vegan)
           </span>
           <h1 className="hero-title">Công thức món chay</h1>
           <p className="hero-subtitle">
-            Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày được tinh
-            chỉnh khoa học theo nhu cầu dinh dưỡng.
+            Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày
+            được tinh chỉnh khoa học theo nhu cầu dinh dưỡng.
           </p>
           <div className="hero-stats">
             <div className="stat-card">
@@ -210,11 +205,39 @@ export default function RecipeList({ onNavigate }: RecipeListPageProps) {
             )}
 
             {!isLoading && !isError && state.items.length > 0 && (
-              <div className="recipe-grid" aria-label="Danh sách công thức món chay">
-                {state.items.map((recipe) => (
-                  <RecipeCard key={recipe.id} recipe={recipe} onNavigate={onNavigate} />
-                ))}
-              </div>
+              <>
+                <div className="recipe-grid" aria-label="Danh sách công thức món chay">
+                  {state.items.map((recipe) => (
+                    <RecipeCard key={recipe.id} recipe={recipe} onNavigate={onNavigate} />
+                  ))}
+                </div>
+                <nav className="recipe-pagination" aria-label="Phân trang công thức">
+                  <div className="pagination-info">
+                    Đang hiển thị 1 - {state.items.length} trong tổng số {state.totalItems} công thức
+                  </div>
+                  <div className="pagination-controls">
+                    <button type="button" className="pagination-btn pagination-nav" disabled>
+                      &larr; Trước
+                    </button>
+                    <button type="button" className="pagination-btn pagination-active" aria-current="page">
+                      1
+                    </button>
+                    <button type="button" className="pagination-btn">
+                      2
+                    </button>
+                    <button type="button" className="pagination-btn">
+                      3
+                    </button>
+                    <span className="pagination-ellipsis" aria-hidden="true">...</span>
+                    <button type="button" className="pagination-btn">
+                      8
+                    </button>
+                    <button type="button" className="pagination-btn pagination-nav">
+                      Sau &rarr;
+                    </button>
+                  </div>
+                </nav>
+              </>
             )}
           </div>
         </section>
