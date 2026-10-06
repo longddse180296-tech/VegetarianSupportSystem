@@ -12,6 +12,8 @@ Hợp đồng xem/cập nhật hồ sơ cá nhân, dị ứng và thực phẩm 
 
 Hợp đồng danh sách, chi tiết và khóa/mở khóa thành viên Admin ở [admin-members.md](admin-members.md).
 
+Quy ước nghiệp vụ và tích hợp của Categories, Ingredients, Recipes được ghi tại [Core Data tuần 1](core-data.md). Không duy trì thêm một bản OpenAPI thủ công cạnh tranh trong thư mục này.
+
 Phân biệt bắt buộc:
 
 - Role: Guest (chưa đăng nhập), User, Admin.

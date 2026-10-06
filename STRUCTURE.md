@@ -1,5 +1,7 @@
 # Cấu trúc thư mục Vegetarian Support
 
+Core Data BE 2 đã triển khai: mỗi feature Categories/Ingredients/Recipes có thư mục `Dtos/` và các file Service/Validation/Mapping/Repository interface riêng. Repository implementation nằm tại `Infrastructure/Persistence/Repositories/`; quy tắc phân loại ở `Domain/Rules/`; seed ở `Persistence/Seeding/`. Kiểm thử nằm trong `backend/tests/IntegrationTests/`. Xem [bản đồ code và cách chạy](backend/CORE_DATA.md).
+
 Khung hiện tại dùng monorepo với frontend và backend tách thư mục. Backend theo Clean Architecture, dùng tên project ngắn để dễ nhìn trong Visual Studio: `Api`, `Application`, `Domain`, `Infrastructure`.
 
 Frontend hiện là app trắng có thể build/run bằng Vite. Backend có OpenAPI Development, EF Core SQL Server và nền Moderation/AiChat; các module MVP còn lại tiếp tục triển khai sau.
@@ -13,12 +15,9 @@ backend/Backend.sln
 backend/src/
 backend/src/Api/
 backend/src/Api/Authorization/
-backend/src/Api/Configuration/
 backend/src/Api/Controllers/
-backend/src/Api/Middleware/
 backend/src/Api/Properties/
 backend/src/Application/
-backend/src/Application/Abstractions/
 backend/src/Application/Common/
 backend/src/Application/Features/
 backend/src/Application/Features/Administration/

@@ -1,6 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useAuth } from '../../../auth/hooks/useAuth'
+import { getStoredToken } from '../../../../shared/api/apiClient'
 import {
-  ApiError, changeStatus, currentUser, getHistory, getMember, listMembers, login,
+  ApiError, changeStatus, currentUser, getHistory, getMember, listMembers,
   type MemberDetail, type MemberPage, type StatusPage,
 } from '../api/membersApi'
 import './members.css'
@@ -10,7 +12,8 @@ const date = (value: string) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit
 const dateTime = (value: string) => new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 
 export default function MembersPage() {
-  const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY) ?? '')
+  const { login: loginShared, logout: logoutShared } = useAuth()
+  const [token, setToken] = useState(() => getStoredToken() ?? sessionStorage.getItem(TOKEN_KEY) ?? '')
   const [admin, setAdmin] = useState<{ id: string; fullName: string } | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,14 +34,15 @@ export default function MembersPage() {
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
 
-  function signOut() {
+  const signOut = useCallback(() => {
     sessionStorage.removeItem(TOKEN_KEY)
+    void logoutShared()
     setToken('')
     setAdmin(null)
     setData(null)
     setMember(null)
     setSelectedId(null)
-  }
+  }, [logoutShared])
 
   useEffect(() => {
     if (!token) return
@@ -49,7 +53,7 @@ export default function MembersPage() {
       setAdmin({ id: user.id, fullName: user.fullName })
     }).catch(() => { if (active) { signOut(); setLoginError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.') } })
     return () => { active = false }
-  }, [token])
+  }, [token, signOut])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => { setPage(1); setSearch(searchInput) }, 300)
@@ -62,7 +66,7 @@ export default function MembersPage() {
     listMembers(token, search, status, page).then(result => { if (active) setData(result) })
       .catch((cause: unknown) => { if (active) { if (cause instanceof ApiError && cause.status === 401) signOut(); else setError(cause instanceof Error ? cause.message : 'Không tải được danh sách.') } })
     return () => { active = false }
-  }, [token, admin, search, status, page, refresh])
+  }, [token, admin, search, status, page, refresh, signOut])
 
   useEffect(() => {
     if (!selectedId || !token) return
@@ -78,10 +82,11 @@ export default function MembersPage() {
     setLoginError('')
     setLoginBusy(true)
     try {
-      const result = await login(email, password)
-      if (result.user.role !== 'Admin') { setLoginError('Tài khoản này không có quyền Admin.'); return }
-      sessionStorage.setItem(TOKEN_KEY, result.accessToken)
-      setToken(result.accessToken)
+      const user = await loginShared({ email, password })
+      if (user.role !== 'Admin') { signOut(); setLoginError('Tài khoản này không có quyền Admin.'); return }
+      const accessToken = getStoredToken()
+      if (!accessToken) throw new Error('Không lưu được phiên đăng nhập.')
+      setToken(accessToken)
       setPassword('')
     } catch (cause) { setLoginError(cause instanceof Error ? cause.message : 'Đăng nhập thất bại.') }
     finally { setLoginBusy(false) }

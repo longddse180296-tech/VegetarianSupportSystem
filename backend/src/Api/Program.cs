@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
+using Infrastructure.Persistence;
+using Infrastructure.Persistence.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -120,6 +122,20 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
+
+if (args.Contains("--seed-core-data", StringComparer.Ordinal))
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException("Sample data can only be seeded in Development.");
+    }
+
+    await using var scope = app.Services.CreateAsyncScope();
+    await CoreDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
+    app.Logger.LogInformation("Core Data sample seed completed.");
+    return;
+}
+
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
