@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../../../auth/hooks/useAuth'
 import { getStoredToken } from '../../../../shared/api/apiClient'
 import { AdminLayout } from '../../../../app/layouts/AdminLayout'
+import { MemberTable, type LiveMemberFilter } from '../components/MemberTable'
 import {
   ApiError, changeStatus, currentUser, getHistory, getMember, listMembers,
   type MemberDetail, type MemberPage, type StatusPage,
@@ -24,11 +25,11 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [loginBusy, setLoginBusy] = useState(false)
-  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
+  const [status, setStatus] = useState<LiveMemberFilter['status']>('all')
   const [page, setPage] = useState(1)
   const [data, setData] = useState<MemberPage | null>(null)
+  const [listLoading, setListLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [member, setMember] = useState<MemberDetail | null>(null)
   const [history, setHistory] = useState<StatusPage | null>(null)
@@ -61,15 +62,10 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
   }, [token, signOut])
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => { setPage(1); setSearch(searchInput) }, 300)
-    return () => window.clearTimeout(timeout)
-  }, [searchInput])
-
-  useEffect(() => {
     if (!token || !admin) return
     let active = true
-    listMembers(token, search, status, page).then(result => { if (active) setData(result) })
-      .catch((cause: unknown) => { if (active) { if (cause instanceof ApiError && cause.status === 401) signOut(); else setError(cause instanceof Error ? cause.message : 'Không tải được danh sách.') } })
+    listMembers(token, search, status, page).then(result => { if (active) { setData(result); setListLoading(false) } })
+      .catch((cause: unknown) => { if (active) { setListLoading(false); if (cause instanceof ApiError && cause.status === 401) signOut(); else setError(cause instanceof Error ? cause.message : 'Không tải được danh sách.') } })
     return () => { active = false }
   }, [token, admin, search, status, page, refresh, signOut])
 
@@ -111,6 +107,35 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     finally { setBusy(false) }
   }
 
+  function selectMember(id: string) {
+    setSelectedId(id)
+    setHistoryPage(1)
+    setMember(null)
+    setHistory(null)
+    setError('')
+  }
+
+  async function openStatusFromList(id: string) {
+    setError('')
+    try {
+      const detail = await getMember(token, id)
+      setMember(detail)
+      setReason('')
+      setAction(!detail.isLocked)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Không tải được thành viên.')
+    }
+  }
+
+  function changeFilter(filter: LiveMemberFilter) {
+    if (filter.search === search && filter.status === status && filter.page === page) return
+    setListLoading(true)
+    setSearch(filter.search)
+    setStatus(filter.status)
+    setPage(filter.page)
+    setError('')
+  }
+
   if (!token || !admin) return <main className="member-login-page"><form className="member-login" onSubmit={submitLogin}>
     <div className="brand-mark">✦</div><p className="eyebrow">VEGETARIAN SUPPORT · QUẢN TRỊ</p>
     <h1>Đăng nhập Admin</h1><p>Quản lý tài khoản thành viên và lịch sử khóa.</p>
@@ -120,8 +145,6 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     <button className="primary-button" disabled={loginBusy}>{loginBusy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
   </form></main>
 
-  const total = data ? data.activeCount + data.lockedCount : 0
-  const maxPage = Math.max(1, Math.ceil((data?.totalCount ?? 0) / 10))
   const maxHistoryPage = Math.max(1, Math.ceil((history?.totalCount ?? 0) / 10))
 
   return <AdminLayout
@@ -146,14 +169,20 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
             </section>
           </> : <p className="empty-state">Đang tải thành viên…</p>}
         </> : <>
-          <div className="page-heading"><div><p className="eyebrow">HỆ THỐNG QUẢN TRỊ</p><h1>Quản lý thành viên</h1><p>Tìm kiếm tài khoản, xem chi tiết và quản lý trạng thái truy cập.</p></div></div>
-          <div className="stats-grid"><div className="stat-card"><span className="stat-icon green">♙</span><span>Tổng tài khoản</span><strong>{total}</strong></div><div className="stat-card"><span className="stat-icon blue">✓</span><span>Đang hoạt động</span><strong>{data?.activeCount ?? '—'}</strong></div><div className="stat-card"><span className="stat-icon red">⌁</span><span>Đã khóa</span><strong>{data?.lockedCount ?? '—'}</strong></div></div>
-          <section className="list-panel"><div className="filters"><div className="search-box"><span>⌕</span><input aria-label="Tìm thành viên theo tên hoặc email" placeholder="Tìm theo tên hoặc email…" value={searchInput} onChange={event => setSearchInput(event.target.value)} /></div><div className="filter-tabs"><button className={status === 'all' ? 'chosen' : ''} onClick={() => { setStatus('all'); setPage(1) }}>Tất cả</button><button className={status === 'active' ? 'chosen' : ''} onClick={() => { setStatus('active'); setPage(1) }}>Hoạt động</button><button className={status === 'locked' ? 'chosen' : ''} onClick={() => { setStatus('locked'); setPage(1) }}>Bị khóa</button></div><span className="sort-label">Mới nhất ↓</span></div>
-            <div className="section-heading list-heading"><div><h2>Danh sách thành viên <span className="count-tag">{data?.totalCount ?? 0}</span></h2><p>Kết quả được phân trang từ hệ thống.</p></div></div>
-            <div className="table-scroll"><table><thead><tr><th>THÀNH VIÊN</th><th>EMAIL</th><th>NGÀY THAM GIA</th><th>VAI TRÒ</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead><tbody>{data?.items.map(item => <tr key={item.id}><td><div className="member-name"><span className="mini-avatar">{item.fullName.slice(0, 1).toUpperCase()}</span><strong>{item.fullName}</strong></div></td><td>{item.email}</td><td>{date(item.joinedAtUtc)}</td><td>{item.role}</td><td><span className={`status-pill ${item.isLocked ? 'locked' : 'active'}`}>{item.isLocked ? 'Bị khóa' : 'Hoạt động'}</span></td><td><button className="text-button" onClick={() => { setSelectedId(item.id); setHistoryPage(1); setMember(null); setHistory(null); setError('') }}>Xem chi tiết →</button></td></tr>)}</tbody></table></div>
-            {!data?.items.length && <p className="empty-state">Không tìm thấy thành viên phù hợp.</p>}
-            <div className="table-footer"><span>{data?.totalCount ? `Hiển thị ${(page - 1) * 10 + 1}–${Math.min(page * 10, data.totalCount)} trong ${data.totalCount} tài khoản` : '0 tài khoản'}</span><div className="pagination"><button disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Trước</button><span>{page} / {maxPage}</span><button disabled={page >= maxPage} onClick={() => setPage(value => value + 1)}>Sau</button></div></div>
-          </section>
+          <MemberTable
+            members={data?.items ?? []}
+            totalCount={data?.totalCount ?? 0}
+            activeCount={data?.activeCount ?? 0}
+            lockedCount={data?.lockedCount ?? 0}
+            currentPage={page}
+            pageSize={10}
+            currentAdminId={admin.id}
+            filter={{ search, status, page }}
+            onFilterChange={changeFilter}
+            onSelectMember={selectMember}
+            onRequestLockToggle={(item) => { void openStatusFromList(item.id) }}
+            isLoading={listLoading}
+          />
         </>}
         {error && <p className="form-error page-error" role="alert">{error}</p>}
       </div>
