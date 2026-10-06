@@ -20,6 +20,7 @@ interface AdminLayoutProps {
   adminName?: string
   adminEmail?: string
   onLogout?: () => void
+  availableNavIds?: string[]
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
@@ -31,6 +32,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   adminName = 'Quản trị viên Admin',
   adminEmail = 'admin@vegetariansup...',
   onLogout,
+  availableNavIds,
 }) => {
   const adminNavItems = [
     { id: 'dashboard', label: 'Tổng quan', path: '/admin/dashboard', icon: LayoutDashboard },
@@ -67,7 +69,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
           {/* Navigation Links */}
           <nav className="px-4 py-2 flex flex-col gap-1.5">
-            {adminNavItems.map((item) => {
+            {adminNavItems.filter((item) => !availableNavIds || availableNavIds.includes(item.id)).map((item) => {
               const Icon = item.icon
               const isActive = activeMenu === item.id
 
