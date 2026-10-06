@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../../../auth/hooks/useAuth'
 import { getStoredToken } from '../../../../shared/api/apiClient'
+import { AdminLayout } from '../../../../app/layouts/AdminLayout'
 import {
   ApiError, changeStatus, currentUser, getHistory, getMember, listMembers,
   type MemberDetail, type MemberPage, type StatusPage,
@@ -11,8 +12,12 @@ const TOKEN_KEY = 'vegetarian.admin.accessToken'
 const date = (value: string) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
 const dateTime = (value: string) => new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 
-export default function MembersPage() {
-  const { login: loginShared, logout: logoutShared } = useAuth()
+interface MembersPageProps {
+  onNavigate?: (path: string) => void
+}
+
+export default function MembersPage({ onNavigate }: MembersPageProps) {
+  const { user, login: loginShared, logout: logoutShared } = useAuth()
   const [token, setToken] = useState(() => getStoredToken() ?? sessionStorage.getItem(TOKEN_KEY) ?? '')
   const [admin, setAdmin] = useState<{ id: string; fullName: string } | null>(null)
   const [email, setEmail] = useState('')
@@ -119,15 +124,15 @@ export default function MembersPage() {
   const maxPage = Math.max(1, Math.ceil((data?.totalCount ?? 0) / 10))
   const maxHistoryPage = Math.max(1, Math.ceil((history?.totalCount ?? 0) / 10))
 
-  return <div className="admin-shell">
-    <aside className="admin-sidebar">
-      <div className="admin-brand"><span className="brand-mark">✦</span><span><strong>Vegetarian Support</strong><small>Hệ thống quản trị</small></span></div>
-      <p className="side-caption">ĐIỀU HƯỚNG</p>
-      <div className="side-current"><span>♙</span> Thành viên</div>
-      <div className="sidebar-bottom"><div className="admin-avatar">{admin.fullName.slice(0, 1).toUpperCase()}</div><span><strong>{admin.fullName}</strong><small>Quản trị viên</small></span><button onClick={signOut} title="Đăng xuất" aria-label="Đăng xuất">↪</button></div>
-    </aside>
-    <main className="admin-main">
-      <header className="admin-topbar"><span className="breadcrumb">Quản trị <span>/</span> Thành viên</span><div className="topbar-admin"><span className="online-dot" /> Hệ thống hoạt động <span className="topbar-divider" /> {admin.fullName}</div></header>
+  return <AdminLayout
+    activeMenu="members"
+    pageTitle={selectedId ? 'Chi tiết thành viên' : 'Quản lý thành viên'}
+    pageSubtitle="Tìm kiếm tài khoản, xem chi tiết và quản lý trạng thái truy cập."
+    adminName={admin.fullName}
+    adminEmail={user?.email ?? ''}
+    onNavigate={onNavigate}
+    onLogout={() => { signOut(); onNavigate?.('/auth/login') }}
+  >
       <div className="admin-content">
         {selectedId ? <>
           <div className="page-heading"><div><p className="eyebrow">QUẢN LÝ THÀNH VIÊN</p><h1>Chi tiết thành viên</h1><p>Thông tin tài khoản và lịch sử khóa/mở khóa.</p></div><button className="outline-button" onClick={() => { setSelectedId(null); setMember(null); setHistory(null); setError('') }}>← Quay lại danh sách</button></div>
@@ -152,7 +157,6 @@ export default function MembersPage() {
         </>}
         {error && <p className="form-error page-error" role="alert">{error}</p>}
       </div>
-    </main>
     {action !== null && member && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAction(null) }}><form className="status-modal" onSubmit={submitAction} role="dialog" aria-modal="true" aria-labelledby="status-title"><span className={`stat-icon ${action ? 'red' : 'green'}`}>{action ? '⌁' : '✓'}</span><h2 id="status-title">{action ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}</h2><p>{action ? 'Thành viên sẽ không thể đăng nhập hoặc dùng JWT hiện có.' : 'Thành viên sẽ có thể đăng nhập và truy cập lại.'}</p><strong>{member.fullName}</strong><label>Lý do {action ? 'khóa' : 'mở khóa'} <span>*</span><textarea value={reason} maxLength={1000} onChange={event => setReason(event.target.value)} placeholder="Nhập lý do cụ thể…" required /></label><div className="modal-actions"><button type="button" className="outline-button" onClick={() => setAction(null)}>Hủy</button><button className={action ? 'danger-button' : 'primary-button'} disabled={busy || !reason.trim()}>{busy ? 'Đang lưu…' : action ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}</button></div></form></div>}
-  </div>
+  </AdminLayout>
 }

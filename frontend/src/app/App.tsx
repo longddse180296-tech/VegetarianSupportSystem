@@ -89,7 +89,7 @@ const AppContent: React.FC = () => {
 
     // Admin section
     if (currentPath.startsWith('/admin')) {
-      return <MembersPage />
+      return <MembersPage onNavigate={handleNavigate} />
     }
 
     // User Section (e.g., /profile)
