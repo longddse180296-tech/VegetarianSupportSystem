@@ -9,7 +9,13 @@ import { PublicLayout } from './layouts/PublicLayout'
 import RecipeList from '../features/recipes/pages/RecipeList'
 import RecipeDetail from '../features/recipes/pages/RecipeDetail'
 import AiChatShell from '../features/ai-chat/AiChatShell'
-import { ArticleList, ArticleDetail } from '../features/articles'
+import {
+  ArticleList,
+  ArticleDetail,
+  MyArticlesPage,
+  MyCommentsPage,
+  ArticleEditorPage,
+} from '../features/articles'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -46,6 +52,32 @@ const AppContent: React.FC = () => {
   }
 
   const renderCurrentView = () => {
+    // Article Editor Routes
+    if (currentPath === '/articles/editor' || currentPath === 'articles/editor') {
+      return <ArticleEditorPage onNavigate={handleNavigate} />
+    }
+    const editorMatch = currentPath.match(/^\/articles\/editor\/([^/]+)\/?$/)
+    if (editorMatch) {
+      const editId = decodeURIComponent(editorMatch[1])
+      return <ArticleEditorPage articleId={editId} onNavigate={handleNavigate} />
+    }
+
+    // User Profile sub-routes
+    if (
+      currentPath === '/profile/my-articles' ||
+      currentPath === 'profile/my-articles' ||
+      currentPath === '/my-articles'
+    ) {
+      return <MyArticlesPage onNavigate={handleNavigate} />
+    }
+
+    if (
+      currentPath === '/profile/my-comments' ||
+      currentPath === 'profile/my-comments' ||
+      currentPath === '/my-comments'
+    ) {
+      return <MyCommentsPage onNavigate={handleNavigate} />
+    }
     // Articles Section
     const isArticleList = currentPath === '/articles' || currentPath === 'articles'
     const articleMatch = currentPath.match(/^\/articles\/([^/]+)\/?$/)

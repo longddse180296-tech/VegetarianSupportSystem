@@ -1,11 +1,15 @@
 import type {
   ArticleDetailDto,
   ArticleFilterParams,
+  ArticleFormData,
   ArticleSummary,
   PaginatedResult,
+  UserArticleItem,
+  UserCommentItem,
+  UserCommentSourceType,
 } from '../types/article.types'
 
-// Mock Database of Articles mirroring the Figma Mockup
+// Mock Database of Public Articles mirroring the Figma Mockup
 const MOCK_ARTICLES: ArticleSummary[] = [
   {
     id: 'art-1',
@@ -194,12 +198,10 @@ export const CATEGORIES = [
 
 /**
  * Fetch paginated list of public articles with search & category filters
- * (Pre-architected for real backend API: GET /api/articles)
  */
 export async function getArticles(
   params: ArticleFilterParams = {}
 ): Promise<PaginatedResult<ArticleSummary>> {
-  // Simulate network latency (800ms)
   await new Promise((resolve) => setTimeout(resolve, 800))
 
   let filtered = [...MOCK_ARTICLES]
@@ -250,7 +252,6 @@ export async function getFeaturedArticle(): Promise<ArticleSummary> {
 
 /**
  * Fetch article detail by ID or Slug
- * (Pre-architected for real backend API: GET /api/articles/{id})
  */
 export async function getArticleById(id: string): Promise<ArticleDetailDto> {
   await new Promise((resolve) => setTimeout(resolve, 900))
@@ -386,5 +387,423 @@ export async function toggleArticleLike(_articleId: string): Promise<boolean> {
  */
 export async function toggleArticleSave(_articleId: string): Promise<boolean> {
   await new Promise((resolve) => setTimeout(resolve, 400))
+  return true
+}
+
+// ==========================================
+// Phase 2: User Content Management Mock Data & APIs
+// ==========================================
+
+let MOCK_USER_ARTICLES: UserArticleItem[] = [
+  {
+    id: 'user-art-1',
+    title: 'Top 7 nguồn Protein thực vật hoàn hảo cho người mới ăn chay',
+    excerpt:
+      'Khám phá cách phối hợp Tempeh, hạt gai dầu, Edamame và đậu lăng để đảm bảo đủ axit amin thiết yếu mà không cần phụ thuộc vào đạm động vật.',
+    category: 'nutrition',
+    categoryLabel: 'Dinh dưỡng',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '10/10/2026',
+    updatedAt: '10/10/2026',
+    viewsCount: 1840,
+    likesCount: 48,
+    commentsCount: 15,
+  },
+  {
+    id: 'user-art-2',
+    title: 'Cách chuẩn bị Meal Prep chay tiện lợi cho cả tuần bận rộn',
+    excerpt:
+      'Giải pháp phân chia khẩu phần theo tỉ lệ vàng: 1/2 rau củ, 1/4 ngũ cốc nguyên cám và 1/4 protein thực vật, tiết kiệm tối đa 5 tiếng nấu nướng mỗi tuần.',
+    category: 'lifestyle',
+    categoryLabel: 'Lối sống',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '28/09/2026',
+    updatedAt: '28/09/2026',
+    viewsCount: 942,
+    likesCount: 35,
+    commentsCount: 12,
+  },
+  {
+    id: 'user-art-3',
+    title: '7 lợi ích của chế độ ăn chay đối với sức khỏe thể chất và tinh thần',
+    excerpt:
+      'Từ cải thiện hệ vi sinh đường ruột, ổn định chỉ số đường huyết đến việc nuôi dưỡng tâm an lạc qua góc nhìn y học lối sống hiện đại.',
+    category: 'health',
+    categoryLabel: 'Sức khỏe',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '15/09/2026',
+    updatedAt: '15/09/2026',
+    viewsCount: 3250,
+    likesCount: 62,
+    commentsCount: 24,
+  },
+  {
+    id: 'user-art-4',
+    title: 'Kinh nghiệm chọn nấm tươi ngon và bảo quản đúng cách',
+    excerpt:
+      'Mẹo nhận biết nấm hương, nấm bào ngư tự nhiên không qua xử lý hóa chất và kỹ thuật giữ nấm giòn ngọt suốt 7 ngày trong tủ mát...',
+    category: 'ingredients',
+    categoryLabel: 'Nguyên liệu',
+    status: 'draft',
+    statusLabel: 'Chưa xuất bản',
+    updatedAt: 'Cập nhật 2 ngày trước',
+    viewsCount: 0,
+    likesCount: 0,
+    commentsCount: 0,
+    completionRate: 65,
+  },
+  {
+    id: 'user-art-5',
+    title: 'Bí quyết nấu nước dùng phở chay trong veo từ rau củ quả ngọt lành',
+    excerpt:
+      'Hầm mía, củ cải trắng, lê và hành tây nướng cháy cạnh tạo nên vị ngọt thanh đậm đà không thua kém nước dùng truyền thống.',
+    category: 'cooking-tips',
+    categoryLabel: 'Mẹo nấu ăn',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '05/09/2026',
+    updatedAt: '05/09/2026',
+    viewsCount: 1520,
+    likesCount: 56,
+    commentsCount: 18,
+  },
+  {
+    id: 'user-art-6',
+    title: 'Lộ trình bổ sung vitamin B12 khoa học cho người ăn thuần chay',
+    excerpt:
+      'Hiểu rõ về liều lượng men dinh dưỡng (nutritional yeast) và viên uống bổ sung định kỳ theo khuyến cáo của hiệp hội dinh dưỡng Hoa Kỳ.',
+    category: 'nutrition',
+    categoryLabel: 'Dinh dưỡng',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '20/08/2026',
+    updatedAt: '20/08/2026',
+    viewsCount: 2110,
+    likesCount: 88,
+    commentsCount: 22,
+  },
+  {
+    id: 'user-art-7',
+    title: 'Cẩm nang đi chợ chay tiết kiệm: Mua gì, ở đâu và trữ thế nào?',
+    excerpt:
+      'Kinh nghiệm săn rau củ hữu cơ tươi ngon, các loại đậu hạt giá tốt tại chợ đầu mối và cách bảo quản hút chân không thông minh.',
+    category: 'experience',
+    categoryLabel: 'Kinh nghiệm',
+    status: 'draft',
+    statusLabel: 'Chưa xuất bản',
+    updatedAt: 'Cập nhật 5 ngày trước',
+    viewsCount: 0,
+    likesCount: 0,
+    commentsCount: 0,
+    completionRate: 40,
+  },
+  {
+    id: 'user-art-8',
+    title: 'Cách làm sữa chua đậu nành lên men tự nhiên mịn mượt không tách nước',
+    excerpt:
+      'Công thức đơn giản dùng men vi sinh thuần chay (probiotic) và sữa đậu nành nguyên chất thơm béo.',
+    category: 'cooking-tips',
+    categoryLabel: 'Mẹo nấu ăn',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '12/08/2026',
+    updatedAt: '12/08/2026',
+    viewsCount: 1780,
+    likesCount: 71,
+    commentsCount: 19,
+  },
+  {
+    id: 'user-art-9',
+    title: 'Sức mạnh của hạt chia và hạt lanh đối với trái tim người ăn chay',
+    excerpt:
+      'Nguồn Axit béo Omega-3 ALA từ thực vật giúp ổn định cholesterol và giảm mảng bám thành mạch máu.',
+    category: 'health',
+    categoryLabel: 'Sức khỏe',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '01/08/2026',
+    updatedAt: '01/08/2026',
+    viewsCount: 1340,
+    likesCount: 42,
+    commentsCount: 9,
+  },
+  {
+    id: 'user-art-10',
+    title: 'Thay thế trứng trong làm bánh ngọt thuần chay: 5 nguyên liệu kỳ diệu',
+    excerpt:
+      'Tận dụng nước đậu gà (aquafaba), chuối nghiền, sốt táo và hạt lanh xay để tạo độ bông xốp hoàn hảo cho bánh gato và muffin.',
+    category: 'cooking-tips',
+    categoryLabel: 'Mẹo nấu ăn',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '25/07/2026',
+    updatedAt: '25/07/2026',
+    viewsCount: 2460,
+    likesCount: 94,
+    commentsCount: 27,
+  },
+  {
+    id: 'user-art-11',
+    title: 'Ăn chay khi đi du lịch: Bí kíp sinh tồn và thưởng thức ẩm thực bản địa',
+    excerpt:
+      'Cách tra cứu quán chay địa phương, lưu câu thoại giao tiếp cơ bản và chuẩn bị đồ ăn nhẹ giàu năng lượng khi di chuyển.',
+    category: 'lifestyle',
+    categoryLabel: 'Lối sống',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '10/07/2026',
+    updatedAt: '10/07/2026',
+    viewsCount: 1650,
+    likesCount: 53,
+    commentsCount: 14,
+  },
+  {
+    id: 'user-art-12',
+    title: 'Giải mã cơn thèm thịt khi mới ăn chay và mẹo vượt qua dễ dàng',
+    excerpt:
+      'Tại sao cơ thể lại phát tín hiệu thèm thịt trong 2 tuần đầu và cách đánh lừa vị giác bằng nấm đùi gà xào sốt tiêu đen umami.',
+    category: 'experience',
+    categoryLabel: 'Kinh nghiệm',
+    status: 'published',
+    statusLabel: 'Đã xuất bản',
+    publishedAt: '01/07/2026',
+    updatedAt: '01/07/2026',
+    viewsCount: 2890,
+    likesCount: 110,
+    commentsCount: 31,
+  },
+]
+
+let MOCK_USER_COMMENTS: UserCommentItem[] = [
+  {
+    id: 'u-comm-1',
+    sourceType: 'recipe',
+    sourceLabel: 'Món Công thức',
+    targetTitle: 'Đậu hũ sốt nấm đậm đà thanh ngọt',
+    targetTypePrefix: 'Đã bình luận trên món ăn:',
+    createdAt: '2 giờ trước',
+    status: 'active',
+    likesCount: 8,
+    content:
+      '“Mình đã làm thử theo công thức này, nấm đông cô hòa quyện sốt rất thơm và đậm vị, cả nhà đều khen. Cảm ơn tác giả nhiều!”',
+  },
+  {
+    id: 'u-comm-2',
+    sourceType: 'article',
+    sourceLabel: 'Bài viết',
+    targetTitle: '7 lợi ích của chế độ ăn chay đối với sức khỏe & kiểm soát chỉ số BMI',
+    targetTypePrefix: 'Đã bình luận trên bài viết cẩm nang:',
+    createdAt: '2 ngày trước',
+    status: 'active',
+    likesCount: 15,
+    content:
+      '“Bài viết phân tích rất khoa học về việc chuyển đổi chế độ ăn mà không bị thiếu hụt vi chất B12 và đạm. Rất hữu ích cho người mới!”',
+  },
+  {
+    id: 'u-comm-3',
+    sourceType: 'video',
+    sourceLabel: 'Video',
+    targetTitle: 'Hướng dẫn làm sữa hạt điều mè đen thơm lừng sánh mịn tại nhà',
+    targetTypePrefix: 'Đã bình luận trên video ẩm thực:',
+    targetThumbnail:
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80',
+    createdAt: '5 ngày trước',
+    status: 'active',
+    likesCount: 5,
+    content:
+      '“Thời gian ngâm hạt điều bao lâu là chuẩn nhất vậy bạn? Mình ngâm 4 tiếng thấy xay rất mịn.”',
+    authorReply: {
+      authorName: 'Bếp Chay An Nhiên (Tác giả)',
+      roleBadge: 'Tác giả',
+      createdAt: '4 ngày trước',
+      content:
+        '“Chào bạn Minh Anh, hạt điều tươi ngâm từ 2 - 4 tiếng là chuẩn vị nhất! Nếu dùng nước ấm thì chỉ cần 1 tiếng là có thể xay mịn màng rồi.”',
+    },
+  },
+  {
+    id: 'u-comm-4',
+    sourceType: 'recipe',
+    sourceLabel: 'Món Công thức',
+    targetTitle: 'Bún Huế chay nước dùng củ quả thanh ngọt chuẩn vị Cố Đô',
+    targetTypePrefix: 'Đã bình luận trên món ăn:',
+    targetThumbnail:
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=200&q=80',
+    createdAt: '1 tuần trước',
+    status: 'active',
+    likesCount: 11,
+    content:
+      '“Nước dùng ngọt thanh tự nhiên từ củ cải và bắp ngọt, đúng chuẩn vị Huế!”',
+  },
+]
+
+/**
+ * Fetch list of articles owned by current user
+ */
+export async function getUserArticles(params: {
+  statusTab?: 'all' | 'published' | 'draft'
+  keyword?: string
+  sortBy?: 'newest' | 'views'
+  page?: number
+  pageSize?: number
+}): Promise<PaginatedResult<UserArticleItem>> {
+  await new Promise((resolve) => setTimeout(resolve, 700))
+
+  let list = [...MOCK_USER_ARTICLES]
+
+  if (params.statusTab && params.statusTab !== 'all') {
+    list = list.filter((a) => a.status === params.statusTab)
+  }
+
+  if (params.keyword?.trim()) {
+    const q = params.keyword.toLowerCase().trim()
+    list = list.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        a.excerpt.toLowerCase().includes(q) ||
+        a.categoryLabel.toLowerCase().includes(q)
+    )
+  }
+
+  const page = params.page || 1
+  const pageSize = params.pageSize || 4
+  const totalCount = list.length
+  const totalPages = Math.ceil(totalCount / pageSize) || 1
+  const startIndex = (page - 1) * pageSize
+  const items = list.slice(startIndex, startIndex + pageSize)
+
+  return {
+    items,
+    totalCount,
+    page,
+    pageSize,
+    totalPages,
+  }
+}
+
+/**
+ * Fetch comments created by current user
+ */
+export async function getUserComments(params: {
+  sourceType?: UserCommentSourceType
+  keyword?: string
+  sortBy?: 'newest' | 'likes'
+  page?: number
+  pageSize?: number
+}): Promise<PaginatedResult<UserCommentItem>> {
+  await new Promise((resolve) => setTimeout(resolve, 700))
+
+  let list = [...MOCK_USER_COMMENTS]
+
+  if (params.sourceType && params.sourceType !== 'all') {
+    list = list.filter((c) => c.sourceType === params.sourceType)
+  }
+
+  if (params.keyword?.trim()) {
+    const q = params.keyword.toLowerCase().trim()
+    list = list.filter(
+      (c) =>
+        c.content.toLowerCase().includes(q) ||
+        c.targetTitle.toLowerCase().includes(q)
+    )
+  }
+
+  const page = params.page || 1
+  const pageSize = params.pageSize || 4
+  const totalCount = list.length
+  const totalPages = Math.ceil(totalCount / pageSize) || 1
+  const startIndex = (page - 1) * pageSize
+  const items = list.slice(startIndex, startIndex + pageSize)
+
+  return {
+    items,
+    totalCount,
+    page,
+    pageSize,
+    totalPages,
+  }
+}
+
+/**
+ * Create a new user article
+ */
+export async function createUserArticle(data: ArticleFormData): Promise<UserArticleItem> {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+  const newArticle: UserArticleItem = {
+    id: `user-art-${Date.now()}`,
+    title: data.title,
+    excerpt: data.excerpt || data.content.slice(0, 150) + '...',
+    category: data.category,
+    categoryLabel: CATEGORIES.find((c) => c.id === data.category)?.label || 'Dinh dưỡng',
+    status: data.status,
+    statusLabel: data.status === 'published' ? 'Đã xuất bản' : 'Chưa xuất bản',
+    publishedAt: data.status === 'published' ? 'Hôm nay' : undefined,
+    updatedAt: 'Vừa xong',
+    viewsCount: 0,
+    likesCount: 0,
+    commentsCount: 0,
+    completionRate: data.status === 'draft' ? 70 : undefined,
+    thumbnailUrl: data.thumbnailUrl,
+  }
+  MOCK_USER_ARTICLES = [newArticle, ...MOCK_USER_ARTICLES]
+  return newArticle
+}
+
+/**
+ * Update an existing article
+ */
+export async function updateUserArticle(
+  id: string,
+  data: ArticleFormData
+): Promise<UserArticleItem> {
+  await new Promise((resolve) => setTimeout(resolve, 900))
+  const idx = MOCK_USER_ARTICLES.findIndex((a) => a.id === id)
+  if (idx === -1) {
+    throw new Error('Không tìm thấy bài viết để cập nhật')
+  }
+  const updated: UserArticleItem = {
+    ...MOCK_USER_ARTICLES[idx],
+    title: data.title,
+    excerpt: data.excerpt || data.content.slice(0, 150) + '...',
+    category: data.category,
+    categoryLabel: CATEGORIES.find((c) => c.id === data.category)?.label || 'Dinh dưỡng',
+    status: data.status,
+    statusLabel: data.status === 'published' ? 'Đã xuất bản' : 'Chưa xuất bản',
+    updatedAt: 'Hôm nay, vừa xong',
+    thumbnailUrl: data.thumbnailUrl || MOCK_USER_ARTICLES[idx].thumbnailUrl,
+  }
+  MOCK_USER_ARTICLES[idx] = updated
+  return updated
+}
+
+/**
+ * Delete a user article
+ */
+export async function deleteUserArticle(id: string): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  MOCK_USER_ARTICLES = MOCK_USER_ARTICLES.filter((a) => a.id !== id)
+  return true
+}
+
+/**
+ * Delete a user comment
+ */
+export async function deleteUserComment(id: string): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  MOCK_USER_COMMENTS = MOCK_USER_COMMENTS.filter((c) => c.id !== id)
+  return true
+}
+
+/**
+ * Update a user comment
+ */
+export async function updateUserComment(id: string, content: string): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  const target = MOCK_USER_COMMENTS.find((c) => c.id === id)
+  if (target) {
+    target.content = content
+  }
   return true
 }
