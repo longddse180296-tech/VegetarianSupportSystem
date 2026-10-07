@@ -158,3 +158,58 @@ export interface RecommendedMealPlanData {
   aiExplanation: string
 }
 
+// --- Personalization Setup Types (Phase 3) ---
+
+export type BiologicalGender = 'male' | 'female'
+export type ActivityLevel = 'sedentary' | 'moderate' | 'active'
+export type HealthGoal = 'maintain' | 'weight-loss' | 'muscle-gain' | 'detox'
+
+export interface PersonalizationFormValues {
+  gender: BiologicalGender
+  heightCm: number
+  weightKg: number
+  age: number
+  activityLevel: ActivityLevel
+  goal: HealthGoal
+  dietType: DietType
+  availableIngredients: string[]
+  allergens: string[]
+  preferences: string[]
+}
+
+export interface BmiAnalysisResult {
+  bmi: number
+  category: string
+  categoryClass: string
+  estimatedCalories: number
+  note: string
+}
+
+export interface GeneratedPersonalizedPlan {
+  formData: PersonalizationFormValues
+  bmiAnalysis: BmiAnalysisResult
+  dayPreview: DayPlanOption
+  dailyNutrition: {
+    calories: number
+    targetCalories: number
+    percentAchieved: number
+    micronutrientsNote: string
+    carbsGrams: number
+    targetCarbs: number
+    proteinGrams: number
+    targetProtein: number
+  }
+  weeklySummary: {
+    avgCalories: number
+    avgCaloriesNote: string
+    pantryUsedPercent: number
+    pantryUsedNote: string
+    goalMatchPercent: number
+    goalMatchNote: string
+    uniqueMealsCount: number
+    uniqueMealsNote: string
+    benefitNote: string
+  }
+}
+
+

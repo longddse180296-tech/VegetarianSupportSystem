@@ -258,7 +258,7 @@ export const RecommendedMealPlanPage: React.FC<RecommendedMealPlanPageProps> = (
           {/* 4. User Personalization Parameters Card */}
           <PersonalizationInfoCard
             info={planData.userInfo}
-            onEdit={() => onNavigate?.('/profile')}
+            onEdit={() => onNavigate?.('/meal-plans/setup')}
           />
 
           {/* 5. 7-Day Selector Tabs & Action Bar */}
@@ -267,7 +267,7 @@ export const RecommendedMealPlanPage: React.FC<RecommendedMealPlanPageProps> = (
             activeDay={activeDay}
             onSelectDay={handleSelectDay}
             onRegenerate={() => void handleRegenerate()}
-            onEditProfile={() => onNavigate?.('/profile')}
+            onEditProfile={() => onNavigate?.('/meal-plans/setup')}
             onSavePlan={() => void handleSavePlan()}
             isRegenerating={isRegenerating}
             isSaved={isSaved}

@@ -8,6 +8,9 @@ import type {
   RecommendedMealItem,
   MealReplacementOption,
   DayOfWeek,
+  PersonalizationFormValues,
+  BmiAnalysisResult,
+  GeneratedPersonalizedPlan,
 } from '../types/mealPlans.types'
 
 export const DIET_TABS: DietTabOption[] = [
@@ -811,4 +814,177 @@ export async function swapRecommendedMeal(
       'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
   }
 }
+
+// ==========================================
+// Phase 3: Personalization Setup Mock API
+// ==========================================
+
+export function calculateBmiAndCalories(
+  heightCm: number,
+  weightKg: number,
+  age: number,
+  gender: 'male' | 'female',
+  activityLevel: 'sedentary' | 'moderate' | 'active',
+  goal: 'maintain' | 'weight-loss' | 'muscle-gain' | 'detox'
+): BmiAnalysisResult {
+  const heightM = (heightCm || 170) / 100
+  const weight = weightKg || 65
+  const rawBmi = weight / (heightM * heightM)
+  const bmi = Math.round(rawBmi * 10) / 10
+
+  let category = 'Thể trạng bình thường'
+  let categoryClass = 'bg-[#EAF5EE] text-[#1E6531]'
+
+  if (bmi < 18.5) {
+    category = 'Thiếu cân'
+    categoryClass = 'bg-amber-50 text-amber-700'
+  } else if (bmi > 24.9) {
+    category = 'Thừa cân'
+    categoryClass = 'bg-rose-50 text-rose-700'
+  }
+
+  // Harris-Benedict BMR calculation approximation
+  let bmr =
+    gender === 'male'
+      ? 10 * weight + 6.25 * heightCm - 5 * (age || 28) + 5
+      : 10 * weight + 6.25 * heightCm - 5 * (age || 28) - 161
+
+  const activityMultiplier =
+    activityLevel === 'sedentary' ? 1.2 : activityLevel === 'moderate' ? 1.45 : 1.7
+  let tdee = Math.round(bmr * activityMultiplier)
+
+  if (goal === 'weight-loss') tdee -= 300
+  else if (goal === 'muscle-gain') tdee += 250
+  else if (goal === 'detox') tdee -= 150
+
+  const estimatedCalories = Math.max(1400, Math.min(2600, tdee))
+
+  return {
+    bmi,
+    category,
+    categoryClass,
+    estimatedCalories,
+    note: `Chỉ số BMI của bạn nằm trong mức hoàn toàn lý tưởng. Nhu cầu năng lượng ước tính: ${estimatedCalories.toLocaleString()} kcal/ngày.`,
+  }
+}
+
+export function getDefaultPersonalizationValues(): PersonalizationFormValues {
+  return {
+    gender: 'male',
+    heightCm: 170,
+    weightKg: 65,
+    age: 28,
+    activityLevel: 'moderate',
+    goal: 'maintain',
+    dietType: 'vegan',
+    availableIngredients: [
+      'Đậu hũ',
+      'Nấm hương',
+      'Yến mạch',
+      'Cà rốt',
+      'Gạo lứt đỏ',
+      'Đậu gà',
+    ],
+    allergens: ['Đậu phộng'],
+    preferences: ['Nhiều protein', 'Dưới 30 phút'],
+  }
+}
+
+export async function submitPersonalizationPreferences(
+  formData: PersonalizationFormValues
+): Promise<GeneratedPersonalizedPlan> {
+  await new Promise((resolve) => setTimeout(resolve, 800))
+
+  const analysis = calculateBmiAndCalories(
+    formData.heightCm,
+    formData.weightKg,
+    formData.age,
+    formData.gender,
+    formData.activityLevel,
+    formData.goal
+  )
+
+  return {
+    formData,
+    bmiAnalysis: analysis,
+    dayPreview: {
+      dayId: 'mon',
+      label: 'Thứ Hai',
+      calories: 1450,
+      meals: [
+        {
+          id: 'prev-1',
+          slot: 'breakfast',
+          slotTime: '07:00',
+          slotLabel: 'Bữa sáng',
+          categoryTag: 'Cơm / Món nước',
+          title: 'Yến mạch chuối, hạt chia và việt quất',
+          calories: 420,
+          protein: 16.5,
+          cookTimeMinutes: 15,
+          description:
+            'Bổ sung năng lượng ngay đầu ngày với yến mạch giàu chất xơ hòa tan, giúp no lâu và duy trì lượng đường huyết ổn định.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=600&auto=format&fit=crop&q=80',
+          recipeId: 'rec-1',
+        },
+        {
+          id: 'prev-2',
+          slot: 'lunch',
+          slotTime: '12:00',
+          slotLabel: 'Bữa trưa',
+          categoryTag: 'Trứng / Thay thế đậu',
+          title: 'Đậu hũ sốt nấm hương ăn kèm cơm gạo lứt',
+          isOptimal: true,
+          calories: 650,
+          protein: 24,
+          cookTimeMinutes: 25,
+          description:
+            'Nguồn đạm dồi dào từ đậu hũ non và nấm đông cô tươi, ăn cùng gạo lứt đỏ giàu khoáng chất giúp tiêu hóa nhẹ bụng.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80',
+          recipeId: 'rec-2',
+        },
+        {
+          id: 'prev-3',
+          slot: 'dinner',
+          slotTime: '18:30',
+          slotLabel: 'Bữa tối',
+          categoryTag: 'Thanh nhẹ, dễ ngủ',
+          title: 'Canh nấm dưỡng sinh và rau củ tươi',
+          calories: 450,
+          protein: 20,
+          cookTimeMinutes: 25,
+          description: 'Sự kết hợp hoàn hảo từ củ sen, ngô ngọt và các loại nấm tươi giúp thanh nhiệt cơ thể và có giấc ngủ sâu.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&auto=format&fit=crop&q=80',
+          recipeId: 'rec-3',
+        },
+      ],
+    },
+    dailyNutrition: {
+      calories: 1450,
+      targetCalories: 1820,
+      percentAchieved: 96,
+      micronutrientsNote: 'Đầy đủ: Vitamin B12, Sắt, Kẽm, Canxi',
+      carbsGrams: 185,
+      targetCarbs: 210,
+      proteinGrams: 62,
+      targetProtein: 65,
+    },
+    weeklySummary: {
+      avgCalories: 1480,
+      avgCaloriesNote: 'Chuẩn duy trì BMI',
+      pantryUsedPercent: 85,
+      pantryUsedNote: 'Giảm chi phí mua thêm',
+      goalMatchPercent: 98,
+      goalMatchNote: 'Theo tiêu chí ăn sạch',
+      uniqueMealsCount: 21,
+      uniqueMealsNote: 'Không trùng lặp',
+      benefitNote:
+        'Đặc quyền: Đã đầy đủ nhóm vitamin B12, kẽm và sắt hữu cơ không gây mệt mỏi (hỗ trợ đề xuất công thức).',
+    },
+  }
+}
+
 

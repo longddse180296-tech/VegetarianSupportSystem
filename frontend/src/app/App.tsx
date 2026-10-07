@@ -21,7 +21,11 @@ import {
   MyCommentsPage,
   ArticleEditorPage,
 } from '../features/articles'
-import { GeneralMealPlanPage, RecommendedMealPlanPage } from '../features/meal-plans'
+import {
+  GeneralMealPlanPage,
+  RecommendedMealPlanPage,
+  PersonalizationSetupPage,
+} from '../features/meal-plans'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -154,6 +158,23 @@ const AppContent: React.FC = () => {
     }
 
     // Meal plans route
+    if (
+      currentPath === '/meal-plans/setup' ||
+      currentPath === 'meal-plans/setup'
+    ) {
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <PersonalizationSetupPage onNavigate={handleNavigate} />
+        </PublicLayout>
+      )
+    }
+
     if (
       currentPath === '/meal-plans/recommended' ||
       currentPath === 'meal-plans/recommended'
