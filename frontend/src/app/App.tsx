@@ -11,6 +11,8 @@ import RecipeDetail from '../features/recipes/pages/RecipeDetail'
 import AiChatShell from '../features/ai-chat/AiChatShell'
 import FoodScanPage from '../features/food-scan/FoodScanPage'
 import RestaurantListPage from '../features/restaurants/RestaurantListPage'
+import PantryPage from '../features/pantry/PantryPage'
+import VideoList from '../features/videos/pages/VideoList'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -67,12 +69,29 @@ const AppContent: React.FC = () => {
       currentPath === '/restaurants' ||
       currentPath === 'restaurants' ||
       currentPath === 'nha-hang-chay'
+    const isPantry =
+      currentPath === '/pantry' ||
+      currentPath === 'pantry' ||
+      currentPath === 'tu-bep' ||
+      currentPath === 'tu-bep-ai'
+    const isVideoList =
+      currentPath === '/videos' ||
+      currentPath === '/video' ||
+      currentPath === 'videos' ||
+      currentPath === 'video' ||
+      currentPath.match(/^\/videos\/[^/]+\/?$/)
+    const isArticles =
+      currentPath === '/articles' ||
+      currentPath === 'articles'
 
-    if (isRecipeList || isRecipeDetail || isAiChat || isFoodScan || isRestaurants) {
+    if (isRecipeList || isRecipeDetail || isAiChat || isFoodScan || isRestaurants || isPantry || isVideoList || isArticles) {
       let activeNav = 'recipes'
       if (isAiChat) activeNav = 'ai-chat'
       else if (isFoodScan) activeNav = 'food-scan'
       else if (isRestaurants) activeNav = 'restaurants'
+      else if (isPantry) activeNav = 'pantry'
+      else if (isVideoList) activeNav = 'videos'
+      else if (isArticles) activeNav = 'articles'
       return (
         <PublicLayout
           activeNav={activeNav}
@@ -85,6 +104,10 @@ const AppContent: React.FC = () => {
             <AiChatShell />
           ) : isFoodScan ? (
             <FoodScanPage onNavigate={handleNavigate} />
+          ) : isPantry ? (
+            <PantryPage onNavigate={handleNavigate} />
+          ) : isVideoList ? (
+            <VideoList onNavigate={handleNavigate} />
           ) : isRestaurants ? (
             <RestaurantListPage onNavigate={handleNavigate} />
           ) : recipeId !== null ? (

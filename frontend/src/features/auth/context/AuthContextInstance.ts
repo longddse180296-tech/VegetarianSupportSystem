@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { User, LoginCredentials, RegisterPayload } from '../types'
+import type { User, LoginCredentials, RegisterPayload, ResetPasswordResult } from '../types'
 
 export interface AuthContextType {
   user: User | null
@@ -10,6 +10,7 @@ export interface AuthContextType {
   register: (payload: RegisterPayload) => Promise<User>
   logout: () => Promise<void>
   refreshUser: () => Promise<User | null>
+  resetPassword: (email: string) => Promise<ResetPasswordResult>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)

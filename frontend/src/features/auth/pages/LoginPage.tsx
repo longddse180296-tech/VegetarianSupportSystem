@@ -33,7 +33,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
 
   const onSubmit = async (v: LoginFormValues) => {
     try {
-      await login(v.email, v.password)
+      await login({ email: v.email, password: v.password, rememberMe: v.rememberMe })
       onNavigate?.('/recipes')
     } catch (err) {
       setError('root', { message: err instanceof Error ? err.message : 'Đăng nhập thất bại' })

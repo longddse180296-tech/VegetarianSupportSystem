@@ -109,6 +109,20 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
             </button>
             <button
               type="button"
+              onClick={() => handleNavClick('/pantry')}
+              className={`flex items-center gap-1.5 transition-colors py-1 focus:outline-none ${
+                activeNav === 'pantry'
+                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
+                  : 'text-slate-600 hover:text-emerald-600'
+              }`}
+            >
+              <span>Tủ bếp AI</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
+                Mới
+              </span>
+            </button>
+            <button
+              type="button"
               onClick={() => handleNavClick('/ai-chat')}
               className={`flex items-center gap-1.5 transition-colors py-1 focus:outline-none ${
                 activeNav === 'ai-chat'
@@ -269,6 +283,15 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                     Địa điểm nhà hàng chay
                   </button>
                 </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => handleNavClick('/pantry')}
+                    className="hover:text-emerald-600 transition-colors text-left"
+                  >
+                    Gợi ý món từ Tủ bếp AI
+                  </button>
+                </li>
               </ul>
             </div>
 
@@ -303,6 +326,15 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                     className="hover:text-emerald-600 transition-colors text-left"
                   >
                     Quét & Phân tích món ăn
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => handleNavClick('/pantry')}
+                    className="hover:text-emerald-600 transition-colors text-left"
+                  >
+                    Gợi ý món từ Tủ Bếp AI
                   </button>
                 </li>
                 <li>

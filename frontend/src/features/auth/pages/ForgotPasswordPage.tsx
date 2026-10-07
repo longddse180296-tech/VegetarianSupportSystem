@@ -21,7 +21,6 @@ export const ForgotPasswordPage: React.FC<Props> = ({ onNavigate }) => {
     register,
     handleSubmit,
     setError,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<Values>({ resolver: zodResolver(schema) })
 
@@ -30,8 +29,6 @@ export const ForgotPasswordPage: React.FC<Props> = ({ onNavigate }) => {
   const onSubmit = async (v: Values) => {
     try {
       const r = await resetPassword(v.email)
-      const generatedPass = 'Ch@y' + Math.random().toString(36).slice(2, 8)
-      setValue('newPassword', generatedPass)
       setSent({ email: v.email, tempToken: r.tempToken })
     } catch (err) {
       setError('root', { message: err instanceof Error ? err.message : 'Không thể gửi yêu cầu' })

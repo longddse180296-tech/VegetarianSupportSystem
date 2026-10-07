@@ -38,7 +38,14 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
   const onSubmit = async (v: RegisterValues) => {
     try {
-      await signup({ fullName: v.fullName, email: v.email, password: v.password, goal: v.goal })
+      await signup({
+        fullName: v.fullName,
+        email: v.email,
+        password: v.password,
+        confirmPassword: v.confirmPassword,
+        goal: v.goal,
+        agreeTerms: v.acceptTerms,
+      })
       onNavigate?.('/recipes')
     } catch (err) {
       setError('root', { message: err instanceof Error ? err.message : 'Không thể đăng ký' })

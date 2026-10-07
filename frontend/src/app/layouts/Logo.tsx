@@ -1,6 +1,6 @@
 import React from 'react'
 
-export const Logo: React.FC<{ iconSize?: 'sm' | 'md' | 'lg' }> = ({ iconSize = 'md' }) => {
+export const Logo: React.FC<{ iconSize?: 'sm' | 'md' | 'lg'; showText?: boolean }> = ({ iconSize = 'md', showText = true }) => {
   const dims = iconSize === 'sm' ? { w: 26, h: 26 } : iconSize === 'lg' ? { w: 48, h: 48 } : { w: 34, h: 34 }
   const titleCls = iconSize === 'sm' ? 'text-base' : iconSize === 'lg' ? 'text-2xl' : 'text-lg'
   return (
@@ -26,16 +26,18 @@ export const Logo: React.FC<{ iconSize?: 'sm' | 'md' | 'lg' }> = ({ iconSize = '
           />
         </svg>
       </div>
-      <div className="leading-tight">
-        <div className={`font-extrabold text-emerald-800 tracking-tight ${titleCls}`}>
-          Vegetarian Support
-        </div>
-        {iconSize !== 'sm' && (
-          <div className="text-[11px] text-emerald-700/80 font-semibold uppercase tracking-wider">
-            Nền tảng ẩm thực & dinh dưỡng thực vật
+      {showText && (
+        <div className="leading-tight">
+          <div className={`font-extrabold text-emerald-800 tracking-tight ${titleCls}`}>
+            Vegetarian Support
           </div>
-        )}
-      </div>
+          {iconSize !== 'sm' && (
+            <div className="text-[11px] text-emerald-700/80 font-semibold uppercase tracking-wider">
+              Nền tảng ẩm thực & dinh dưỡng thực vật
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

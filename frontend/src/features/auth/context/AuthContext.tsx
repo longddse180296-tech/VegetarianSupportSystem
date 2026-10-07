@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import type { User, LoginCredentials, RegisterPayload } from '../types'
+import type { User, LoginCredentials, RegisterPayload, ResetPasswordResult } from '../types'
 import { authApi, getStoredUser, getStoredToken } from '../api/authApi'
 import { AuthContext, type AuthContextType } from './AuthContextInstance'
+
+const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => getStoredUser<User>())
@@ -85,6 +87,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
+  const resetPassword = async (email: string): Promise<ResetPasswordResult> => {
+    if (!email) throw new Error('Vui lòng nhập email để khôi phục mật khẩu.')
+    setIsLoading(true)
+    try {
+      await delay(450)
+      const suggested =
+        'Ch@y' + Math.floor(100000 + Math.random() * 900000).toString(36)
+      return {
+        ok: true as const,
+        tempToken: 'reset-' + Math.random().toString(36).slice(2, 12),
+        suggestedPassword: suggested,
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -94,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     refreshUser,
+    resetPassword,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
