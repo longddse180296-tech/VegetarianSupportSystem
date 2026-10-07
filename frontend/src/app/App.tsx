@@ -9,6 +9,7 @@ import { PublicLayout } from './layouts/PublicLayout'
 import RecipeList from '../features/recipes/pages/RecipeList'
 import RecipeDetail from '../features/recipes/pages/RecipeDetail'
 import AiChatShell from '../features/ai-chat/AiChatShell'
+import { ArticleList, ArticleDetail } from '../features/articles'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -45,6 +46,46 @@ const AppContent: React.FC = () => {
   }
 
   const renderCurrentView = () => {
+    // Articles Section
+    const isArticleList = currentPath === '/articles' || currentPath === 'articles'
+    const articleMatch = currentPath.match(/^\/articles\/([^/]+)\/?$/)
+    let articleId: string | null = null
+    if (articleMatch) {
+      try {
+        articleId = decodeURIComponent(articleMatch[1])
+      } catch {
+        articleId = ''
+      }
+    }
+    const isArticleDetail = articleId !== null
+
+    if (isArticleList || isArticleDetail) {
+      return (
+        <PublicLayout
+          activeNav="articles"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          {articleId !== null ? (
+            <ArticleDetail
+              key={articleId}
+              articleId={articleId}
+              onBackToList={() => handleNavigate('/articles')}
+              onSelectRelatedArticle={(id) => handleNavigate(`/articles/${id}`)}
+            />
+          ) : (
+            <ArticleList
+              onSelectArticle={(id) => handleNavigate(`/articles/${id}`)}
+              onNavigateHome={() => handleNavigate('/recipes')}
+              onOpenAiChat={() => handleNavigate('/ai-chat')}
+            />
+          )}
+        </PublicLayout>
+      )
+    }
+
     const isRecipeList = currentPath === '/recipes' || currentPath === 'recipes'
     const recipeMatch = currentPath.match(/^\/recipes\/([^/]+)\/?$/)
     let recipeId: string | null = null
