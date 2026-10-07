@@ -11,6 +11,8 @@ import type {
   PersonalizationFormValues,
   BmiAnalysisResult,
   GeneratedPersonalizedPlan,
+  MyWeeklyMealItem,
+  MyWeeklyPlanData,
 } from '../types/mealPlans.types'
 
 export const DIET_TABS: DietTabOption[] = [
@@ -984,6 +986,604 @@ export async function submitPersonalizationPreferences(
       benefitNote:
         'Đặc quyền: Đã đầy đủ nhóm vitamin B12, kẽm và sắt hữu cơ không gây mệt mỏi (hỗ trợ đề xuất công thức).',
     },
+  }
+}
+
+// ==========================================
+// Phase 4: My Weekly Meal Plan (Thực đơn của bạn)
+// ==========================================
+
+export const MOCK_MY_WEEKLY_PLAN_DATA: MyWeeklyPlanData = {
+  weekRange: '20/10 - 26/10/2026',
+  activeDay: 'mon',
+  days: [
+    {
+      id: 'mon',
+      label: 'Thứ Hai',
+      dateStr: '20/10',
+      fullDate: 'Thứ Hai, 20/10/2026',
+      meals: [
+        {
+          id: 'wm-mon-bf',
+          slot: 'breakfast',
+          slotTime: '07:30',
+          slotLabel: 'Bữa sáng',
+          slotTag: 'Năng lượng sớm',
+          title: 'Yến mạch chuối và hạt',
+          description:
+            'Bột yến mạch ngâm mềm cùng chuối tiêu chín thơm, hạt chia, hạnh nhân lát và quả việt quất...',
+          imageUrl:
+            'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=600&auto=format&fit=crop&q=80',
+          calories: 380,
+          cookTimeMinutes: 15,
+          protein: 14,
+          recipeId: 'rec-bf-1',
+        },
+        {
+          id: 'wm-mon-lu',
+          slot: 'lunch',
+          slotTime: '12:00',
+          slotLabel: 'Bữa trưa',
+          slotTag: 'Giàu Protein',
+          title: 'Đậu hũ sốt nấm hương kèm cơm gạo lứt',
+          description:
+            'Đậu hũ non mềm ngấm đậm sốt nấm đậm đà, kết hợp cơm gạo lứt dẻo ngọt và rau cuộn...',
+          imageUrl:
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+          calories: 520,
+          cookTimeMinutes: 25,
+          protein: 32,
+          recipeId: 'rec-lu-1',
+        },
+        {
+          id: 'wm-mon-di',
+          slot: 'dinner',
+          slotTime: '18:45',
+          slotLabel: 'Bữa tối',
+          slotTag: 'Thanh nhẹ dễ ngủ',
+          title: 'Canh nấm dưỡng sinh và rau củ tươi',
+          description:
+            'Nước lẩu/canh nấm bào ngư, nấm đùi gà, bắp non và cà rốt giúp thanh nhiệt, dễ tiêu hóa...',
+          imageUrl:
+            'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&auto=format&fit=crop&q=80',
+          calories: 450,
+          cookTimeMinutes: 30,
+          protein: 22,
+          recipeId: 'rec-di-1',
+        },
+      ],
+    },
+    {
+      id: 'tue',
+      label: 'Thứ Ba',
+      dateStr: '21/10',
+      fullDate: 'Thứ Ba, 21/10/2026',
+      meals: [
+        {
+          id: 'wm-tue-bf',
+          slot: 'breakfast',
+          slotTime: '07:30',
+          slotLabel: 'Bữa sáng',
+          slotTag: 'Năng lượng sớm',
+          title: 'Sinh tố bơ hạt chia & bánh mì nguyên cám',
+          description:
+            'Sinh tố bơ sáp béo ngậy xay cùng sữa đậu nành không đường, ăn kèm bánh mì ngũ cốc nướng giòn.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80',
+          calories: 390,
+          cookTimeMinutes: 10,
+          protein: 12,
+          recipeId: 'rec-bf-2',
+        },
+        {
+          id: 'wm-tue-lu',
+          slot: 'lunch',
+          slotTime: '12:00',
+          slotLabel: 'Bữa trưa',
+          slotTag: 'Giàu Protein',
+          title: 'Salad quinoa đậu gà sốt mè rang',
+          description:
+            'Hạt quinoa nấu chín trộn cùng đậu gà luộc mềm, xà lách romaine tươi giòn và sốt mè rang thơm lừng.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop&q=80',
+          calories: 510,
+          cookTimeMinutes: 20,
+          protein: 26,
+          recipeId: 'rec-lu-2',
+        },
+        {
+          id: 'wm-tue-di',
+          slot: 'dinner',
+          slotTime: '18:45',
+          slotLabel: 'Bữa tối',
+          slotTag: 'Thanh nhẹ dễ ngủ',
+          title: 'Cà ri rau củ nước cốt dừa kèm bún gạo',
+          description:
+            'Khoai lang, đậu cove và cà rốt hầm trong nước sốt cà ri thơm ngậy vị dừa thanh nhẹ, ấm bụng về đêm.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+          calories: 440,
+          cookTimeMinutes: 30,
+          protein: 18,
+          recipeId: 'rec-di-2',
+        },
+      ],
+    },
+    {
+      id: 'wed',
+      label: 'Thứ Tư',
+      dateStr: '22/10',
+      fullDate: 'Thứ Tư, 22/10/2026',
+      meals: [
+        {
+          id: 'wm-wed-bf',
+          slot: 'breakfast',
+          slotTime: '07:30',
+          slotLabel: 'Bữa sáng',
+          slotTag: 'Năng lượng sớm',
+          title: 'Cháo yến mạch nấm rơm hạt sen',
+          description:
+            'Cháo yến mạch ninh mềm cùng hạt sen bùi thơm và nấm rơm tươi ngọt, rắc tiêu và hành bo-rô.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1509722747041-616f39b57569?w=600&auto=format&fit=crop&q=80',
+          calories: 360,
+          cookTimeMinutes: 20,
+          protein: 15,
+          recipeId: 'rec-bf-3',
+        },
+        {
+          id: 'wm-wed-lu',
+          slot: 'lunch',
+          slotTime: '12:00',
+          slotLabel: 'Bữa trưa',
+          slotTag: 'Giàu Protein',
+          title: 'Cơm tấm sườn nấm chay & chả tàu hũ ky',
+          description:
+            'Sườn non chay ướp sốt sả nướng vàng óng, ăn kèm chả hấp mộc nhĩ và chén canh rong biển nóng hổi.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&auto=format&fit=crop&q=80',
+          calories: 530,
+          cookTimeMinutes: 35,
+          protein: 28,
+          recipeId: 'rec-lu-3',
+        },
+        {
+          id: 'wm-wed-di',
+          slot: 'dinner',
+          slotTime: '18:45',
+          slotLabel: 'Bữa tối',
+          slotTag: 'Thanh nhẹ dễ ngủ',
+          title: 'Canh chua rong biển đậu hũ & nấm bào ngư',
+          description:
+            'Vị chua thanh mát từ cà chua và dứa, đậu non mềm tan trong miệng kết hợp nấm ngọt đậm đà.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&auto=format&fit=crop&q=80',
+          calories: 410,
+          cookTimeMinutes: 25,
+          protein: 19,
+          recipeId: 'rec-di-3',
+        },
+      ],
+    },
+    {
+      id: 'thu',
+      label: 'Thứ Năm',
+      dateStr: '23/10',
+      fullDate: 'Thứ Năm, 23/10/2026',
+      meals: [
+        {
+          id: 'wm-thu-bf',
+          slot: 'breakfast',
+          slotTime: '07:30',
+          slotLabel: 'Bữa sáng',
+          slotTag: 'Năng lượng sớm',
+          title: 'Bánh mì bơ tươi quả bơ & hạt mè đen',
+          description:
+            'Bánh mì bột chua phết bơ sáp béo mịn, rắc hạt mè đen rang thơm và chút muối hồng Himalaya.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop&q=80',
+          calories: 370,
+          cookTimeMinutes: 15,
+          protein: 14,
+          recipeId: 'rec-bf-4',
+        },
+        {
+          id: 'wm-thu-lu',
+          slot: 'lunch',
+          slotTime: '12:00',
+          slotLabel: 'Bữa trưa',
+          slotTag: 'Giàu Protein',
+          title: 'Bún chả nấm ngũ vị sốt đậu phộng',
+          description:
+            'Chả nấm đùi gà cuộn lá lốt nướng xém cạnh, ăn cùng bún tươi lá sen và rau ghém thơm mát.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+          calories: 500,
+          cookTimeMinutes: 30,
+          protein: 25,
+          recipeId: 'rec-lu-4',
+        },
+        {
+          id: 'wm-thu-di',
+          slot: 'dinner',
+          slotTime: '18:45',
+          slotLabel: 'Bữa tối',
+          slotTag: 'Thanh nhẹ dễ ngủ',
+          title: 'Súp bí đỏ kem hạt điều bơ tỏi',
+          description:
+            'Bí đỏ hồ lô xay nhuyễn sánh mịn cùng sữa hạt điều béo thơm, xoa dịu tiêu hóa trước giờ nghỉ ngơi.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&auto=format&fit=crop&q=80',
+          calories: 420,
+          cookTimeMinutes: 25,
+          protein: 16,
+          recipeId: 'rec-di-4',
+        },
+      ],
+    },
+    {
+      id: 'fri',
+      label: 'Thứ Sáu',
+      dateStr: '24/10',
+      fullDate: 'Thứ Sáu, 24/10/2026',
+      meals: [
+        {
+          id: 'wm-fri-bf',
+          slot: 'breakfast',
+          slotTime: '07:30',
+          slotLabel: 'Bữa sáng',
+          slotTag: 'Năng lượng sớm',
+          title: 'Bát acai berry mix hạt óc chó và granola',
+          description:
+            'Sinh tố acai quả mọng mát lạnh rắc granola hạnh nhân giòn rụm và chuối thái lát bổ dưỡng.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=600&auto=format&fit=crop&q=80',
+          calories: 395,
+          cookTimeMinutes: 10,
+          protein: 13,
+          recipeId: 'rec-bf-5',
+        },
+        {
+          id: 'wm-fri-lu',
+          slot: 'lunch',
+          slotTime: '12:00',
+          slotLabel: 'Bữa trưa',
+          slotTag: 'Giàu Protein',
+          title: 'Mì ý sốt pesto húng quế & nấm áp chảo',
+          description:
+            'Mì ý nguyên cám sốt húng quế hạt thông thơm nồng, dùng kèm nấm mỡ áp chảo xì dầu tỏi thơm lừng.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&auto=format&fit=crop&q=80',
+          calories: 540,
+          cookTimeMinutes: 25,
+          protein: 24,
+          recipeId: 'rec-lu-5',
+        },
+        {
+          id: 'wm-fri-di',
+          slot: 'dinner',
+          slotTime: '18:45',
+          slotLabel: 'Bữa tối',
+          slotTag: 'Thanh nhẹ dễ ngủ',
+          title: 'Lẩu nấm mini thanh đạm bún tươi',
+          description:
+            'Nước dùng củ quả ninh trong vắt, đa dạng nấm kim châm, nấm hương tươi và rau cải mầm non tươi.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&auto=format&fit=crop&q=80',
+          calories: 460,
+          cookTimeMinutes: 35,
+          protein: 21,
+          recipeId: 'rec-di-5',
+        },
+      ],
+    },
+    {
+      id: 'sat',
+      label: 'Thứ Bảy',
+      dateStr: '25/10',
+      fullDate: 'Thứ Bảy, 25/10/2026',
+      meals: [
+        {
+          id: 'wm-sat-bf',
+          slot: 'breakfast',
+          slotTime: '07:30',
+          slotLabel: 'Bữa sáng',
+          slotTag: 'Năng lượng sớm',
+          title: 'Pancake yến mạch chuối mật ong rừng',
+          description:
+            'Bánh pancake mềm xốp làm từ bột yến mạch và chuối chín, phủ một chút siro cây phong nguyên chất.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80',
+          calories: 410,
+          cookTimeMinutes: 20,
+          protein: 16,
+          recipeId: 'rec-bf-6',
+        },
+        {
+          id: 'wm-sat-lu',
+          slot: 'lunch',
+          slotTime: '12:00',
+          slotLabel: 'Bữa trưa',
+          slotTag: 'Giàu Protein',
+          title: 'Pad Thái chay sợi gạo lứt đậu hũ vàng',
+          description:
+            'Hủ tiếu gạo lứt xào giòn cùng đậu hũ chiên vàng, giá đỗ tươi và sốt me chua cay mặn ngọt truyền thống.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80',
+          calories: 530,
+          cookTimeMinutes: 30,
+          protein: 27,
+          recipeId: 'rec-lu-6',
+        },
+        {
+          id: 'wm-sat-di',
+          slot: 'dinner',
+          slotTime: '18:45',
+          slotLabel: 'Bữa tối',
+          slotTag: 'Thanh nhẹ dễ ngủ',
+          title: 'Gỏi cuốn nấm tai mèo sốt tương đậu',
+          description:
+            'Bánh tráng cuốn nấm xào thơm, bún sợi và các loại rau húng lủi thanh mát chấm sốt tương đậu bùi ngậy.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+          calories: 400,
+          cookTimeMinutes: 20,
+          protein: 18,
+          recipeId: 'rec-di-6',
+        },
+      ],
+    },
+    {
+      id: 'sun',
+      label: 'Chủ Nhật',
+      dateStr: '26/10',
+      fullDate: 'Chủ Nhật, 26/10/2026',
+      meals: [
+        {
+          id: 'wm-sun-bf',
+          slot: 'breakfast',
+          slotTime: '07:30',
+          slotLabel: 'Bữa sáng',
+          slotTag: 'Năng lượng sớm',
+          title: 'Bánh bao ngũ cốc nấm đùi gà xá xíu',
+          description:
+            'Vỏ bánh mềm xốp từ bột mì nguyên cám, nhân nấm đùi gà xào sốt xá xíu chay cay nhẹ đậm vị.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1509722747041-616f39b57569?w=600&auto=format&fit=crop&q=80',
+          calories: 360,
+          cookTimeMinutes: 15,
+          protein: 15,
+          recipeId: 'rec-bf-7',
+        },
+        {
+          id: 'wm-sun-lu',
+          slot: 'lunch',
+          slotTime: '12:00',
+          slotLabel: 'Bữa trưa',
+          slotTag: 'Giàu Protein',
+          title: 'Cơm chiên hạt sen thập cẩm xá xíu chay',
+          description:
+            'Cơm gạo huyết rồng chiên ráo dầu với hạt sen bùi ngậy, đậu cô-ve xanh giòn và nấm đông cô thơm phức.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&auto=format&fit=crop&q=80',
+          calories: 510,
+          cookTimeMinutes: 25,
+          protein: 23,
+          recipeId: 'rec-lu-7',
+        },
+        {
+          id: 'wm-sun-di',
+          slot: 'dinner',
+          slotTime: '18:45',
+          slotLabel: 'Bữa tối',
+          slotTag: 'Thanh nhẹ dễ ngủ',
+          title: 'Canh rong biển đậu non táo đỏ kỷ tử',
+          description:
+            'Món canh an thần dưỡng sắc với đậu hũ non mềm mượt, rong biển wakame và vị ngọt tự nhiên từ táo đỏ.',
+          imageUrl:
+            'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&auto=format&fit=crop&q=80',
+          calories: 390,
+          cookTimeMinutes: 25,
+          protein: 17,
+          recipeId: 'rec-di-7',
+        },
+      ],
+    },
+  ],
+  bmiMetrics: [
+    {
+      id: 'bmi-1',
+      label: 'Calo tham chiếu / ngày',
+      value: '1.480 kcal',
+      subtitle: 'Mức năng lượng phù hợp chỉ số BMI của bạn',
+      type: 'calories',
+      statusBadge: 'Tối ưu',
+    },
+    {
+      id: 'bmi-2',
+      label: 'Protein thực vật',
+      value: '68g / ngày',
+      subtitle: 'Mục tiêu: 65g • Đạt chuẩn',
+      type: 'protein',
+      statusBadge: 'Đạt chuẩn',
+    },
+    {
+      id: 'bmi-3',
+      label: 'Carbohydrate phức',
+      value: '195g / ngày',
+      subtitle: 'Tinh bột tiêu hóa chậm',
+      type: 'carbs',
+      statusBadge: 'Cân bằng',
+    },
+    {
+      id: 'bmi-4',
+      label: 'Chất béo tốt',
+      value: '42g / ngày',
+      subtitle: 'Omega-3 & hạt dinh dưỡng',
+      type: 'fat',
+      statusBadge: 'Tốt cho tim',
+    },
+    {
+      id: 'bmi-5',
+      label: 'Tủ bếp tối ưu',
+      value: '85%',
+      subtitle: 'Giảm thiểu lãng phí',
+      type: 'pantry',
+      statusBadge: 'Tiết kiệm',
+    },
+  ],
+  savedPlans: [
+    {
+      id: 'sp-1',
+      goal: 'maintain',
+      goalLabel: 'Duy trì cân nặng',
+      goalTagColor: 'emerald',
+      savedDate: '01/09/2026',
+      title: 'Thực đơn tuần 01/09 - 07/09',
+      description:
+        'Kế hoạch năng lượng ổn định, tập trung các món canh mát và ngũ cốc nguyên hạt cho ngày làm việc văn phòng.',
+      daysCount: 7,
+      mealsCount: 21,
+      highlightStat: '1.450 kcal/ngày',
+    },
+    {
+      id: 'sp-2',
+      goal: 'muscle-gain',
+      goalLabel: 'Tăng cơ & thể lực',
+      goalTagColor: 'teal',
+      savedDate: '15/09/2026',
+      title: 'Thực đơn giàu Protein thuần chay',
+      description:
+        'Tối ưu đạm từ tempeh, đậu gà, hạt gai dầu và đậu nành không biến đổi gen cho người tập thể thao.',
+      daysCount: 7,
+      mealsCount: 21,
+      highlightStat: '75g Đạm/ngày',
+    },
+    {
+      id: 'sp-3',
+      goal: 'weight-loss',
+      goalLabel: 'Giảm cân khoa học',
+      goalTagColor: 'blue',
+      savedDate: '28/09/2026',
+      title: 'Thực đơn thanh lọc & ít calo',
+      description:
+        'Tạo thâm hụt calo tự nhiên, tăng cường rau củ giàu chất xơ hòa tan giúp thanh nhẹ dạ dày và no lâu.',
+      daysCount: 7,
+      mealsCount: 21,
+      highlightStat: '1.320 kcal/ngày',
+    },
+  ],
+  proTip: {
+    title: 'Mẹo bắt đầu tuần mới hiệu quả',
+    content:
+      'Bạn muốn bắt đầu tuần mới với thực đơn tùy chỉnh chính xác theo số đo BMI và thói quen nấu nướng của riêng mình? Hãy chuẩn bị trước các loại hạt và đậu để tiết kiệm đến 40% thời gian nấu mỗi ngày!',
+    actionLabel: 'Xem hướng dẫn sơ chế',
+  },
+}
+
+export async function getMyWeeklyMealPlan(): Promise<MyWeeklyPlanData> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  return JSON.parse(JSON.stringify(MOCK_MY_WEEKLY_PLAN_DATA)) as MyWeeklyPlanData
+}
+
+export async function swapWeeklyMeal(
+  dayId: DayOfWeek,
+  mealId: string,
+): Promise<MyWeeklyMealItem> {
+  await new Promise((resolve) => setTimeout(resolve, 400))
+  const poolAlternatives: Record<string, MyWeeklyMealItem> = {
+    'wm-mon-bf': {
+      id: 'wm-mon-bf-alt',
+      slot: 'breakfast',
+      slotTime: '07:30',
+      slotLabel: 'Bữa sáng',
+      slotTag: 'Năng lượng sớm',
+      title: 'Sinh tố xoài chuối & hạt chia',
+      description:
+        'Xoài cát chín ngọt tự nhiên xay mịn cùng hạt chia nở mềm và sữa hạt điều béo thơm.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80',
+      calories: 365,
+      cookTimeMinutes: 10,
+      protein: 12,
+      recipeId: 'rec-bf-alt-1',
+    },
+    'wm-mon-lu': {
+      id: 'wm-mon-lu-alt',
+      slot: 'lunch',
+      slotTime: '12:00',
+      slotLabel: 'Bữa trưa',
+      slotTag: 'Giàu Protein',
+      title: 'Đậu gà kho nấm đông cô tiêu xanh',
+      description:
+        'Đậu gà ninh nhừ ngấm vị sốt tương đậm đà, nấm đông cô thơm lừng hạt tiêu xanh cay nồng.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+      calories: 495,
+      cookTimeMinutes: 25,
+      protein: 29,
+      recipeId: 'rec-lu-alt-1',
+    },
+    'wm-mon-di': {
+      id: 'wm-mon-di-alt',
+      slot: 'dinner',
+      slotTime: '18:45',
+      slotLabel: 'Bữa tối',
+      slotTag: 'Thanh nhẹ dễ ngủ',
+      title: 'Súp miso đậu hũ non và rong biển',
+      description:
+        'Nước tương miso lên men truyền thống, rong biển thanh mát và đậu non mướt mịn tốt cho giấc ngủ.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&auto=format&fit=crop&q=80',
+      calories: 380,
+      cookTimeMinutes: 20,
+      protein: 18,
+      recipeId: 'rec-di-alt-1',
+    },
+  }
+
+  if (poolAlternatives[mealId]) {
+    return poolAlternatives[mealId]
+  }
+
+  return {
+    id: `alt-${mealId}-${Date.now()}`,
+    slot: 'lunch',
+    slotTime: '12:00',
+    slotLabel: 'Bữa ăn thay thế',
+    slotTag: 'Cân bằng vi chất',
+    title: `Món chay dinh dưỡng đổi mới (${dayId})`,
+    description:
+      'Công thức chay khoa học cân bằng đạm thực vật và chất xơ, chuẩn vị ấm cúng.',
+    imageUrl:
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+    calories: 480,
+    cookTimeMinutes: 25,
+    protein: 24,
+  }
+}
+
+export async function applySavedPlanToWeekly(
+  savedPlanId: string,
+): Promise<{ success: boolean; message: string }> {
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  const matched = MOCK_MY_WEEKLY_PLAN_DATA.savedPlans.find(
+    (p) => p.id === savedPlanId,
+  )
+  return {
+    success: true,
+    message: `Đã áp dụng "${matched ? matched.title : 'Thực đơn đã lưu'}" thành công cho tuần này!`,
+  }
+}
+
+export async function exportWeeklyShoppingList(
+  weekRange: string,
+): Promise<{ filename: string; itemsCount: number; message: string }> {
+  await new Promise((resolve) => setTimeout(resolve, 700))
+  return {
+    filename: `Danh_sach_di_cho_${weekRange.replace(/\s+/g, '_')}.pdf`,
+    itemsCount: 18,
+    message: 'Đã xuất danh sách nguyên liệu đi chợ thành công!',
   }
 }
 

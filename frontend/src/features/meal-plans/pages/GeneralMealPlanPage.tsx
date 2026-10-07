@@ -5,6 +5,7 @@ import {
   ChevronRight,
   AlertCircle,
   Check,
+  Calendar,
 } from 'lucide-react'
 import type { DietType, GeneralMealPlanData, MealSlot } from '../types/mealPlans.types'
 import {
@@ -122,6 +123,15 @@ export const GeneralMealPlanPage: React.FC<GeneralMealPlanPageProps> = ({
 
         {/* Top Right Actions matching Figma */}
         <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => onNavigate?.('/meal-plans/my-plan')}
+            className="px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-2 transition-colors shadow-xs"
+          >
+            <Calendar className="w-4 h-4 text-emerald-600" />
+            <span>Thực đơn của bạn</span>
+          </button>
+
           <button
             type="button"
             onClick={handleExportPdf}

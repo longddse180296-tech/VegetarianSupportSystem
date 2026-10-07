@@ -212,4 +212,66 @@ export interface GeneratedPersonalizedPlan {
   }
 }
 
+// --- Weekly Calendar / My Plan Types (Phase 4) ---
+
+export interface MyWeeklyMealItem {
+  id: string
+  slot: MealSlot
+  slotTime: string
+  slotLabel: string
+  slotTag: string
+  title: string
+  description: string
+  imageUrl: string
+  calories: number
+  cookTimeMinutes: number
+  protein: number
+  recipeId?: string
+}
+
+export interface WeeklyCalendarDay {
+  id: DayOfWeek
+  label: string
+  dateStr: string
+  fullDate: string
+  meals: MyWeeklyMealItem[]
+}
+
+export interface MyBmiNutritionMetric {
+  id: string
+  label: string
+  value: string
+  subtitle: string
+  type: 'calories' | 'protein' | 'carbs' | 'fat' | 'pantry'
+  statusBadge?: string
+}
+
+export interface SavedMealPlanItem {
+  id: string
+  goal: HealthGoal
+  goalLabel: string
+  goalTagColor: 'emerald' | 'teal' | 'blue' | 'indigo' | 'amber'
+  savedDate: string
+  title: string
+  description: string
+  daysCount: number
+  mealsCount: number
+  highlightStat: string
+}
+
+export interface WeeklyProTip {
+  title: string
+  content: string
+  actionLabel: string
+}
+
+export interface MyWeeklyPlanData {
+  weekRange: string
+  days: WeeklyCalendarDay[]
+  activeDay: DayOfWeek
+  bmiMetrics: MyBmiNutritionMetric[]
+  savedPlans: SavedMealPlanItem[]
+  proTip: WeeklyProTip
+}
+
 

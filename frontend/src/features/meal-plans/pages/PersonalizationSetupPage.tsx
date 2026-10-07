@@ -114,8 +114,10 @@ export const PersonalizationSetupPage: React.FC<PersonalizationSetupPageProps> =
 
   const handleSaveWeek = async () => {
     await saveRecommendedPlan()
-    setToastMsg('Đã lưu toàn bộ thực đơn tuần vào mục cá nhân!')
-    setTimeout(() => setToastMsg(null), 3000)
+    setToastMsg('Đã lưu toàn bộ thực đơn tuần! Đang chuyển đến Thực đơn của bạn...')
+    setTimeout(() => {
+      onNavigate?.('/meal-plans/my-plan')
+    }, 1000)
   }
 
   return (

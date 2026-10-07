@@ -165,7 +165,7 @@ export const RecommendedMealPlanPage: React.FC<RecommendedMealPlanPageProps> = (
           <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
-              onClick={() => onNavigate?.('/profile')}
+              onClick={() => onNavigate?.('/meal-plans/my-plan')}
               className="text-xs font-bold text-[#1E6531] hover:underline flex items-center gap-1"
             >
               <span>Xem thực đơn của tôi</span>
