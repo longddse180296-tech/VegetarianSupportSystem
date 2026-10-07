@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 * {
   box-sizing: border-box;
@@ -9,4 +7,6 @@
 body {
   margin: 0;
   min-width: 320px;
+  background-color: #f8fafc;
+  color: #0f172a;
 }

@@ -1,132 +1,49 @@
 import React from 'react'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useAuth } from '..'
-
-const schema = z
-  .object({
-    fullName: z.string().trim().min(2, { message: 'Họ tên tối thiểu 2 ký tự' }),
-    email: z.string().email({ message: 'Email không hợp lệ' }),
-    password: z.string().min(6, { message: 'Mật khẩu tối thiểu 6 ký tự' }),
-    confirmPassword: z.string().min(6, { message: 'Xác nhận mật khẩu tối thiểu 6 ký tự' }),
-    goal: z.enum(['lose_weight', 'maintain', 'gain_muscle', 'vegan_lifestyle']),
-    acceptTerms: z.boolean().refine((v) => v === true, { message: 'Vui lòng đồng ý điều khoản dịch vụ' }),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: 'Mật khẩu xác nhận không khớp',
-    path: ['confirmPassword'],
-  })
-
-type RegisterValues = z.infer<typeof schema>
+import { PublicLayout } from '../../../app/layouts/PublicLayout'
+import { AuthFeatureCards } from '../components/AuthFeatureCards'
+import { RegisterForm } from '../components/RegisterForm'
+import { useAuth } from '../hooks/useAuth'
+import type { RegisterPayload } from '../types'
 
 interface RegisterPageProps {
   onNavigate?: (path: string) => void
 }
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
-  const { register: signup } = useAuth()
-  const {
-    register,
-    handleSubmit,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm<RegisterValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { goal: 'vegan_lifestyle', acceptTerms: true },
-  })
+  const { register, isLoading, user } = useAuth()
 
-  const onSubmit = async (v: RegisterValues) => {
-    try {
-      await signup({ fullName: v.fullName, email: v.email, password: v.password, goal: v.goal })
-      onNavigate?.('/recipes')
-    } catch (err) {
-      setError('root', { message: err instanceof Error ? err.message : 'Không thể đăng ký' })
+  const handleRegister = async (payload: RegisterPayload) => {
+    await register(payload)
+    if (onNavigate) {
+      onNavigate('/profile')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-4 py-8">
-      <div className="w-full max-w-xl bg-white shadow-xl rounded-2xl border border-slate-200 p-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-extrabold text-emerald-800 mb-1">Tạo tài khoản mới</h1>
-          <p className="text-sm text-slate-600">
-            Bắt đầu hành trình dinh dưỡng thuần thực vật cùng Vegetarian Support.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-slate-700">Họ và tên</label>
-            <input type="text" className="px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" {...register('fullName')} />
-            {errors.fullName && <span className="text-xs text-rose-600">{errors.fullName.message}</span>}
+    <PublicLayout
+      activeNav="auth"
+      onNavigate={onNavigate}
+      isLoggedIn={!!user}
+      userName={user?.fullName}
+    >
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16">
+          {/* Left Feature Column */}
+          <div className="w-full lg:w-1/2 flex justify-center lg:justify-start">
+            <AuthFeatureCards mode="register" />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-slate-700">Email</label>
-            <input type="email" className="px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" {...register('email')} />
-            {errors.email && <span className="text-xs text-rose-600">{errors.email.message}</span>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700">Mật khẩu</label>
-              <input type="password" className="px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" {...register('password')} />
-              {errors.password && <span className="text-xs text-rose-600">{errors.password.message}</span>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700">Xác nhận mật khẩu</label>
-              <input type="password" className="px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" {...register('confirmPassword')} />
-              {errors.confirmPassword && <span className="text-xs text-rose-600">{errors.confirmPassword.message}</span>}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-slate-700">Mục tiêu dinh dưỡng</label>
-            <select className="px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" {...register('goal')}>
-              <option value="vegan_lifestyle">🎋 Áp dụng lối sống thuần chay</option>
-              <option value="lose_weight">⚖️ Giảm cân an toàn</option>
-              <option value="maintain">🌿 Duy trì cân nặng, ăn lành mạnh</option>
-              <option value="gain_muscle">💪 Tăng cơ thực vật</option>
-            </select>
-          </div>
-
-          <label className="inline-flex items-start gap-2 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              className="mt-1 accent-emerald-600"
-              {...register('acceptTerms')}
+          {/* Right Form Card Column */}
+          <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
+            <RegisterForm
+              onSubmit={handleRegister}
+              onNavigateToLogin={() => onNavigate?.('/auth/login')}
+              isLoading={isLoading}
             />
-            <span>
-              Tôi đã đọc và đồng ý với <a className="text-emerald-700 underline" href="#/privacy" onClick={(e) => { e.preventDefault(); onNavigate?.('/privacy') }}>Điều khoản dịch vụ & Chính sách bảo mật</a>.
-            </span>
-          </label>
-          {errors.acceptTerms && <span className="text-xs text-rose-600">{errors.acceptTerms.message}</span>}
-
-          {errors.root && (
-            <div className="rounded-lg bg-rose-50 text-rose-700 text-sm px-3 py-2 border border-rose-200">
-              {errors.root.message}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-2.5 rounded-lg bg-emerald-700 text-white font-semibold hover:bg-emerald-800 disabled:opacity-60 transition"
-          >
-            {isSubmitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
-          </button>
-
-          <div className="text-center text-sm text-slate-600">
-            Đã có tài khoản?{' '}
-            <button type="button" className="text-emerald-700 hover:underline" onClick={() => onNavigate?.('/auth/login')}>
-              Đăng nhập ngay
-            </button>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </PublicLayout>
   )
 }
-
 export default RegisterPage
