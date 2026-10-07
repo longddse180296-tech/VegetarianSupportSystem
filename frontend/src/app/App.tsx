@@ -9,8 +9,20 @@ import { PublicLayout } from './layouts/PublicLayout'
 import RecipeList from '../features/recipes/pages/RecipeList'
 import RecipeDetail from '../features/recipes/pages/RecipeDetail'
 import AiChatShell from '../features/ai-chat/AiChatShell'
-import FoodScanPage from '../features/food-scan/FoodScanPage'
-import RestaurantListPage from '../features/restaurants/RestaurantListPage'
+import {
+  ArticleList,
+  ArticleDetail,
+  MyArticlesPage,
+  MyCommentsPage,
+  ArticleEditorPage,
+} from '../features/articles'
+import {
+  GeneralMealPlanPage,
+  RecommendedMealPlanPage,
+  PersonalizationSetupPage,
+  MyMealPlanPage,
+  MealPlanDetailPage,
+} from '../features/meal-plans'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -90,6 +102,99 @@ const AppContent: React.FC = () => {
           ) : recipeId !== null ? (
             <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={handleNavigate} />
           ) : <RecipeList onNavigate={handleNavigate} />}
+        </PublicLayout>
+      )
+    }
+
+    // Meal plans route
+    if (
+      currentPath === '/meal-plans/setup' ||
+      currentPath === 'meal-plans/setup'
+    ) {
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <PersonalizationSetupPage onNavigate={handleNavigate} />
+        </PublicLayout>
+      )
+    }
+
+    if (
+      currentPath === '/meal-plans/recommended' ||
+      currentPath === 'meal-plans/recommended'
+    ) {
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <RecommendedMealPlanPage onNavigate={handleNavigate} />
+        </PublicLayout>
+      )
+    }
+
+    if (
+      currentPath === '/meal-plans/my-plan' ||
+      currentPath === 'meal-plans/my-plan' ||
+      currentPath === '/meal-plans/weekly' ||
+      currentPath === 'meal-plans/weekly' ||
+      currentPath === '/meal-plans/calendar' ||
+      currentPath === 'meal-plans/calendar'
+    ) {
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <MyMealPlanPage onNavigate={handleNavigate} />
+        </PublicLayout>
+      )
+    }
+
+    if (
+      currentPath === '/meal-plans/detail' ||
+      currentPath === 'meal-plans/detail' ||
+      currentPath.startsWith('/meal-plans/detail/')
+    ) {
+      const detailId = currentPath.replace(/^\/?meal-plans\/detail\/?/, '')
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <MealPlanDetailPage onNavigate={handleNavigate} planId={detailId || undefined} />
+        </PublicLayout>
+      )
+    }
+
+    if (
+      currentPath === '/meal-plans' ||
+      currentPath === 'meal-plans' ||
+      currentPath.startsWith('/meal-plans')
+    ) {
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <GeneralMealPlanPage onNavigate={handleNavigate} />
         </PublicLayout>
       )
     }
