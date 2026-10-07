@@ -8,6 +8,8 @@ import { MembersPage } from '../features/admin/members'
 import { AdminDashboardPage } from '../features/admin/dashboard'
 import { AdminArticlesPage } from '../features/admin/articles'
 import { AdminCategoriesPage } from '../features/admin/categories'
+import { AdminCommentsPage } from '../features/admin/comments'
+import { AdminVideosPage } from '../features/admin/videos'
 import { PublicLayout } from './layouts/PublicLayout'
 import RecipeList from '../features/recipes/pages/RecipeList'
 import RecipeDetail from '../features/recipes/pages/RecipeDetail'
@@ -179,6 +181,14 @@ const AppContent: React.FC = () => {
 
     if (currentPath.startsWith('/admin/categories') || currentPath === 'admin/categories') {
       return <AdminCategoriesPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/videos') || currentPath === 'admin/videos') {
+      return <AdminVideosPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/comments') || currentPath === 'admin/comments') {
+      return <AdminCommentsPage onNavigate={handleNavigate} />
     }
 
     if (currentPath.startsWith('/admin/members')) {
