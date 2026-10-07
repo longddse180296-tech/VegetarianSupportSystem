@@ -21,6 +21,7 @@ import {
   MyCommentsPage,
   ArticleEditorPage,
 } from '../features/articles'
+import { GeneralMealPlanPage, RecommendedMealPlanPage } from '../features/meal-plans'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -148,6 +149,42 @@ const AppContent: React.FC = () => {
           {isAiChat ? <AiChatShell /> : recipeId !== null ? (
             <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={handleNavigate} />
           ) : <RecipeList onNavigate={handleNavigate} />}
+        </PublicLayout>
+      )
+    }
+
+    // Meal plans route
+    if (
+      currentPath === '/meal-plans/recommended' ||
+      currentPath === 'meal-plans/recommended'
+    ) {
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <RecommendedMealPlanPage onNavigate={handleNavigate} />
+        </PublicLayout>
+      )
+    }
+
+    if (
+      currentPath === '/meal-plans' ||
+      currentPath === 'meal-plans' ||
+      currentPath.startsWith('/meal-plans')
+    ) {
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <GeneralMealPlanPage onNavigate={handleNavigate} />
         </PublicLayout>
       )
     }
