@@ -299,6 +299,15 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                 <li>
                   <button
                     type="button"
+                    onClick={() => handleNavClick('/food-scan')}
+                    className="hover:text-emerald-600 transition-colors text-left"
+                  >
+                    Quét & Phân tích món ăn
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
                     onClick={() => handleNavClick('/privacy')}
                     className="hover:text-emerald-600 transition-colors text-left"
                   >
