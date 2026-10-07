@@ -10,6 +10,7 @@ import RecipeList from '../features/recipes/pages/RecipeList'
 import RecipeDetail from '../features/recipes/pages/RecipeDetail'
 import AiChatShell from '../features/ai-chat/AiChatShell'
 import FoodScanPage from '../features/food-scan/FoodScanPage'
+import RestaurantListPage from '../features/restaurants/RestaurantListPage'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -62,11 +63,16 @@ const AppContent: React.FC = () => {
       currentPath === '/food-scan' ||
       currentPath === 'foodscan' ||
       currentPath === 'food-scan'
+    const isRestaurants =
+      currentPath === '/restaurants' ||
+      currentPath === 'restaurants' ||
+      currentPath === 'nha-hang-chay'
 
-    if (isRecipeList || isRecipeDetail || isAiChat || isFoodScan) {
+    if (isRecipeList || isRecipeDetail || isAiChat || isFoodScan || isRestaurants) {
       let activeNav = 'recipes'
       if (isAiChat) activeNav = 'ai-chat'
       else if (isFoodScan) activeNav = 'food-scan'
+      else if (isRestaurants) activeNav = 'restaurants'
       return (
         <PublicLayout
           activeNav={activeNav}
@@ -79,6 +85,8 @@ const AppContent: React.FC = () => {
             <AiChatShell />
           ) : isFoodScan ? (
             <FoodScanPage onNavigate={handleNavigate} />
+          ) : isRestaurants ? (
+            <RestaurantListPage onNavigate={handleNavigate} />
           ) : recipeId !== null ? (
             <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={handleNavigate} />
           ) : <RecipeList onNavigate={handleNavigate} />}
