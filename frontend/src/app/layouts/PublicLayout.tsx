@@ -34,17 +34,17 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
           <button
             type="button"
             onClick={() => handleNavClick('/')}
-            className="flex items-center text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg"
+            className="flex items-center text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg flex-shrink-0"
           >
             <Logo iconSize="sm" />
           </button>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium">
+          <nav className="hidden md:flex items-center gap-2.5 lg:gap-5 xl:gap-6 text-sm font-medium whitespace-nowrap">
             <button
               type="button"
               onClick={() => handleNavClick('/')}
-              className={`transition-colors py-1 focus:outline-none ${
+              className={`transition-colors py-1 px-1 focus:outline-none whitespace-nowrap ${
                 activeNav === 'home'
                   ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
                   : 'text-slate-600 hover:text-emerald-600'
@@ -55,7 +55,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
             <button
               type="button"
               onClick={() => handleNavClick('/recipes')}
-              className={`transition-colors py-1 focus:outline-none ${
+              className={`transition-colors py-1 px-1 focus:outline-none whitespace-nowrap ${
                 activeNav === 'recipes'
                   ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
                   : 'text-slate-600 hover:text-emerald-600'
@@ -66,7 +66,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
             <button
               type="button"
               onClick={() => handleNavClick('/articles')}
-              className={`transition-colors py-1 focus:outline-none ${
+              className={`transition-colors py-1 px-1 focus:outline-none whitespace-nowrap ${
                 activeNav === 'articles'
                   ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
                   : 'text-slate-600 hover:text-emerald-600'
@@ -77,7 +77,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
             <button
               type="button"
               onClick={() => handleNavClick('/videos')}
-              className={`transition-colors py-1 focus:outline-none ${
+              className={`transition-colors py-1 px-1 focus:outline-none whitespace-nowrap ${
                 activeNav === 'videos'
                   ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
                   : 'text-slate-600 hover:text-emerald-600'
@@ -88,7 +88,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
             <button
               type="button"
               onClick={() => handleNavClick('/restaurants')}
-              className={`transition-colors py-1 focus:outline-none ${
+              className={`transition-colors py-1 px-1 focus:outline-none whitespace-nowrap ${
                 activeNav === 'restaurants'
                   ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
                   : 'text-slate-600 hover:text-emerald-600'
@@ -99,7 +99,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
             <button
               type="button"
               onClick={() => handleNavClick('/meal-plans')}
-              className={`transition-colors py-1 focus:outline-none ${
+              className={`transition-colors py-1 px-1 focus:outline-none whitespace-nowrap ${
                 activeNav === 'meal-plans'
                   ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
                   : 'text-slate-600 hover:text-emerald-600'
@@ -110,7 +110,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
             <button
               type="button"
               onClick={() => handleNavClick('/ai-chat')}
-              className={`flex items-center gap-1.5 transition-colors py-1 focus:outline-none ${
+              className={`flex items-center gap-1.5 transition-colors py-1 px-1 focus:outline-none whitespace-nowrap ${
                 activeNav === 'ai-chat'
                   ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
                   : 'text-slate-600 hover:text-emerald-600'
@@ -121,23 +121,37 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                 Mới
               </span>
             </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick('/food-scan')}
+              className={`flex items-center gap-1.5 transition-colors py-1 px-1 focus:outline-none whitespace-nowrap ${
+                activeNav === 'food-scan'
+                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
+                  : 'text-slate-600 hover:text-emerald-600'
+              }`}
+            >
+              <span>Quét thực phẩm</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 tracking-wide uppercase">
+                HOT
+              </span>
+            </button>
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             {isLoggedIn ? (
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => handleNavClick('/profile')}
-                  className="text-sm font-medium text-slate-700 hover:text-emerald-600 transition-colors"
+                  className="text-sm font-medium text-slate-700 hover:text-emerald-600 transition-colors whitespace-nowrap"
                 >
                   Xin chào, <span className="font-semibold text-emerald-700">{userName}</span>
                 </button>
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="px-3.5 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="px-3.5 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors whitespace-nowrap"
                 >
                   Đăng xuất
                 </button>
@@ -147,14 +161,14 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                 <button
                   type="button"
                   onClick={() => handleNavClick('/auth/login')}
-                  className="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 whitespace-nowrap"
                 >
                   Đăng nhập
                 </button>
                 <button
                   type="button"
                   onClick={() => handleNavClick('/auth/register')}
-                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 whitespace-nowrap"
                 >
                   Đăng ký
                 </button>
