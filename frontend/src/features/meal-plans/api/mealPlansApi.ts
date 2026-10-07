@@ -13,6 +13,8 @@ import type {
   GeneratedPersonalizedPlan,
   MyWeeklyMealItem,
   MyWeeklyPlanData,
+  DetailedMealSlot,
+  MealPlanDetailData,
 } from '../types/mealPlans.types'
 
 export const DIET_TABS: DietTabOption[] = [
@@ -1584,6 +1586,248 @@ export async function exportWeeklyShoppingList(
     filename: `Danh_sach_di_cho_${weekRange.replace(/\s+/g, '_')}.pdf`,
     itemsCount: 18,
     message: 'Đã xuất danh sách nguyên liệu đi chợ thành công!',
+  }
+}
+
+// ==========================================
+// Phase 5: Meal Plan Detail View (Chi tiết Thực đơn Dinh dưỡng Chay Cá nhân hóa)
+// ==========================================
+
+export const MOCK_MEAL_PLAN_DETAIL_DATA: MealPlanDetailData = {
+  id: 'mp-detail-1',
+  dietType: 'vegan',
+  personalization: {
+    bmi: 22.5,
+    bmiCategory: 'Bình thường',
+    targetCalories: 1800,
+    pantryItems: ['Đậu hũ', 'Nấm', 'Cà rốt', 'Gạo lứt'],
+    allergens: ['Đậu phộng (Peanuts)'],
+    priorityNutrients: ['B12', 'Fe', 'K'],
+  },
+  activeDay: 'mon',
+  dayCalories: {
+    mon: 1800,
+    tue: 1750,
+    wed: 1820,
+    thu: 1790,
+    fri: 1810,
+    sat: 1850,
+    sun: 1800,
+  },
+  meals: [
+    {
+      id: 'slot-bf',
+      slot: 'breakfast',
+      slotLabel: 'BỮA SÁNG',
+      slotTime: '07:30',
+      calories: 420,
+      title: 'Phở nấm hương & tàu hũ ky nước dùng rau củ quả',
+      carbs: 58.5,
+      protein: 15.2,
+      fat: 8.5,
+      tags: ['Tốt cho dạ dày (Fiber)', 'Dairy-Free', 'Egg-Free'],
+      plantBasedRate: 100,
+      recipeId: 'rec-bf-pho',
+    },
+    {
+      id: 'slot-lu',
+      slot: 'lunch',
+      slotLabel: 'BỮA TRƯA',
+      slotTime: '12:00',
+      calories: 650,
+      title: 'Đậu hũ kho nấm đông cô & Cơm gạo lứt ngũ sắc',
+      description:
+        'Món ăn đậm đà vị thảo mộc thiên nhiên, giàu đạm thực vật từ đậu hũ non và nấm tươi, bổ sung chất xơ hòa tan hỗ trợ đường ruột.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+      carbs: 68.5,
+      protein: 26.4,
+      fat: 14.5,
+      tags: ['Tối ưu tủ bếp', 'Giàu đạm'],
+      plantBasedRate: 100,
+      recipeId: 'rec-lu-tofu',
+      swapOptions: [
+        {
+          id: 'sw-1',
+          matchPercent: 98,
+          title: 'Bún chay đậu hũ & rau củ tươi',
+          calories: 570,
+          protein: 24,
+          isSelected: true,
+        },
+        {
+          id: 'sw-2',
+          matchPercent: 95,
+          title: 'Mì xào nấm rau củ thập cẩm',
+          calories: 590,
+          protein: 22,
+          isSelected: false,
+        },
+        {
+          id: 'sw-3',
+          matchPercent: 94,
+          title: 'Cơm đậu gà sốt cari rau củ',
+          calories: 620,
+          protein: 25,
+          isSelected: false,
+        },
+      ],
+    },
+    {
+      id: 'slot-sn',
+      slot: 'snack',
+      slotLabel: 'BỮA PHỤ CHIỀU',
+      slotTime: '15:30',
+      calories: 220,
+      title: 'Sinh tố chuối bơ hạnh nhân & hạt chia Úc',
+      carbs: 26,
+      protein: 6.2,
+      fat: 9.8,
+      tags: ['Thuần chay', 'Dairy-Free', 'Giàu Omega-3'],
+      plantBasedRate: 100,
+      recipeId: 'rec-sn-smoothie',
+    },
+    {
+      id: 'slot-di',
+      slot: 'dinner',
+      slotLabel: 'BỮA TỐI',
+      slotTime: '18:30',
+      calories: 510,
+      title: 'Cà ri rau củ đậu gà & bánh mì ngũ cốc nguyên cám',
+      description:
+        'Công thức thanh nhẹ cho buổi tối, gia vị nghệ curcumin chống oxy hóa, kích thích tiêu hóa nhẹ nhàng trước khi ngủ.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&auto=format&fit=crop&q=80',
+      carbs: 64.5,
+      protein: 21,
+      fat: 12,
+      tags: ['Dễ tiêu hóa', 'Thuần chay (Vegan)'],
+      plantBasedRate: 100,
+      recipeId: 'rec-di-curry',
+    },
+  ],
+  dailyNutrition: {
+    consumedCalories: 1800,
+    targetCalories: 1800,
+    percent: 100,
+    carbsPercent: 52,
+    carbsGrams: 234,
+    proteinPercent: 22,
+    proteinGrams: 72,
+    fatPercent: 26,
+    fatGrams: 44.8,
+  },
+  pantry: {
+    savingsAmount: '65.000đ',
+    pantryRatio: 82,
+    availableIngredients: ['Đậu hũ non', 'Nấm đông cô', 'Gạo lứt', 'Cà rốt'],
+  },
+  todayGroceries: [
+    { id: 'tg-1', name: 'Cải bó xôi sạch', quantity: '200g', isChecked: true },
+    { id: 'tg-2', name: 'Chuối tiêu chín', quantity: '2 quả', isChecked: true },
+    { id: 'tg-3', name: 'Bơ sáp chín', quantity: '1 quả', isChecked: false },
+    {
+      id: 'tg-4',
+      name: 'Bánh mì ngũ cốc nguyên cám',
+      quantity: '2 ổ',
+      isChecked: false,
+    },
+  ],
+  aiAdvice:
+    'Thực đơn hôm nay đã được tối ưu hoàn hảo cho chỉ số BMI 22.5 và loại trừ hoàn toàn Đậu phộng khiến gây dị ứng của bạn. Bổ sung đủ 72g protein thực vật từ đậu hũ, đậu gà và nấm.',
+  weeklyOverview: {
+    avgCalories: '1.820 kcal/ngày',
+    avgCaloriesNote: 'Chuẩn mục tiêu duy trì',
+    avgProtein: '78g / ngày',
+    avgProteinNote: 'Đầy đủ 9 axit amin',
+    totalMeals: '21 món khác nhau',
+    totalMealsNote: 'Phong phú, không lặp vị',
+    pantryRatio: '82% nguyên liệu',
+    pantryRatioNote: 'Tiết kiệm tối ưu',
+    bmiMatchRatio: '98% độ chuẩn xác',
+    bmiMatchRatioNote: 'Đạt chuẩn y tế & AI flag',
+  },
+}
+
+export async function getMealPlanDetail(
+  _planId?: string,
+): Promise<MealPlanDetailData> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  return JSON.parse(
+    JSON.stringify(MOCK_MEAL_PLAN_DETAIL_DATA),
+  ) as MealPlanDetailData
+}
+
+export async function swapMealInDetail(
+  slotId: string,
+  swapOptionId: string,
+): Promise<DetailedMealSlot> {
+  await new Promise((resolve) => setTimeout(resolve, 400))
+  const poolNewMeals: Record<string, Partial<DetailedMealSlot>> = {
+    'sw-1': {
+      title: 'Bún chay đậu hũ & rau củ tươi',
+      calories: 570,
+      protein: 24,
+      carbs: 62.5,
+      fat: 11.2,
+      description:
+        'Bún sợi tươi mềm kết hợp nước lèo củ quả thanh mát, đậu hũ chiên non vàng rượm.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80',
+    },
+    'sw-2': {
+      title: 'Mì xào nấm rau củ thập cẩm',
+      calories: 590,
+      protein: 22,
+      carbs: 66,
+      fat: 13.5,
+      description:
+        'Mì rau củ xào lửa lớn với nấm mỡ, cà rốt và bông cải xanh thơm lừng dầu mè.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&auto=format&fit=crop&q=80',
+    },
+    'sw-3': {
+      title: 'Cơm đậu gà sốt cari rau củ',
+      calories: 620,
+      protein: 25,
+      carbs: 70,
+      fat: 14.8,
+      description:
+        'Đậu gà hầm cari béo ngậy ăn cùng cơm gạo lứt dẻo thơm, kích thích vị giác và giàu đạm.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+    },
+  }
+
+  const patch = poolNewMeals[swapOptionId] || {}
+  const current = MOCK_MEAL_PLAN_DETAIL_DATA.meals.find((m) => m.id === slotId)
+  return {
+    ...(current || MOCK_MEAL_PLAN_DETAIL_DATA.meals[1]),
+    ...patch,
+  }
+}
+
+export async function toggleGroceryItem(
+  _itemId: string,
+): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  return true
+}
+
+export async function regenerateFullMealPlanDetail(): Promise<MealPlanDetailData> {
+  await new Promise((resolve) => setTimeout(resolve, 700))
+  return JSON.parse(
+    JSON.stringify(MOCK_MEAL_PLAN_DETAIL_DATA),
+  ) as MealPlanDetailData
+}
+
+export async function saveMealPlanDetail(
+  _data: MealPlanDetailData,
+): Promise<{ success: boolean; message: string }> {
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  return {
+    success: true,
+    message: 'Đã lưu và đồng bộ toàn bộ thực đơn tuần vào tài khoản của bạn!',
   }
 }
 

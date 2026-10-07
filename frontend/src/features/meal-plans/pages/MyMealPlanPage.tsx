@@ -260,8 +260,8 @@ export const MyMealPlanPage: React.FC<MyMealPlanPageProps> = ({
       <section className="pt-2">
         <SavedPlansSection
           savedPlans={data.savedPlans}
-          onViewPlanDetail={(_planId) =>
-            showToast('Chức năng xem chi tiết sẽ khả dụng ở Phase 5.')
+          onViewPlanDetail={(planId) =>
+            onNavigate?.(`/meal-plans/detail/${planId}`)
           }
           onApplyPlan={handleApplySavedPlan}
           applyingPlanId={applyingPlanId}

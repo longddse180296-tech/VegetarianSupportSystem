@@ -274,4 +274,94 @@ export interface MyWeeklyPlanData {
   proTip: WeeklyProTip
 }
 
+// --- Meal Plan Detail View Types (Phase 5) ---
+
+export interface DetailedSwapOption {
+  id: string
+  matchPercent: number
+  title: string
+  calories: number
+  protein: number
+  isSelected?: boolean
+}
+
+export interface DetailedMealSlot {
+  id: string
+  slot: MealSlot
+  slotLabel: string
+  slotTime: string
+  calories: number
+  title: string
+  description?: string
+  imageUrl?: string
+  carbs: number
+  protein: number
+  fat: number
+  tags: string[]
+  plantBasedRate: number
+  recipeId?: string
+  swapOptions?: DetailedSwapOption[]
+}
+
+export interface PersonalizationBadgeInfo {
+  bmi: number
+  bmiCategory: string
+  targetCalories: number
+  pantryItems: string[]
+  allergens: string[]
+  priorityNutrients: string[]
+}
+
+export interface DailyNutritionRing {
+  consumedCalories: number
+  targetCalories: number
+  percent: number
+  carbsPercent: number
+  carbsGrams: number
+  proteinPercent: number
+  proteinGrams: number
+  fatPercent: number
+  fatGrams: number
+}
+
+export interface PantrySavingsInfo {
+  savingsAmount: string
+  pantryRatio: number
+  availableIngredients: string[]
+}
+
+export interface GroceryItemToday {
+  id: string
+  name: string
+  quantity: string
+  isChecked: boolean
+}
+
+export interface WeeklyOverviewStat {
+  avgCalories: string
+  avgCaloriesNote: string
+  avgProtein: string
+  avgProteinNote: string
+  totalMeals: string
+  totalMealsNote: string
+  pantryRatio: string
+  pantryRatioNote: string
+  bmiMatchRatio: string
+  bmiMatchRatioNote: string
+}
+
+export interface MealPlanDetailData {
+  id: string
+  dietType: DietType
+  personalization: PersonalizationBadgeInfo
+  activeDay: DayOfWeek
+  dayCalories: Record<DayOfWeek, number>
+  meals: DetailedMealSlot[]
+  dailyNutrition: DailyNutritionRing
+  pantry: PantrySavingsInfo
+  todayGroceries: GroceryItemToday[]
+  aiAdvice: string
+  weeklyOverview: WeeklyOverviewStat
+}
+
 

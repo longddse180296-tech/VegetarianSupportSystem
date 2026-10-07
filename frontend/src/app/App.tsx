@@ -26,6 +26,7 @@ import {
   RecommendedMealPlanPage,
   PersonalizationSetupPage,
   MyMealPlanPage,
+  MealPlanDetailPage,
 } from '../features/meal-plans'
 
 const getInitialPath = (): string => {
@@ -210,6 +211,25 @@ const AppContent: React.FC = () => {
           onLogout={() => { void logout() }}
         >
           <MyMealPlanPage onNavigate={handleNavigate} />
+        </PublicLayout>
+      )
+    }
+
+    if (
+      currentPath === '/meal-plans/detail' ||
+      currentPath === 'meal-plans/detail' ||
+      currentPath.startsWith('/meal-plans/detail/')
+    ) {
+      const detailId = currentPath.replace(/^\/?meal-plans\/detail\/?/, '')
+      return (
+        <PublicLayout
+          activeNav="meal-plans"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          <MealPlanDetailPage onNavigate={handleNavigate} planId={detailId || undefined} />
         </PublicLayout>
       )
     }
