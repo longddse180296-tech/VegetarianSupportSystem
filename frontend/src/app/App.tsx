@@ -6,6 +6,8 @@ import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage'
 import { ProfilePage } from '../features/profile'
 import { MembersPage } from '../features/admin/members'
 import { AdminDashboardPage } from '../features/admin/dashboard'
+import { AdminArticlesPage } from '../features/admin/articles'
+import { AdminCategoriesPage } from '../features/admin/categories'
 import { PublicLayout } from './layouts/PublicLayout'
 import RecipeList from '../features/recipes/pages/RecipeList'
 import RecipeDetail from '../features/recipes/pages/RecipeDetail'
@@ -169,6 +171,14 @@ const AppContent: React.FC = () => {
       currentPath === 'admin/dashboard'
     ) {
       return <AdminDashboardPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/articles') || currentPath === 'admin/articles') {
+      return <AdminArticlesPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/categories') || currentPath === 'admin/categories') {
+      return <AdminCategoriesPage onNavigate={handleNavigate} />
     }
 
     if (currentPath.startsWith('/admin/members')) {
