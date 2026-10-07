@@ -54,8 +54,8 @@ Phạm vi sản phẩm vẫn theo `docs/mvp.md`: Guest chat thử, User chat có
 
 | Vai trò | Module chính | Điểm cần phối hợp |
 |---|---|---|
-| FE 1 | Auth, profile, articles, admin. | Contract đăng nhập, gửi duyệt, trạng thái và quyết định Admin. |
-| FE 2 | Recipes, videos, ai-chat, food-scan, meal-plans, pantry, restaurants. | Contract chat, upload, scan và thực đơn. |
+| FE 1 | Auth, profile, articles, admin, meal-plans. | Contract đăng nhập, gửi duyệt, trạng thái, quyết định Admin và thực đơn. |
+| FE 2 | Recipes, videos, ai-chat, food-scan, pantry, restaurants. | Contract chat, upload và scan. |
 | BE 1 | Auth, profile, member/role, `Infrastructure/Identity`. | Cung cấp identity và policy cho Moderation/AiChat. |
 | BE 2 | Recipes, ingredients, restaurants, categories, favorites. | Cung cấp kho công thức/nguyên liệu cho các use case cá nhân hóa. |
 | BE 3 | Articles, videos, comments, moderation, AI chat, food scan, meal plans, pantry, Gemini. | Chốt contract với FE 1/FE 2 và dùng identity của BE 1. |
