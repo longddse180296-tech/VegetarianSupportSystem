@@ -121,6 +121,20 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                 Mới
               </span>
             </button>
+            <button
+              type="button"
+              onClick={() => handleNavClick('/food-scan')}
+              className={`flex items-center gap-1.5 transition-colors py-1 focus:outline-none ${
+                activeNav === 'food-scan'
+                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
+                  : 'text-slate-600 hover:text-emerald-600'
+              }`}
+            >
+              <span>Quét thực phẩm</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
+                HOT
+              </span>
+            </button>
           </nav>
 
           {/* Right Action Buttons */}
@@ -280,6 +294,15 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                     className="hover:text-emerald-600 transition-colors text-left"
                   >
                     Trợ lý dinh dưỡng AI
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => handleNavClick('/food-scan')}
+                    className="hover:text-emerald-600 transition-colors text-left"
+                  >
+                    Quét & Phân tích món ăn
                   </button>
                 </li>
                 <li>
