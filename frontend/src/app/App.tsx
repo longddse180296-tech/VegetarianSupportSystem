@@ -5,6 +5,7 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage'
 import { ProfilePage } from '../features/profile'
 import { MembersPage } from '../features/admin/members'
+import { AdminDashboardPage } from '../features/admin/dashboard'
 import { PublicLayout } from './layouts/PublicLayout'
 import RecipeList from '../features/recipes/pages/RecipeList'
 import RecipeDetail from '../features/recipes/pages/RecipeDetail'
@@ -161,14 +162,26 @@ const AppContent: React.FC = () => {
     }
 
     // Admin section
-    if (currentPath.startsWith('/admin')) {
-      const isDashboard = currentPath === '/admin/dashboard'
+    if (
+      currentPath === '/admin' ||
+      currentPath === 'admin' ||
+      currentPath === '/admin/dashboard' ||
+      currentPath === 'admin/dashboard'
+    ) {
+      return <AdminDashboardPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/members')) {
       return (
         <MembersPage
           onNavigate={handleNavigate}
-          initialView={isDashboard ? 'dashboard' : 'members'}
+          initialView="members"
         />
       )
+    }
+
+    if (currentPath.startsWith('/admin')) {
+      return <AdminDashboardPage onNavigate={handleNavigate} />
     }
 
     // User Section (e.g., /profile)
