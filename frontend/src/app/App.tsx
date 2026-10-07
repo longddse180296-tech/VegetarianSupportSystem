@@ -5,10 +5,22 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage'
 import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage'
 import { ProfilePage } from '../features/profile'
 import { MembersPage } from '../features/admin/members'
+import { AdminDashboardPage } from '../features/admin/dashboard'
+import { AdminArticlesPage } from '../features/admin/articles'
+import { AdminCategoriesPage } from '../features/admin/categories'
+import { AdminCommentsPage } from '../features/admin/comments'
+import { AdminVideosPage } from '../features/admin/videos'
 import { PublicLayout } from './layouts/PublicLayout'
 import RecipeList from '../features/recipes/pages/RecipeList'
 import RecipeDetail from '../features/recipes/pages/RecipeDetail'
 import AiChatShell from '../features/ai-chat/AiChatShell'
+import {
+  ArticleList,
+  ArticleDetail,
+  MyArticlesPage,
+  MyCommentsPage,
+  ArticleEditorPage,
+} from '../features/articles'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -45,6 +57,72 @@ const AppContent: React.FC = () => {
   }
 
   const renderCurrentView = () => {
+    // Article Editor Routes
+    if (currentPath === '/articles/editor' || currentPath === 'articles/editor') {
+      return <ArticleEditorPage onNavigate={handleNavigate} />
+    }
+    const editorMatch = currentPath.match(/^\/articles\/editor\/([^/]+)\/?$/)
+    if (editorMatch) {
+      const editId = decodeURIComponent(editorMatch[1])
+      return <ArticleEditorPage articleId={editId} onNavigate={handleNavigate} />
+    }
+
+    // User Profile sub-routes
+    if (
+      currentPath === '/profile/my-articles' ||
+      currentPath === 'profile/my-articles' ||
+      currentPath === '/my-articles'
+    ) {
+      return <MyArticlesPage onNavigate={handleNavigate} />
+    }
+
+    if (
+      currentPath === '/profile/my-comments' ||
+      currentPath === 'profile/my-comments' ||
+      currentPath === '/my-comments'
+    ) {
+      return <MyCommentsPage onNavigate={handleNavigate} />
+    }
+    // Articles Section
+    const isArticleList = currentPath === '/articles' || currentPath === 'articles'
+    const articleMatch = currentPath.match(/^\/articles\/([^/]+)\/?$/)
+    let articleId: string | null = null
+    if (articleMatch) {
+      try {
+        articleId = decodeURIComponent(articleMatch[1])
+      } catch {
+        articleId = ''
+      }
+    }
+    const isArticleDetail = articleId !== null
+
+    if (isArticleList || isArticleDetail) {
+      return (
+        <PublicLayout
+          activeNav="articles"
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          {articleId !== null ? (
+            <ArticleDetail
+              key={articleId}
+              articleId={articleId}
+              onBackToList={() => handleNavigate('/articles')}
+              onSelectRelatedArticle={(id) => handleNavigate(`/articles/${id}`)}
+            />
+          ) : (
+            <ArticleList
+              onSelectArticle={(id) => handleNavigate(`/articles/${id}`)}
+              onNavigateHome={() => handleNavigate('/recipes')}
+              onOpenAiChat={() => handleNavigate('/ai-chat')}
+            />
+          )}
+        </PublicLayout>
+      )
+    }
+
     const isRecipeList = currentPath === '/recipes' || currentPath === 'recipes'
     const recipeMatch = currentPath.match(/^\/recipes\/([^/]+)\/?$/)
     let recipeId: string | null = null
@@ -88,14 +166,42 @@ const AppContent: React.FC = () => {
     }
 
     // Admin section
-    if (currentPath.startsWith('/admin')) {
-      const isDashboard = currentPath === '/admin/dashboard'
+    if (
+      currentPath === '/admin' ||
+      currentPath === 'admin' ||
+      currentPath === '/admin/dashboard' ||
+      currentPath === 'admin/dashboard'
+    ) {
+      return <AdminDashboardPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/articles') || currentPath === 'admin/articles') {
+      return <AdminArticlesPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/categories') || currentPath === 'admin/categories') {
+      return <AdminCategoriesPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/videos') || currentPath === 'admin/videos') {
+      return <AdminVideosPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/comments') || currentPath === 'admin/comments') {
+      return <AdminCommentsPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath.startsWith('/admin/members')) {
       return (
         <MembersPage
           onNavigate={handleNavigate}
-          initialView={isDashboard ? 'dashboard' : 'members'}
+          initialView="members"
         />
       )
+    }
+
+    if (currentPath.startsWith('/admin')) {
+      return <AdminDashboardPage onNavigate={handleNavigate} />
     }
 
     // User Section (e.g., /profile)
