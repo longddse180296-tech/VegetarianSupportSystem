@@ -187,6 +187,7 @@ Day la goi y chia viec. Nhom co the doi ten nguoi nhung nen giu ranh gioi module
 - `frontend/src/features/profile`
 - `frontend/src/features/articles`
 - `frontend/src/features/admin`
+- `frontend/src/features/meal-plans`
 
 ### FE 2
 
@@ -194,7 +195,6 @@ Day la goi y chia viec. Nhom co the doi ten nguoi nhung nen giu ranh gioi module
 - `frontend/src/features/videos`
 - `frontend/src/features/ai-chat`
 - `frontend/src/features/food-scan`
-- `frontend/src/features/meal-plans`
 - `frontend/src/features/pantry`
 - `frontend/src/features/restaurants`
 
