@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ArrowRight,
 } from 'lucide-react'
+import { useAuth } from '../../auth'
 import type {
   DayOfWeek,
   MealReplacementOption,
@@ -34,6 +35,7 @@ interface RecommendedMealPlanPageProps {
 export const RecommendedMealPlanPage: React.FC<RecommendedMealPlanPageProps> = ({
   onNavigate,
 }) => {
+  const { isAuthenticated } = useAuth()
   const [planData, setPlanData] = useState<RecommendedMealPlanData | null>(null)
   const [activeDay, setActiveDay] = useState<DayOfWeek>('mon')
   const [loading, setLoading] = useState(true)
@@ -131,12 +133,21 @@ export const RecommendedMealPlanPage: React.FC<RecommendedMealPlanPageProps> = (
   }
 
   const handleSavePlan = async () => {
+    if (!isAuthenticated) {
+      setToastMsg('Vui lòng đăng nhập để lưu thực đơn vào tài khoản.')
+      setTimeout(() => {
+        onNavigate?.('/login')
+      }, 800)
+      return
+    }
     try {
       await saveRecommendedPlan()
       setIsSaved(true)
       setShowSaveBanner(true)
-      setToastMsg('Đã lưu thực đơn vào danh sách của bạn!')
-      setTimeout(() => setToastMsg(null), 3000)
+      setToastMsg('Đã lưu thực đơn thành công! Đang chuyển đến Thực đơn của bạn...')
+      setTimeout(() => {
+        onNavigate?.('/meal-plans')
+      }, 1000)
     } catch {
       setError('Lỗi khi lưu thực đơn.')
     }

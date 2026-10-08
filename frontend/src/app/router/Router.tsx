@@ -181,8 +181,12 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       ctx,
     )
   }
-  if (path === '/meal-plans/my-plan' || path === '/meal-plans/weekly' || path === '/meal-plans/calendar') {
-    return withPublic(<MyMealPlanPage onNavigate={onNavigate} />, 'meal-plans', ctx)
+  if (path === '/meal-plans/discover' || path === '/meal-plans/sample') {
+    return withPublic(
+      <GeneralMealPlanPage onNavigate={onNavigate} />,
+      'meal-plans',
+      ctx,
+    )
   }
   const mealPlanDetailMatch = path.match(/^\/meal-plans\/detail\/?(.+)?$/)
   if (mealPlanDetailMatch) {
@@ -195,12 +199,15 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       ctx,
     )
   }
-  if (path === '/meal-plans' || path === 'meal-plans' || path.startsWith('/meal-plans')) {
-    return withPublic(
-      <GeneralMealPlanPage onNavigate={onNavigate} />,
-      'meal-plans',
-      ctx,
-    )
+  if (
+    path === '/meal-plans' ||
+    path === 'meal-plans' ||
+    path === '/meal-plans/my-plan' ||
+    path === '/meal-plans/weekly' ||
+    path === '/meal-plans/calendar' ||
+    path.startsWith('/meal-plans')
+  ) {
+    return withPublic(<MyMealPlanPage onNavigate={onNavigate} />, 'meal-plans', ctx)
   }
 
   const articleEditorMatch = path.match(/^\/articles\/editor\/([^/]+)\/?$/)
@@ -220,9 +227,9 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   }
 
   if (!ctx.user) {
-    if (path === '/auth/login') return <LoginPage onNavigate={onNavigate} />
-    if (path === '/auth/register') return <RegisterPage onNavigate={onNavigate} />
-    if (path === '/auth/forgot-password') return <ForgotPasswordPage onNavigate={onNavigate} />
+    if (path === '/auth/login' || path === '/login') return <LoginPage onNavigate={onNavigate} />
+    if (path === '/auth/register' || path === '/register') return <RegisterPage onNavigate={onNavigate} />
+    if (path === '/auth/forgot-password' || path === '/forgot-password') return <ForgotPasswordPage onNavigate={onNavigate} />
     return <LoginPage onNavigate={onNavigate} />
   }
 
