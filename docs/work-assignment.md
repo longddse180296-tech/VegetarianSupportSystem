@@ -15,13 +15,13 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 
 | Thanh vien | Vai tro | Nhom viec chinh | Folder chinh |
 |---|---|---|---|
-| FE 1 | Frontend | Auth, profile, bai viet, admin shell/admin moderation | `frontend/src/features/auth`, `profile`, `articles`, `admin` |
-| FE 2 | Frontend | Cong thuc, video, nha hang, AI chat, scan, tu bep, thuc don | `frontend/src/features/recipes`, `videos`, `restaurants`, `ai-chat`, `food-scan`, `pantry`, `meal-plans` |
+| FE 1 | Frontend | Auth, profile, bai viet, admin shell/admin moderation, thuc don | `frontend/src/features/auth`, `profile`, `articles`, `admin`, `meal-plans` |
+| FE 2 | Frontend | Cong thuc, video, nha hang, AI chat, scan, tu bep | `frontend/src/features/recipes`, `videos`, `restaurants`, `ai-chat`, `food-scan`, `pantry` |
 | BE 1 | Backend | Tai khoan, phan quyen, ho so nguoi dung, thanh vien admin | `Application/Features/Auth`, `Profiles`, `Administration`, `Infrastructure/Identity` |
 | BE 2 | Backend | Du lieu cot loi: danh muc, nguyen lieu, cong thuc, nha hang, favorite | `Application/Features/Categories`, `Ingredients`, `Recipes`, `Restaurants`, `Favorites` |
 | BE 3 | Backend | Noi dung user, video, binh luan, moderation, AI, scan, thuc don, tu bep | `Application/Features/Articles`, `Videos`, `Comments`, `Moderation`, `AiChat`, `FoodScanning`, `MealPlans`, `Pantry` |
 
-## FE 1: Auth, profile, article, admin
+## FE 1: Auth, profile, article, admin, meal plan
 
 ### Man hinh Figma phu trach
 
@@ -32,12 +32,14 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 - Bai viet cua toi: node `104:13109`.
 - Admin dashboard: node `104:10071`.
 - Admin bai viet/video/moderation: node `104:10884`, `104:11422`.
+- Thuc don: node `103:4330`, `103:4842`, `103:5610`, `103:6197`, `104:14881`.
 
 ### Folder code
 
 - `frontend/src/features/auth`
 - `frontend/src/features/profile`
 - `frontend/src/features/articles`
+- `frontend/src/features/meal-plans`
 - `frontend/src/features/admin/dashboard`
 - `frontend/src/features/admin/moderation`
 - `frontend/src/features/admin/members`
@@ -50,16 +52,17 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 3. Lam profile: thong tin ca nhan, che do an, di ung, chi so co the.
 4. Lam article public: danh sach, filter, chi tiet, binh luan/huu ich.
 5. Lam article owner: tao nhap, preview, gui duyet, xem trang thai AI/Admin, sua va gui lai.
-6. Lam admin dashboard: thong ke thuc te, hang doi duyet, lien ket quan ly core data.
-7. Lam moderation UI: xem noi dung, xem AI flag, bang chung, duyet, yeu cau sua, tu choi, go noi dung.
+6. Lam meal plan: 7 ngay x 3 bua, doi mon, tong dinh duong, danh sach di cho, export PDF.
+7. Lam admin dashboard: thong ke thuc te, hang doi duyet, lien ket quan ly core data.
+8. Lam moderation UI: xem noi dung, xem AI flag, bang chung, duyet, yeu cau sua, tu choi, go noi dung.
 
 ### Can phoi hop voi
 
 - BE 1 cho auth/profile/member.
-- BE 3 cho articles/comments/moderation.
+- BE 3 cho articles/comments/moderation/meal plans.
 - FE 2 de thong nhat layout, shared component, empty/loading/error state.
 
-## FE 2: Recipes, videos, restaurants, AI, scan, meal plan
+## FE 2: Recipes, videos, restaurants, AI, scan, pantry
 
 ### Man hinh Figma phu trach
 
@@ -68,7 +71,6 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 - Tro ly AI: node `103:6813`.
 - Scan: node `103:7298`.
 - Tu bep: node `103:7853`.
-- Thuc don: node `103:4330`, `103:4842`, `103:5610`, `103:6197`, `104:14881`.
 - Video cua toi: node `104:15631`.
 - Cong thuc/nha hang public trong cac man hinh lien quan.
 
@@ -79,7 +81,6 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 - `frontend/src/features/restaurants`
 - `frontend/src/features/ai-chat`
 - `frontend/src/features/food-scan`
-- `frontend/src/features/meal-plans`
 - `frontend/src/features/pantry`
 - `frontend/src/features/favorites`
 - `frontend/src/features/admin/recipes`
@@ -97,13 +98,12 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 6. Lam AI chat: guest trial, user chat co ho so, history neu backend ho tro.
 7. Lam scan: guest intro, upload user, xac nhan nguyen lieu/OCR, cau hoi bo sung, ket qua co dieu kien.
 8. Lam pantry: CRUD nguyen lieu dang co, goi y thay the, goi y cong thuc.
-9. Lam meal plan: 7 ngay x 3 bua, doi mon, tong dinh duong, danh sach di cho, export PDF.
-10. Lam admin core data UI: categories, ingredients, recipes, restaurants.
+9. Lam admin core data UI: categories, ingredients, recipes, restaurants.
 
 ### Can phoi hop voi
 
 - BE 2 cho categories/ingredients/recipes/restaurants/favorites.
-- BE 3 cho videos/AI/scan/meal plan/pantry.
+- BE 3 cho videos/AI/scan/pantry.
 - FE 1 de dung chung auth guard, layout va admin shell.
 
 ## BE 1: Auth, profile, member, role

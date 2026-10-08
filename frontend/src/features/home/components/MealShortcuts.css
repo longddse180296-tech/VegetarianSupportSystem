@@ -1,0 +1,71 @@
+.home-meal-shortcuts {
+  background: #ffffff;
+  padding: 0 24px;
+  border-bottom: 1px solid #e4efe6;
+}
+
+.home-meal-shortcuts-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+@media (max-width: 640px) {
+  .home-meal-shortcuts-inner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.home-meal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 16px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #e4efe6;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: center;
+  width: 100%;
+}
+
+.home-meal-card:last-child {
+  border-right: none;
+}
+
+.home-meal-card:hover {
+  background: #f2f8f3;
+}
+
+.home-meal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #eaf5ed;
+  color: #2f7a45;
+  margin-bottom: 4px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.home-meal-card:hover .home-meal-icon {
+  background: #d4eddc;
+}
+
+.home-meal-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #173621;
+}
+
+.home-meal-desc {
+  font-size: 12px;
+  color: #6b8471;
+  font-weight: 500;
+}

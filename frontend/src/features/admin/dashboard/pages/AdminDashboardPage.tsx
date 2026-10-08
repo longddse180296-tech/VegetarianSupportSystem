@@ -11,7 +11,7 @@ interface AdminDashboardPageProps {
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
 
-export default function AdminDashboardPage({ onNavigate }: AdminDashboardPageProps) {
+export function AdminDashboardPage({ onNavigate }: AdminDashboardPageProps) {
   const { user, isAdmin, isLoading, logout } = useAuth()
   const [members, setMembers] = useState<MemberPage | null>(null)
   const [error, setError] = useState('')

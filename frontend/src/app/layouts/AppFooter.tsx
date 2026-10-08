@@ -1,3 +1,4 @@
+import Logo from './Logo';
 import './AppFooter.css';
 
 export default function AppFooter() {
@@ -6,15 +7,7 @@ export default function AppFooter() {
       <div className="app-footer-inner">
         <div className="footer-col footer-col-brand">
           <div className="footer-logo-wrap">
-            <span className="app-logo-icon footer-logo-icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-                <path
-                  d="M20 6c3.314 0 6 2.686 6 6s-2.686 6-6 6c-1.385 0-2.656-.468-3.684-1.262.446 1.888 1.782 3.49 3.614 4.247C15.96 23.227 10.67 24.9 6 26c-.3 0-.3-.47-.037-.34 4.18 2.06 9.51 1.31 12.63-1.22-4.55-.71-8.52-4.09-9.74-8.53 2.76.06 5.55.85 8 2.38-.22-2.04.73-4.1 2.44-5.4A5.98 5.98 0 0 1 20 6z"
-                  fill="#3f7a4f"
-                />
-              </svg>
-            </span>
-            <span className="footer-logo-text">Vegetarian Support</span>
+            <Logo iconSize="sm" showText />
           </div>
           <p className="footer-desc">
             Nền tảng hỗ trợ định dưỡng thực vật khoa học hàng đầu, đồng hành cùng bạn trên

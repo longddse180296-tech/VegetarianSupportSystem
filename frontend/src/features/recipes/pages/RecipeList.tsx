@@ -1,247 +1,275 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type {
-  RecipeFilterValues,
-} from '../types/recipes.types';
-import { DEFAULT_FILTER_VALUES } from '../types/recipes.types';
-import RecipeFilter from '../components/RecipeFilter';
-import RecipeCard from '../components/RecipeCard';
-import SkeletonLoader from '../../../shared/components/SkeletonLoader';
-import EmptyState from '../../../shared/components/EmptyState';
-import AlertError from '../../../shared/components/AlertError';
-import { fetchRecipes } from '../api/recipes.api';
-import type { RecipeSummary } from '../types/recipes.types';
-import './RecipeList.css';
+import { useState } from 'react'
+import {
+  Search,
+  Sparkles,
+  Clock,
+  Flame,
+  ChevronLeft,
+  ChevronRight,
+  Leaf,
+  FilterX,
+} from 'lucide-react'
+import type { RecipeListPageProps } from '../types/recipes.types'
+import './RecipeList.css'
 
-type RequestStatus = 'loading' | 'success' | 'error';
+const DIET_TABS = [
+  { id: 'vegan', label: 'Thuần chay (Vegan)', tone: 'vegan' },
+  { id: 'lacto', label: 'Chay có sữa (Lacto)', tone: 'soft' },
+  { id: 'ovo', label: 'Chay có trứng (Ovo)', tone: 'soft' },
+  { id: 'lactoovo', label: 'Trứng & Sữa (Lacto-ovo)', tone: 'soft' },
+] as const
 
-interface RecipeListState {
-  items: RecipeSummary[];
-  totalItems: number;
-  status: RequestStatus;
-  errorMessage?: string;
-}
+const CATEGORY_TABS = [
+  'Tất cả', 'Món chính', 'Salad', 'Món nước', 'Đồ uống', 'Tráng miệng',
+]
 
-const INITIAL_STATE: RecipeListState = {
-  items: [],
-  totalItems: 0,
-  status: 'loading',
-};
+const RECIPES = [
+  { id: 'r1', name: 'Đậu hũ sốt nấm', tag: 'MÓN CHÍNH', time: 25, kcal: 320, vegan: true, plantRatio: 100, desc: 'Đậu hũ chiên non áp chảo sốt cùng nấm đông cô tươi thanh...', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vietnamese%20braised%20tofu%20with%20shiitake%20mushroom%20green%20onion%20ceramic%20bowl&image_size=square_hd' },
+  { id: 'r2', name: 'Cơm gạo lứt rau củ', tag: 'MÓN CHÍNH', time: 30, kcal: 380, vegan: true, plantRatio: 100, desc: 'Gạo lứt dẻo kết hợp rau củ 5 màu giàu chất xơ, hỗ trợ kiể...', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Brown%20rice%20bowl%20roasted%20vegetables%20purple%20sweet%20potato%20broccoli%20carrot&image_size=square_hd' },
+  { id: 'r3', name: 'Salad bơ và đậu gà', tag: 'SALAD', time: 15, kcal: 290, vegan: true, plantRatio: 100, desc: 'Chất béo tốt từ bơ sáp hạt quyện cùng đậu gà luộc giòn ng...', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Avocado%20chickpea%20salad%20fresh%20greens%20lemon%20dressing%20top%20view&image_size=square_hd' },
+  { id: 'r4', name: 'Bún chay thanh đạm', tag: 'MÓN NƯỚC', time: 35, kcal: 340, vegan: true, plantRatio: 100, desc: 'Nước dùng hầm từ củ cải và bắp ngọt thanh tao, kết hợp nấm bả...', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vietnamese%20vegan%20rice%20vermicelli%20soup%20bun%20chay%20tofu%20mushrooms%20herbs&image_size=square_hd' },
+  { id: 'r5', name: 'Mì xào giòn rau củ thập...', tag: 'MÓN CHÍNH', time: 20, kcal: 350, vegan: true, plantRatio: 100, desc: 'Sợi mì vàng uốn giòn quyện đều sốt rau củ thanh ngọt vị t...', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Crispy%20fried%20noodles%20with%20mixed%20vegetables%20chinese%20style&image_size=square_hd' },
+  { id: 'r6', name: 'Canh nấm hạt sen táo đỏ', tag: 'MÓN NƯỚC', time: 40, kcal: 210, vegan: true, plantRatio: 95, desc: 'Món canh dưỡng sinh an thần, nấm cao, hạt sen tươi, táo đỏ n...', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vietnamese%20lotus%20seed%20mushroom%20jujube%20soup%20herbal%20broth&image_size=square_hd' },
+  { id: 'r7', name: 'Cháo yến mạch rau củ...', tag: 'MÓN CHÍNH', time: 15, kcal: 260, vegan: true, plantRatio: 95, desc: 'Bữa sáng dinh dưỡng từ yến mạch hữu cơ, rau củ thái hạt lựu...', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Oatmeal%20porridge%20with%20vegetables%20spinach%20mushroom%20topped%20sesame&image_size=square_hd' },
+  { id: 'r8', name: 'Cà ri rau củ nước cốt dừa', tag: 'MÓN CHÍNH', time: 45, kcal: 420, vegan: true, plantRatio: 100, desc: 'Hương thơm sả ớt đặc trưng, đậu hũ vàng mềm quyện cùng đậ...', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vietnamese%20vegetable%20coconut%20curry%20ca%20ri%20tofu%20eggplant%20chili&image_size=square_hd' },
+] as const
 
-interface RecipeListPageProps {
-  onNavigate?: (path: string) => void;
-}
+const TIME_OPTIONS = ['Tất cả thời gian', '< 15 phút', '15 - 30 phút', '30 - 45 phút', '> 45 phút']
+const KCAL_OPTIONS = ['Tất cả mức calo', '< 200 kcal', '200 - 350 kcal', '350 - 500 kcal', '> 500 kcal']
 
 export default function RecipeList({ onNavigate }: RecipeListPageProps) {
-  const [filters, setFilters] = useState<RecipeFilterValues>(DEFAULT_FILTER_VALUES);
-  const [state, setState] = useState<RecipeListState>(INITIAL_STATE);
-  const cancelledRef = useRef(false);
-
-  const loadRecipes = useCallback(async (values: RecipeFilterValues) => {
-    setState((prev) => ({ ...prev, status: 'loading', errorMessage: undefined }));
-    try {
-      const params = {
-        search: values.search.trim() || undefined,
-        category: values.category === 'all' ? undefined : values.category,
-        diet: values.diet === 'all' ? undefined : values.diet,
-        timeRangeKey: values.timeRangeKey === 'all' ? undefined : values.timeRangeKey,
-        calorieRangeKey: values.calorieRangeKey === 'all' ? undefined : values.calorieRangeKey,
-        page: 1,
-        pageSize: 24,
-      };
-      const data = await fetchRecipes(params);
-      if (cancelledRef.current) return;
-      setState({
-        items: data.items,
-        totalItems: data.pagination.totalItems,
-        status: 'success',
-      });
-    } catch (err) {
-      if (cancelledRef.current) return;
-      setState((prev) => ({
-        ...prev,
-        items: [],
-        totalItems: 0,
-        status: 'error',
-        errorMessage: err instanceof Error ? err.message : 'Không xác định',
-      }));
-    }
-  }, []);
-
-  useEffect(() => {
-    cancelledRef.current = false;
-    Promise.resolve().then(() => {
-      if (!cancelledRef.current) void loadRecipes(DEFAULT_FILTER_VALUES);
-    });
-    return () => {
-      cancelledRef.current = true;
-    };
-  }, [loadRecipes]);
-
-  const handleFilterChange = (next: RecipeFilterValues) => {
-    setFilters(next);
-  };
-
-  const handleFilterSubmit = () => {
-    loadRecipes(filters);
-  };
-
-  const handleFilterReset = () => {
-    setFilters(DEFAULT_FILTER_VALUES);
-    loadRecipes(DEFAULT_FILTER_VALUES);
-  };
-
-  const handleRetry = () => {
-    loadRecipes(filters);
-  };
-
-  const hasActiveFilter =
-    filters.search.trim() !== '' ||
-    filters.category !== 'all' ||
-    filters.diet !== 'all' ||
-    filters.timeRangeKey !== 'all' ||
-    filters.calorieRangeKey !== 'all';
-
-  const isLoading = state.status === 'loading';
-  const isError = state.status === 'error';
-  const isEmptySuccess = state.status === 'success' && state.items.length === 0;
+  const [activeDiet, setActiveDiet] = useState<string>('vegan')
+  const [activeCategory, setActiveCategory] = useState<string>('Tất cả')
+  const [timeRange, setTimeRange] = useState(TIME_OPTIONS[0])
+  const [kcalRange, setKcalRange] = useState(KCAL_OPTIONS[0])
+  const [autoFilter, setAutoFilter] = useState(true)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [sortBy, setSortBy] = useState('Phù hợp nhất')
 
   return (
-    <div className="recipe-list-page">
-      <header className="recipe-list-hero">
-        <div className="hero-inner">
-          <span className="hero-eyebrow" aria-hidden="true">
-            <span aria-hidden="true" style={{ marginRight: 4 }}>🌱</span>
-            Hỗ trợ dining chay: Thuần chay (Vegan)
-          </span>
-          <h1 className="hero-title">Công thức món chay</h1>
-          <p className="hero-subtitle">
-            Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày
-            được tinh chỉnh khoa học theo nhu cầu dinh dưỡng.
-          </p>
-          <div className="hero-stats">
-            <div className="stat-card">
-              <div className="stat-number">500+</div>
-              <div className="stat-label">Món chay chuẩn thực</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">
-                &lt; 30<span className="stat-unit">p</span>
-              </div>
-              <div className="stat-label">Chuẩn bị nhanh gọn</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">100%</div>
-              <div className="stat-label">Chuẩn khoa học BMI</div>
-            </div>
+    <div className="rl-page">
+      {/* Hero */}
+      <header className="rl-hero">
+        <div className="rl-diet-badge">
+          <Leaf size={14} className="rl-diet-badge-icon" />
+          Hồ sơ đang chọn: Thuần chay (Vegan)
+        </div>
+        <h1 className="rl-title">Công thức món chay</h1>
+        <p className="rl-sub">
+          Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày
+          <br />được tinh chỉnh khoa học theo nhu cầu dinh dưỡng.
+        </p>
+        <div className="rl-stats">
+          <div className="rl-stat">
+            <div className="rl-stat-num">500<span className="rl-stat-plus">+</span></div>
+            <div className="rl-stat-lbl">Món chay chọn lọc</div>
+          </div>
+          <div className="rl-stat">
+            <div className="rl-stat-num">{'< '}30<span className="rl-stat-unit">p</span></div>
+            <div className="rl-stat-lbl">Chuẩn bị nhanh gọn</div>
+          </div>
+          <div className="rl-stat">
+            <div className="rl-stat-num">100<span className="rl-stat-unit">%</span></div>
+            <div className="rl-stat-lbl">Chuẩn khoa học BMI</div>
           </div>
         </div>
       </header>
 
-      <main className="recipe-list-main">
-        <RecipeFilter
-          values={filters}
-          onChange={handleFilterChange}
-          onSubmit={handleFilterSubmit}
-          onReset={handleFilterReset}
-        />
+      {/* Search bar + actions */}
+      <section className="rl-searchbar">
+        <div className="rl-search-input">
+          <Search size={18} className="rl-search-icon" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm kiếm công thức theo tên món hoặc nguyên liệu (đậu hũ, nấm, hạt sen...)"
+          />
+        </div>
+        <button type="button" className="rl-btn rl-btn-green">
+          <Search size={16} />
+          Tìm kiếm
+        </button>
+        <button
+          type="button"
+          className="rl-btn rl-btn-soft-green"
+          onClick={() => onNavigate?.('/pantry')}
+        >
+          <Sparkles size={16} />
+          Khám phá theo Tủ bếp AI
+        </button>
+      </section>
 
-        <section className="recipe-result-section">
-          <header className="result-header">
-            <div className="result-title-wrap">
-              <h2 className="result-title">
-                Công thức dành cho bạn
-                {!isLoading && !isError && (
-                  <span className="result-count" title={`Tổng cộng ${state.totalItems} công thức`}>
-                    {state.totalItems} công thức
-                  </span>
-                )}
-              </h2>
-            </div>
-            <div className="result-sort" aria-label="Sắp xếp công thức">
-              <label htmlFor="recipe-sort-select" className="sort-label">
-                Sắp xếp theo:
-              </label>
-              <div className="select-wrap sort-select-wrap">
-                <select id="recipe-sort-select" className="filter-select" defaultValue="match" disabled={isLoading || isError}>
-                  <option value="match">Phù hợp nhất</option>
-                  <option value="time_asc">Thời gian: Tăng dần</option>
-                  <option value="time_desc">Thời gian: Giảm dần</option>
-                  <option value="calo_asc">Calo: Tăng dần</option>
-                  <option value="calo_desc">Calo: Giảm dần</option>
-                </select>
-              </div>
-            </div>
-          </header>
-
-          <div className="result-body">
-            {isLoading && <SkeletonLoader count={8} />}
-
-            {isError && (
-              <AlertError
-                title="Không thể tải danh sách công thức"
-                message={
-                  state.errorMessage
-                    ? `Chi tiết: ${state.errorMessage}. Vui lòng thử lại sau.`
-                    : 'Kiểm tra lại đường truyền hoặc thử lại sau ít phút.'
-                }
-                onRetry={handleRetry}
-              />
-            )}
-
-            {!isLoading && !isError && isEmptySuccess && (
-              <EmptyState
-                title={
-                  hasActiveFilter
-                    ? 'Không có công thức nào khớp với bộ lọc'
-                    : 'Hiện chưa có công thức nào'
-                }
-                description={
-                  hasActiveFilter
-                    ? 'Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc (danh mục, chế độ ăn, thời gian, calo) để xem thêm kết quả nhé.'
-                    : 'Hệ thống đang cập nhật công thức. Vui lòng quay lại sau.'
-                }
-                onReset={hasActiveFilter ? handleFilterReset : undefined}
-              />
-            )}
-
-            {!isLoading && !isError && state.items.length > 0 && (
-              <>
-                <div className="recipe-grid" aria-label="Danh sách công thức món chay">
-                  {state.items.map((recipe) => (
-                    <RecipeCard key={recipe.id} recipe={recipe} onNavigate={onNavigate} />
-                  ))}
-                </div>
-                <nav className="recipe-pagination" aria-label="Phân trang công thức">
-                  <div className="pagination-info">
-                    Đang hiển thị 1 - {state.items.length} trong tổng số {state.totalItems} công thức
-                  </div>
-                  <div className="pagination-controls">
-                    <button type="button" className="pagination-btn pagination-nav" disabled>
-                      &larr; Trước
-                    </button>
-                    <button type="button" className="pagination-btn pagination-active" aria-current="page">
-                      1
-                    </button>
-                    <button type="button" className="pagination-btn">
-                      2
-                    </button>
-                    <button type="button" className="pagination-btn">
-                      3
-                    </button>
-                    <span className="pagination-ellipsis" aria-hidden="true">...</span>
-                    <button type="button" className="pagination-btn">
-                      8
-                    </button>
-                    <button type="button" className="pagination-btn pagination-nav">
-                      Sau &rarr;
-                    </button>
-                  </div>
-                </nav>
-              </>
-            )}
+      {/* Filter block */}
+      <section className="rl-filter">
+        <div className="rl-filter-row rl-filter-row-diet">
+          <div className="rl-filter-label">
+            <strong>DANH MỤC MÓN ĂN</strong>
+            <span>CHẾ ĐỘ ĂN CỦA BẠN:</span>
           </div>
-        </section>
-      </main>
+          <div className="rl-diet-tabs">
+            {DIET_TABS.map((t) => (
+              <button
+                key={t.id}
+                className={`rl-diet-tab rl-diet-tab-${t.tone} ${activeDiet === t.id ? 'is-active' : ''}`}
+                onClick={() => setActiveDiet(t.id)}
+                type="button"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div className="rl-toggle-wrap">
+            <span className="rl-toggle-label">Tự động lọc theo hồ sơ của tôi</span>
+            <button
+              type="button"
+              className={`rl-toggle ${autoFilter ? 'is-on' : 'is-off'}`}
+              onClick={() => setAutoFilter((v) => !v)}
+              aria-label="toggle auto filter"
+            >
+              <span className="rl-toggle-knob" />
+            </button>
+          </div>
+        </div>
+
+        <div className="rl-filter-row rl-filter-row-cat">
+          <div className="rl-filter-label"><strong>DANH MỤC MÓN ĂN</strong></div>
+          <div className="rl-cat-tabs">
+            {CATEGORY_TABS.map((c) => (
+              <button
+                key={c}
+                className={`rl-cat-tab ${activeCategory === c ? 'is-active' : ''}`}
+                onClick={() => setActiveCategory(c)}
+                type="button"
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rl-filter-row rl-filter-row-advanced">
+          <div className="rl-field">
+            <label>Thời gian nấu</label>
+            <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
+              {TIME_OPTIONS.map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="rl-field">
+            <label>Mức Calo (Kcal / Khẩu phần)</label>
+            <select value={kcalRange} onChange={(e) => setKcalRange(e.target.value)}>
+              {KCAL_OPTIONS.map((k) => <option key={k}>{k}</option>)}
+            </select>
+          </div>
+          <div className="rl-reset">
+            <button type="button" className="rl-reset-btn" onClick={() => { setActiveDiet('vegan'); setActiveCategory('Tất cả'); setTimeRange(TIME_OPTIONS[0]); setKcalRange(KCAL_OPTIONS[0]); setSearch('') }}>
+              <FilterX size={14} /> Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Dark green CTA banner */}
+      <section className="rl-cta">
+        <div className="rl-cta-tag">
+          <Sparkles size={12} /> Tính năng thông minh mới
+        </div>
+        <div className="rl-cta-body">
+          <div className="rl-cta-text">
+            <h3>Bạn có sẵn nguyên liệu trong bếp?</h3>
+            <p>
+              Thử ngay tính năng Tủ bếp AI để được gợi ý các món chay thơm ngon, chuẩn dinh dưỡng từ chính những gì bạn đang có!
+            </p>
+          </div>
+          <button
+            type="button"
+            className="rl-cta-btn"
+            onClick={() => onNavigate?.('/pantry')}
+          >
+            <Sparkles size={16} />
+            Khám phá Tủ bếp AI <ChevronRight size={18} />
+          </button>
+        </div>
+      </section>
+
+      {/* Results section */}
+      <section className="rl-results">
+        <div className="rl-results-head">
+          <div className="rl-results-title">
+            <h2>Công thức dành cho bạn</h2>
+            <span className="rl-count-badge">24 công thức</span>
+          </div>
+          <div className="rl-sort">
+            <label>Sắp xếp theo:</label>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option>Phù hợp nhất</option>
+              <option>Mới nhất</option>
+              <option>Thời gian: ngắn nhất</option>
+              <option>Calo: thấp nhất</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="rl-grid">
+          {RECIPES.map((r) => (
+            <article key={r.id} className="rl-card" onClick={() => onNavigate?.(`/recipes/${encodeURIComponent(r.id)}`)}>
+              <div className="rl-card-img">
+                <img src={r.img} alt={r.name} loading="lazy" />
+                <span className="rl-time">
+                  <Clock size={12} /> {r.time} phút
+                </span>
+                <span className="rl-kcal">
+                  <Flame size={12} /> {r.kcal} kcal
+                </span>
+              </div>
+              <div className="rl-card-body">
+                <div className="rl-card-head">
+                  <span className="rl-tag">{r.tag}</span>
+                  <span className={`rl-vegan ${r.vegan ? 'is-yes' : 'is-no'}`}>
+                    <Leaf size={11} /> {r.vegan ? '100% Vegan' : 'Chay'}
+                  </span>
+                </div>
+                <h3 className="rl-card-name">{r.name}</h3>
+                <p className="rl-card-desc">{r.desc}</p>
+                <div className="rl-progress">
+                  <span className="rl-progress-lbl">Tỷ lệ thực vật</span>
+                  <div className="rl-progress-track">
+                    <div className="rl-progress-fill" style={{ width: `${r.plantRatio}%` }} />
+                  </div>
+                  <span className="rl-progress-pct">{r.plantRatio}%</span>
+                </div>
+                <button type="button" className="rl-view-btn">
+                  Xem công thức
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="rl-pagination">
+          <div className="rl-pg-info">Đang hiển thị 1 - 8 trong tổng số 24 công thức</div>
+          <div className="rl-pg-controls">
+            <button type="button" className="rl-pg-btn" disabled>
+              <ChevronLeft size={16} /> Trước
+            </button>
+            {[1, 2, 3, null, 8].map((p, idx) => p === null ? (
+              <span key={`dot-${idx}`} className="rl-pg-dots">…</span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                className={`rl-pg-btn ${page === p ? 'is-active' : ''}`}
+                onClick={() => setPage(p as number)}
+              >
+                {p}
+              </button>
+            ))}
+            <button type="button" className="rl-pg-btn">
+              Sau <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
-  );
+  )
 }
