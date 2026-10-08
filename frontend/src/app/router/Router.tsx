@@ -4,7 +4,7 @@ import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { RegisterPage } from '../../features/auth/pages/RegisterPage'
 import { ForgotPasswordPage } from '../../features/auth/pages/ForgotPasswordPage'
 import { ProfilePage } from '../../features/profile'
-import { MembersPage } from '../../features/admin/members'
+import MembersPage from '../../features/admin/members/pages/MembersPage'
 import { AdminDashboardPage } from '../../features/admin/dashboard'
 import { AdminArticlesPage } from '../../features/admin/articles'
 import { AdminCategoriesPage } from '../../features/admin/categories'
@@ -87,7 +87,12 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return withPublic(<RecipeList onNavigate={onNavigate} />, 'recipes', ctx)
   }
   if (recipeMatch) {
-    const recipeId = decodeURIComponent(recipeMatch[1])
+    let recipeId = ''
+    try {
+      recipeId = decodeURIComponent(recipeMatch[1])
+    } catch {
+      // Let RecipeDetail handle malformed IDs without crashing the router.
+    }
     return withPublic(
       <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={onNavigate} />,
       'recipes',
@@ -247,7 +252,7 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return <AdminCommentsPage onNavigate={onNavigate} />
   }
   if (path.startsWith('/admin/members')) {
-    return <MembersPage onNavigate={onNavigate} initialView="members" />
+    return <MembersPage onNavigate={onNavigate} />
   }
   if (path.startsWith('/admin/ingredients')) {
     return <AdminIngredientsPage onNavigate={onNavigate} />

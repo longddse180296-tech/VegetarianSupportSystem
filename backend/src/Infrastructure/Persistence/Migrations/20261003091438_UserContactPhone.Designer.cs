@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261003091438_UserContactPhone")]
+    partial class UserContactPhone
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,159 +77,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("AiChatMessages", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.MemberStatusChange", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AdminId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("IsLocked")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTimeOffset>("OccurredAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AdminId");
-
-                    b.HasIndex("UserId", "OccurredAtUtc");
-
-                    b.ToTable("MemberStatusChanges", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.Category", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)")
-                        .UseCollation("Latin1_General_100_CI_AS");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Categories", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.Ingredient", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Aliases")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Allergens")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<decimal?>("CaloriesPer100Gram")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<decimal?>("CarbohydrateGramPer100Gram")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<bool>("ContainsEgg")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ContainsHoney")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ContainsMilk")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("ContainsOtherAnimalProducts")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("DefaultUnit")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<decimal?>("FatGramPer100Gram")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)")
-                        .UseCollation("Latin1_General_100_CI_AS");
-
-                    b.Property<int>("Origin")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("ProteinGramPer100Gram")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<string>("Source")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Ingredients", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_Ingredients_CaloriesPer100Gram", "[CaloriesPer100Gram] IS NULL OR [CaloriesPer100Gram] >= 0");
-
-                            t.HasCheckConstraint("CK_Ingredients_CarbohydrateGramPer100Gram", "[CarbohydrateGramPer100Gram] IS NULL OR [CarbohydrateGramPer100Gram] >= 0");
-
-                            t.HasCheckConstraint("CK_Ingredients_FatGramPer100Gram", "[FatGramPer100Gram] IS NULL OR [FatGramPer100Gram] >= 0");
-
-                            t.HasCheckConstraint("CK_Ingredients_Origin", "[Origin] IN (0, 1, 2)");
-
-                            t.HasCheckConstraint("CK_Ingredients_ProteinGramPer100Gram", "[ProteinGramPer100Gram] IS NULL OR [ProteinGramPer100Gram] >= 0");
-                        });
-                });
-
             modelBuilder.Entity("Domain.Entities.ModerationDecision", b =>
                 {
                     b.Property<Guid>("Id")
@@ -280,10 +130,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<string>("AiFlagReason")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
                     b.Property<string>("AiFlagStatus")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -304,9 +150,6 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("IsCurrentPublished")
                         .HasColumnType("bit");
@@ -339,9 +182,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<DateTimeOffset>("UpdatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
                     b.Property<int>("Version")
                         .HasColumnType("int");
 
@@ -359,121 +199,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId", "SubmittedAt");
 
                     b.ToTable("ModerationSubmissions", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.Recipe", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal?>("CaloriesPerServing")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<decimal?>("CarbohydrateGramPerServing")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<Guid>("CategoryId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("CookTimeMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<decimal?>("FatGramPerServing")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
-                    b.Property<string>("Instructions")
-                        .IsRequired()
-                        .HasMaxLength(20000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)")
-                        .UseCollation("Latin1_General_100_CI_AS");
-
-                    b.Property<int>("PrepTimeMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("ProteinGramPerServing")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<int>("Servings")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Recipes", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_Recipes_CaloriesPerServing", "[CaloriesPerServing] IS NULL OR [CaloriesPerServing] >= 0");
-
-                            t.HasCheckConstraint("CK_Recipes_CarbohydrateGramPerServing", "[CarbohydrateGramPerServing] IS NULL OR [CarbohydrateGramPerServing] >= 0");
-
-                            t.HasCheckConstraint("CK_Recipes_FatGramPerServing", "[FatGramPerServing] IS NULL OR [FatGramPerServing] >= 0");
-
-                            t.HasCheckConstraint("CK_Recipes_ProteinGramPerServing", "[ProteinGramPerServing] IS NULL OR [ProteinGramPerServing] >= 0");
-
-                            t.HasCheckConstraint("CK_Recipes_Servings", "[Servings] BETWEEN 1 AND 10000");
-
-                            t.HasCheckConstraint("CK_Recipes_Times", "[PrepTimeMinutes] BETWEEN 0 AND 10080 AND [CookTimeMinutes] BETWEEN 0 AND 10080");
-                        });
-                });
-
-            modelBuilder.Entity("Domain.Entities.RecipeIngredient", b =>
-                {
-                    b.Property<Guid>("RecipeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("IngredientId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.HasKey("RecipeId", "IngredientId");
-
-                    b.HasIndex("IngredientId");
-
-                    b.ToTable("RecipeIngredients", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_RecipeIngredients_Quantity", "[Quantity] > 0");
-                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.RevokedAccessToken", b =>
@@ -544,8 +269,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CreatedAtUtc", "Id");
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique();
@@ -677,21 +400,6 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.MemberStatusChange", b =>
-                {
-                    b.HasOne("Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Domain.Entities.ModerationDecision", b =>
                 {
                     b.HasOne("Domain.Entities.ModerationSubmission", null)
@@ -699,36 +407,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasForeignKey("SubmissionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Entities.Recipe", b =>
-                {
-                    b.HasOne("Domain.Entities.Category", "Category")
-                        .WithMany("Recipes")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("Domain.Entities.RecipeIngredient", b =>
-                {
-                    b.HasOne("Domain.Entities.Ingredient", "Ingredient")
-                        .WithMany("RecipeIngredients")
-                        .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.Recipe", "Recipe")
-                        .WithMany("RecipeIngredients")
-                        .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Ingredient");
-
-                    b.Navigation("Recipe");
                 });
 
             modelBuilder.Entity("Domain.Entities.UserAllergy", b =>
@@ -758,24 +436,9 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.Category", b =>
-                {
-                    b.Navigation("Recipes");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Ingredient", b =>
-                {
-                    b.Navigation("RecipeIngredients");
-                });
-
             modelBuilder.Entity("Domain.Entities.ModerationSubmission", b =>
                 {
                     b.Navigation("Decisions");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Recipe", b =>
-                {
-                    b.Navigation("RecipeIngredients");
                 });
 
             modelBuilder.Entity("Domain.Entities.User", b =>

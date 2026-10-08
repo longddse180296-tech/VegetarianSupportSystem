@@ -1,7 +1,9 @@
 using Application.Abstractions.AI;
 using Application.Features.AiChat;
+using Application.Features.Administration;
 using Application.Features.Auth;
 using Application.Features.Moderation;
+using Application.Features.Profiles;
 using Infrastructure.AI;
 using Infrastructure.AI.Gemini;
 using Infrastructure.Identity;
@@ -29,6 +31,8 @@ public static class DependencyInjection
 
         services.AddScoped<IAiChatRepository, AiChatRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddScoped<IMemberRepository, MemberRepository>();
+        services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IRevokedAccessTokenRepository, RevokedAccessTokenRepository>();
         services.AddSingleton<IAccountPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IModerationRepository, ModerationRepository>();

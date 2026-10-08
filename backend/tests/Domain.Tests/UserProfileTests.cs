@@ -63,6 +63,8 @@ public sealed class UserProfileTests
             null, null, 0, null, null, null, Now));
         Assert.Throws<ArgumentOutOfRangeException>(() => profile.SetBodyData(
             null, null, null, -1, null, null, Now));
+        Assert.Throws<ArgumentOutOfRangeException>(() => profile.SetBodyData(
+            null, null, 165.123m, null, null, null, Now));
 
         profile.SetBodyData(new DateOnly(2000, 1, 1), SexForEnergyEstimate.Female,
             165, 60, ActivityLevel.ModeratelyActive, WeightGoal.Maintain, Now);
@@ -85,5 +87,17 @@ public sealed class UserProfileTests
         Assert.False(user.IsLocked);
         Assert.Null(user.LockReason);
         Assert.Null(user.LockedAtUtc);
+    }
+
+    [Fact]
+    public void PhoneNumberCanBeUpdatedOrClearedAndRejectsInvalidText()
+    {
+        var user = User.Register("Nguyen Van A", "a@example.com", "hashed-password", Now);
+
+        user.SetPhoneNumber(" +84 912 345 678 ", Now);
+        Assert.Equal("+84 912 345 678", user.PhoneNumber);
+        Assert.Throws<ArgumentException>(() => user.SetPhoneNumber("call me", Now));
+        user.SetPhoneNumber(null, Now);
+        Assert.Null(user.PhoneNumber);
     }
 }

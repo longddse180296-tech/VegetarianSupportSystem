@@ -57,7 +57,11 @@ public sealed class UserProfile
             throw new ArgumentOutOfRangeException(nameof(sexForEnergyEstimate));
         if (heightCm is <= 0 or > 300)
             throw new ArgumentOutOfRangeException(nameof(heightCm));
+        if (heightCm is not null && decimal.Round(heightCm.Value, 2) != heightCm.Value)
+            throw new ArgumentOutOfRangeException(nameof(heightCm));
         if (weightKg is <= 0 or > 1_000)
+            throw new ArgumentOutOfRangeException(nameof(weightKg));
+        if (weightKg is not null && decimal.Round(weightKg.Value, 2) != weightKg.Value)
             throw new ArgumentOutOfRangeException(nameof(weightKg));
         if (activityLevel is not null && !Enum.IsDefined(activityLevel.Value))
             throw new ArgumentOutOfRangeException(nameof(activityLevel));

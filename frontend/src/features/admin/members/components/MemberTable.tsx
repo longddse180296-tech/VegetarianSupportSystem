@@ -6,24 +6,33 @@ import {
   Lock,
   MoreVertical,
   Eye,
-  FileText,
   Unlock,
-  Calendar,
 } from 'lucide-react'
-import type { MemberSummary, MemberStats, MemberFilter } from '../types'
+import type { Member } from '../api/membersApi'
+
+export interface LiveMemberFilter {
+  search: string
+  status: 'all' | 'active' | 'locked'
+  page: number
+}
 
 interface MemberTableProps {
-  members: MemberSummary[]
-  stats: MemberStats
+  members: Member[]
   totalCount: number
+  activeCount: number
+  lockedCount: number
   currentPage: number
   pageSize: number
-  filter: MemberFilter
-  onFilterChange: (newFilter: MemberFilter) => void
+  currentAdminId: string
+  filter: LiveMemberFilter
+  onFilterChange: (newFilter: LiveMemberFilter) => void
   onSelectMember: (memberId: string) => void
-  onRequestLockToggle: (member: MemberSummary) => void
+  onRequestLockToggle: (member: Member) => void
   isLoading?: boolean
 }
+
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
 
 const getAvatarStyle = (index: number) => {
   const styles = [
@@ -40,10 +49,12 @@ const getAvatarStyle = (index: number) => {
 
 export const MemberTable: React.FC<MemberTableProps> = ({
   members,
-  stats,
   totalCount,
+  activeCount,
+  lockedCount,
   currentPage,
   pageSize,
+  currentAdminId,
   filter,
   onFilterChange,
   onSelectMember,
@@ -51,7 +62,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
   isLoading = false,
 }) => {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
-  const [searchInput, setSearchInput] = useState(filter.search || '')
+  const [searchInput, setSearchInput] = useState(filter.search)
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,15 +73,13 @@ export const MemberTable: React.FC<MemberTableProps> = ({
     onFilterChange({ ...filter, status, page: 1 })
   }
 
-  const handleSortChange = (sortBy: 'newest' | 'oldest' | 'most_posts') => {
-    onFilterChange({ ...filter, sortBy, page: 1 })
-  }
-
   const handlePageChange = (newPage: number) => {
     onFilterChange({ ...filter, page: newPage })
   }
 
   const totalPages = Math.ceil(totalCount / pageSize) || 1
+  const firstVisiblePage = Math.max(1, Math.min(currentPage - 1, totalPages - 2))
+  const visiblePages = Array.from({ length: Math.min(3, totalPages) }, (_, index) => firstVisiblePage + index)
   const startItem = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, totalCount)
 
@@ -84,16 +93,13 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             <div className="w-10 h-10 rounded-xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center">
               <Users className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold text-[#1E6531] bg-[#EAF5EE] px-2.5 py-0.5 rounded-full">
-              +{stats.growthRatePercent}% tháng này
-            </span>
           </div>
           <div>
             <span className="text-xs text-slate-500 font-medium block">
               Tổng thành viên đã đăng ký
             </span>
             <span className="text-3xl font-extrabold text-slate-900 mt-1 block">
-              {stats.totalMembers}
+              {activeCount + lockedCount}
             </span>
           </div>
         </div>
@@ -104,16 +110,13 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             <div className="w-10 h-10 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold text-[#0284C7] bg-[#E0F2FE] px-2.5 py-0.5 rounded-full">
-              {stats.activeRatePercent}%
-            </span>
           </div>
           <div>
             <span className="text-xs text-slate-500 font-medium block">
               Tài khoản đang hoạt động
             </span>
             <span className="text-3xl font-extrabold text-slate-900 mt-1 block">
-              {stats.activeMembers}
+              {activeCount}
             </span>
           </div>
         </div>
@@ -124,14 +127,11 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             <div className="w-10 h-10 rounded-xl bg-[#FFE4E6] text-[#E11D48] flex items-center justify-center">
               <Lock className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold text-[#E11D48] bg-[#FFE4E6] px-2.5 py-0.5 rounded-full">
-              Cần kiểm duyệt
-            </span>
           </div>
           <div>
             <span className="text-xs text-slate-500 font-medium block">Tài khoản tạm khóa</span>
             <span className="text-3xl font-extrabold text-slate-900 mt-1 block">
-              {stats.lockedMembers}
+              {lockedCount}
             </span>
           </div>
         </div>
@@ -147,11 +147,12 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm kiếm theo tên hoặc email..."
-            className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-10 pr-14 py-2.5 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
+          <button type="submit" className="absolute right-3 text-xs font-semibold text-[#1E6531]">Tìm</button>
         </form>
 
-        {/* Filter Pills, Sort & Date */}
+        {/* Status filters */}
         <div className="w-full lg:w-auto flex flex-wrap items-center justify-between lg:justify-end gap-3 text-xs">
           {/* Status Tabs */}
           <div className="flex items-center p-1 bg-slate-100 rounded-xl">
@@ -164,7 +165,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              Tất cả ({stats.totalMembers})
+              Tất cả ({activeCount + lockedCount})
             </button>
             <button
               type="button"
@@ -175,7 +176,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              Hoạt động ({stats.activeMembers})
+              Hoạt động ({activeCount})
             </button>
             <button
               type="button"
@@ -186,31 +187,10 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              Bị khóa ({stats.lockedMembers})
+              Bị khóa ({lockedCount})
             </button>
           </div>
 
-          {/* Sort Select */}
-          <select
-            value={filter.sortBy || 'newest'}
-            onChange={(e) =>
-              handleSortChange(e.target.value as 'newest' | 'oldest' | 'most_posts')
-            }
-            className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="most_posts">Nhiều bài viết nhất</option>
-          </select>
-
-          {/* Date button */}
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors"
-          >
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>Ngày đăng ký</span>
-          </button>
         </div>
       </div>
 
@@ -224,7 +204,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
               {totalCount} thành viên
             </span>
           </div>
-          <span className="text-xs text-slate-400">Cập nhật lúc 15:30 hôm nay</span>
+          <span className="text-xs text-slate-400">Mới nhất trước</span>
         </div>
 
         {/* Responsive Table Container */}
@@ -252,8 +232,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                   <th className="py-3.5 px-6">THÀNH VIÊN</th>
                   <th className="py-3.5 px-6">EMAIL</th>
                   <th className="py-3.5 px-6">NGÀY ĐĂNG KÝ</th>
-                  <th className="py-3.5 px-4 text-center">BÀI VIẾT</th>
-                  <th className="py-3.5 px-4 text-center">VIDEO</th>
+                  <th className="py-3.5 px-4 text-center">VAI TRÒ</th>
                   <th className="py-3.5 px-6">TRẠNG THÁI</th>
                   <th className="py-3.5 px-6 text-right">THAO TÁC</th>
                 </tr>
@@ -266,7 +245,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                     .slice(0, 2)
                     .join('')
                     .toUpperCase()
-                  const isLocked = m.status === 'locked'
+                  const isLocked = m.isLocked
                   const avatarColor = getAvatarStyle(idx)
 
                   return (
@@ -287,11 +266,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                             >
                               {m.fullName}
                             </button>
-                            {m.tagTitle && (
-                              <p className="text-[11px] text-slate-400 leading-tight mt-0.5">
-                                {m.tagTitle}
-                              </p>
-                            )}
+                            <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{m.role}</p>
                           </div>
                         </div>
                       </td>
@@ -300,17 +275,8 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                       <td className="py-3.5 px-6 font-mono text-slate-600">{m.email}</td>
 
                       {/* Registered Date */}
-                      <td className="py-3.5 px-6 text-slate-500">{m.registeredDate}</td>
-
-                      {/* Posts */}
-                      <td className="py-3.5 px-4 text-center font-bold text-slate-900">
-                        {m.postCount}
-                      </td>
-
-                      {/* Videos */}
-                      <td className="py-3.5 px-4 text-center font-bold text-slate-900">
-                        {m.videoCount}
-                      </td>
+                      <td className="py-3.5 px-6 text-slate-500">{formatDate(m.joinedAtUtc)}</td>
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-900">{m.role}</td>
 
                       {/* Status */}
                       <td className="py-3.5 px-6">
@@ -365,22 +331,12 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setActiveMenuId(null)
-                                    onSelectMember(m.id)
-                                  }}
-                                  className="w-full flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-slate-500" />
-                                  <span>Xem bài viết &amp; video</span>
-                                </button>
-                                <button
-                                  type="button"
+                                  disabled={!isLocked && m.id === currentAdminId}
                                   onClick={() => {
                                     setActiveMenuId(null)
                                     onRequestLockToggle(m)
                                   }}
-                                  className={`w-full flex items-center gap-2 px-3.5 py-2 transition-colors border-t border-slate-100 ${
+                                  className={`w-full flex items-center gap-2 px-3.5 py-2 transition-colors border-t border-slate-100 disabled:opacity-40 disabled:cursor-not-allowed ${
                                     isLocked
                                       ? 'text-[#1E6531] hover:bg-emerald-50'
                                       : 'text-rose-600 hover:bg-rose-50'
@@ -427,8 +383,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
               Trước
             </button>
 
-            {Array.from({ length: Math.min(3, totalPages) }, (_, idx) => {
-              const pageNum = idx + 1
+            {visiblePages.map((pageNum) => {
               const isActive = currentPage === pageNum
               return (
                 <button
@@ -446,7 +401,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
               )
             })}
 
-            {totalPages > 3 && (
+            {totalPages > 3 && !visiblePages.includes(totalPages) && (
               <>
                 <span className="px-1 text-slate-400">...</span>
                 <button
@@ -458,7 +413,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                       : 'border border-slate-200 hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  19
+                  {totalPages}
                 </button>
               </>
             )}
