@@ -1,30 +1,24 @@
-import React from 'react'
-import { Globe, Video, Camera, Phone, Mail, Sparkles } from 'lucide-react'
-import { Logo } from './Logo'
+import AppHeader from './AppHeader';
+import AppFooter from './AppFooter';
+import './PublicLayout.css';
 
 interface PublicLayoutProps {
-  children: React.ReactNode
-  activeNav?: string
-  onNavigate?: (path: string) => void
-  isLoggedIn?: boolean
-  userName?: string
-  onLogout?: () => void
+  children: React.ReactNode;
+  activeNav?: string;
+  onNavigate?: (path: string) => void;
+  isLoggedIn?: boolean;
+  userName?: string;
+  onLogout?: () => void;
 }
 
-export const PublicLayout: React.FC<PublicLayoutProps> = ({
+export function PublicLayout({
   children,
-  activeNav = 'home',
+  activeNav,
   onNavigate,
-  isLoggedIn = false,
-  userName = 'Người dùng',
+  isLoggedIn,
+  userName,
   onLogout,
-}) => {
-  const handleNavClick = (path: string) => {
-    if (onNavigate) {
-      onNavigate(path)
-    }
-  }
-
+}: PublicLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Top Navigation Bar */}
@@ -351,6 +345,5 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
         </div>
       </footer>
     </div>
-  )
+  );
 }
-export default PublicLayout
