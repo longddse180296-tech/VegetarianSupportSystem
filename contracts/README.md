@@ -2,7 +2,13 @@
 
 FE và BE thống nhất endpoint, request/response, mã lỗi, phân trang, trạng thái xử lý và ví dụ trước khi triển khai một tính năng.
 
-Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường Development tại `/openapi/v1.json`. Không duy trì thêm một bản đặc tả thủ công cạnh tranh trong thư mục này. Hiện chưa tạo endpoint nghiệp vụ.
+Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường Development tại `/openapi/v1.json`. Hợp đồng nghiệp vụ và giới hạn hiện hành cho Moderation/AiChat ở [moderation-aichat.md](moderation-aichat.md).
+
+Hợp đồng backend nhận ảnh món ăn và đánh giá sau khi User xác nhận nguyên liệu ở [food-scanning.md](food-scanning.md).
+
+Hợp đồng đăng ký, đăng nhập, JWT và Admin seed ở [auth.md](auth.md).
+
+Quy ước nghiệp vụ và tích hợp của Categories, Ingredients, Recipes được ghi tại [Core Data tuần 1](core-data.md). Không duy trì thêm một bản OpenAPI thủ công cạnh tranh trong thư mục này.
 
 Phân biệt bắt buộc:
 

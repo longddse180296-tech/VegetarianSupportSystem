@@ -1,0 +1,223 @@
+.recipe-filter {
+  background: #ffffff;
+  border: 1px solid #e4efe6;
+  border-radius: 16px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 2px 10px rgba(36, 91, 60, 0.04);
+}
+
+.recipe-filter-search {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  background: #f7faf7;
+  border: 1px solid #ddebe0;
+  border-radius: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.recipe-filter-search:focus-within {
+  border-color: #89c29a;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(108, 177, 128, 0.18);
+}
+
+.search-label {
+  display: inline-flex;
+  align-items: center;
+  color: #5b7964;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #1e3b26;
+  padding: 6px 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.search-input::placeholder {
+  color: #869d8c;
+}
+
+.search-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: #2f7a45;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.08s ease;
+}
+
+.search-submit-btn:hover {
+  background: #246137;
+}
+
+.search-submit-btn:active {
+  transform: translateY(1px);
+}
+
+.filter-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-group-title {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4a6652;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-pill {
+  padding: 6px 14px;
+  background: #f4f8f5;
+  color: #3f5c47;
+  border: 1px solid #dce8df;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.filter-pill:hover {
+  background: #eaf2ec;
+  border-color: #bfd6c5;
+  color: #244c2e;
+}
+
+.filter-pill-active {
+  background: #2f7a45;
+  color: #ffffff;
+  border-color: #2f7a45;
+}
+
+.filter-pill-active:hover {
+  background: #246137;
+  border-color: #246137;
+  color: #ffffff;
+}
+
+.filter-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 20px;
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .filter-row-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filter-field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4a6652;
+  letter-spacing: 0.3px;
+}
+
+.filter-field-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.select-wrap {
+  position: relative;
+}
+
+.select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 10px;
+  height: 6px;
+  transform: translateY(-50%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%233f5c47' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e3b26;
+  background: #ffffff;
+  border: 1px solid #d5e4d9;
+  border-radius: 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filter-select:hover {
+  border-color: #bbdac3;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #89c29a;
+  box-shadow: 0 0 0 3px rgba(108, 177, 128, 0.18);
+}
+
+.reset-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: transparent;
+  color: #4a6652;
+  border: 1px solid #d5e4d9;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.reset-filter-btn:hover:not(:disabled) {
+  background: #fbecec;
+  color: #a13d3d;
+  border-color: #efc4c4;
+}
+
+.reset-filter-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
