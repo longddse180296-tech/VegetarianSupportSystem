@@ -99,25 +99,47 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return withPublic(<AiChatShell />, 'ai-chat', ctx)
   }
 
+  const articleEditorMatch = path.match(/^\/articles\/(?:editor|edit)\/([^/]+)\/?$/)
+  if (
+    path === '/articles/editor' ||
+    path === '/articles/create' ||
+    path === '/articles/new'
+  ) {
+    if (!ctx.user) {
+      return withPublic(<LoginPage onNavigate={onNavigate} />, 'auth', ctx)
+    }
+    return <ArticleEditorPage onNavigate={onNavigate} />
+  }
+  if (articleEditorMatch) {
+    if (!ctx.user) {
+      return withPublic(<LoginPage onNavigate={onNavigate} />, 'auth', ctx)
+    }
+    const editId = decodeURIComponent(articleEditorMatch[1])
+    return <ArticleEditorPage articleId={editId} onNavigate={onNavigate} />
+  }
+
   const articleMatch = path.match(/^\/articles\/([^/]+)\/?$/)
   if (path === '/articles' || path === 'articles') {
     return withPublic(
       <ArticleList
         onSelectArticle={(id) => onNavigate(`/articles/${id}`)}
-        onNavigateHome={() => onNavigate('/recipes')}
+        onCreateArticle={() => onNavigate(ctx.user ? '/articles/create' : '/auth/login')}
+        onNavigateHome={() => onNavigate('/')}
         onOpenAiChat={() => onNavigate('/ai-chat')}
       />,
       'articles',
       ctx,
     )
   }
-  if (articleMatch) {
+  if (articleMatch && !['editor', 'create', 'new', 'edit'].includes(articleMatch[1])) {
     const articleId = decodeURIComponent(articleMatch[1])
     return withPublic(
       <ArticleDetail
         key={articleId}
         articleId={articleId}
         onBackToList={() => onNavigate('/articles')}
+        onCreateArticle={() => onNavigate(ctx.user ? '/articles/create' : '/auth/login')}
+        onEditArticle={(id) => onNavigate(ctx.user ? `/articles/editor/${id}` : '/auth/login')}
         onSelectRelatedArticle={(id) => onNavigate(`/articles/${id}`)}
       />,
       'articles',
@@ -210,14 +232,6 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return withPublic(<MyMealPlanPage onNavigate={onNavigate} />, 'meal-plans', ctx)
   }
 
-  const articleEditorMatch = path.match(/^\/articles\/editor\/([^/]+)\/?$/)
-  if (path === '/articles/editor') {
-    return <ArticleEditorPage onNavigate={onNavigate} />
-  }
-  if (articleEditorMatch) {
-    const editId = decodeURIComponent(articleEditorMatch[1])
-    return <ArticleEditorPage articleId={editId} onNavigate={onNavigate} />
-  }
 
   if (path === '/profile/my-articles' || path === '/my-articles') {
     return <MyArticlesPage onNavigate={onNavigate} />

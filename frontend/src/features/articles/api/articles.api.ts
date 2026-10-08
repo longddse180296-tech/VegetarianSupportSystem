@@ -202,7 +202,7 @@ export const CATEGORIES = [
 export async function getArticles(
   params: ArticleFilterParams = {}
 ): Promise<PaginatedResult<ArticleSummary>> {
-  await new Promise((resolve) => setTimeout(resolve, 800))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
 
   let filtered = [...MOCK_ARTICLES]
 
@@ -245,16 +245,45 @@ export async function getArticles(
  * Fetch featured article
  */
 export async function getFeaturedArticle(): Promise<ArticleSummary> {
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   const featured = MOCK_ARTICLES.find((a) => a.isFeatured) || MOCK_ARTICLES[0]
   return featured
+}
+
+const MOCK_ARTICLE_DETAILS: Record<string, ArticleDetailDto> = {}
+
+function parseContentToSections(content: string) {
+  const blocks = content.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean)
+  if (blocks.length === 0) {
+    return [{ content }]
+  }
+  return blocks.map((block) => {
+    const matchHeading = block.match(/^(?:#+|(\d+)\.)\s*(.+?)(?:\n([\s\S]*))?$/)
+    if (matchHeading) {
+      const num = matchHeading[1] ? parseInt(matchHeading[1], 10) : undefined
+      const title = matchHeading[2]
+      const body = matchHeading[3] ? matchHeading[3].trim() : ''
+      return {
+        number: num,
+        title,
+        content: body || title,
+      }
+    }
+    return {
+      content: block,
+    }
+  })
 }
 
 /**
  * Fetch article detail by ID or Slug
  */
 export async function getArticleById(id: string): Promise<ArticleDetailDto> {
-  await new Promise((resolve) => setTimeout(resolve, 900))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
+  if (MOCK_ARTICLE_DETAILS[id]) {
+    return MOCK_ARTICLE_DETAILS[id]
+  }
 
   const base = MOCK_ARTICLES.find((a) => a.id === id || a.slug === id) || MOCK_ARTICLES[0]
 
@@ -370,7 +399,7 @@ export async function addArticleComment(
   content: string,
   _authorName = 'Bạn'
 ): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   if (!content.trim()) throw new Error('Nội dung bình luận không được để trống')
 }
 
@@ -378,6 +407,14 @@ export async function addArticleComment(
  * Toggle like for an article
  */
 export async function toggleArticleLike(_articleId: string): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  return true
+}
+
+/**
+ * Toggle like for a comment
+ */
+export async function toggleArticleCommentLike(_commentId: string): Promise<boolean> {
   await new Promise((resolve) => setTimeout(resolve, 400))
   return true
 }
@@ -386,7 +423,7 @@ export async function toggleArticleLike(_articleId: string): Promise<boolean> {
  * Toggle save / bookmark for an article
  */
 export async function toggleArticleSave(_articleId: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+  await new Promise((resolve) => setTimeout(resolve, 500))
   return true
 }
 
@@ -649,7 +686,7 @@ export async function getUserArticles(params: {
   page?: number
   pageSize?: number
 }): Promise<PaginatedResult<UserArticleItem>> {
-  await new Promise((resolve) => setTimeout(resolve, 700))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
 
   let list = [...MOCK_USER_ARTICLES]
 
@@ -693,7 +730,7 @@ export async function getUserComments(params: {
   page?: number
   pageSize?: number
 }): Promise<PaginatedResult<UserCommentItem>> {
-  await new Promise((resolve) => setTimeout(resolve, 700))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
 
   let list = [...MOCK_USER_COMMENTS]
 
@@ -730,7 +767,7 @@ export async function getUserComments(params: {
  * Create a new user article
  */
 export async function createUserArticle(data: ArticleFormData): Promise<UserArticleItem> {
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   const newArticle: UserArticleItem = {
     id: `user-art-${Date.now()}`,
     title: data.title,
@@ -748,6 +785,41 @@ export async function createUserArticle(data: ArticleFormData): Promise<UserArti
     thumbnailUrl: data.thumbnailUrl,
   }
   MOCK_USER_ARTICLES = [newArticle, ...MOCK_USER_ARTICLES]
+
+  const rawUser = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
+  const parsedUser = rawUser ? JSON.parse(rawUser) : null
+  const authorName = parsedUser?.fullName || 'Van Quang Duy'
+
+  const detailDto: ArticleDetailDto = {
+    id: newArticle.id,
+    title: newArticle.title,
+    slug: newArticle.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    excerpt: newArticle.excerpt,
+    thumbnailUrl: newArticle.thumbnailUrl || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+    category: newArticle.category,
+    categoryLabel: newArticle.categoryLabel,
+    publishedAt: 'Hôm nay',
+    readTimeMinutes: Math.max(1, Math.ceil(data.content.split(/\s+/).length / 120)),
+    tags: ['#chaykhoemanh', '#dinhduongthucvat'],
+    author: {
+      id: parsedUser?.id || 'user-curr',
+      name: authorName,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      roleTitle: 'Tác giả cộng đồng',
+    },
+    viewsCount: 0,
+    likesCount: 0,
+    captionHeroImage: 'Ảnh bài viết do tác giả chia sẻ.',
+    sections: parseContentToSections(data.content),
+    comments: [],
+    relatedArticles: MOCK_ARTICLES.slice(0, 3),
+  }
+  MOCK_ARTICLE_DETAILS[newArticle.id] = detailDto
+
+  if (data.status === 'published') {
+    MOCK_ARTICLES.unshift(detailDto)
+  }
+
   return newArticle
 }
 
@@ -758,21 +830,109 @@ export async function updateUserArticle(
   id: string,
   data: ArticleFormData
 ): Promise<UserArticleItem> {
-  await new Promise((resolve) => setTimeout(resolve, 900))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const idx = MOCK_USER_ARTICLES.findIndex((a) => a.id === id)
+  let updated: UserArticleItem
+
+  if (idx !== -1) {
+    updated = {
+      ...MOCK_USER_ARTICLES[idx],
+      title: data.title,
+      excerpt: data.excerpt || data.content.slice(0, 150) + '...',
+      category: data.category,
+      categoryLabel: CATEGORIES.find((c) => c.id === data.category)?.label || 'Dinh dưỡng',
+      status: data.status,
+      statusLabel: data.status === 'published' ? 'Đã xuất bản' : 'Chưa xuất bản',
+      updatedAt: 'Hôm nay, vừa xong',
+      thumbnailUrl: data.thumbnailUrl || MOCK_USER_ARTICLES[idx].thumbnailUrl,
+    }
+    MOCK_USER_ARTICLES[idx] = updated
+  } else {
+    const existing = MOCK_ARTICLES.find((a) => a.id === id) || MOCK_ARTICLE_DETAILS[id]
+    updated = {
+      id,
+      title: data.title,
+      excerpt: data.excerpt || data.content.slice(0, 150) + '...',
+      category: data.category,
+      categoryLabel: CATEGORIES.find((c) => c.id === data.category)?.label || 'Dinh dưỡng',
+      status: data.status,
+      statusLabel: data.status === 'published' ? 'Đã xuất bản' : 'Chưa xuất bản',
+      updatedAt: 'Hôm nay, vừa xong',
+      publishedAt: existing?.publishedAt || 'Hôm nay',
+      viewsCount: existing?.viewsCount || 0,
+      likesCount: existing?.likesCount || 0,
+      commentsCount: 0,
+      thumbnailUrl: data.thumbnailUrl || existing?.thumbnailUrl || '',
+    }
+    MOCK_USER_ARTICLES = [updated, ...MOCK_USER_ARTICLES]
+  }
+
+  const pubIdx = MOCK_ARTICLES.findIndex((a) => a.id === id)
+  if (pubIdx >= 0) {
+    MOCK_ARTICLES[pubIdx].title = data.title
+    MOCK_ARTICLES[pubIdx].category = data.category
+    MOCK_ARTICLES[pubIdx].excerpt = updated.excerpt
+    if (data.thumbnailUrl) {
+      MOCK_ARTICLES[pubIdx].thumbnailUrl = data.thumbnailUrl
+    }
+  }
+
+  if (MOCK_ARTICLE_DETAILS[id]) {
+    MOCK_ARTICLE_DETAILS[id].title = data.title
+    MOCK_ARTICLE_DETAILS[id].category = data.category
+    MOCK_ARTICLE_DETAILS[id].categoryLabel = updated.categoryLabel
+    MOCK_ARTICLE_DETAILS[id].excerpt = updated.excerpt
+    MOCK_ARTICLE_DETAILS[id].sections = parseContentToSections(data.content)
+    if (data.thumbnailUrl) {
+      MOCK_ARTICLE_DETAILS[id].thumbnailUrl = data.thumbnailUrl
+    }
+  } else {
+    MOCK_ARTICLE_DETAILS[id] = {
+      id,
+      title: data.title,
+      slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      excerpt: updated.excerpt,
+      thumbnailUrl:
+        data.thumbnailUrl ||
+        'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+      category: data.category,
+      categoryLabel: updated.categoryLabel,
+      publishedAt: 'Hôm nay',
+      readTimeMinutes: Math.max(1, Math.ceil(data.content.split(/\s+/).length / 120)),
+      tags: ['#chaykhoemanh', '#dinhduongthucvat'],
+      author: {
+        id: 'user-curr',
+        name: 'Van Quang Duy',
+        avatar:
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        roleTitle: 'Tác giả cộng đồng',
+      },
+      viewsCount: 0,
+      likesCount: 0,
+      captionHeroImage: 'Ảnh bài viết do tác giả chia sẻ.',
+      sections: parseContentToSections(data.content),
+      comments: [],
+      relatedArticles: MOCK_ARTICLES.slice(0, 3),
+    }
+  }
+
+  return updated
+}
+
+/**
+ * Submit article for admin review
+ */
+export async function submitArticleForReview(id: string): Promise<UserArticleItem> {
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   const idx = MOCK_USER_ARTICLES.findIndex((a) => a.id === id)
   if (idx === -1) {
-    throw new Error('Không tìm thấy bài viết để cập nhật')
+    throw new Error('Không tìm thấy bài viết để gửi duyệt')
   }
   const updated: UserArticleItem = {
     ...MOCK_USER_ARTICLES[idx],
-    title: data.title,
-    excerpt: data.excerpt || data.content.slice(0, 150) + '...',
-    category: data.category,
-    categoryLabel: CATEGORIES.find((c) => c.id === data.category)?.label || 'Dinh dưỡng',
-    status: data.status,
-    statusLabel: data.status === 'published' ? 'Đã xuất bản' : 'Chưa xuất bản',
-    updatedAt: 'Hôm nay, vừa xong',
-    thumbnailUrl: data.thumbnailUrl || MOCK_USER_ARTICLES[idx].thumbnailUrl,
+    status: 'pending_review',
+    statusLabel: 'Chờ duyệt',
+    updatedAt: 'Vừa xong',
   }
   MOCK_USER_ARTICLES[idx] = updated
   return updated
@@ -782,8 +942,12 @@ export async function updateUserArticle(
  * Delete a user article
  */
 export async function deleteUserArticle(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   MOCK_USER_ARTICLES = MOCK_USER_ARTICLES.filter((a) => a.id !== id)
+  const pubIdx = MOCK_ARTICLES.findIndex((a) => a.id === id)
+  if (pubIdx >= 0) {
+    MOCK_ARTICLES.splice(pubIdx, 1)
+  }
   return true
 }
 
@@ -791,7 +955,7 @@ export async function deleteUserArticle(id: string): Promise<boolean> {
  * Delete a user comment
  */
 export async function deleteUserComment(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   MOCK_USER_COMMENTS = MOCK_USER_COMMENTS.filter((c) => c.id !== id)
   return true
 }
@@ -800,10 +964,14 @@ export async function deleteUserComment(id: string): Promise<boolean> {
  * Update a user comment
  */
 export async function updateUserComment(id: string, content: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   const target = MOCK_USER_COMMENTS.find((c) => c.id === id)
   if (target) {
     target.content = content
   }
   return true
 }
+
+export const createArticle = createUserArticle
+export const updateArticle = updateUserArticle
+export const deleteArticle = deleteUserArticle
