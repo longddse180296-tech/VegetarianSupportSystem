@@ -1,0 +1,192 @@
+.home-page {
+  min-height: 100vh;
+  background: #f9fbf9;
+  color: #1e3b26;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+}
+
+.home-loading {
+  padding: 40px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-error-wrap {
+  padding: 40px 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.home-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 640px) {
+  .home-section-header {
+    flex-direction: column;
+  }
+}
+
+.home-section-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #173621;
+  letter-spacing: -0.2px;
+}
+
+.home-section-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #6b8471;
+  line-height: 1.55;
+  max-width: 560px;
+}
+
+.home-section-link {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2f7a45;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+}
+
+.home-section-link:hover {
+  color: #246137;
+  text-decoration: underline;
+}
+
+/* Recipe section */
+.home-recipes-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.home-recipes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  .home-recipes-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .home-recipes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .home-recipes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Articles section */
+.home-articles-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 40px;
+}
+
+.home-articles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .home-articles-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 580px) {
+  .home-articles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Videos section */
+.home-videos-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 40px;
+}
+
+.home-videos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .home-videos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 580px) {
+  .home-videos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Assistant section */
+.home-assistant-section {
+  background: linear-gradient(160deg, #e8f5ec 0%, #f9fbf9 100%);
+  border-top: 1px solid #e4efe6;
+  border-bottom: 1px solid #e4efe6;
+  padding: 40px 24px;
+}
+
+.home-assistant-section-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 40px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .home-assistant-section-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.home-assistant-section-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.home-assistant-section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: #ffffff;
+  border: 1px solid #d5e8db;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2f7a45;
+  width: fit-content;
+}
