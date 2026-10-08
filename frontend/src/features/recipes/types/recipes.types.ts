@@ -83,6 +83,10 @@ export const DEFAULT_FILTER_VALUES: RecipeFilterValues = {
   calorieRangeKey: 'all',
 };
 
+export interface RecipeListPageProps {
+  onNavigate?: (path: string) => void;
+}
+
 export interface RecipeIngredient {
   name: string;
   amount: string;

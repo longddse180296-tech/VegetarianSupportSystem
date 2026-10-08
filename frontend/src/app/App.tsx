@@ -10,6 +10,10 @@ import { AdminArticlesPage } from '../features/admin/articles'
 import { AdminCategoriesPage } from '../features/admin/categories'
 import { AdminCommentsPage } from '../features/admin/comments'
 import { AdminVideosPage } from '../features/admin/videos'
+import { AdminIngredientsPage } from '../features/admin/ingredients'
+import { AdminRecipesPage } from '../features/admin/recipes'
+import { AdminRestaurantsPage } from '../features/admin/restaurants-admin'
+import { AdminModerationPage } from '../features/admin/moderation'
 import { PublicLayout } from './layouts/PublicLayout'
 import HomePage from '../features/home/pages/HomePage'
 import RecipeList from '../features/recipes/pages/RecipeList'
@@ -52,8 +56,9 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#/, '')
-      if (hash && hash !== currentPath) {
-        setCurrentPath(hash)
+      const next = hash || '/'
+      if (next !== currentPath) {
+        setCurrentPath(next)
       }
     }
     window.addEventListener('hashchange', handleHashChange)
@@ -75,7 +80,7 @@ const AppContent: React.FC = () => {
     // ============================================
 
     // Home page
-    if (path === '/' || path === '' || path === '/home') {
+    if (path === '/' || path === '' || path === '/home' || path === 'home') {
       return (
         <PublicLayout activeNav="home" onNavigate={handleNavigate} isLoggedIn={Boolean(user)} userName={user?.fullName} onLogout={() => { void logout() }}>
           <HomePage onNavigate={handleNavigate} isLoggedIn={Boolean(user)} />
@@ -275,6 +280,18 @@ const AppContent: React.FC = () => {
     }
     if (path.startsWith('/admin/members')) {
       return <MembersPage onNavigate={handleNavigate} initialView="members" />
+    }
+    if (path.startsWith('/admin/ingredients')) {
+      return <AdminIngredientsPage onNavigate={handleNavigate} />
+    }
+    if (path.startsWith('/admin/recipes')) {
+      return <AdminRecipesPage onNavigate={handleNavigate} />
+    }
+    if (path.startsWith('/admin/restaurants')) {
+      return <AdminRestaurantsPage onNavigate={handleNavigate} />
+    }
+    if (path.startsWith('/admin/moderation')) {
+      return <AdminModerationPage onNavigate={handleNavigate} />
     }
     if (path.startsWith('/admin')) {
       return <AdminDashboardPage onNavigate={handleNavigate} />
