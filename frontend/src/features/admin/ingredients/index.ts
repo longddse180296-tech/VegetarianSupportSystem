@@ -1,1 +1,3 @@
-export { AdminIngredientsPage, default } from './pages/AdminIngredientsPage'
+export * from './types/adminIngredients.types'
+export * from './api/adminIngredientsApi'
+export * from './pages/AdminIngredientsPage'

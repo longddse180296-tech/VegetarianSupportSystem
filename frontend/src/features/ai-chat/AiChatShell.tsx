@@ -10,7 +10,7 @@ import {
   Sparkles,
   Edit3,
   History,
-  MessageCircleQuestion,
+  MessageCircleQuestionMark,
   HeartHandshake,
   Leaf,
   Zap,
@@ -28,7 +28,7 @@ const PROFILE_FIELDS = [
 ] as const
 
 const FAQS = [
-  { icon: MessageCircleQuestion, text: 'Món này có chay không?' },
+  { icon: MessageCircleQuestionMark, text: 'Món này có chay không?' },
   { icon: HeartHandshake, text: 'Thành phần này có phù hợp với tôi không?' },
   { icon: Leaf, text: 'Hôm nay tôi nên ăn gì?' },
 ]
@@ -265,7 +265,7 @@ export default function AiChatShell() {
           {/* FAQ */}
           <div className="ai-sb-card">
             <h3 className="ai-sb-title">
-              <MessageCircleQuestion size={16} /> Câu hỏi thường gặp
+              <MessageCircleQuestionMark size={16} /> Câu hỏi thường gặp
             </h3>
             <ul className="ai-faq-list">
               {FAQS.map((f, idx) => (

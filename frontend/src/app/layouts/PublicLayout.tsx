@@ -11,10 +11,23 @@ interface PublicLayoutProps {
   onLogout?: () => void;
 }
 
-export function PublicLayout({ children }: PublicLayoutProps) {
+export function PublicLayout({
+  children,
+  activeNav,
+  onNavigate,
+  isLoggedIn,
+  userName,
+  onLogout,
+}: PublicLayoutProps) {
   return (
     <div className="public-layout">
-      <AppHeader />
+      <AppHeader
+        activeNav={activeNav}
+        onNavigate={onNavigate}
+        isLoggedIn={isLoggedIn}
+        userName={userName}
+        onLogout={onLogout}
+      />
       <main className="public-layout-main">{children}</main>
       <AppFooter />
     </div>

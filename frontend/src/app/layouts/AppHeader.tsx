@@ -1,69 +1,141 @@
-import './AppHeader.css';
+import { useEffect, useState } from 'react'
+import Logo from './Logo'
+import { ChevronDown, LogOut, UserCircle } from 'lucide-react'
+import './AppHeader.css'
 
 const NAV_ITEMS = [
   { key: 'home', label: 'Trang chủ', badge: null as string | null },
-  { key: 'recipes', label: 'Công thức', badge: null as string | null, active: true },
+  { key: 'recipes', label: 'Công thức', badge: null as string | null },
   { key: 'articles', label: 'Bài viết', badge: null as string | null },
   { key: 'videos', label: 'Video', badge: null as string | null },
   { key: 'restaurants', label: 'Nhà hàng chay', badge: null as string | null },
-  { key: 'mealplans', label: 'Thực đơn', badge: null as string | null },
-  { key: 'aichat', label: 'Trợ lý AI', badge: 'Mới' as string | null },
+  { key: 'meal-plans', label: 'Thực đơn', badge: null as string | null },
+  { key: 'ai-chat', label: 'Trợ lý AI', badge: 'Mới' as string | null },
   { key: 'foodscan', label: 'Quét thực phẩm', badge: 'HOT' as string | null },
-];
+]
 
-export default function AppHeader() {
+export interface AppHeaderProps {
+  activeNav?: string
+  isLoggedIn?: boolean
+  userName?: string
+  onLogout?: () => void
+  onNavigate?: (path: string) => void
+}
+
+export default function AppHeader({
+  activeNav = 'home',
+  isLoggedIn = false,
+  userName,
+  onLogout,
+  onNavigate,
+}: AppHeaderProps) {
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 2)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
+    if (onNavigate) {
+      e.preventDefault()
+      onNavigate(path)
+    }
+  }
+
   return (
-    <header className="app-header">
+    <header className={`app-header${isScrolled ? ' app-header-scrolled' : ''}`}>
       <div className="app-header-inner">
-        <a href="#" className="app-logo" aria-label="Vegetarian Support trang chủ">
-          <span className="app-logo-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
-              <path
-                d="M20 6c3.314 0 6 2.686 6 6s-2.686 6-6 6c-1.385 0-2.656-.468-3.684-1.262.446 1.888 1.782 3.49 3.614 4.247C15.96 23.227 10.67 24.9 6 26c-.3 0-.3-.47-.037-.34 4.18 2.06 9.51 1.31 12.63-1.22-4.55-.71-8.52-4.09-9.74-8.53 2.76.06 5.55.85 8 2.38-.22-2.04.73-4.1 2.44-5.4A5.98 5.98 0 0 1 20 6zm-5 5h1v1h-1v-1zm3 0h1v1h-1v-1zm-6 1h1v1h-1v-1zm9 0h1v1h-1v-1zm-7 2h1v1h-1v-1zm5 0h1v1h-1v-1zm-3 1h1v1h-1v-1z"
-                fill="#3f7a4f"
-              />
-            </svg>
-          </span>
-          <span className="app-logo-text">Vegetarian Support</span>
+        <a
+          href="#/"
+          className="app-logo"
+          aria-label="Vegetarian Support trang chủ"
+          onClick={(e) => handleNavClick(e, '/')}
+        >
+          <Logo iconSize="md" showText />
         </a>
 
         <nav className="app-nav" aria-label="Điều hướng chính">
           <ul className="app-nav-list">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.key} className="app-nav-item">
-                <a
-                  href={`#${item.key}`}
-                  className={
-                    item.active ? 'app-nav-link app-nav-link-active' : 'app-nav-link'
-                  }
-                  aria-current={item.active ? 'page' : undefined}
-                >
-                  <span className="app-nav-label">{item.label}</span>
-                  {item.badge && (
-                    <span
-                      className={
-                        item.badge === 'HOT' ? 'app-nav-badge app-nav-badge-hot' : 'app-nav-badge'
-                      }
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                  {item.active && <span className="app-nav-underline" aria-hidden="true" />}
-                </a>
-              </li>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const isActive = activeNav === item.key
+              const path =
+                item.key === 'home' ? '/' : `/${item.key}`
+              return (
+                <li key={item.key} className="app-nav-item">
+                  <a
+                    href={`#${path.startsWith('/') ? '' : '/'}${path === '/' ? '' : path}`}
+                    className={
+                      isActive ? 'app-nav-link app-nav-link-active' : 'app-nav-link'
+                    }
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={(e) => handleNavClick(e, path)}
+                  >
+                    <span className="app-nav-label">{item.label}</span>
+                    {item.badge && (
+                      <span
+                        className={
+                          item.badge === 'HOT'
+                            ? 'app-nav-badge app-nav-badge-hot'
+                            : 'app-nav-badge'
+                        }
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                    {isActive && <span className="app-nav-underline" aria-hidden="true" />}
+                  </a>
+                </li>
+              )
+            })}
           </ul>
         </nav>
 
         <div className="app-header-actions">
-          <button type="button" className="btn btn-outline">
-            Đăng nhập
-          </button>
-          <button type="button" className="btn btn-primary">
-            Đăng ký
-          </button>
+          {!isLoggedIn ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => onNavigate?.('/auth/login')}
+              >
+                Đăng nhập
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => onNavigate?.('/auth/register')}
+              >
+                Đăng ký
+              </button>
+            </>
+          ) : (
+            <div className="app-header-user">
+              <button
+                type="button"
+                className="app-header-user-btn"
+                title={userName}
+                onClick={() => onNavigate?.('/profile')}
+              >
+                <UserCircle size={18} className="app-header-user-icon" />
+                <span className="app-header-user-name">{userName || 'Tài khoản'}</span>
+                <ChevronDown size={14} />
+              </button>
+              <button
+                type="button"
+                className="app-header-logout"
+                onClick={() => onLogout?.()}
+                aria-label="Đăng xuất"
+                title="Đăng xuất"
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
-  );
+  )
 }
