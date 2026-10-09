@@ -10,11 +10,24 @@ export type GoalType =
   | 'muscle_gain' // Tăng cơ thuần chay
   | 'general_health' // Sức khỏe tổng quát
 
+export type GenderType = 'male' | 'female'
+
+export type ActivityLevel =
+  | 'sedentary' // Ít vận động (nhân viên văn phòng, ít tập thể dục)
+  | 'light' // Vận động nhẹ (tập 1-3 ngày/tuần)
+  | 'moderate' // Vận động vừa phải (tập 3-5 ngày/tuần)
+  | 'active' // Năng động (tập 6-7 ngày/tuần)
+  | 'very_active' // Rất năng động (vận động viên / lao động nặng)
+
 export interface BodyMetrics {
+  age: number
+  gender: GenderType
+  activityLevel: ActivityLevel
   heightCm: number
   weightKg: number
   bmi: number
   bmiCategory: 'underweight' | 'normal' | 'overweight' | 'obese'
+  bmrKcal: number
   tdeeKcal: number
   goal: GoalType
   dailyProteinGrams: number
@@ -34,6 +47,7 @@ export interface UserProfile {
   id: string
   fullName: string
   email: string
+  avatarUrl?: string
   phoneNumber?: string
   preferredRegion?: string
   dietaryType: DietaryType

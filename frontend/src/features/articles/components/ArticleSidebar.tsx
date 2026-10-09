@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
+import { Button, Input } from '../../../shared/components'
 
 interface ArticleSidebarProps {
   trendingTags: string[]
   selectedTag?: string
   onSelectTag: (tag: string) => void
   onOpenAiChat?: () => void
+  onCreateArticle?: () => void
 }
 
 export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
@@ -12,6 +14,7 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
   selectedTag,
   onSelectTag,
   onOpenAiChat,
+  onCreateArticle,
 }) => {
   const [newsletterEmail, setNewsletterEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
@@ -55,7 +58,33 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
         </div>
       </div>
 
-      {/* Widget 2: AI Assistant Callout */}
+      {/* Widget 2: Create Article CTA */}
+      <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-white rounded-2xl border border-emerald-200/80 p-6 shadow-sm">
+        <div className="flex items-center gap-2 text-emerald-800 mb-2">
+          <span className="text-xl">✍️</span>
+          <h3 className="text-sm font-bold text-gray-950">Chia sẻ kiến thức thuần chay</h3>
+        </div>
+        <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+          Bạn có bài viết dinh dưỡng, kinh nghiệm ăn chay hoặc mẹo hay muốn lan tỏa tới cộng đồng?
+        </p>
+        <Button
+          variant="primary"
+          size="sm"
+          fullWidth
+          onClick={() => {
+            if (onCreateArticle) {
+              onCreateArticle()
+            } else {
+              window.location.hash = '/articles/create'
+            }
+          }}
+          leftIcon={<span className="text-sm font-bold leading-none">+</span>}
+        >
+          Tạo bài viết mới
+        </Button>
+      </div>
+
+      {/* Widget 3: AI Assistant Callout */}
       <div className="bg-gradient-to-br from-emerald-50 to-teal-50/60 rounded-2xl border border-emerald-100/80 p-6 shadow-sm">
         <div className="flex items-center gap-2 text-emerald-700 mb-2">
           <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-700">
@@ -66,8 +95,10 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
         <p className="text-xs text-gray-600 mb-4 leading-relaxed">
           Nhận câu trả lời về nhu cầu calo, gợi ý thực đơn thuần chay theo thể trạng và giải đáp thắc mắc dinh dưỡng tức thì từ AI.
         </p>
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="md"
+          fullWidth
           onClick={() => {
             if (onOpenAiChat) {
               onOpenAiChat()
@@ -75,11 +106,10 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
               window.location.hash = '/ai-chat'
             }
           }}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-sm transition-colors"
+          rightIcon={<span>💬</span>}
         >
-          <span>Chat với AI Dinh Dưỡng</span>
-          <span>💬</span>
-        </button>
+          Chat với AI Dinh Dưỡng
+        </Button>
       </div>
 
       {/* Widget 3: Newsletter Box */}
@@ -98,20 +128,22 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubscribe} className="flex flex-col gap-2.5">
-            <input
+            <Input
               type="email"
               value={newsletterEmail}
               onChange={(e) => setNewsletterEmail(e.target.value)}
               placeholder="Địa chỉ email của bạn..."
               required
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              fullWidth
             />
-            <button
+            <Button
               type="submit"
-              className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors"
+              variant="secondary"
+              size="sm"
+              fullWidth
             >
               Đăng ký nhận tin
-            </button>
+            </Button>
           </form>
         )}
       </div>

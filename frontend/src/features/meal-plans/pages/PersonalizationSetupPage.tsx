@@ -9,7 +9,9 @@ import {
   Check,
   AlertCircle,
   ArrowRight,
+  Lock,
 } from 'lucide-react'
+import { useAuth } from '../../auth'
 import type {
   GeneratedPersonalizedPlan,
   PersonalizationFormValues,
@@ -47,6 +49,7 @@ interface PersonalizationSetupPageProps {
 export const PersonalizationSetupPage: React.FC<PersonalizationSetupPageProps> = ({
   onNavigate,
 }) => {
+  const { isAuthenticated } = useAuth()
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPersonalizedPlan | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
@@ -96,8 +99,10 @@ export const PersonalizationSetupPage: React.FC<PersonalizationSetupPageProps> =
       setErrorMsg(null)
       const res = await submitPersonalizationPreferences(data)
       setGeneratedPlan(res)
-      setToastMsg('Đã tạo thực đơn cá nhân hóa thành công!')
-      setTimeout(() => setToastMsg(null), 3000)
+      setToastMsg('Đã tạo thực đơn cá nhân hóa thành công! Đang chuyển đến trang gợi ý...')
+      setTimeout(() => {
+        onNavigate?.('/meal-plans/recommended')
+      }, 500)
     } catch {
       setErrorMsg('Không thể tạo thực đơn cá nhân hóa. Vui lòng thử lại.')
     } finally {
@@ -118,6 +123,43 @@ export const PersonalizationSetupPage: React.FC<PersonalizationSetupPageProps> =
     setTimeout(() => {
       onNavigate?.('/meal-plans/my-plan')
     }, 1000)
+  }
+
+  // ─── Auth Gate for Guest ────────────────────────────────────────────────
+  if (!isAuthenticated) {
+    return (
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="max-w-md mx-auto text-center bg-white p-8 sm:p-10 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+          <div className="w-16 h-16 rounded-full bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center mx-auto shadow-xs">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              Đăng nhập để thiết lập thực đơn
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              Tính năng tính toán BMI, nguyên liệu tủ bếp và kế hoạch 7 ngày yêu cầu đăng nhập để lưu trữ vào tài khoản của bạn.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/meal-plans')}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              Quay lại
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/login')}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] text-white text-xs font-bold transition-colors shadow-sm"
+            >
+              Đăng nhập ngay
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

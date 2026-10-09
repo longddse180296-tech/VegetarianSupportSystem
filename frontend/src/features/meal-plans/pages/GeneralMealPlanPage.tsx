@@ -144,7 +144,7 @@ export const GeneralMealPlanPage: React.FC<GeneralMealPlanPageProps> = ({
 
           <button
             type="button"
-            onClick={() => onNavigate?.('/meal-plans/recommended')}
+            onClick={() => onNavigate?.('/meal-plans/setup')}
             className="px-4 py-2.5 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] text-white text-xs font-bold flex items-center gap-2 transition-colors shadow-sm"
           >
             <Sliders className="w-4 h-4" />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, Check, AlertCircle } from 'lucide-react'
+import { Calendar, Check, AlertCircle, Lock, Plus } from 'lucide-react'
+import { useAuth } from '../../auth'
 import {
   getMyWeeklyMealPlan,
   swapWeeklyMeal,
@@ -28,7 +29,8 @@ interface MyMealPlanPageProps {
 export const MyMealPlanPage: React.FC<MyMealPlanPageProps> = ({
   onNavigate,
 }) => {
-  const [loading, setLoading] = useState(true)
+  const { isAuthenticated } = useAuth()
+  const [loading, setLoading] = useState(false)
   const [data, setData] = useState<MyWeeklyPlanData | null>(null)
   const [activeDay, setActiveDay] = useState<DayOfWeek>('mon')
   const [swappingMealId, setSwappingMealId] = useState<string | null>(null)
@@ -48,6 +50,10 @@ export const MyMealPlanPage: React.FC<MyMealPlanPageProps> = ({
 
   // Load weekly plan
   useEffect(() => {
+    if (!isAuthenticated) {
+      return
+    }
+
     let isMounted = true
     const fetchData = async () => {
       try {
@@ -77,7 +83,7 @@ export const MyMealPlanPage: React.FC<MyMealPlanPageProps> = ({
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [isAuthenticated])
 
   // Swap meal handler
   const handleSwapMeal = async (mealId: string) => {
@@ -122,6 +128,8 @@ export const MyMealPlanPage: React.FC<MyMealPlanPageProps> = ({
     try {
       setApplyingPlanId(planId)
       const res = await applySavedPlanToWeekly(planId)
+      const updated = await getMyWeeklyMealPlan()
+      setData(updated)
       showToast(res.message)
     } catch {
       showToast('Có lỗi xảy ra khi áp dụng thực đơn.')
@@ -145,28 +153,91 @@ export const MyMealPlanPage: React.FC<MyMealPlanPageProps> = ({
     }
   }
 
+  // ─── 1. Auth Gate for Guest ──────────────────────────────────────────────
+  if (!isAuthenticated) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-16 animate-in fade-in duration-200">
+        <div className="max-w-md mx-auto text-center bg-white p-8 sm:p-10 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+          <div className="w-16 h-16 rounded-full bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center mx-auto shadow-xs">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              Đăng nhập để xem Thực đơn của bạn
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              Kế hoạch ăn chay 7 ngày, đổi món và danh sách mua sắm được cá nhân hóa cho từng tài khoản. Hãy đăng nhập để truy cập hoặc tạo thực đơn mới.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/recipes')}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              Khám phá món chay
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/auth/login')}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] text-white text-xs font-bold transition-colors shadow-sm"
+            >
+              Đăng nhập ngay
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── 2. Loading State ───────────────────────────────────────────────────
   if (loading) {
     return <MealPlanSkeleton />
   }
 
-  if (error || !data) {
+  // ─── 3. Error or Empty State ─────────────────────────────────────────────
+  if (error) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-16 text-center space-y-4">
+      <div className="mx-auto max-w-6xl px-4 py-16 text-center space-y-4 animate-in fade-in duration-200">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-600">
           <AlertCircle className="h-8 w-8" />
         </div>
         <h2 className="text-xl font-bold text-slate-800">
           Không thể tải kế hoạch thực đơn
         </h2>
-        <p className="text-xs text-slate-500 max-w-md mx-auto">
-          {error || 'Hệ thống đang gặp sự cố kết nối, xin vui lòng thử lại sau.'}
-        </p>
+        <p className="text-xs text-slate-500 max-w-md mx-auto">{error}</p>
         <button
           type="button"
           onClick={() => window.location.reload()}
           className="rounded-xl bg-[#184d28] px-5 py-2.5 text-xs font-bold text-white shadow-2xs hover:bg-[#123e1f]"
         >
           Tải lại trang
+        </button>
+      </div>
+    )
+  }
+
+  if (!data || data.days.length === 0) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-16 text-center space-y-5 animate-in fade-in duration-200">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#EAF5EE] text-[#1E6531] shadow-xs">
+          <Calendar className="h-8 w-8" />
+        </div>
+        <div className="space-y-1.5 max-w-md mx-auto">
+          <h2 className="text-xl font-extrabold text-slate-900">
+            Bạn chưa có thực đơn cá nhân hóa
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500">
+            Hãy thiết lập chỉ số cơ thể, mục tiêu và tủ bếp để hệ thống gợi ý thực đơn 7 ngày phù hợp nhất cho bạn.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate?.('/meal-plans/setup')}
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] px-6 py-3 text-xs font-bold text-white shadow-sm transition-all"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Tạo thực đơn cá nhân hóa ngay</span>
         </button>
       </div>
     )
@@ -206,14 +277,24 @@ export const MyMealPlanPage: React.FC<MyMealPlanPageProps> = ({
         </div>
       </div>
 
-      {/* Main Page Title and Subtitle */}
-      <div className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-          Thực đơn của bạn
-        </h1>
-        <p className="text-xs md:text-sm text-slate-500 max-w-2xl leading-relaxed">
-          Quản lý kế hoạch bữa ăn chay hằng tuần và tạo thực đơn phù hợp với mục tiêu của bạn.
-        </p>
+      {/* Main Page Title and Subtitle with Link to General Guide */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+            Thực đơn của bạn
+          </h1>
+          <p className="text-xs md:text-sm text-slate-500 max-w-2xl leading-relaxed">
+            Quản lý kế hoạch bữa ăn chay hằng tuần và tạo thực đơn phù hợp với mục tiêu của bạn.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate?.('/meal-plans/discover')}
+          className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-emerald-700 active:scale-95 transition-all"
+        >
+          <span>Khám phá thực đơn chuẩn</span>
+          <span className="text-slate-400">&rarr;</span>
+        </button>
       </div>
 
       {/* Top Emerald Banner */}

@@ -1,27 +1,40 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { PublicLayout } from '../../../app/layouts/PublicLayout'
 import { useAuth } from '../../auth'
 import {
+  Button,
+  Input,
+  Textarea,
+  Select,
+  Modal,
+} from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
+import {
   CATEGORIES,
   createUserArticle,
   updateUserArticle,
+  getArticleById,
+  deleteUserArticle,
+  submitArticleForReview,
 } from '../api/articles.api'
 import type { ArticleCategory } from '../types/article.types'
+
+import { RichContentRenderer } from '../components/RichContentRenderer'
 
 const articleSchema = z.object({
   title: z
     .string()
-    .min(10, 'Tiêu đề phải có ít nhất 10 ký tự')
+    .min(5, 'Tiêu đề phải có ít nhất 5 ký tự')
     .max(120, 'Tiêu đề không được vượt quá 120 ký tự'),
   category: z.string().min(1, 'Vui lòng chọn danh mục bài viết'),
   content: z
     .string()
-    .min(50, 'Nội dung bài viết phải có ít nhất 50 ký tự để đảm bảo chất lượng chia sẻ'),
+    .min(20, 'Nội dung bài viết phải có ít nhất 20 ký tự'),
   excerpt: z.string().optional(),
-  status: z.enum(['published', 'draft']),
+  captionHeroImage: z.string().optional(),
 })
 
 type ArticleFormValues = z.infer<typeof articleSchema>
@@ -31,6 +44,18 @@ interface ArticleEditorPageProps {
   onNavigate: (path: string) => void
 }
 
+const DEFAULT_CONTENT = `Khi mới bước vào chế độ ăn thực dưỡng hoặc thuần chay, nỗi băn khoăn lớn nhất của phần đông người Việt chính là: “Làm thế nào để nạp đủ lượng protein (chất đạm) mà cơ thể cần mỗi ngày?”. Trái với quan niệm phổ biến rằng chỉ thịt động vật mới cung cấp đạm chất lượng cao, thế giới thực vật chứa đựng nguồn axit amin vô cùng phong phú, lành sạch và dễ hấp thu.
+
+## 1. Các nguồn thực phẩm giàu đạm thực vật vàng
+Để tối ưu hóa sự hấp thụ và đa dạng hóa thực đơn hàng ngày, bạn hãy phối hợp linh hoạt các nhóm nguyên liệu dưới đây:
+
+• **Đậu nành & Đậu phụ (Tofu)**: Đậu phụ tươi cung cấp từ 10 - 15g protein cho mỗi khẩu phần 100g, chứa trọn vẹn 9 loại axit amin thiết yếu.
+• **Hạt diêm mạch (Quinoa)**: Được ví như “siêu ngũ cốc”, giàu khoáng chất sắt, magie và 8g protein chất lượng cao trong mỗi chén nấu chín.
+• **Đậu lăng (Lentils) & Đậu gà (Chickpeas)**: Rất giàu chất xơ hòa tan và khoảng 18g đạm cho mỗi chén đã chế biến, hoàn hảo cho các món súp hoặc cà ri.
+• **Nấm rơm, nấm đông cô & nấm hương**: Không chỉ tạo vị ngọt umami tự nhiên mà còn mang lại nguồn protein và beta-glucan tăng cường miễn dịch.
+
+> Ăn chay khoa học không có nghĩa là thiếu chất, mà là cách chúng ta chọn lọc dinh dưỡng thông thái hơn.`
+
 export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
   articleId,
   onNavigate,
@@ -38,23 +63,31 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
   const { user, logout } = useAuth()
   const isEditing = Boolean(articleId)
 
+  // Redirect to login if user is not authenticated
+  useEffect(() => {
+    if (!user) {
+      onNavigate('/auth/login')
+    }
+  }, [user, onNavigate])
+
   const [thumbnailUrl, setThumbnailUrl] = useState<string>(
     'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80'
   )
-  const [editorMode, setEditorMode] = useState<'richtext' | 'markdown'>('richtext')
+  const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit')
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-  const [saveSuccess, setSaveSuccess] = useState<boolean>(false)
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const defaultContent = `Khi mới bước vào chế độ ăn thực dưỡng hoặc thuần chay, nỗi băn khoăn lớn nhất của phần đông người Việt chính là: “Làm thế nào để nạp đủ lượng protein (chất đạm) mà cơ thể cần mỗi ngày?”. Trái với quan niệm phổ biến rằng chỉ thịt động vật mới cung cấp đạm chất lượng cao, thế giới thực vật chứa đựng nguồn axit amin vô cùng phong phú, lành sạch và dễ hấp thu.
+  // Upload state
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const contentTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const [isDragging, setIsDragging] = useState<boolean>(false)
+  const [isUrlModalOpen, setIsUrlModalOpen] = useState<boolean>(false)
+  const [urlInput, setUrlInput] = useState<string>('')
 
-1. Các nguồn thực phẩm giàu đạm thực vật vàng
-Để tối ưu hóa sự hấp thụ và đa dạng hóa thực đơn hàng ngày, bạn hãy phối hợp linh hoạt các nhóm nguyên liệu dưới đây:
-
-• Đậu nành & Đậu phụ (Tofu): Đậu phụ tươi cung cấp từ 10 - 15g protein cho mỗi khẩu phần 100g, chứa trọn vẹn 9 loại axit amin thiết yếu.
-• Hạt diêm mạch (Quinoa): Được ví như “siêu ngũ cốc”, giàu khoáng chất sắt, magie và 8g protein chất lượng cao trong mỗi chén nấu chín.
-• Đậu lăng (Lentils) & Đậu gà (Chickpeas): Rất giàu chất xơ hòa tan và khoảng 18g đạm cho mỗi chén đã chế biến, hoàn hảo cho các món súp hoặc cà ri.
-• Nấm rơm, nấm đông cô & nấm hương: Không chỉ tạo vị ngọt umami tự nhiên mà còn mang lại nguồn protein và beta-glucan tăng cường miễn dịch.`
+  // Delete modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false)
+  const [isDeleting, setIsDeleting] = useState<boolean>(false)
 
   const {
     register,
@@ -69,578 +102,857 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
         ? 'Kinh nghiệm bổ sung Protein thực vật cho người mới bắt đầu'
         : '',
       category: 'nutrition',
-      content: defaultContent,
+      content: isEditing ? DEFAULT_CONTENT : '',
       excerpt: '',
-      status: 'published',
+      captionHeroImage: isEditing
+        ? 'Bữa ăn chay chuẩn dinh dưỡng với các loại rau củ tươi, đậu hạt và ngũ cốc nguyên cám.'
+        : '',
     },
   })
 
+  // Load article when editing
+  useEffect(() => {
+    if (!articleId) return
+    let isMounted = true
+    const loadData = async () => {
+      try {
+        const item = await getArticleById(articleId)
+        if (isMounted && item) {
+          setValue('title', item.title)
+          setValue('category', item.category)
+          setValue(
+            'content',
+            item.sections?.map((s) => (s.title ? `## ${s.title}\n${s.content}` : s.content)).join('\n\n') || DEFAULT_CONTENT
+          )
+          setValue('excerpt', item.excerpt || '')
+          if (item.captionHeroImage) {
+            setValue('captionHeroImage', item.captionHeroImage)
+          }
+          if (item.thumbnailUrl) {
+            setThumbnailUrl(item.thumbnailUrl)
+          }
+        }
+      } catch {
+        // Keep initial fallback
+      }
+    }
+    void loadData()
+    return () => {
+      isMounted = false
+    }
+  }, [articleId, setValue])
+
   const currentTitle = useWatch({ control, name: 'title' }) || ''
   const currentContent = useWatch({ control, name: 'content' }) || ''
-  const currentCategory = (useWatch({ control, name: 'category' }) as ArticleCategory) || 'nutrition'
-  const currentStatus = useWatch({ control, name: 'status' })
+  const currentExcerpt = useWatch({ control, name: 'excerpt' }) || ''
+  const currentCaption = useWatch({ control, name: 'captionHeroImage' }) || ''
 
-  // Calculate words and estimated reading time
+  // Word count & reading time
   const wordCount = currentContent.trim() ? currentContent.trim().split(/\s+/).length : 0
   const readTimeMin = Math.max(1, Math.ceil(wordCount / 120))
 
   const handleToolbarInsert = (prefix: string, suffix = '') => {
-    setValue('content', `${currentContent}\n${prefix} ${suffix}`)
-  }
+    const textarea = contentTextareaRef.current
+    if (!textarea) {
+      setValue('content', `${currentContent}\n${prefix}${suffix}`, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
+      return
+    }
 
-  const onSubmit = async (values: ArticleFormValues) => {
-    try {
-      setIsSubmitting(true)
-      setErrorMsg(null)
-      if (isEditing && articleId) {
-        await updateUserArticle(articleId, {
-          title: values.title,
-          category: values.category as ArticleCategory,
-          content: values.content,
-          excerpt: values.excerpt,
-          thumbnailUrl,
-          status: values.status,
-        })
-      } else {
-        await createUserArticle({
-          title: values.title,
-          category: values.category as ArticleCategory,
-          content: values.content,
-          excerpt: values.excerpt,
-          thumbnailUrl,
-          status: values.status,
-        })
+    const start = textarea.selectionStart ?? currentContent.length
+    const end = textarea.selectionEnd ?? currentContent.length
+    const selectedText = currentContent.substring(start, end)
+
+    const isBlockPrefix =
+      prefix.endsWith(' ') &&
+      (prefix.startsWith('#') ||
+        prefix.startsWith('>') ||
+        prefix.startsWith('•') ||
+        prefix.startsWith('1.'))
+
+    if (isBlockPrefix) {
+      if (selectedText) {
+        const modified = selectedText
+          .split('\n')
+          .map((line) => (line.startsWith(prefix) ? line : `${prefix}${line}`))
+          .join('\n')
+        const newContent =
+          currentContent.substring(0, start) + modified + currentContent.substring(end)
+        setValue('content', newContent, { shouldValidate: true, shouldDirty: true })
+        setTimeout(() => {
+          textarea.focus()
+          textarea.setSelectionRange(start, start + modified.length)
+        }, 0)
+        return
       }
 
-      setSaveSuccess(true)
+      // If nothing selected, find line start
+      const lineStart = currentContent.lastIndexOf('\n', start - 1) + 1
+      const before = currentContent.substring(0, lineStart)
+      const after = currentContent.substring(lineStart)
+      const newContent = `${before}${prefix}${after}`
+      setValue('content', newContent, { shouldValidate: true, shouldDirty: true })
       setTimeout(() => {
-        setSaveSuccess(false)
+        textarea.focus()
+        const newPos = start + prefix.length
+        textarea.setSelectionRange(newPos, newPos)
+      }, 0)
+      return
+    }
+
+    // Inline markup like **bold**, *italic*
+    let replacement = ''
+    let newStart = start
+    let newEnd = end
+
+    if (selectedText) {
+      replacement = `${prefix}${selectedText}${suffix}`
+      newStart = start
+      newEnd = start + replacement.length
+    } else {
+      const placeholder =
+        prefix === '**'
+          ? 'chữ in đậm'
+          : prefix === '*'
+          ? 'chữ in nghiêng'
+          : 'văn bản'
+      replacement = `${prefix}${placeholder}${suffix}`
+      newStart = start + prefix.length
+      newEnd = newStart + placeholder.length
+    }
+
+    const newContent =
+      currentContent.substring(0, start) + replacement + currentContent.substring(end)
+    setValue('content', newContent, { shouldValidate: true, shouldDirty: true })
+
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(newStart, newEnd)
+    }, 0)
+  }
+
+  const handleInsertNumberedSection = () => {
+    const textarea = contentTextareaRef.current
+    const current = currentContent
+
+    // Find the highest section number in current content
+    const matches = [...current.matchAll(/(?:^|\n)\s*(?:#{1,3}\s*)?(\d+)[.)]\s+/g)]
+    let nextNum = 1
+    if (matches.length > 0) {
+      const nums = matches.map((m) => parseInt(m[1], 10)).filter((n) => !isNaN(n))
+      if (nums.length > 0) {
+        nextNum = Math.max(...nums) + 1
+      }
+    }
+
+    const snippet = `\n\n## ${nextNum}. Tiêu đề phần ${nextNum}\nNội dung chi tiết giải thích cho phần ${nextNum}...`
+
+    if (!textarea) {
+      setValue('content', `${current}${snippet}`, { shouldValidate: true, shouldDirty: true })
+      return
+    }
+
+    const start = textarea.selectionStart ?? current.length
+    const newContent = current.substring(0, start) + snippet + current.substring(start)
+    setValue('content', newContent, { shouldValidate: true, shouldDirty: true })
+
+    setTimeout(() => {
+      textarea.focus()
+      const titleStart = start + `\n\n## ${nextNum}. `.length
+      const titleEnd = titleStart + `Tiêu đề phần ${nextNum}`.length
+      textarea.setSelectionRange(titleStart, titleEnd)
+    }, 0)
+  }
+
+  // Handle local file upload
+  const handleFileSelect = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Vui lòng chọn file hình ảnh (JPG, PNG, WEBP).')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('Kích thước ảnh tối đa là 5MB.')
+      return
+    }
+    setErrorMsg(null)
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setThumbnailUrl(reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileSelect(e.dataTransfer.files[0])
+    }
+  }
+
+  const handleSaveWithStatus = async (status: 'published' | 'draft') => {
+    await handleSubmit(async (values) => {
+      try {
+        setIsSubmitting(true)
+        setErrorMsg(null)
+
+        if (isEditing && articleId) {
+          await updateUserArticle(articleId, {
+            title: values.title,
+            category: values.category as ArticleCategory,
+            content: values.content,
+            excerpt: values.excerpt,
+            captionHeroImage: values.captionHeroImage,
+            thumbnailUrl,
+            status,
+          })
+          setSaveSuccess(`Đã lưu bài viết ở trạng thái "${status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}" thành công!`)
+          setTimeout(() => {
+            onNavigate(`/articles/${articleId}`)
+          }, 1200)
+        } else {
+          const res = await createUserArticle({
+            title: values.title,
+            category: values.category as ArticleCategory,
+            content: values.content,
+            excerpt: values.excerpt,
+            captionHeroImage: values.captionHeroImage,
+            thumbnailUrl,
+            status,
+          })
+          setSaveSuccess(`Đã ${status === 'published' ? 'xuất bản' : 'lưu bản nháp'} bài viết thành công! Đang chuyển đến bài viết...`)
+          setTimeout(() => {
+            onNavigate(`/articles/${res.id}`)
+          }, 1200)
+        }
+      } catch (err: unknown) {
+        setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi lưu bài viết')
+      } finally {
+        setIsSubmitting(false)
+      }
+    })()
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!articleId) return
+    try {
+      setIsDeleting(true)
+      await deleteUserArticle(articleId)
+      setIsDeleteModalOpen(false)
+      onNavigate('/profile/my-articles')
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi xóa bài viết')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleSendForReview = async () => {
+    if (!articleId) return
+    try {
+      setIsSubmitting(true)
+      await submitArticleForReview(articleId)
+      setSaveSuccess('Đã gửi bài viết cho Admin phê duyệt!')
+      setTimeout(() => {
         onNavigate('/profile/my-articles')
       }, 1500)
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi lưu bài viết')
+      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi gửi duyệt bài viết')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const selectedCategoryLabel =
-    CATEGORIES.find((c) => c.id === currentCategory)?.label || 'Dinh dưỡng'
+  const categoryOptions = CATEGORIES.filter((c) => c.id !== 'all').map((c) => ({
+    value: c.id,
+    label: c.label,
+  }))
 
   return (
     <PublicLayout
-      activeNav="home"
+      activeNav="articles"
       onNavigate={onNavigate}
       isLoggedIn={Boolean(user)}
-      userName={user?.fullName || 'Nguyễn Minh Anh'}
+      userName={user?.fullName || 'Van Quang Duy'}
       onLogout={() => { void logout() }}
     >
       <div className="min-h-screen bg-slate-50/60 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="mx-auto max-w-6xl px-4 py-8 space-y-8 animate-in fade-in duration-200">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs text-gray-500 mb-6 flex-wrap">
-            <button
-              type="button"
-              onClick={() => onNavigate('/')}
-              className="hover:text-emerald-700 transition-colors"
-            >
-              Trang chủ
-            </button>
-            <span>/</span>
-            <button
-              type="button"
-              onClick={() => onNavigate('/profile')}
-              className="hover:text-emerald-700 transition-colors"
-            >
-              Tài khoản
-            </button>
-            <span>/</span>
-            <button
-              type="button"
-              onClick={() => onNavigate('/profile/my-articles')}
-              className="hover:text-emerald-700 transition-colors"
-            >
-              Bài viết của tôi
-            </button>
-            <span>/</span>
-            <span className="text-emerald-700 font-semibold">
-              {isEditing ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
-            </span>
-          </nav>
-
-          {/* Header Title Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-                  {isEditing ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
-                  {isEditing ? '✓ Chế độ chỉnh sửa' : '★ Chế độ tạo mới'}
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Cập nhật nội dung bài viết của bạn hoặc chia sẻ kiến thức, kinh nghiệm ăn chay mới với cộng đồng thực dưỡng.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
               <button
                 type="button"
-                onClick={() => onNavigate(isEditing ? '/articles/editor' : '/profile/my-articles')}
-                className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+                onClick={() => onNavigate('/')}
+                className="hover:text-emerald-700 transition-colors"
               >
-                <span>{isEditing ? '✦ Chuyển sang Tạo bài viết mới' : '← Quay lại danh sách'}</span>
+                Trang chủ
               </button>
+              <span>&gt;</span>
+              <button
+                type="button"
+                onClick={() => onNavigate('/articles')}
+                className="hover:text-emerald-700 transition-colors"
+              >
+                Bài viết
+              </button>
+              <span>&gt;</span>
+              <span className="font-semibold text-slate-800">
+                {isEditing ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onNavigate('/articles')}
+              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 self-start sm:self-auto"
+            >
+              ← Quay lại danh sách bài viết
+            </button>
+          </div>
+
+          {/* Header Title Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                  {isEditing ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+                  {isEditing ? '✏️ Chế độ chỉnh sửa' : '★ Soạn bài mới'}
+                </span>
+              </div>
+              <p className="text-xs md:text-sm text-slate-500 max-w-2xl leading-relaxed">
+                {isEditing
+                  ? 'Cập nhật lại tiêu đề, nội dung và ảnh bìa bài viết của bạn.'
+                  : 'Chia sẻ kiến thức dinh dưỡng, công thức và kinh nghiệm ăn chay khoa học với cộng đồng.'}
+              </p>
             </div>
           </div>
 
           {/* Form Message Feedback */}
           {saveSuccess && (
-            <div className="mb-6 p-4 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200 text-xs font-semibold flex items-center justify-between">
-              <span>✓ Lưu bài viết thành công! Đang chuyển về danh sách...</span>
+            <div className="p-4 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200 text-xs font-semibold flex items-center justify-between shadow-2xs">
+              <span>✓ {saveSuccess}</span>
             </div>
           )}
           {errorMsg && (
-            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-200 text-xs font-semibold">
-              <span>⚠️ {errorMsg}</span>
-            </div>
+            <AlertError
+              title="Đã xảy ra lỗi"
+              message={errorMsg}
+              onRetry={() => setErrorMsg(null)}
+            />
           )}
 
-          {/* Form Content 2 Columns */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column: Form Fields (70%) */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Title Input Card */}
-                <div className="bg-white rounded-3xl p-6 sm:p-7 border border-gray-100 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-gray-900 uppercase tracking-wider">
-                      Tiêu đề <span className="text-red-500">*</span>
-                    </label>
-                    <span
-                      className={`text-xs ${
-                        currentTitle.length > 120
-                          ? 'text-red-500 font-bold'
-                          : 'text-gray-400'
-                      }`}
-                    >
-                      {currentTitle.length} / 120 ký tự
-                    </span>
-                  </div>
-
-                  <input
-                    type="text"
-                    {...register('title')}
-                    placeholder="Ví dụ: Top 7 nguồn Protein thực vật hoàn hảo cho người mới ăn chay..."
-                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                  />
-                  {errors.title && (
-                    <p className="text-xs text-red-500 font-medium">
-                      {errors.title.message}
-                    </p>
-                  )}
+          {/* Form Grid 2 Columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column: Content Editor (65%) */}
+            <div className="lg:col-span-8 space-y-6">
+              {/* Card 1: Tiêu đề bài viết */}
+              <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Tiêu đề bài viết <span className="text-red-500">*</span>
+                  </label>
+                  <span
+                    className={`text-xs ${
+                      currentTitle.length > 120
+                        ? 'text-red-500 font-bold'
+                        : 'text-slate-400'
+                    }`}
+                  >
+                    {currentTitle.length} / 120 ký tự
+                  </span>
                 </div>
 
-                {/* Content Editor Card */}
-                <div className="bg-white rounded-3xl p-6 sm:p-7 border border-gray-100 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-gray-900 uppercase tracking-wider">
-                      Nội dung <span className="text-red-500">*</span>
-                    </label>
-                    <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
-                      <span>🕒</span> Đã tự động lưu nháp: 2 phút trước
-                    </span>
-                  </div>
+                <Input
+                  {...register('title')}
+                  placeholder="Ví dụ: Top 7 nguồn Protein thực vật hoàn hảo cho người mới ăn chay..."
+                  error={errors.title?.message}
+                  fullWidth
+                />
+              </div>
 
-                  {/* Editor Toolbar */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-gray-50 border border-gray-200/80 rounded-2xl text-xs">
-                    <div className="flex flex-wrap items-center gap-1">
+              {/* Card 2: Tóm tắt ngắn (Sa-pô) */}
+              <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Tóm tắt bài viết (Sa-pô ngắn)
+                  </label>
+                  <span className="text-xs text-slate-400">
+                    {currentExcerpt.length} ký tự
+                  </span>
+                </div>
+                <Textarea
+                  rows={2}
+                  {...register('excerpt')}
+                  placeholder="Mô tả ngắn 1-2 câu tóm tắt nội dung chính để hiển thị nổi bật ở danh sách bài viết..."
+                  error={errors.excerpt?.message}
+                  fullWidth
+                />
+              </div>
+
+              {/* Card 3: Nội dung bài viết */}
+              <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Nội dung chi tiết <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode('edit')}
+                      className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                        editorMode === 'edit'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      Soạn thảo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode('preview')}
+                      className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                        editorMode === 'preview'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      Xem trước
+                    </button>
+                  </div>
+                </div>
+
+                {editorMode === 'edit' ? (
+                  <>
+                    {/* Toolbar */}
+                    <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs">
+                      <button
+                        type="button"
+                        onClick={handleInsertNumberedSection}
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-lg border border-emerald-300 active:scale-95 transition-all flex items-center gap-1.5 shadow-2xs"
+                        title="Thêm phần mục có số thứ tự chấm xanh và tiêu đề in đậm size to"
+                      >
+                        <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
+                          1
+                        </span>
+                        <span>Phần mục (chấm xanh)</span>
+                      </button>
+                      <div className="w-[1px] h-4 bg-slate-300 mx-0.5" />
                       <button
                         type="button"
                         onClick={() => handleToolbarInsert('# ')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 font-bold rounded-lg border border-gray-200 text-xs"
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-extrabold rounded-lg border border-slate-200 active:scale-95 transition-all"
+                        title="Tiêu đề chính (H1)"
                       >
                         H1
                       </button>
                       <button
                         type="button"
                         onClick={() => handleToolbarInsert('## ')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 font-bold rounded-lg border border-gray-200 text-xs"
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-bold rounded-lg border border-slate-200 active:scale-95 transition-all"
+                        title="Tiêu đề mục (H2)"
                       >
                         H2
                       </button>
                       <button
                         type="button"
                         onClick={() => handleToolbarInsert('### ')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 font-bold rounded-lg border border-gray-200 text-xs"
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-bold rounded-lg border border-slate-200 active:scale-95 transition-all"
+                        title="Tiêu đề nhỏ (H3)"
                       >
                         H3
                       </button>
-                      <div className="w-[1px] h-4 bg-gray-300 mx-1" />
+                      <div className="w-[1px] h-4 bg-slate-300 mx-1" />
                       <button
                         type="button"
                         onClick={() => handleToolbarInsert('**', '**')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 font-black rounded-lg border border-gray-200"
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-900 font-black rounded-lg border border-slate-200 active:scale-95 transition-all"
+                        title="In đậm (**văn bản**)"
                       >
                         B
                       </button>
                       <button
                         type="button"
                         onClick={() => handleToolbarInsert('*', '*')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 italic rounded-lg border border-gray-200"
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 italic rounded-lg border border-slate-200 active:scale-95 transition-all"
+                        title="In nghiêng (*văn bản*)"
                       >
                         I
-                      </button>
-                      <div className="w-[1px] h-4 bg-gray-300 mx-1" />
-                      <button
-                        type="button"
-                        onClick={() => handleToolbarInsert('• ')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200"
-                      >
-                        ☰
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToolbarInsert('1. ')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200"
-                      >
-                        1.
                       </button>
                       <button
                         type="button"
                         onClick={() => handleToolbarInsert('> ')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200"
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 rounded-lg border border-slate-200 active:scale-95 transition-all"
+                        title="Trích dẫn (> nội dung)"
                       >
-                        ”
+                        ” Trích dẫn
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleToolbarInsert('[Tiêu đề link](https://...)')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200"
+                        onClick={() => handleToolbarInsert('• ')}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 rounded-lg border border-slate-200 active:scale-95 transition-all"
+                        title="Danh sách gạch đầu dòng (• mục)"
                       >
-                        🔗
+                        • Gạch đầu dòng
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleToolbarInsert('![Ảnh minh họa](https://...)')}
-                        className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200"
+                        onClick={() => handleToolbarInsert('1. ')}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 rounded-lg border border-slate-200 active:scale-95 transition-all"
+                        title="Danh sách số (1. bước)"
                       >
-                        🖼️
+                        1. Thứ tự
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1 text-[11px] font-semibold text-gray-500">
-                      <button
-                        type="button"
-                        onClick={() => setEditorMode('markdown')}
-                        className={`px-2 py-1 rounded-md ${
-                          editorMode === 'markdown'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'hover:text-gray-900'
-                        }`}
-                      >
-                        Markdown
-                      </button>
-                      <span>|</span>
-                      <button
-                        type="button"
-                        onClick={() => setEditorMode('richtext')}
-                        className={`px-2 py-1 rounded-md ${
-                          editorMode === 'richtext'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'hover:text-gray-900'
-                        }`}
-                      >
-                        RichText
-                      </button>
+                    <div className="text-[11px] text-slate-400 italic px-1">
+                      💡 Mẹo: Bôi đen văn bản rồi bấm nút định dạng, hoặc bấm nút để chèn mẫu ngay tại vị trí con trỏ chuột.
                     </div>
-                  </div>
 
-                  {/* Textarea */}
-                  <textarea
-                    rows={14}
-                    {...register('content')}
-                    placeholder="Viết nội dung bài viết cẩm nang tại đây..."
-                    className="w-full p-4 rounded-2xl border border-gray-200 text-xs sm:text-sm text-gray-800 leading-relaxed placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-y"
-                  />
-                  {errors.content && (
-                    <p className="text-xs text-red-500 font-medium">
-                      {errors.content.message}
-                    </p>
-                  )}
-
-                  {/* Word Count & Status Bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 pt-2 border-t border-gray-50">
-                    <span>
-                      Độ dài: <strong className="text-gray-800">{wordCount} từ</strong> (khoảng{' '}
-                      {readTimeMin} phút đọc)
-                    </span>
-                    <span className="text-emerald-700 font-medium flex items-center gap-1">
-                      <span>✓</span> Nội dung đạt chuẩn hiển thị
-                    </span>
+                    {(() => {
+                      const { ref: contentHookRef, ...contentFieldProps } = register('content')
+                      return (
+                        <Textarea
+                          rows={14}
+                          ref={(el) => {
+                            contentHookRef(el)
+                            contentTextareaRef.current = el
+                          }}
+                          {...contentFieldProps}
+                          placeholder="Viết nội dung bài viết cẩm nang tại đây. Sử dụng thanh công cụ phía trên để định dạng tiêu đề, in đậm, gạch đầu dòng..."
+                          error={errors.content?.message}
+                          fullWidth
+                        />
+                      )
+                    })()}
+                  </>
+                ) : (
+                  <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200/80 min-h-[300px]">
+                    {thumbnailUrl && (
+                      <div className="mb-6">
+                        <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-2xs">
+                          <img
+                            src={thumbnailUrl}
+                            alt={currentTitle || 'Ảnh bài viết'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {currentCaption && (
+                          <p className="mt-2 text-center text-xs text-slate-500 italic">
+                            {currentCaption}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <RichContentRenderer content={currentContent} />
                   </div>
+                )}
+
+                {/* Status Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 pt-2 border-t border-slate-100">
+                  <span>
+                    Độ dài: <strong className="text-slate-800">{wordCount} từ</strong> (khoảng{' '}
+                    {readTimeMin} phút đọc)
+                  </span>
+                  <span className="text-emerald-700 font-medium flex items-center gap-1">
+                    <span>✓</span> Sẵn sàng lưu trữ
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Clean & Intuitive Sidebar (35%) */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* Thẻ 1: Ảnh đại diện bài viết (Thumbnail) */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    <span>🖼️</span>
+                    <span>Ảnh đại diện (Thumbnail)</span>
+                  </div>
+                  <span className="text-[11px] text-slate-400">Tối đa 5MB</span>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="px-6 py-3 rounded-2xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-2"
-                    >
-                      <span>💾</span>
-                      <span>
-                        {isSubmitting
-                          ? 'Đang lưu...'
-                          : isEditing
-                          ? 'Lưu thay đổi'
-                          : 'Xuất bản bài viết'}
-                      </span>
-                    </button>
+                {/* Invisible input file */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileSelect(e.target.files[0])
+                    }
+                  }}
+                />
 
-                    <button
-                      type="button"
-                      onClick={() => onNavigate('/profile/my-articles')}
-                      className="px-5 py-3 rounded-2xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors"
-                    >
-                      Hủy bỏ
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onNavigate('/articles/art-1')}
-                      className="px-4 py-3 rounded-2xl text-gray-600 hover:text-emerald-700 text-xs font-semibold inline-flex items-center gap-1"
-                    >
-                      <span>👁️</span>
-                      <span>Xem bài viết trên web</span>
-                    </button>
+                {thumbnailUrl ? (
+                  <div className="space-y-3">
+                    <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-2xs group">
+                      <img
+                        src={thumbnailUrl}
+                        alt="Ảnh bìa bài viết"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <span>📁</span>
+                        <span>Đổi ảnh</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setThumbnailUrl('')}
+                        className="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50/50 text-xs font-semibold text-rose-700 hover:bg-rose-100/60 flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <span>🗑️</span>
+                        <span>Xóa ảnh</span>
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      setIsDragging(true)
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`aspect-[16/9] w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-4 text-center cursor-pointer transition-all ${
+                      isDragging
+                        ? 'border-emerald-500 bg-emerald-50/50'
+                        : 'border-slate-300 hover:border-emerald-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-3xl mb-1.5">📤</span>
+                    <span className="text-xs font-bold text-slate-800 mb-1">
+                      Bấm để tải ảnh từ máy tính
+                    </span>
+                    <span className="text-[11px] text-slate-500 leading-tight">
+                      hoặc kéo thả file ảnh vào đây (JPG, PNG, WEBP)
+                    </span>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUrlInput(thumbnailUrl)
+                      setIsUrlModalOpen(true)
+                    }}
+                    className="text-emerald-700 hover:text-emerald-800 font-semibold text-[11px] underline"
+                  >
+                    Hoặc nhập link URL ảnh trực tiếp
+                  </button>
+                </div>
+
+                {/* Chú thích ảnh (captionHeroImage) */}
+                <div className="pt-3 border-t border-slate-100">
+                  <Input
+                    label="Mô tả / Chú thích ảnh (tùy chọn)"
+                    {...register('captionHeroImage')}
+                    placeholder="Ví dụ: Bữa ăn chay chuẩn dinh dưỡng với các loại rau củ tươi..."
+                    helperText="Hiển thị in nghiêng ở giữa ngay dưới ảnh bìa bài viết"
+                    fullWidth
+                  />
+                </div>
+              </div>
+
+              {/* Thẻ 2: Cài đặt bài viết */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  <span>⚙️</span>
+                  <span>Cài đặt bài viết</span>
+                </div>
+
+                <div>
+                  <Select
+                    label="Danh mục bài viết *"
+                    options={categoryOptions}
+                    {...register('category')}
+                    error={errors.category?.message}
+                    fullWidth
+                  />
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Chọn nhóm chủ đề phù hợp nhất để bài viết đến với độc giả.
+                  </p>
+                </div>
+
+                {/* Tác giả */}
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                    Tác giả bài viết
+                  </label>
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                    <img
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full object-cover border border-emerald-200"
+                    />
+                    <div className="flex flex-col text-xs">
+                      <span className="font-bold text-slate-900">
+                        {user?.fullName || 'Van Quang Duy'}
+                      </span>
+                      <span className="text-[11px] text-slate-500">Đăng với tư cách tác giả</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thẻ 3: Hành động xuất bản */}
+              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-2xs space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 uppercase tracking-wider mb-1">
+                  <span>🚀</span>
+                  <span>Hành động xuất bản</span>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  fullWidth
+                  isLoading={isSubmitting}
+                  onClick={() => handleSaveWithStatus('published')}
+                  className="rounded-2xl shadow-sm"
+                >
+                  {isEditing ? 'Lưu & Xuất bản bài viết' : 'Xuất bản bài viết ngay'}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  disabled={isSubmitting}
+                  onClick={() => handleSaveWithStatus('draft')}
+                  className="rounded-2xl"
+                >
+                  Lưu bản nháp
+                </Button>
+
+                {isEditing && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    disabled={isSubmitting}
+                    onClick={handleSendForReview}
+                    className="rounded-2xl"
+                  >
+                    Gửi duyệt cho Admin
+                  </Button>
+                )}
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('/articles')}
+                    className="text-slate-500 hover:text-slate-800 transition-colors"
+                  >
+                    Hủy bỏ
+                  </button>
 
                   {isEditing && (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
-                          onNavigate('/profile/my-articles')
-                        }
-                      }}
-                      className="text-xs font-semibold text-red-600 hover:text-red-700 inline-flex items-center gap-1 p-2"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="text-rose-600 hover:text-rose-700 font-semibold"
                     >
-                      <span>🗑️ Xóa bài viết</span>
+                      Xóa bài viết
                     </button>
                   )}
                 </div>
               </div>
-
-              {/* Right Column: Configuration & Upload Sidebar (30%) */}
-              <div className="space-y-6">
-                {/* Configuration Box */}
-                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-900 uppercase tracking-wider">
-                    <span>⚙️</span>
-                    <span>Cấu hình xuất bản</span>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-gray-700">
-                        Danh mục <span className="text-red-500">*</span>
-                      </label>
-                      <span className="text-[10px] text-gray-400">Quản lý bởi Admin</span>
-                    </div>
-                    <select
-                      {...register('category')}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                    >
-                      {CATEGORIES.filter((c) => c.id !== 'all').map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.label}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-[11px] text-gray-400">
-                      Chọn nhóm chủ đề phù hợp nhất để bài viết đến với người đọc quan tâm.
-                    </p>
-                  </div>
-
-                  {/* Author Card */}
-                  <div className="p-3.5 bg-emerald-50/50 rounded-2xl border border-emerald-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <img
-                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
-                        alt="Tác giả"
-                        className="w-9 h-9 rounded-full object-cover border border-emerald-200"
-                      />
-                      <div className="flex flex-col text-xs">
-                        <span className="font-bold text-gray-900">
-                          {user?.fullName || 'Nguyễn Minh Anh'}
-                        </span>
-                        <span className="text-[11px] text-gray-500">Tác giả bài viết</span>
-                      </div>
-                    </div>
-                    <span className="text-emerald-700 text-sm font-bold">✓</span>
-                  </div>
-
-                  {/* Status Toggle */}
-                  <div className="pt-3 border-t border-gray-100 space-y-2">
-                    <label className="text-xs font-semibold text-gray-700">Trạng thái xuất bản</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setValue('status', 'published')}
-                        className={`py-2 px-3 rounded-xl text-xs font-semibold transition-all ${
-                          currentStatus === 'published'
-                            ? 'bg-emerald-700 text-white shadow-sm'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        Đã xuất bản
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setValue('status', 'draft')}
-                        className={`py-2 px-3 rounded-xl text-xs font-semibold transition-all ${
-                          currentStatus === 'draft'
-                            ? 'bg-amber-600 text-white shadow-sm'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        Bản nháp
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-gray-500 pt-1">
-                      <span>Cập nhật lần cuối:</span>
-                      <span className="font-medium text-gray-700">Hôm nay, 14:25</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Thumbnail Upload Card */}
-                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between text-xs font-bold text-gray-900">
-                    <span>Ảnh đại diện</span>
-                    <span className="text-[10px] text-gray-400 font-normal">Tối đa 5MB</span>
-                  </div>
-
-                  <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm">
-                    {thumbnailUrl ? (
-                      <img
-                        src={thumbnailUrl}
-                        alt="Thumbnail"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-                        <span className="text-3xl mb-1">🖼️</span>
-                        <span className="text-xs">Chưa có ảnh đại diện</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newUrl = window.prompt(
-                          'Nhập URL ảnh thumbnail:',
-                          thumbnailUrl
-                        )
-                        if (newUrl) setThumbnailUrl(newUrl)
-                      }}
-                      className="flex-1 py-2 px-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-semibold text-gray-700 transition-colors inline-flex items-center justify-center gap-1.5"
-                    >
-                      <span>🔄</span>
-                      <span>Thay đổi ảnh</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setThumbnailUrl('')}
-                      className="p-2 border border-gray-200 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-xl transition-colors"
-                      title="Xóa ảnh"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-
-                  <p className="text-[11px] text-gray-400 leading-relaxed">
-                    Hỗ trợ JPG, PNG, WEBP tỷ lệ 16:9 sắc nét. Kéo thả trực tiếp vào ô để cập nhật.
-                  </p>
-                </div>
-
-                {/* Helpful Advice Card */}
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-3xl p-6 border border-emerald-100 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
-                    <span>💡</span>
-                    <span>Mẹo chia sẻ bổ ích</span>
-                  </div>
-                  <p className="text-xs text-emerald-950 leading-relaxed">
-                    Các bài viết có liệt kê khối lượng nguyên liệu thực tế (gram, chén) và hình ảnh món ăn trực quan sẽ nhận được sự quan tâm và lượt đọc cao hơn 75%.
-                  </p>
-                </div>
-              </div>
             </div>
-
-            {/* Quick View Live Preview Section */}
-            <div className="pt-8 border-t border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-emerald-700 font-bold">📱</span>
-                  <h3 className="text-sm font-bold text-gray-900">
-                    Xem trước giao diện bài viết (Quick View)
-                  </h3>
-                </div>
-                <span className="text-xs text-gray-400">Mô phỏng 100% người xem</span>
-              </div>
-              <p className="text-xs text-gray-500 mb-6">
-                Hình ảnh bài viết hiển thị trong danh sách cẩm nang dinh dưỡng của Vegetarian Support.
-              </p>
-
-              <div className="max-w-md bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                <div className="relative aspect-[16/10] bg-gray-100">
-                  {thumbnailUrl ? (
-                    <img
-                      src={thumbnailUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                      Ảnh xem trước
-                    </div>
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      {selectedCategoryLabel}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-5 flex flex-col gap-2">
-                  <div className="text-xs text-gray-500 flex items-center gap-2">
-                    <span>⏱️ {readTimeMin} phút đọc</span>
-                    <span>•</span>
-                    <span>Cập nhật hôm nay</span>
-                  </div>
-                  <h4 className="text-sm font-bold text-gray-900 line-clamp-2">
-                    {currentTitle || 'Tiêu đề bài viết của bạn sẽ hiển thị ở đây...'}
-                  </h4>
-                  <p className="text-xs text-gray-600 line-clamp-2">
-                    {currentContent.slice(0, 140)}...
-                  </p>
-                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                    <span className="text-gray-500 font-medium">
-                      {user?.fullName || 'Nguyễn Minh Anh'}
-                    </span>
-                    <span className="text-emerald-700 font-semibold">Đọc tiếp →</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </form>
+          </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Xác nhận xóa bài viết"
+        description="Bạn có chắc chắn muốn xóa bài viết này không? Hành động này sẽ loại bỏ bài viết hoàn toàn."
+        footer={
+          <div className="flex justify-end gap-3 w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleConfirmDelete}
+              isLoading={isDeleting}
+            >
+              Xác nhận xóa
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-xs text-gray-600">
+          Bài viết sẽ không còn xuất hiện trên trang cá nhân hoặc cẩm nang kiến thức công khai.
+        </p>
+      </Modal>
+
+      {/* URL Input Modal */}
+      <Modal
+        isOpen={isUrlModalOpen}
+        onClose={() => setIsUrlModalOpen(false)}
+        title="Nhập liên kết hình ảnh"
+        description="Dán đường dẫn ảnh trực tuyến (JPG, PNG, WEBP) để làm ảnh đại diện."
+        footer={
+          <div className="flex justify-end gap-3 w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsUrlModalOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (urlInput.trim()) {
+                  setThumbnailUrl(urlInput.trim())
+                }
+                setIsUrlModalOpen(false)
+              }}
+            >
+              Áp dụng
+            </Button>
+          </div>
+        }
+      >
+        <Input
+          label="Đường dẫn URL ảnh"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          placeholder="https://images.unsplash.com/photo-..."
+          fullWidth
+        />
+      </Modal>
     </PublicLayout>
   )
 }
+
+export default ArticleEditorPage

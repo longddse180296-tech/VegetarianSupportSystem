@@ -37,11 +37,16 @@ const AppContent: React.FC = () => {
     }
   }
 
+  const handleLogout = async () => {
+    await logout()
+    onNavigate('/')
+  }
+
   const ctx: RouterContext = { currentPath, onNavigate }
 
   return (
     <div className="min-h-screen">
-      <RouterRenderer {...ctx} user={user} logout={logout} />
+      <RouterRenderer {...ctx} user={user} logout={handleLogout} />
     </div>
   )
 }
