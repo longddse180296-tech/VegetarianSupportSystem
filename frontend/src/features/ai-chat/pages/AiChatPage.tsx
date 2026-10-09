@@ -1,60 +1,60 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import {
-  CircleUserRound,
+  Clock,
+  HelpCircle,
   History as HistoryIcon,
   Leaf,
   Lock,
   LogIn,
-  MessageCircleQuestionMark,
-  Plus,
+  RefreshCw,
+  Scan,
+  Send as SendIcon,
+  ShieldAlert,
   Sparkles,
-  Target,
-  Zap,
+  TriangleAlert,
+  User as UserIcon,
 } from 'lucide-react'
 
-import { Button, Modal, StatusBadge } from '../../../shared/components'
+import { Button, Modal } from '../../../shared/components'
 import {
   buildUserMessage,
-  getWelcomeSuggestions,
+  getChatHistoryFigma,
+  getDefaultBmi,
+  getFaqsFigma,
+  getRecipeSuggestions,
+  getUserProfileFields,
   sendMessageToAi,
+  streamAiText,
 } from '../api/aiChatApi'
-import { ChatMessageView } from '../components/ChatMessage'
-import { ChatInputBar } from '../components/ChatInput'
-import { SuggestionCard } from '../components/SuggestionCard'
 import type {
   AppRole,
-  ChatConversation,
+  BMIResult,
   ChatMessage,
   FaqItem,
   GuestChatState,
-  ProfileSummary,
-  RecipeSuggestion,
+  HistoryItem,
+  PersonalProfileField,
+  RecipePreview,
 } from '../types/aiChat.types'
 
-type SidebarTab = 'profile' | 'faqs' | 'history'
+const INITIAL_USER_QUESTION =
+  'Chỉ số BMI 22.5 của tôi có ý nghĩa gì đối với chế độ ăn chay?'
+
+const INITIAL_BOT_REPLY_1 =
+  'Chỉ số BMI 22.5 của bạn nằm trong ngưỡng Bình thường (18.5 – 22.9) theo chuẩn Tổ chức Y tế Thế giới (WHO) dành cho người trưởng thành châu Á.'
+
+const INITIAL_BOT_REPLY_2 =
+  'Dưới đây là 2 thực đơn bữa tối thanh nhẹ dưới 500 kcal rất hợp với chỉ số BMI của bạn hôm nay:'
 
 interface AiChatPageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
-const SUGGESTION_PROMPTS: string[] = [
-  'Gợi ý bữa sáng 350 kcal thuần thực vật',
-  'Thay thế đậu phụ trong thực đơn 7 ngày',
-  'Phụ gia E-number nào có nguồn gốc động vật?',
-  'Thực đơn 1400 kcal 7 ngày cho người mới',
-]
-
 export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) {
-  const appRole = (isLoggedIn ? 'User' : 'Guest') as AppRole
-  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('history')
+  const appRole: AppRole = isLoggedIn ? 'User' : 'Guest'
 
-  const [welcomeLoaded, setWelcomeLoaded] = useState(false)
-  const [greeting, setGreeting] = useState('')
-  const [recipes, setRecipes] = useState<RecipeSuggestion[]>([])
-  const [faqs, setFaqs] = useState<FaqItem[]>([])
-  const [conversations, setConversations] = useState<ChatConversation[]>([])
-  const [profile, setProfile] = useState<ProfileSummary | null>(null)
+  // Guest quota: maximum 3 questions
   const [guestState, setGuestState] = useState<GuestChatState>({
     questionsRemaining: 3,
     limit: 3,
@@ -64,535 +64,619 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [isBotBusy, setIsBotBusy] = useState(false)
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [streamingId, setStreamingId] = useState<string | null>(null)
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const conversationId = useRef<string | null>(null)
+  // Sidebar mock data from API
+  const [profileFields, setProfileFields] = useState<PersonalProfileField[]>([])
+  const [faqs, setFaqs] = useState<FaqItem[]>([])
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
+  const [defaultBmi, setDefaultBmi] = useState<BMIResult | null>(null)
+  const [mealRecipes, setMealRecipes] = useState<RecipePreview[]>([])
+  const [isLoadingInit, setIsLoadingInit] = useState(true)
 
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const cancelStreamRef = useRef<(() => void) | null>(null)
+
+  // Load Initial Data
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      const data = await getWelcomeSuggestions(appRole)
+    void (async () => {
+      setIsLoadingInit(true)
+      const [fields, faqsData, historyData, bmi, recipes] = await Promise.all([
+        getUserProfileFields(),
+        getFaqsFigma(),
+        getChatHistoryFigma(),
+        getDefaultBmi(),
+        getRecipeSuggestions(22.5),
+      ])
       if (!alive) return
-      setGreeting(data.greeting)
-      setRecipes(data.recipes)
-      setFaqs(data.faqs)
-      setConversations(data.conversations)
-      setProfile(data.profile)
-      setGuestState(data.guestState)
-      setWelcomeLoaded(true)
+      setProfileFields(fields)
+      setFaqs(faqsData)
+      setHistoryItems(historyData)
+      setDefaultBmi(bmi)
+      setMealRecipes(recipes)
+
+      // Seed initial conversation matching Figma design
+      setMessages([
+        {
+          id: 'msg-seed-user',
+          sender: 'user',
+          role: 'user',
+          content: INITIAL_USER_QUESTION,
+          timestamp: new Date(Date.now() - 120_000).toISOString(),
+        },
+        {
+          id: 'msg-seed-bot-1',
+          sender: 'assistant',
+          role: 'assistant',
+          content: INITIAL_BOT_REPLY_1,
+          timestamp: new Date(Date.now() - 60_000).toISOString(),
+          bmiAnalysis: bmi,
+          disclaimer: bmi.medicalDisclaimer,
+        },
+        {
+          id: 'msg-seed-bot-2',
+          sender: 'assistant',
+          role: 'assistant',
+          content: INITIAL_BOT_REPLY_2,
+          timestamp: new Date(Date.now() - 30_000).toISOString(),
+          recipePreview: recipes,
+        },
+      ])
+      setIsLoadingInit(false)
     })()
+
     return () => {
       alive = false
+      if (cancelStreamRef.current) cancelStreamRef.current()
     }
   }, [appRole])
 
+  // Scroll to bottom when messages update
   useEffect(() => {
-    if (!scrollRef.current) return
-    scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-  }, [messages, isBotBusy, streamingId])
-
-  const sideContentForRole = useMemo(() => {
-    const badgeRole: 'success' | 'info' | 'warning' =
-      appRole === 'Admin' ? 'warning' : appRole === 'User' ? 'success' : 'info'
-    return { badgeRole }
-  }, [appRole])
-
-  const pickSuggestion = (text: string) => setDraft((d) => d || text)
-
-  const streamMessage = (fullMsg: ChatMessage) => {
-    const text = fullMsg.content
-    setMessages((prev) => [
-      ...prev,
-      { ...fullMsg, content: '', typingStreamed: true },
-    ])
-    setStreamingId(fullMsg.id)
-    let i = 0
-    const tick = () => {
-      i = Math.min(text.length, i + 1)
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === fullMsg.id ? { ...m, content: text.slice(0, i) } : m,
-        ),
-      )
-      if (i < text.length) {
-        setTimeout(tick, 20)
-      } else {
-        setStreamingId(null)
-      }
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-    setTimeout(tick, 120)
-  }
+  }, [messages, isBotBusy, streamingMessageId])
 
-  const consumeGuestQuota = (): boolean => {
+  // Guest Quota check
+  const consumeQuota = (): boolean => {
     if (appRole !== 'Guest') return true
-    let allow = true
-    setGuestState((prev) => {
-      if (prev.locked || prev.questionsRemaining <= 0) {
-        allow = false
-        return { ...prev, locked: true }
-      }
-      const next = prev.questionsRemaining - 1
-      const locked = next <= 0
-      if (locked) setTimeout(() => setShowLoginModal(true), 400)
-      return { ...prev, questionsRemaining: next, locked }
+    if (guestState.locked || guestState.questionsRemaining <= 0) {
+      setShowLoginModal(true)
+      return false
+    }
+    const nextRemaining = guestState.questionsRemaining - 1
+    const locked = nextRemaining <= 0
+    setGuestState({
+      limit: 3,
+      questionsRemaining: nextRemaining,
+      locked,
     })
-    return allow
+    if (locked) {
+      setTimeout(() => setShowLoginModal(true), 800)
+    }
+    return true
   }
 
-  const handleSend = async () => {
-    const content = draft.trim()
-    if (!content) return
-    if (isBotBusy) return
-    if (guestState.locked) {
-      setShowLoginModal(true)
-      return
-    }
-    if (!consumeGuestQuota()) {
-      setShowLoginModal(true)
-      return
-    }
-    const userMsg = buildUserMessage(content)
+  // Send message and trigger real-time typing stream
+  const handleSend = async (forcedText?: string) => {
+    const textToSend = (forcedText ?? draft).trim()
+    if (!textToSend || isBotBusy) return
+
+    if (!consumeQuota()) return
+
+    const userMsg = buildUserMessage(textToSend)
     setMessages((prev) => [...prev, userMsg])
     setDraft('')
     setIsBotBusy(true)
+
     try {
-      const reply = await sendMessageToAi(userMsg.role, userMsg.content, conversationId.current)
-      streamMessage(reply)
-    } finally {
-      setTimeout(() => setIsBotBusy(false), 260)
+      const response = await sendMessageToAi('user', textToSend, null)
+
+      // Initialize empty bot message for streaming
+      const botMsgId = response.id
+      const fullContent = response.content
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...response,
+          content: '',
+          typingStreamed: true,
+        },
+      ])
+      setStreamingMessageId(botMsgId)
+
+      // Stream text effect
+      const stopStream = streamAiText(
+        fullContent,
+        (partial) => {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === botMsgId ? { ...m, content: partial } : m)),
+          )
+        },
+        () => {
+          setStreamingMessageId(null)
+          setIsBotBusy(false)
+        },
+        20,
+      )
+      cancelStreamRef.current = stopStream
+    } catch {
+      setIsBotBusy(false)
+      setStreamingMessageId(null)
     }
   }
 
-  const limitHint =
-    appRole === 'Guest'
-      ? guestState.questionsRemaining > 0
-        ? `Guest · Còn ${guestState.questionsRemaining} / ${guestState.limit} lượt hỏi`
-        : 'Guest · Đã hết lượt hỏi, đăng nhập để tiếp tục'
-      : `Đăng nhập · ${appRole} · Không giới hạn lượt hỏi`
-
-  const handleFaqAsk = (faq: FaqItem) => {
-    setDraft(faq.question)
-  }
-
-  const handleLoginFromModal = () => {
-    setShowLoginModal(false)
-    onNavigate?.('/login')
+  // Reset Conversation
+  const handleResetChat = () => {
+    if (cancelStreamRef.current) cancelStreamRef.current()
+    setIsBotBusy(false)
+    setStreamingMessageId(null)
+    if (defaultBmi && mealRecipes.length > 0) {
+      setMessages([
+        {
+          id: `msg-${Date.now()}-u`,
+          sender: 'user',
+          role: 'user',
+          content: INITIAL_USER_QUESTION,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: `msg-${Date.now()}-b1`,
+          sender: 'assistant',
+          role: 'assistant',
+          content: INITIAL_BOT_REPLY_1,
+          timestamp: new Date().toISOString(),
+          bmiAnalysis: defaultBmi,
+          disclaimer: defaultBmi.medicalDisclaimer,
+        },
+        {
+          id: `msg-${Date.now()}-b2`,
+          sender: 'assistant',
+          role: 'assistant',
+          content: INITIAL_BOT_REPLY_2,
+          timestamp: new Date().toISOString(),
+          recipePreview: mealRecipes,
+        },
+      ])
+    } else {
+      setMessages([])
+    }
   }
 
   return (
-    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f5e9] px-3 py-1 text-[11px] font-extrabold text-[#2e7d32]">
-              <Sparkles size={12} /> Trợ lý AI · Dinh dưỡng thuần thực vật
-            </span>
-            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1f2937] sm:text-3xl">
-              Trợ lý AI Dinh dưỡng Thuần thực vật
+    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
+      <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">
+        {/* ============= BREADCRUMBS ============= */}
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-4 flex items-center gap-2 text-[14px] text-[#6B7280]"
+        >
+          <button
+            type="button"
+            onClick={() => onNavigate?.('/')}
+            className="hover:text-[#2E7D32] transition"
+          >
+            Trang chủ
+          </button>
+          <span className="text-[#9CA3AF]" aria-hidden>
+            ›
+          </span>
+          <span className="text-[#1F2937] font-medium">Trợ lý AI</span>
+        </nav>
+
+        {/* ============= PAGE HEADER ============= */}
+        <header className="mb-6 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-[#111827]">
+              Trợ lý dinh dưỡng AI
             </h1>
-            <p className="mt-1 max-w-3xl text-sm text-[#6b7280]">
-              Hỏi về thực đơn 7 ngày, cách thay thế đậu phụ, các phụ gia E-number có nguồn gốc động vật
-              hay cách xây dựng khẩu phần 1400 kcal phù hợp BMI của bạn.
-            </p>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C8E6C9] bg-[#E8F5E9] px-3 py-1 text-[12px] font-bold text-[#2E7D32]">
+              <Leaf size={13} className="fill-[#2E7D32]" />
+              Trợ lý ảo dinh dưỡng thực vật
+            </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge
-              status={sideContentForRole.badgeRole}
-              label={
-                profile ? `${profile.role} · ${profile.profileType}` : `Vai trò: ${appRole}`
-              }
-              size="sm"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              leftIcon={<Plus size={13} />}
-              onClick={() => {
-                setMessages([])
-                conversationId.current = null
-              }}
-            >
-              Hội thoại mới
-            </Button>
-          </div>
-        </div>
+          <p className="text-[14px] sm:text-[15px] text-[#6B7280] max-w-[720px]">
+            Hỏi đáp về dinh dưỡng chay, nguyên liệu thay thế, BMI, calo và nhận gợi ý bữa ăn khoa học được cá nhân hóa cho bạn.
+          </p>
+        </header>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]">
-          {/* MAIN CHAT */}
-          <section className="flex flex-col gap-5">
-            {/* Welcome banner */}
-            {welcomeLoaded && messages.length === 0 ? (
-              <div className="rounded-[20px] border border-[#c8e6c9] bg-white p-6 shadow-xs">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-[#2e7d32] px-3 py-1 text-[11px] font-extrabold text-white shadow-sm">
-                      <Leaf size={12} /> Mới: 3 gợi ý theo hồ sơ của bạn
-                    </div>
-                    <h2 className="mt-3 text-xl font-extrabold tracking-tight text-[#1f2937]">
-                      Xin chào 👋 {profile?.displayName ?? 'bạn'}
-                    </h2>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-[#6b7280]">{greeting}</p>
-                  </div>
-                  <div className="hidden rounded-[16px] border border-[#e5e7eb] bg-[#e8f5e9]/50 p-3 text-center sm:block">
-                    <div className="text-[10px] font-bold text-[#2e7d32]">MỤC TIÊU</div>
-                    <div className="mt-1 text-lg font-extrabold text-[#1f2937]">
-                      {profile?.target ?? 'Bắt đầu thôi'}
-                    </div>
-                    <div className="mt-1 text-[11px] text-[#6b7280]">{profile?.bmiRange ?? 'BMI chưa đo'}</div>
-                  </div>
+        {/* ============= MAIN 2 COLUMNS ============= */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {/* =========================================================
+           * CỘT TRÁI (KHUNG CHAT CHÍNH): lg:col-span-8
+           * ========================================================= */}
+          <section className="lg:col-span-8 flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white shadow-sm overflow-hidden min-h-[640px]">
+            {/* Header hộp chat */}
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4 bg-white">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]">
+                  <Leaf size={20} className="fill-[#2E7D32]" />
                 </div>
-
-                {/* Hero recipe cards */}
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                  {recipes.map((r) => (
-                    <SuggestionCard
-                      key={r.id}
-                      recipe={r}
-                      variant="hero-card"
-                      onNavigate={onNavigate}
-                    />
-                  ))}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[15px] font-bold text-[#1F2937]">
+                      Vegetarian AI Assistant
+                    </h2>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-semibold text-[#2E7D32]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
+                      Đang hoạt động
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-[#6B7280]">
+                    Phân tích dinh dưỡng thực vật chuẩn khoa học
+                  </p>
                 </div>
               </div>
-            ) : null}
 
-            {/* Message list */}
+              <button
+                type="button"
+                onClick={handleResetChat}
+                className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#4B5563] hover:text-[#2E7D32] transition"
+              >
+                <RefreshCw size={14} />
+                Làm mới hội thoại
+              </button>
+            </div>
+
+            {/* Khung tin nhắn */}
             <div
               ref={scrollRef}
-              className="max-h-[58vh] min-h-[300px] overflow-y-auto rounded-[20px] border border-[#e5e7eb] bg-white/80 p-4 shadow-xs sm:p-5"
+              className="flex-1 space-y-6 overflow-y-auto p-5 sm:p-6 bg-[#FFFFFF] max-h-[560px]"
             >
-              <div className="flex flex-col gap-5">
-                {!welcomeLoaded ? (
-                  <div className="space-y-3">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-start gap-3"
-                      >
-                        <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-slate-200" />
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 w-5/6 animate-pulse rounded-lg bg-slate-200" />
-                          <div className="h-4 w-4/6 animate-pulse rounded-lg bg-slate-200" />
-                          <div className="h-4 w-2/3 animate-pulse rounded-lg bg-slate-200" />
-                        </div>
+              {isLoadingInit ? (
+                <div className="space-y-4">
+                  <div className="h-12 w-2/3 bg-slate-100 animate-pulse rounded-[12px]" />
+                  <div className="h-28 w-5/6 bg-slate-100 animate-pulse rounded-[12px]" />
+                </div>
+              ) : (
+                messages.map((m) =>
+                  m.role === 'user' ? (
+                    <div key={m.id} className="flex justify-end items-start gap-2.5">
+                      <div className="rounded-[16px] rounded-tr-none bg-[#2E7D32] px-4 py-3 text-[14px] text-white shadow-sm max-w-[82%] leading-relaxed">
+                        {m.content}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  messages.map((m) => (
-                    <ChatMessageView
-                      key={m.id}
-                      message={m}
-                      onNavigate={onNavigate}
-                      isStreaming={streamingId === m.id}
-                    />
-                  ))
-                )}
-
-                {isBotBusy && streamingId == null && (
-                  <div className="flex items-start gap-2">
-                    <span className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#2e7d32] shadow-sm ring-1 ring-[#c8e6c9]">
-                      <Zap size={15} />
-                    </span>
-                    <div className="flex items-center gap-1.5 rounded-[16px] rounded-tl-[6px] bg-[#e8f5e9] px-4 py-3 shadow-sm ring-1 ring-[#c8e6c9]">
-                      <span className="h-2 w-2 animate-bounce rounded-full bg-[#2e7d32]" style={{ animationDelay: '0ms' }} />
-                      <span className="h-2 w-2 animate-bounce rounded-full bg-[#2e7d32]" style={{ animationDelay: '120ms' }} />
-                      <span className="h-2 w-2 animate-bounce rounded-full bg-[#2e7d32]" style={{ animationDelay: '240ms' }} />
-                      <span className="ml-2 text-xs font-semibold text-[#2e7d32]">
-                        AI đang soạn câu trả lời...
-                      </span>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1F2937] text-white">
+                        <UserIcon size={16} />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div key={m.id} className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2E7D32] text-white shadow-sm">
+                        <Leaf size={16} className="fill-white" />
+                      </div>
+                      <div className="flex-1 space-y-3.5 max-w-[90%]">
+                        {/* Text bubble */}
+                        <div className="rounded-[16px] rounded-tl-none bg-[#E8F5E9] border border-[#C8E6C9] p-4 text-[14px] leading-relaxed text-[#1F2937]">
+                          <p className="whitespace-pre-wrap">{m.content}</p>
+                          {streamingMessageId === m.id && (
+                            <span className="inline-block h-3.5 w-1.5 animate-pulse bg-[#2E7D32] ml-1 align-middle" />
+                          )}
+                        </div>
+
+                        {/* Special Rich Component: Thước đo chuẩn Châu Á */}
+                        {m.bmiAnalysis && (
+                          <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-4 shadow-xs">
+                            <div className="mb-2 flex items-center justify-between text-[11px] font-bold">
+                              <span className="text-[#1F2937]">Thước đo chuẩn Châu Á</span>
+                              <span className="text-[#2E7D32]">
+                                Điểm số hiện tại: {m.bmiAnalysis.value.toFixed(1)}
+                              </span>
+                            </div>
+
+                            {/* Scrubber indicator */}
+                            <div className="relative h-6 w-full">
+                              <div
+                                className="absolute -translate-x-1/2 flex flex-col items-center"
+                                style={{ left: '48%' }}
+                              >
+                                <span className="text-[10px] font-bold text-[#1F2937] leading-none">
+                                  22.5
+                                </span>
+                                <span className="text-[#2E7D32] text-[10px] leading-none" aria-hidden>
+                                  ▼
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Bar with 4 zones */}
+                            <div className="h-3 w-full rounded-full overflow-hidden grid grid-cols-4 gap-0.5 bg-slate-200">
+                              <div className="bg-[#D1D5DB]" title="< 18.5 Thiếu cân" />
+                              <div className="bg-[#2E7D32]" title="18.5 – 22.9 Chuẩn" />
+                              <div className="bg-[#FBBF24]" title="23 – 24.9 Thừa cân" />
+                              <div className="bg-[#F87171]" title="≥ 25 Béo phì" />
+                            </div>
+
+                            {/* Labels below */}
+                            <div className="mt-1.5 grid grid-cols-4 text-[10px] font-semibold text-[#6B7280]">
+                              <span>{'<'} 18.5 Thiếu cân</span>
+                              <span className="text-[#2E7D32]">18.5 - 22.9 Chuẩn</span>
+                              <span>23 - 24.9 Thừa cân</span>
+                              <span>≥ 25 Béo phì</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Calorie & Protein recommendation text box */}
+                        {m.bmiAnalysis && (
+                          <div className="text-[13px] text-[#374151] leading-relaxed">
+                            Để duy trì cân nặng lý tưởng và năng lượng bền bỉ, bạn nên nạp khoảng{' '}
+                            <strong>1.800 - 1.900 kcal/ngày</strong> với{' '}
+                            <strong>60 - 70g protein</strong> từ đậu, hạt và ngũ cốc nguyên cám.
+                          </div>
+                        )}
+
+                        {/* Medical Disclaimer */}
+                        {m.disclaimer && (
+                          <div className="rounded-[10px] border border-[#DCFCE7] bg-[#F0FDF4] p-3 text-[12px] text-[#374151] flex items-center gap-2">
+                            <ShieldAlert size={15} className="text-[#2E7D32] shrink-0" />
+                            <span>{m.disclaimer}</span>
+                          </div>
+                        )}
+
+                        {/* Special Rich Component: 2 Meal Suggestion Cards side-by-side */}
+                        {m.recipePreview && m.recipePreview.length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            {m.recipePreview.map((card) => (
+                              <div
+                                key={card.id}
+                                className="rounded-[14px] border border-[#E5E7EB] bg-white p-3.5 shadow-xs flex flex-col justify-between"
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-bold text-[#2E7D32]">
+                                      {card.tags[0]?.label ?? 'Tối • Thanh lọc'}
+                                    </span>
+                                    <span className="text-[12px] font-bold text-[#1F2937]">
+                                      {card.kcal} kcal
+                                    </span>
+                                  </div>
+                                  <h4 className="text-[14px] font-bold text-[#1F2937] mb-1">
+                                    {card.name}
+                                  </h4>
+                                  <p className="text-[11px] text-[#6B7280] leading-snug line-clamp-2">
+                                    {card.description}
+                                  </p>
+                                </div>
+                                <div className="mt-3 pt-2 border-t border-dashed border-[#E5E7EB] flex items-center justify-between text-[12px]">
+                                  <span className="font-semibold text-[#4B5563]">
+                                    Protein: <strong>{card.nutrientValue}</strong>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => onNavigate?.(`/recipes/${card.id}`)}
+                                    className="font-bold text-[#2E7D32] hover:underline"
+                                  >
+                                    Chi tiết
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ),
+                )
+              )}
+            </div>
+
+            {/* Input & Control Footer */}
+            <div className="border-t border-[#E5E7EB] p-4 bg-white">
+              <div className="flex items-center gap-2 rounded-[12px] border border-[#E5E7EB] bg-[#F9FAFB] p-2 focus-within:border-[#2E7D32] focus-within:bg-white transition">
+                <input
+                  type="text"
+                  placeholder="Nhập câu hỏi của bạn về dinh dưỡng, món ăn, calo, nguyên liệu..."
+                  value={draft}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      void handleSend()
+                    }
+                  }}
+                  disabled={isBotBusy || guestState.locked}
+                  className="flex-1 bg-transparent border-none text-[14px] text-[#1F2937] placeholder:text-[#9CA3AF] px-2 focus:outline-none"
+                />
+
+                {/* Scan Button */}
+                <button
+                  type="button"
+                  title="Quét thực phẩm"
+                  onClick={() => onNavigate?.('/food-scan')}
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#6B7280] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition"
+                >
+                  <Scan size={18} />
+                </button>
+
+                {/* Send Button */}
+                <button
+                  type="button"
+                  disabled={isBotBusy || !draft.trim() || guestState.locked}
+                  onClick={() => void handleSend()}
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#2E7D32] hover:bg-[#1B5E20] text-white disabled:opacity-50 transition"
+                >
+                  <SendIcon size={16} />
+                </button>
+              </div>
+
+              {/* Footnote */}
+              <div className="mt-2.5 flex flex-wrap items-center justify-between text-[11px] text-[#6B7280]">
+                <span>
+                  ⓘ AI chỉ cung cấp kiến thức dinh dưỡng thực vật thường thức, không thay thế chẩn đoán hay điều trị y khoa.
+                </span>
+                <span className="font-medium text-[#4B5563]">Nhấn Enter để gửi</span>
+              </div>
+            </div>
+          </section>
+
+          {/* =========================================================
+           * CỘT PHẢI (SIDEBAR THÔNG TIN): lg:col-span-4
+           * ========================================================= */}
+          <aside className="lg:col-span-4 flex flex-col gap-5">
+            {/* Card 1: Chế độ trải nghiệm */}
+            <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F4F9F5] p-4 flex items-center gap-3.5 shadow-xs">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-white text-[#2E7D32] shadow-xs border border-[#C8E6C9]">
+                <Clock size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1F2937]">
+                  <span>Chế độ trải nghiệm</span>
+                  <span className="rounded-full bg-[#2E7D32] px-2 py-0.5 text-[10px] font-bold text-white">
+                    {appRole === 'Guest' ? `${guestState.questionsRemaining}/3` : 'VIP'}
+                  </span>
+                </div>
+                <p className="text-[12px] text-[#6B7280] mt-0.5">
+                  {appRole === 'Guest'
+                    ? `Bạn còn ${guestState.questionsRemaining} lượt hỏi thử miễn phí hôm nay`
+                    : 'Trò chuyện không giới hạn'}
+                </p>
               </div>
             </div>
 
-            {/* Input */}
-            <ChatInputBar
-              value={draft}
-              onChange={setDraft}
-              onSend={handleSend}
-              disabled={isBotBusy}
-              locked={guestState.locked && appRole === 'Guest'}
-              limitHint={limitHint}
-              onPickSuggestion={pickSuggestion}
-              suggestions={messages.length === 0 ? SUGGESTION_PROMPTS : []}
-            />
-          </section>
+            {/* Card 2: Hồ sơ cá nhân hóa */}
+            <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-xs">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[15px] font-bold text-[#1F2937]">
+                  <UserIcon size={17} className="text-[#2E7D32]" />
+                  <span>Hồ sơ cá nhân hóa</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('/profile')}
+                  className="text-[12px] font-bold text-[#2E7D32] hover:underline"
+                >
+                  Chỉnh sửa
+                </button>
+              </div>
 
-          {/* SIDEBAR */}
-          <aside className="flex flex-col gap-4">
-            {/* Tabs */}
-            <div className="flex flex-wrap gap-1 rounded-[12px] border border-[#e5e7eb] bg-white p-1 shadow-xs">
-              <Button
-                type="button"
-                size="sm"
-                variant={sidebarTab === 'history' ? 'primary' : 'ghost'}
-                leftIcon={<HistoryIcon size={12} />}
-                onClick={() => setSidebarTab('history')}
-              >
-                Lịch sử
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={sidebarTab === 'faqs' ? 'primary' : 'ghost'}
-                leftIcon={<MessageCircleQuestionMark size={12} />}
-                onClick={() => setSidebarTab('faqs')}
-              >
-                FAQ
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={sidebarTab === 'profile' ? 'primary' : 'ghost'}
-                leftIcon={<CircleUserRound size={12} />}
-                onClick={() => setSidebarTab('profile')}
-              >
-                Hồ sơ
-              </Button>
+              <div className="space-y-3 text-[13px]">
+                {profileFields.map((f) => (
+                  <div key={f.key} className="flex items-center justify-between">
+                    <span className="text-[#6B7280]">{f.label}</span>
+                    {f.key === 'bmi' ? (
+                      <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
+                        {f.value}
+                      </span>
+                    ) : f.key === 'allergy' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
+                        <TriangleAlert size={11} />
+                        {f.value}
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-[#1F2937]">{f.value}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-[10px] bg-[#E8F5E9] p-3 text-[11px] text-[#2E7D32] flex items-start gap-2">
+                <Sparkles size={14} className="shrink-0 mt-0.5" />
+                <span>AI tự động đối chiếu thông tin này để đưa ra gợi ý chuẩn xác nhất cho bạn.</span>
+              </div>
             </div>
 
-            {/* Tab content */}
-            <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
-              {sidebarTab === 'history' && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-bold text-[#1f2937]">Hội thoại gần đây</div>
-                    <Button type="button" variant="ghost" size="sm" leftIcon={<Plus size={12} />}>
-                      Mới
-                    </Button>
-                  </div>
-                  {welcomeLoaded ? (
-                    conversations.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className="block w-full rounded-[12px] border border-transparent p-3 text-left transition hover:border-[#c8e6c9] hover:bg-[#e8f5e9]/60"
-                        onClick={() => {
-                          setMessages([])
-                          conversationId.current = c.id
-                        }}
-                      >
-                        <div className="line-clamp-1 text-[13px] font-extrabold text-[#1f2937]">
-                          {c.title}
-                        </div>
-                        <div className="mt-0.5 line-clamp-2 text-xs text-[#6b7280]">{c.summary}</div>
-                        <div className="mt-1 text-[10px] text-[#6b7280]">
-                          {new Date(c.lastMessageAt).toLocaleString('vi-VN')}
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="space-y-2 rounded-[12px] p-3"
-                      >
-                        <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
-                        <div className="h-3 w-1/2 animate-pulse rounded bg-slate-200" />
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+            {/* Card 3: Câu hỏi thường gặp */}
+            <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-xs">
+              <div className="mb-3.5 flex items-center gap-2 text-[15px] font-bold text-[#1F2937]">
+                <HelpCircle size={17} className="text-[#2E7D32]" />
+                <span>Câu hỏi thường gặp</span>
+              </div>
 
-              {sidebarTab === 'faqs' && (
-                <div className="space-y-3">
-                  <div className="text-sm font-bold text-[#1f2937]">Câu hỏi thường gặp</div>
-                  {welcomeLoaded ? (
-                    faqs.map((f) => (
-                      <details
-                        key={f.id}
-                        className="group rounded-[12px] border border-[#e5e7eb] bg-slate-50/70 p-3 open:bg-white open:ring-1 open:ring-[#c8e6c9]"
-                      >
-                        <summary className="flex cursor-pointer items-start justify-between gap-3 list-none">
-                          <span className="text-[13px] font-bold text-[#1f2937]">{f.question}</span>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              handleFaqAsk(f)
-                            }}
-                          >
-                            Hỏi
-                          </Button>
-                        </summary>
-                        <p className="mt-2 text-xs leading-5 text-[#1f2937]">{f.answer}</p>
-                      </details>
-                    ))
-                  ) : (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="space-y-2 p-3">
-                        <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
-                        <div className="h-3 w-4/5 animate-pulse rounded bg-slate-200" />
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+              <div className="space-y-2">
+                {faqs.map((faq) => (
+                  <button
+                    key={faq.id}
+                    type="button"
+                    onClick={() => void handleSend(faq.question)}
+                    className="w-full text-left p-3 rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] hover:border-[#C8E6C9] hover:bg-[#E8F5E9]/50 text-[#1F2937] text-[13px] font-medium flex items-center gap-2.5 transition"
+                  >
+                    <span className="text-[#2E7D32]">💬</span>
+                    <span className="truncate">{faq.question}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              {sidebarTab === 'profile' && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 rounded-[12px] border border-[#c8e6c9] bg-[#e8f5e9]/60 p-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#2e7d32] text-white shadow-sm">
-                      <CircleUserRound size={18} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="line-clamp-1 text-[13px] font-extrabold text-[#1f2937]">
-                        {profile?.displayName ?? 'Đang nạp...'}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-[#6b7280]">
-                        {profile?.profileType ?? '...'}
-                      </div>
-                      <div className="mt-1">
-                        <StatusBadge
-                          status={sideContentForRole.badgeRole}
-                          label={profile?.role ?? appRole}
-                          size="sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-[10px] border border-[#e5e7eb] bg-slate-50 p-2.5">
-                      <div className="flex items-center gap-1 font-bold text-[#2e7d32]">
-                        <Target size={12} /> Mục tiêu
-                      </div>
-                      <div className="mt-1 leading-5 text-[#1f2937]">
-                        {profile?.target ?? '...'}
-                      </div>
-                    </div>
-                    <div className="rounded-[10px] border border-[#e5e7eb] bg-slate-50 p-2.5">
-                      <div className="flex items-center gap-1 font-bold text-[#2e7d32]">
-                        <Sparkles size={12} /> BMI
-                      </div>
-                      <div className="mt-1 leading-5 text-[#1f2937]">
-                        {profile?.bmiRange ?? '...'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {appRole === 'Guest' ? (
-                    <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-3">
-                      <div className="flex items-start gap-2">
-                        <Lock size={14} className="mt-0.5 shrink-0 text-amber-700" />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[13px] font-extrabold text-amber-800">
-                            Tài khoản khách · Hạn chế {guestState.limit} lượt hỏi
-                          </div>
-                          <p className="mt-1 text-xs leading-5 text-amber-900/80">
-                            Còn {Math.max(guestState.questionsRemaining, 0)} / {guestState.limit} lượt.
-                            Đăng nhập để lưu lịch sử, nhận gợi ý theo hồ sơ và hỏi không giới hạn.
-                          </p>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="primary"
-                              leftIcon={<LogIn size={12} />}
-                              onClick={() => setShowLoginModal(true)}
-                            >
-                              Đăng nhập / Đăng ký
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => onNavigate?.('/food-scan')}
-                            >
-                              Thử quét nhãn sản phẩm
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      fullWidth
-                      onClick={() => onNavigate?.('/pantry')}
-                    >
-                      Quản lý Tủ bếp AI
-                    </Button>
-                  )}
+            {/* Card 4: Lịch sử gần đây */}
+            <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-xs">
+              <div className="mb-3 flex items-center justify-between text-[15px] font-bold text-[#1F2937]">
+                <div className="flex items-center gap-2">
+                  <HistoryIcon size={17} className="text-[#2E7D32]" />
+                  <span>Lịch sử gần đây</span>
                 </div>
-              )}
+                <span className="text-[11px] font-normal text-[#6B7280]">3 hội thoại</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {historyItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => void handleSend(item.title)}
+                    className="w-full text-left p-2.5 rounded-[10px] hover:bg-[#F9FAFB] transition group"
+                  >
+                    <div className="text-[13px] font-bold text-[#1F2937] group-hover:text-[#2E7D32] line-clamp-1">
+                      {item.title}
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-[#6B7280] mt-1">
+                      <span>{item.messages} tin nhắn</span>
+                      <span>{item.dateLabel}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </aside>
         </div>
       </div>
 
-      {/* ===== GUEST LOCKED MODAL ===== */}
+      {/* ============= MODAL ĐĂNG NHẬP (KHI HẾT LƯỢT GUEST) ============= */}
       <Modal
         isOpen={showLoginModal}
-        onClose={() => {
-          if (isLoggedIn) setShowLoginModal(false)
-          // Guest luôn cho phép đóng bằng Esc/X nhưng ô input vẫn lock:
-          if (!isLoggedIn) setShowLoginModal(false)
-        }}
+        onClose={() => setShowLoginModal(false)}
         maxWidth="md"
         title={
           <span className="flex items-center gap-2">
-            <Lock size={18} className="text-[#2e7d32]" />
+            <Lock size={18} className="text-[#2E7D32]" />
             Đăng nhập để tiếp tục hỏi Trợ lý AI
           </span>
         }
-        description="Bạn đã dùng hết 3 lượt hỏi cho vai trò khách. Đăng nhập tài khoản Vegetarian Support để hỏi không giới hạn, lưu lịch sử hội thoại và gợi ý theo hồ sơ dinh dưỡng của bạn."
+        description="Bạn đã dùng hết 3 lượt hỏi cho vai trò khách. Đăng nhập tài khoản Vegetarian Support để hỏi không giới hạn, lưu lịch sử hội thoại và nhận gợi ý theo hồ sơ dinh dưỡng của bạn."
         footer={
           <>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowLoginModal(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setShowLoginModal(false)}>
               Để sau
             </Button>
             <Button
               type="button"
               variant="primary"
               leftIcon={<LogIn size={14} />}
-              onClick={handleLoginFromModal}
+              onClick={() => {
+                setShowLoginModal(false)
+                onNavigate?.('/login')
+              }}
+              className="!bg-[#2E7D32] hover:!bg-[#1B5E20] !text-white"
             >
               Đăng nhập / Đăng ký ngay
             </Button>
           </>
         }
       >
-        <div className="space-y-4 text-sm">
-          <ul className="space-y-2">
-            <li className="flex items-start gap-2">
-              <Leaf size={16} className="mt-0.5 shrink-0 text-[#2e7d32]" />
-              <span>
-                <strong>Không giới hạn</strong> lượt hỏi AI dinh dưỡng, lưu lịch sử hội thoại qua các
-                ngày.
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Sparkles size={16} className="mt-0.5 shrink-0 text-[#2e7d32]" />
-              <span>
-                <strong>Gợi ý món ăn theo BMI &amp; mục tiêu calo</strong> thực tế của hồ sơ bạn đã
-                khai báo.
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <HistoryIcon size={16} className="mt-0.5 shrink-0 text-[#2e7d32]" />
-              <span>
-                Đồng bộ giữa <strong>Tủ bếp AI, Quét thực phẩm &amp; Thực đơn 7 ngày</strong> trong cùng
-                1 tài khoản.
-              </span>
-            </li>
-          </ul>
-          <div className="rounded-[12px] border border-[#c8e6c9] bg-[#e8f5e9]/60 p-3 text-xs leading-5 text-[#1f2937]">
-            <strong>Mẹo nhanh:</strong> Nếu bạn chưa có tài khoản, hãy chọn Đăng ký với email — mất 15
-            giây là xong. Sau đó quay lại đây để đặt các câu hỏi dài hơn!
+        <div className="space-y-3 text-[13px] text-[#374151]">
+          <div className="flex items-center gap-2">
+            <Sparkles size={15} className="text-[#2E7D32]" />
+            <span>Hỏi đáp không giới hạn với Trợ lý dinh dưỡng AI.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <UserIcon size={15} className="text-[#2E7D32]" />
+            <span>Cá nhân hóa thực đơn theo chỉ số BMI, sở thích và dị ứng.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <HistoryIcon size={15} className="text-[#2E7D32]" />
+            <span>Lưu lại toàn bộ lịch sử tư vấn và kế hoạch dinh dưỡng.</span>
           </div>
         </div>
       </Modal>
