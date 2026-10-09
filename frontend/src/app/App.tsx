@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from '../features/auth'
-import { RouterRenderer, type RouterContext } from './router/Router'
-import './App.css'
+import { LoginPage } from '../features/auth/pages/LoginPage'
+import { RegisterPage } from '../features/auth/pages/RegisterPage'
+import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage'
+import { ProfilePage } from '../features/profile'
+import MembersPage from '../features/admin/members/pages/MembersPage'
+import { PublicLayout } from './layouts/PublicLayout'
+import RecipeList from '../features/recipes/pages/RecipeList'
+import RecipeDetail from '../features/recipes/pages/RecipeDetail'
+import AiChatShell from '../features/ai-chat/AiChatShell'
+import FoodScanPage from '../features/food-scan/pages/FoodScanPage'
+import { RestaurantListPage } from '../features/restaurants'
+import PantryPage from '../features/pantry/pages/PantryPage'
+import VideoList from '../features/videos/pages/VideoList'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -11,37 +22,132 @@ const getInitialPath = (): string => {
       return window.location.pathname
     }
   }
-  return '/'
+  return '/auth/login'
 }
 
 const AppContent: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<string>(getInitialPath)
   const { user, logout } = useAuth()
 
+  // Sync route with URL hash so user can navigate directly
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#/, '')
-      const next = hash || '/'
-      if (next !== currentPath) {
-        setCurrentPath(next)
+      if (hash && hash !== currentPath) {
+        setCurrentPath(hash)
       }
     }
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [currentPath])
 
-  const onNavigate = (path: string) => {
+  const handleNavigate = (path: string) => {
     setCurrentPath(path)
     if (typeof window !== 'undefined') {
       window.location.hash = path
     }
   }
 
-  const ctx: RouterContext = { currentPath, onNavigate }
+  const renderCurrentView = () => {
+    const isRecipeList = currentPath === '/recipes' || currentPath === 'recipes'
+    const recipeMatch = currentPath.match(/^\/recipes\/([^/]+)\/?$/)
+    let recipeId: string | null = null
+    if (recipeMatch) {
+      try {
+        recipeId = decodeURIComponent(recipeMatch[1])
+      } catch {
+        recipeId = ''
+      }
+    }
+    const isRecipeDetail = recipeId !== null
+    const isAiChat = currentPath === '/ai-chat' || currentPath === 'aichat'
+    const isFoodScan =
+      currentPath === '/food-scan' ||
+      currentPath === 'foodscan' ||
+      currentPath === 'food-scan'
+    const isRestaurants =
+      currentPath === '/restaurants' ||
+      currentPath === 'restaurants' ||
+      currentPath === 'nha-hang-chay'
+    const isPantry =
+      currentPath === '/pantry' ||
+      currentPath === 'pantry' ||
+      currentPath === 'tu-bep' ||
+      currentPath === 'tu-bep-ai'
+    const isVideoList =
+      currentPath === '/videos' ||
+      currentPath === '/video' ||
+      currentPath === 'videos' ||
+      currentPath === 'video' ||
+      currentPath.match(/^\/videos\/[^/]+\/?$/)
+    const isArticles =
+      currentPath === '/articles' ||
+      currentPath === 'articles'
+
+    if (isRecipeList || isRecipeDetail || isAiChat || isFoodScan || isRestaurants || isPantry || isVideoList || isArticles) {
+      let activeNav = 'recipes'
+      if (isAiChat) activeNav = 'ai-chat'
+      else if (isFoodScan) activeNav = 'food-scan'
+      else if (isRestaurants) activeNav = 'restaurants'
+      else if (isPantry) activeNav = 'pantry'
+      else if (isVideoList) activeNav = 'videos'
+      else if (isArticles) activeNav = 'articles'
+      return (
+        <PublicLayout
+          activeNav={activeNav}
+          onNavigate={handleNavigate}
+          isLoggedIn={Boolean(user)}
+          userName={user?.fullName}
+          onLogout={() => { void logout() }}
+        >
+          {isAiChat ? (
+            <AiChatShell />
+          ) : isFoodScan ? (
+            <FoodScanPage onNavigate={handleNavigate} />
+          ) : isPantry ? (
+            <PantryPage onNavigate={handleNavigate} />
+          ) : isVideoList ? (
+            <VideoList onNavigate={handleNavigate} />
+          ) : isRestaurants ? (
+            <RestaurantListPage onNavigate={handleNavigate} />
+          ) : recipeId !== null ? (
+            <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={handleNavigate} />
+          ) : <RecipeList onNavigate={handleNavigate} />}
+        </PublicLayout>
+      )
+    }
+
+    // Auth pages
+    if (currentPath === '/auth/login' || (!user && currentPath === '/')) {
+      return <LoginPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath === '/auth/register') {
+      return <RegisterPage onNavigate={handleNavigate} />
+    }
+
+    if (currentPath === '/auth/forgot-password') {
+      return <ForgotPasswordPage onNavigate={handleNavigate} />
+    }
+
+    // Admin section
+    if (currentPath.startsWith('/admin')) {
+      const isDashboard = currentPath === '/admin/dashboard'
+      return (
+        <MembersPage
+          onNavigate={handleNavigate}
+          initialView={isDashboard ? 'dashboard' : 'members'}
+        />
+      )
+    }
+
+    // User Section (e.g., /profile)
+    return <ProfilePage onNavigate={handleNavigate} />
+  }
 
   return (
     <div className="min-h-screen">
-      <RouterRenderer {...ctx} user={user} logout={logout} />
+      {renderCurrentView()}
     </div>
   )
 }
