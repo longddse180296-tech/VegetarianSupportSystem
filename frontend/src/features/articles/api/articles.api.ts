@@ -848,7 +848,9 @@ export async function createUserArticle(data: ArticleFormData): Promise<UserArti
     },
     viewsCount: 0,
     likesCount: 0,
-    captionHeroImage: 'Ảnh bài viết do tác giả chia sẻ.',
+    captionHeroImage:
+      data.captionHeroImage ||
+      'Bữa ăn chay chuẩn dinh dưỡng với các loại rau củ tươi, đậu hạt và ngũ cốc nguyên cám.',
     sections: parseContentToSections(data.content),
     comments: [],
     relatedArticles: MOCK_ARTICLES.slice(0, 3),
@@ -925,6 +927,9 @@ export async function updateUserArticle(
     if (data.thumbnailUrl) {
       MOCK_ARTICLE_DETAILS[id].thumbnailUrl = data.thumbnailUrl
     }
+    if (data.captionHeroImage !== undefined) {
+      MOCK_ARTICLE_DETAILS[id].captionHeroImage = data.captionHeroImage
+    }
   } else {
     MOCK_ARTICLE_DETAILS[id] = {
       id,
@@ -934,6 +939,9 @@ export async function updateUserArticle(
       thumbnailUrl:
         data.thumbnailUrl ||
         'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+      captionHeroImage:
+        data.captionHeroImage ||
+        'Bữa ăn chay chuẩn dinh dưỡng với các loại rau củ tươi, đậu hạt và ngũ cốc nguyên cám.',
       category: data.category,
       categoryLabel: updated.categoryLabel,
       publishedAt: 'Hôm nay',
@@ -948,7 +956,6 @@ export async function updateUserArticle(
       },
       viewsCount: 0,
       likesCount: 0,
-      captionHeroImage: 'Ảnh bài viết do tác giả chia sẻ.',
       sections: parseContentToSections(data.content),
       comments: [],
       relatedArticles: MOCK_ARTICLES.slice(0, 3),

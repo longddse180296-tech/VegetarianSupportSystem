@@ -34,6 +34,7 @@ const articleSchema = z.object({
     .string()
     .min(20, 'Nội dung bài viết phải có ít nhất 20 ký tự'),
   excerpt: z.string().optional(),
+  captionHeroImage: z.string().optional(),
 })
 
 type ArticleFormValues = z.infer<typeof articleSchema>
@@ -103,6 +104,9 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
       category: 'nutrition',
       content: isEditing ? DEFAULT_CONTENT : '',
       excerpt: '',
+      captionHeroImage: isEditing
+        ? 'Bữa ăn chay chuẩn dinh dưỡng với các loại rau củ tươi, đậu hạt và ngũ cốc nguyên cám.'
+        : '',
     },
   })
 
@@ -121,6 +125,9 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
             item.sections?.map((s) => (s.title ? `## ${s.title}\n${s.content}` : s.content)).join('\n\n') || DEFAULT_CONTENT
           )
           setValue('excerpt', item.excerpt || '')
+          if (item.captionHeroImage) {
+            setValue('captionHeroImage', item.captionHeroImage)
+          }
           if (item.thumbnailUrl) {
             setThumbnailUrl(item.thumbnailUrl)
           }
@@ -138,6 +145,7 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
   const currentTitle = useWatch({ control, name: 'title' }) || ''
   const currentContent = useWatch({ control, name: 'content' }) || ''
   const currentExcerpt = useWatch({ control, name: 'excerpt' }) || ''
+  const currentCaption = useWatch({ control, name: 'captionHeroImage' }) || ''
 
   // Word count & reading time
   const wordCount = currentContent.trim() ? currentContent.trim().split(/\s+/).length : 0
@@ -298,6 +306,7 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
             category: values.category as ArticleCategory,
             content: values.content,
             excerpt: values.excerpt,
+            captionHeroImage: values.captionHeroImage,
             thumbnailUrl,
             status,
           })
@@ -311,6 +320,7 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
             category: values.category as ArticleCategory,
             content: values.content,
             excerpt: values.excerpt,
+            captionHeroImage: values.captionHeroImage,
             thumbnailUrl,
             status,
           })
@@ -624,6 +634,22 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
                   </>
                 ) : (
                   <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200/80 min-h-[300px]">
+                    {thumbnailUrl && (
+                      <div className="mb-6">
+                        <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-2xs">
+                          <img
+                            src={thumbnailUrl}
+                            alt={currentTitle || 'Ảnh bài viết'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {currentCaption && (
+                          <p className="mt-2 text-center text-xs text-slate-500 italic">
+                            {currentCaption}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <RichContentRenderer content={currentContent} />
                   </div>
                 )}
@@ -730,6 +756,17 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
                   >
                     Hoặc nhập link URL ảnh trực tiếp
                   </button>
+                </div>
+
+                {/* Chú thích ảnh (captionHeroImage) */}
+                <div className="pt-3 border-t border-slate-100">
+                  <Input
+                    label="Mô tả / Chú thích ảnh (tùy chọn)"
+                    {...register('captionHeroImage')}
+                    placeholder="Ví dụ: Bữa ăn chay chuẩn dinh dưỡng với các loại rau củ tươi..."
+                    helperText="Hiển thị in nghiêng ở giữa ngay dưới ảnh bìa bài viết"
+                    fullWidth
+                  />
                 </div>
               </div>
 
