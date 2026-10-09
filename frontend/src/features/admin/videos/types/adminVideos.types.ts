@@ -1,4 +1,4 @@
-export type VideoStatus = 'published' | 'hidden'
+export type VideoStatus = 'published' | 'pending' | 'hidden'
 
 export interface AdminVideoItem {
   id: string
@@ -16,17 +16,19 @@ export interface AdminVideoItem {
   status: VideoStatus
   statusLabel: string
   description?: string
+  rejectReason?: string
 }
 
 export interface AdminVideoStats {
   totalCount: number
   publishedCount: number
+  pendingCount: number
   hiddenCount: number
 }
 
 export interface AdminVideoFilter {
   keyword?: string
-  status?: 'all' | 'published' | 'hidden'
+  status?: 'all' | 'published' | 'pending' | 'hidden'
   category?: string
   sortBy?: 'newest' | 'duration' | 'title'
   page?: number

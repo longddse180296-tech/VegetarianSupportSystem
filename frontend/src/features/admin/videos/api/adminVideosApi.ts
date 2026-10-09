@@ -8,114 +8,99 @@ import type {
 let MOCK_ADMIN_VIDEOS: AdminVideoItem[] = [
   {
     id: 'vid-1',
-    title: 'Cách làm Đậu hũ sốt nấm thơm ngon đậm vị',
+    title: 'Đậu hũ sốt nấm hương đậm đà thơm ngọt đưa cơm',
     videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=60',
-    resolution: '1080p Full HD',
-    authorName: 'Nguyễn Minh Anh',
-    authorInitials: 'NA',
-    authorAvatarBg: 'bg-emerald-100 text-emerald-800',
-    category: 'main-dish',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+    resolution: '1080p FHD',
+    authorName: 'Trần Gia Huy',
+    authorInitials: 'GH',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
+    category: 'main',
     categoryLabel: 'Món chính',
     publishedAt: '12/10/2026',
     duration: '08:45',
     status: 'published',
     statusLabel: 'Đang hiển thị',
-    description: 'Hướng dẫn cách làm đậu hũ non sốt nấm đùi gà và nấm đông cô sốt tiêu đen đậm đà.',
+    description: 'Hướng dẫn cách ướp đậu hũ chiên vàng giòn và làm nước sốt nấm hương sánh quyện.',
   },
   {
     id: 'vid-2',
-    title: 'Salad bơ rong nho sốt mè rang thanh mát',
+    title: 'Gỏi cuốn nấm ngũ sắc sốt tương béo ngậy thanh mát',
     videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&auto=format&fit=crop&q=60',
-    resolution: '1080p Full HD',
-    authorName: 'Lê Thu Hà',
-    authorInitials: 'LH',
-    authorAvatarBg: 'bg-teal-100 text-teal-800',
-    category: 'salad',
-    categoryLabel: 'Salad',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80',
+    resolution: '4K UltraHD',
+    authorName: 'Nguyễn Minh Anh',
+    authorInitials: 'MA',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
+    category: 'appetizer',
+    categoryLabel: 'Món khai vị',
     publishedAt: '05/10/2026',
     duration: '05:20',
     status: 'published',
     statusLabel: 'Đang hiển thị',
-    description: 'Món salad giải nhiệt kết hợp rong nho tươi, bơ sáp và nước sốt mè rang tự pha.',
+    description: 'Món gỏi cuốn thanh lọc cơ thể với bún gạo lứt, dưa leo, cà rốt và nấm bào ngư xào.',
   },
   {
     id: 'vid-3',
-    title: 'Nấu canh chua chay thanh đạm chuẩn vị miền Nam',
+    title: 'Nấu canh rong biển hạt sen giải nhiệt mùa hè thanh lọc cơ thể',
     videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&auto=format&fit=crop&q=60',
-    resolution: '1080p Full HD',
-    authorName: 'Trần Gia Huy',
-    authorInitials: 'TH',
-    authorAvatarBg: 'bg-emerald-100 text-emerald-800',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=400&q=80',
+    resolution: '1080p FHD',
+    authorName: 'Phạm Quốc Bảo',
+    authorInitials: 'PB',
+    authorAvatarBg: 'bg-amber-100 text-amber-800',
     category: 'soup',
-    categoryLabel: 'Món nước',
-    publishedAt: '28/09/2026',
-    duration: '12:10',
-    status: 'hidden',
-    statusLabel: 'Đã ẩn / gỡ',
-    description: 'Bí quyết nước dùng canh chua trong veo, ngọt thanh từ bắp ngọt và thơm chín.',
+    categoryLabel: 'Món canh & súp',
+    publishedAt: 'Hôm nay',
+    duration: '10:15',
+    status: 'pending',
+    statusLabel: 'Chờ kiểm duyệt',
+    description: 'Cách khử tanh rong biển và hầm hạt sen bùi béo kết hợp nấm rơm.',
   },
   {
     id: 'vid-4',
-    title: 'Sữa hạt điều mè đen giàu dưỡng chất tại nhà',
+    title: 'Cách làm sốt tương mè rang đa năng tại nhà cho món chay',
     videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&auto=format&fit=crop&q=60',
-    resolution: '1080p Full HD',
-    authorName: 'Phạm Quốc Bảo',
-    authorInitials: 'PB',
-    authorAvatarBg: 'bg-sky-100 text-sky-800',
-    category: 'drinks',
-    categoryLabel: 'Đồ uống',
-    publishedAt: '20/09/2026',
-    duration: '06:15',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?auto=format&fit=crop&w=400&q=80',
+    resolution: '720p HD',
+    authorName: 'Lê Thu Hà',
+    authorInitials: 'TH',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
+    category: 'cooking-tips',
+    categoryLabel: 'Mẹo nấu ăn',
+    publishedAt: '26/09/2026',
+    duration: '04:35',
     status: 'published',
     statusLabel: 'Đang hiển thị',
-    description: 'Cách làm sữa hạt thơm mịn không cần lọc bã, bổ sung canxi và khoáng chất cần thiết.',
+    description: 'Công thức nước chấm mè rang sánh mịn, thơm bùi chấm rau luộc hoặc gỏi cuốn.',
   },
   {
     id: 'vid-5',
-    title: 'Bí quyết chiên chả giò chay giòn rụm không ngấy',
+    title: 'Bí quyết nấu nước dùng phở bò chay từ rau củ quả ngọt tự nhiên',
     videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&auto=format&fit=crop&q=60',
-    resolution: '1080p Full HD',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&w=400&q=80',
+    resolution: '1080p FHD',
     authorName: 'Bùi Anh Tuấn',
     authorInitials: 'BT',
-    authorAvatarBg: 'bg-emerald-100 text-emerald-800',
-    category: 'cooking-tips',
-    categoryLabel: 'Mẹo nấu ăn',
+    authorAvatarBg: 'bg-rose-100 text-rose-800',
+    category: 'soup',
+    categoryLabel: 'Món canh & súp',
     publishedAt: '15/09/2026',
-    duration: '04:38',
-    status: 'published',
-    statusLabel: 'Đang hiển thị',
-    description: 'Mẹo cuốn bánh tráng không bị rách và kỹ thuật giữ độ giòn lâu đến 4 giờ.',
-  },
-  {
-    id: 'vid-6',
-    title: 'Smoothie cải kale táo xanh thanh lọc cơ thể',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=400&auto=format&fit=crop&q=60',
-    resolution: '1080p Full HD',
-    authorName: 'Đặng Phương Thảo',
-    authorInitials: 'PT',
-    authorAvatarBg: 'bg-emerald-100 text-emerald-800',
-    category: 'drinks',
-    categoryLabel: 'Đồ uống',
-    publishedAt: '08/09/2026',
-    duration: '07:12',
-    status: 'published',
-    statusLabel: 'Đang hiển thị',
-    description: 'Công thức sinh tố xanh dễ uống, không bị ngái mùi cải xoăn, hỗ trợ đào thải độc tố.',
+    duration: '12:40',
+    status: 'hidden',
+    statusLabel: 'Đã tạm ẩn',
+    description: 'Hầm củ cải, lê, bắp ngọt và hồi quế để tạo vị ngọt thanh không cần mì chính.',
   },
 ]
 
 export async function getAdminVideoStats(): Promise<AdminVideoStats> {
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   return {
-    totalCount: 35,
-    publishedCount: 31,
-    hiddenCount: 4,
+    totalCount: MOCK_ADMIN_VIDEOS.length,
+    publishedCount: MOCK_ADMIN_VIDEOS.filter((v) => v.status === 'published').length,
+    pendingCount: MOCK_ADMIN_VIDEOS.filter((v) => v.status === 'pending').length,
+    hiddenCount: MOCK_ADMIN_VIDEOS.filter((v) => v.status === 'hidden').length,
   }
 }
 
@@ -126,7 +111,8 @@ export async function getAdminVideos(filter: AdminVideoFilter = {}): Promise<{
   pageSize: number
   totalPages: number
 }> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
 
   let list = [...MOCK_ADMIN_VIDEOS]
 
@@ -150,8 +136,8 @@ export async function getAdminVideos(filter: AdminVideoFilter = {}): Promise<{
 
   const page = filter.page || 1
   const pageSize = filter.pageSize || 6
-  const total = 35 // match Figma 35 videos count
-  const totalPages = Math.max(6, Math.ceil(total / pageSize))
+  const total = list.length
+  const totalPages = Math.ceil(total / pageSize) || 1
   const startIndex = (page - 1) * pageSize
   const items = list.slice(startIndex, startIndex + pageSize)
 
@@ -164,50 +150,80 @@ export async function getAdminVideos(filter: AdminVideoFilter = {}): Promise<{
   }
 }
 
+export async function approveVideo(id: string): Promise<AdminVideoItem> {
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
+  const target = MOCK_ADMIN_VIDEOS.find((v) => v.id === id)
+  if (!target) throw new Error('Không tìm thấy video.')
+
+  target.status = 'published'
+  target.statusLabel = 'Đang hiển thị'
+  return { ...target }
+}
+
+export async function rejectVideo(id: string, reason: string): Promise<AdminVideoItem> {
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
+  const target = MOCK_ADMIN_VIDEOS.find((v) => v.id === id)
+  if (!target) throw new Error('Không tìm thấy video.')
+
+  target.status = 'hidden'
+  target.statusLabel = 'Bị từ chối'
+  target.rejectReason = reason
+  return { ...target }
+}
+
 export async function createAdminVideo(data: VideoFormData): Promise<AdminVideoItem> {
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   const categoryLabels: Record<string, string> = {
-    'main-dish': 'Món chính',
-    salad: 'Salad',
-    soup: 'Món nước',
-    drinks: 'Đồ uống',
+    main: 'Món chính',
+    appetizer: 'Món khai vị',
+    soup: 'Món canh & súp',
+    dessert: 'Món tráng miệng',
     'cooking-tips': 'Mẹo nấu ăn',
   }
 
-  const newVideo: AdminVideoItem = {
+  const newVid: AdminVideoItem = {
     id: `vid-${Date.now()}`,
     title: data.title,
     videoUrl: data.videoUrl,
-    thumbnailUrl:
-      data.thumbnailUrl ||
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&auto=format&fit=crop&q=60',
-    resolution: data.resolution || '1080p Full HD',
+    thumbnailUrl: data.thumbnailUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+    resolution: data.resolution || '1080p FHD',
     authorName: 'Quản trị viên Admin',
     authorInitials: 'AD',
-    authorAvatarBg: 'bg-[#E0E7FF] text-[#4338CA]',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
     category: data.category,
-    categoryLabel: categoryLabels[data.category] || 'Món chính',
+    categoryLabel: categoryLabels[data.category] || 'Món chay',
     publishedAt: 'Hôm nay',
-    duration: data.duration || '05:00',
+    duration: data.duration || '08:00',
     status: data.isPublished ? 'published' : 'hidden',
-    statusLabel: data.isPublished ? 'Đang hiển thị' : 'Đã ẩn / gỡ',
+    statusLabel: data.isPublished ? 'Đang hiển thị' : 'Đã tạm ẩn',
     description: data.description,
   }
 
-  MOCK_ADMIN_VIDEOS = [newVideo, ...MOCK_ADMIN_VIDEOS]
-  return newVideo
+  MOCK_ADMIN_VIDEOS = [newVid, ...MOCK_ADMIN_VIDEOS]
+  return newVid
 }
 
-export async function updateAdminVideo(id: string, data: VideoFormData): Promise<AdminVideoItem> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+export async function updateAdminVideo(
+  id: string,
+  data: VideoFormData
+): Promise<AdminVideoItem> {
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   const idx = MOCK_ADMIN_VIDEOS.findIndex((v) => v.id === id)
   if (idx === -1) throw new Error('Không tìm thấy video.')
 
   const categoryLabels: Record<string, string> = {
-    'main-dish': 'Món chính',
-    salad: 'Salad',
-    soup: 'Món nước',
-    drinks: 'Đồ uống',
+    main: 'Món chính',
+    appetizer: 'Món khai vị',
+    soup: 'Món canh & súp',
+    dessert: 'Món tráng miệng',
     'cooking-tips': 'Mẹo nấu ăn',
   }
 
@@ -222,24 +238,45 @@ export async function updateAdminVideo(id: string, data: VideoFormData): Promise
     resolution: data.resolution,
     description: data.description,
     status: data.isPublished ? 'published' : 'hidden',
-    statusLabel: data.isPublished ? 'Đang hiển thị' : 'Đã ẩn / gỡ',
+    statusLabel: data.isPublished ? 'Đang hiển thị' : 'Đã tạm ẩn',
   }
+
   MOCK_ADMIN_VIDEOS[idx] = updated
   return updated
 }
 
 export async function toggleHideVideo(id: string): Promise<AdminVideoItem> {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   const target = MOCK_ADMIN_VIDEOS.find((v) => v.id === id)
   if (!target) throw new Error('Không tìm thấy video.')
 
-  target.status = target.status === 'published' ? 'hidden' : 'published'
-  target.statusLabel = target.status === 'published' ? 'Đang hiển thị' : 'Đã ẩn / gỡ'
+  if (target.status === 'published') {
+    target.status = 'hidden'
+    target.statusLabel = 'Đã tạm ẩn'
+  } else {
+    target.status = 'published'
+    target.statusLabel = 'Đang hiển thị'
+  }
   return { ...target }
 }
 
 export async function deleteAdminVideo(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   MOCK_ADMIN_VIDEOS = MOCK_ADMIN_VIDEOS.filter((v) => v.id !== id)
   return true
+}
+
+export const adminVideosApi = {
+  list: getAdminVideos,
+  getStats: getAdminVideoStats,
+  approve: approveVideo,
+  reject: rejectVideo,
+  create: createAdminVideo,
+  update: updateAdminVideo,
+  toggleHide: toggleHideVideo,
+  remove: deleteAdminVideo,
 }

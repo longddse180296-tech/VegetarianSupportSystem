@@ -1,4 +1,4 @@
-export type AdminArticleStatus = 'published' | 'hidden'
+export type AdminArticleStatus = 'published' | 'pending' | 'hidden'
 
 export interface AdminArticleItem {
   id: string
@@ -16,11 +16,13 @@ export interface AdminArticleItem {
   voteCount: number
   status: AdminArticleStatus
   statusLabel: string
+  rejectReason?: string
 }
 
 export interface AdminArticleStats {
   totalCount: number
   publishedCount: number
+  pendingCount: number
   hiddenCount: number
   monthlyGrowthText: string
   activeRateText: string
@@ -28,9 +30,15 @@ export interface AdminArticleStats {
 
 export interface AdminArticleFilter {
   keyword?: string
-  status?: 'all' | 'published' | 'hidden'
+  status?: 'all' | 'published' | 'pending' | 'hidden'
   category?: string
   sortBy?: 'newest' | 'reads' | 'votes'
   page?: number
   pageSize?: number
+}
+
+export interface ArticleFormData {
+  title: string
+  category: string
+  content?: string
 }

@@ -6,8 +6,8 @@ import {
   Video,
   MessageSquare,
   Tag,
+  Apple,
   LogOut,
-  ChevronDown,
 } from 'lucide-react'
 import { Logo } from './Logo'
 
@@ -36,12 +36,22 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 }) => {
   const adminNavItems = [
     { id: 'dashboard', label: 'Tổng quan', path: '/admin/dashboard', icon: LayoutDashboard },
-    { id: 'members', label: 'Thành viên', path: '/admin/members', icon: Users },
+    { id: 'categories', label: 'Danh mục', path: '/admin/categories', icon: Tag },
+    { id: 'ingredients', label: 'Nguyên liệu', path: '/admin/ingredients', icon: Apple },
     { id: 'articles', label: 'Bài viết', path: '/admin/articles', icon: FileText },
     { id: 'videos', label: 'Video', path: '/admin/videos', icon: Video },
     { id: 'comments', label: 'Bình luận', path: '/admin/comments', icon: MessageSquare },
-    { id: 'categories', label: 'Danh mục', path: '/admin/categories', icon: Tag },
+    { id: 'members', label: 'Thành viên', path: '/admin/members', icon: Users },
   ]
+
+  React.useEffect(() => {
+    document.documentElement.classList.remove('dark')
+    try {
+      localStorage.removeItem('theme')
+    } catch {
+      // ignore
+    }
+  }, [])
 
   return (
     <div className="min-h-screen flex bg-[#F9FBFA] text-slate-900 font-sans antialiased">
@@ -53,7 +63,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <button
               type="button"
               onClick={() => onNavigate?.('/admin/dashboard')}
-              className="flex items-center gap-3 text-left focus:outline-none"
+              className="flex items-center gap-3 text-left focus:outline-none cursor-pointer"
             >
               <Logo iconSize="sm" showText={false} />
               <div>
@@ -78,9 +88,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                   key={item.id}
                   type="button"
                   onClick={() => onNavigate?.(item.path)}
-                  className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left focus:outline-none ${
+                  className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors text-left focus:outline-none cursor-pointer ${
                     isActive
-                      ? 'bg-[#EAF5EE] text-[#1E6531]'
+                      ? 'bg-[#EAF5EE] text-[#1E6531] font-bold shadow-xs'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
@@ -113,7 +123,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             type="button"
             onClick={onLogout}
             title="Đăng xuất"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -138,18 +148,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               <span>Hệ thống hoạt động ổn định</span>
             </div>
 
-            {/* Admin User Profile Dropdown Button */}
-            <button
-              type="button"
-              onClick={onLogout}
-              className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-xs font-bold text-slate-700 shadow-xs"
+            {/* Admin User Profile Badge (Static display only, no click action, no chevron) */}
+            <div
+              className="inline-flex items-center gap-2 pl-1.5 pr-3.5 py-1 rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-700 shadow-xs select-none"
             >
               <div className="w-7 h-7 rounded-full bg-[#E0E7FF] text-[#4338CA] flex items-center justify-center font-bold text-[10px]">
                 ●
               </div>
               <span>Admin</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
+            </div>
           </div>
         </header>
 
@@ -159,4 +166,5 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     </div>
   )
 }
+
 export default AdminLayout

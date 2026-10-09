@@ -12,7 +12,7 @@ let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
     authorName: 'Nguyễn Minh Anh',
     authorEmail: 'minhanh@gmail.com',
     authorInitials: 'NA',
-    authorAvatarBg: 'bg-emerald-100 text-emerald-800',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
     targetType: 'article',
     targetTitle: 'Top 7 nguồn Protein thực vật hoàn hảo cho người tập',
     targetId: 'art-1',
@@ -27,7 +27,7 @@ let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
     authorName: 'Lê Thu Hà',
     authorEmail: 'thuha.le@outlook.com',
     authorInitials: 'LH',
-    authorAvatarBg: 'bg-teal-100 text-teal-800',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
     targetType: 'video',
     targetTitle: 'Cách làm sữa hạt điều mè đen thơm béo sánh mịn tại nhà',
     targetId: 'vid-1',
@@ -42,7 +42,7 @@ let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
     authorName: 'Trần Gia Huy',
     authorEmail: 'giahuy.tran@gmail.com',
     authorInitials: 'TH',
-    authorAvatarBg: 'bg-emerald-100 text-emerald-800',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
     targetType: 'article',
     targetTitle: 'Cách làm Đậu hũ sốt nấm đậm đà hao cơm',
     targetId: 'art-2',
@@ -57,7 +57,7 @@ let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
     authorName: 'Phạm Quốc Bảo',
     authorEmail: 'baopham@yahoo.com',
     authorInitials: 'PB',
-    authorAvatarBg: 'bg-sky-100 text-sky-800',
+    authorAvatarBg: 'bg-blue-100 text-blue-800',
     targetType: 'video',
     targetTitle: 'Bí quyết chiên chả giò chay giòn rụm 4 tiếng không iu',
     targetId: 'vid-2',
@@ -70,7 +70,7 @@ let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
     content:
       'Quảng cáo thuốc trị bệnh trá hình và có ngôn từ thô tục xúc phạm cộng đồng người ăn chay...',
     isViolation: true,
-    violationReason: 'Vi phạm quy tắc cộng đồng',
+    violationReason: 'Vi phạm quy tắc cộng đồng & Spam quảng cáo',
     authorName: 'Bùi Anh Tuấn',
     authorEmail: 'tuananh88@gmail.com',
     authorInitials: 'BT',
@@ -80,7 +80,7 @@ let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
     targetId: 'art-3',
     createdAt: '28/09/2026 11:30',
     status: 'hidden',
-    statusLabel: 'Đã ẩn / gỡ',
+    statusLabel: 'Đã tạm ẩn / gỡ',
   },
   {
     id: 'cmt-6',
@@ -89,7 +89,7 @@ let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
     authorName: 'Đặng Phương Thảo',
     authorEmail: 'phuongthao@gmail.com',
     authorInitials: 'PT',
-    authorAvatarBg: 'bg-emerald-100 text-emerald-800',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
     targetType: 'article',
     targetTitle: 'Thực đơn thuần chay 7 ngày thanh lọc và phục hồi năng lượng',
     targetId: 'art-4',
@@ -100,11 +100,12 @@ let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
 ]
 
 export async function getAdminCommentStats(): Promise<AdminCommentStats> {
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   return {
-    totalCount: 412,
-    publishedCount: 398,
-    hiddenCount: 14,
+    totalCount: MOCK_ADMIN_COMMENTS.length,
+    publishedCount: MOCK_ADMIN_COMMENTS.filter((c) => c.status === 'published').length,
+    hiddenCount: MOCK_ADMIN_COMMENTS.filter((c) => c.status === 'hidden').length,
   }
 }
 
@@ -115,7 +116,8 @@ export async function getAdminComments(filter: AdminCommentFilter = {}): Promise
   pageSize: number
   totalPages: number
 }> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
 
   let list = [...MOCK_ADMIN_COMMENTS]
 
@@ -140,8 +142,8 @@ export async function getAdminComments(filter: AdminCommentFilter = {}): Promise
 
   const page = filter.page || 1
   const pageSize = filter.pageSize || 6
-  const total = 412 // match Figma total count
-  const totalPages = Math.max(69, Math.ceil(total / pageSize))
+  const total = list.length
+  const totalPages = Math.ceil(total / pageSize) || 1
   const startIndex = (page - 1) * pageSize
   const items = list.slice(startIndex, startIndex + pageSize)
 
@@ -155,17 +157,28 @@ export async function getAdminComments(filter: AdminCommentFilter = {}): Promise
 }
 
 export async function toggleHideComment(id: string): Promise<AdminCommentItem> {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   const target = MOCK_ADMIN_COMMENTS.find((c) => c.id === id)
   if (!target) throw new Error('Không tìm thấy bình luận.')
 
   target.status = target.status === 'published' ? 'hidden' : 'published'
-  target.statusLabel = target.status === 'published' ? 'Đang hiển thị' : 'Đã ẩn / gỡ'
+  target.statusLabel = target.status === 'published' ? 'Đang hiển thị' : 'Đã tạm ẩn / gỡ'
   return { ...target }
 }
 
 export async function deleteAdminComment(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   MOCK_ADMIN_COMMENTS = MOCK_ADMIN_COMMENTS.filter((c) => c.id !== id)
   return true
+}
+
+export const adminCommentsApi = {
+  list: getAdminComments,
+  getStats: getAdminCommentStats,
+  toggleHide: toggleHideComment,
+  remove: deleteAdminComment,
 }

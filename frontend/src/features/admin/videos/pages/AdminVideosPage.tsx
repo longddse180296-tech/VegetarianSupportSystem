@@ -2,20 +2,22 @@ import React, { useEffect, useState } from 'react'
 import {
   Video as VideoIcon,
   Play,
+  Eye,
   EyeOff,
-  RefreshCw,
   Plus,
   Search,
-  MoreVertical,
-  RotateCcw,
   Trash2,
-  TrendingUp,
-  Sparkles,
-  ExternalLink,
+  CheckCircle,
+  XCircle,
+  CheckCircle2,
+  Pencil,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react'
 import { AdminLayout } from '../../../../app/layouts/AdminLayout'
 import { SharedDataTable, type ColumnDef } from '../../../../shared/components/SharedDataTable'
 import { VideoModal } from '../components/VideoModal'
+import { Modal } from '../../../../shared/components/Modal'
 import {
   createAdminVideo,
   deleteAdminVideo,
@@ -23,20 +25,21 @@ import {
   getAdminVideoStats,
   toggleHideVideo,
   updateAdminVideo,
+  approveVideo,
+  rejectVideo,
 } from '../api/adminVideosApi'
 import type {
   AdminVideoItem,
   AdminVideoStats,
   VideoFormData,
+  VideoStatus,
 } from '../types/adminVideos.types'
 
 interface AdminVideosPageProps {
   onNavigate?: (path: string) => void
 }
 
-export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({
-  onNavigate,
-}) => {
+export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState<AdminVideoStats | null>(null)
   const [videos, setVideos] = useState<AdminVideoItem[]>([])
   const [total, setTotal] = useState<number>(0)
@@ -44,10 +47,8 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({
   const [currentPage, setCurrentPage] = useState<number>(1)
 
   // Filters
-  const [statusTab, setStatusTab] = useState<'all' | 'published' | 'hidden'>('all')
+  const [statusTab, setStatusTab] = useState<'all' | VideoStatus>('all')
   const [keyword, setKeyword] = useState<string>('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<'newest' | 'duration' | 'title'>('newest')
 
   // UI state
   const [loading, setLoading] = useState<boolean>(true)
@@ -55,12 +56,17 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // Popover menu state
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-
-  // Modal state
+  // Modal create/edit state
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingVideo, setEditingVideo] = useState<AdminVideoItem | null>(null)
+
+  // Confirmation Modals State (replaces window.confirm)
+  const [approveTarget, setApproveTarget] = useState<AdminVideoItem | null>(null)
+  const [rejectTarget, setRejectTarget] = useState<AdminVideoItem | null>(null)
+  const [rejectReason, setRejectReason] = useState<string>('')
+  const [hideTarget, setHideTarget] = useState<AdminVideoItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminVideoItem | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -72,9 +78,7 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({
           getAdminVideoStats(),
           getAdminVideos({
             status: statusTab,
-            category: categoryFilter,
             keyword,
-            sortBy,
             page: currentPage,
             pageSize: 6,
           }),
@@ -97,14 +101,7 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({
     return () => {
       isMounted = false
     }
-  }, [statusTab, categoryFilter, keyword, sortBy, currentPage, refreshTrigger])
-
-  // Close open popovers when clicking outside
-  useEffect(() => {
-    const handleOutsideClick = () => setOpenMenuId(null)
-    window.addEventListener('click', handleOutsideClick)
-    return () => window.removeEventListener('click', handleOutsideClick)
-  }, [])
+  }, [statusTab, keyword, currentPage, refreshTrigger])
 
   const handleOpenCreateModal = () => {
     setEditingVideo(null)
@@ -114,225 +111,235 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({
   const handleOpenEditModal = (vid: AdminVideoItem) => {
     setEditingVideo(vid)
     setIsModalOpen(true)
-    setOpenMenuId(null)
   }
 
   const handleModalSubmit = async (data: VideoFormData) => {
-    if (editingVideo) {
-      await updateAdminVideo(editingVideo.id, data)
-      setActionSuccessMsg(`Đã cập nhật video "${data.title}" thành công!`)
-    } else {
-      await createAdminVideo(data)
-      setActionSuccessMsg(`Đã thêm video mới "${data.title}" thành công!`)
+    try {
+      if (editingVideo) {
+        await updateAdminVideo(editingVideo.id, data)
+        setActionSuccessMsg(`Đã cập nhật video "${data.title}" thành công!`)
+      } else {
+        await createAdminVideo(data)
+        setActionSuccessMsg(`Đã thêm video mới "${data.title}" thành công!`)
+      }
+      setTimeout(() => setActionSuccessMsg(null), 3000)
+      setRefreshTrigger((prev) => prev + 1)
+    } catch {
+      setError('Lỗi khi lưu video.')
     }
-    setTimeout(() => setActionSuccessMsg(null), 3000)
-    setRefreshTrigger((prev) => prev + 1)
   }
 
-  const handleToggleHide = async (id: string, title: string) => {
+  const handleApprove = async () => {
+    if (!approveTarget) return
     try {
-      setOpenMenuId(null)
-      const res = await toggleHideVideo(id)
+      setIsProcessing(true)
+      await approveVideo(approveTarget.id)
+      setActionSuccessMsg(`Đã phê duyệt video "${approveTarget.title}".`)
+      setTimeout(() => setActionSuccessMsg(null), 3000)
+      setApproveTarget(null)
+      setRefreshTrigger((prev) => prev + 1)
+    } catch {
+      setError('Lỗi khi phê duyệt video.')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectTarget) return
+    try {
+      setIsProcessing(true)
+      await rejectVideo(rejectTarget.id, rejectReason || 'Video chưa đạt tiêu chuẩn hướng dẫn')
+      setActionSuccessMsg(`Đã từ chối video "${rejectTarget.title}".`)
+      setTimeout(() => setActionSuccessMsg(null), 3000)
+      setRejectTarget(null)
+      setRejectReason('')
+      setRefreshTrigger((prev) => prev + 1)
+    } catch {
+      setError('Lỗi khi từ chối video.')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleToggleHide = async () => {
+    if (!hideTarget) return
+    try {
+      setIsProcessing(true)
+      const res = await toggleHideVideo(hideTarget.id)
       setActionSuccessMsg(
-        `Đã ${res.status === 'published' ? 'khôi phục' : 'tạm ẩn'} video "${title}".`
+        `Đã ${res.status === 'published' ? 'khôi phục' : 'tạm ẩn'} video "${hideTarget.title}".`
       )
       setTimeout(() => setActionSuccessMsg(null), 3000)
+      setHideTarget(null)
       setRefreshTrigger((prev) => prev + 1)
     } catch {
       setError('Không thể cập nhật trạng thái video.')
+    } finally {
+      setIsProcessing(false)
     }
   }
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa vĩnh viễn video "${title}"?`)) {
-      return
-    }
+  const handleDelete = async () => {
+    if (!deleteTarget) return
     try {
-      setOpenMenuId(null)
-      await deleteAdminVideo(id)
-      setActionSuccessMsg(`Đã xóa video "${title}" thành công.`)
+      setIsProcessing(true)
+      await deleteAdminVideo(deleteTarget.id)
+      setActionSuccessMsg(`Đã xóa vĩnh viễn video "${deleteTarget.title}".`)
       setTimeout(() => setActionSuccessMsg(null), 3000)
+      setDeleteTarget(null)
       setRefreshTrigger((prev) => prev + 1)
     } catch {
       setError('Không thể xóa video.')
+    } finally {
+      setIsProcessing(false)
     }
   }
 
   const columns: ColumnDef<AdminVideoItem>[] = [
     {
       key: 'title',
-      header: 'VIDEO',
+      header: 'VIDEO & NỘI DUNG',
       render: (item) => (
-        <div className="flex items-center gap-3.5 max-w-sm">
-          {/* Thumbnail preview with play icon */}
-          <div className="w-20 h-13 rounded-2xl bg-slate-900 overflow-hidden relative shrink-0 group border border-slate-200 shadow-xs flex items-center justify-center">
+        <div className="flex items-center gap-3 max-w-sm">
+          <div className="relative w-16 h-10 rounded-[8px] overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
             {item.thumbnailUrl ? (
               <img
                 src={item.thumbnailUrl}
                 alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                <VideoIcon className="w-6 h-6 text-slate-500" />
+              <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
+                <Play className="w-4 h-4" />
               </div>
             )}
-            <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-xs">
-                <Play className="w-3 h-3 fill-slate-900 ml-0.5" />
-              </div>
-            </div>
+            <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[9px] font-mono px-1 rounded">
+              {item.duration}
+            </span>
           </div>
 
-          <div className="min-w-0">
-            <h4
-              onClick={() => handleOpenEditModal(item)}
-              className="font-bold text-gray-900 text-xs line-clamp-2 hover:text-emerald-700 cursor-pointer leading-snug"
-            >
+          <div className="space-y-0.5">
+            <div className="font-bold text-xs text-[#1f2937] leading-snug line-clamp-2">
               {item.title}
-            </h4>
-            <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-1">
-              <span>Độ phân giải: {item.resolution}</span>
+            </div>
+            <div className="text-[11px] text-[#6b7280]">
+              Đầu bếp: <span className="font-medium text-[#1f2937]">{item.authorName}</span> • {item.resolution}
             </div>
           </div>
         </div>
       ),
     },
     {
-      key: 'authorName',
-      header: 'NGƯỜI ĐĂNG',
+      key: 'category',
+      header: 'CHUYÊN MỤC',
       render: (item) => (
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              item.authorAvatarBg || 'bg-emerald-100 text-emerald-800'
-            }`}
-          >
-            {item.authorInitials}
-          </div>
-          <span className="font-semibold text-gray-800 text-xs whitespace-nowrap">
-            {item.authorName}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'categoryLabel',
-      header: 'DANH MỤC',
-      render: (item) => (
-        <span className="px-3 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap">
+        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
           {item.categoryLabel}
         </span>
       ),
     },
     {
       key: 'publishedAt',
-      header: 'NGÀY ĐĂNG',
+      header: 'NGÀY TẢI LÊN',
       render: (item) => (
-        <span className="text-gray-500 text-xs whitespace-nowrap">
-          {item.publishedAt}
-        </span>
-      ),
-    },
-    {
-      key: 'duration',
-      header: 'THỜI LƯỢNG',
-      render: (item) => (
-        <span className="font-semibold text-gray-800 text-xs font-mono whitespace-nowrap">
-          {item.duration}
-        </span>
+        <span className="text-xs text-[#6b7280]">{item.publishedAt}</span>
       ),
     },
     {
       key: 'status',
       header: 'TRẠNG THÁI',
-      render: (item) => (
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${
-            item.status === 'published'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-              : 'bg-rose-50 text-rose-700 border border-rose-100'
-          }`}
-        >
+      render: (item) => {
+        const badgeMap = {
+          published: {
+            bg: 'bg-[#e8f5e9]',
+            color: 'text-[#1b5e20] border-emerald-300',
+            label: 'Đang hiển thị',
+            dot: 'bg-[#2e7d32]',
+          },
+          pending: {
+            bg: 'bg-amber-50',
+            color: 'text-amber-800 border-amber-300',
+            label: 'Chờ kiểm duyệt',
+            dot: 'bg-amber-500',
+          },
+          hidden: {
+            bg: 'bg-slate-100',
+            color: 'text-slate-600 border-slate-200',
+            label: 'Đã tạm ẩn',
+            dot: 'bg-slate-400',
+          },
+        }[item.status]
+
+        return (
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              item.status === 'published' ? 'bg-emerald-500' : 'bg-rose-500'
-            }`}
-          />
-          {item.statusLabel}
-        </span>
-      ),
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeMap.bg} ${badgeMap.color}`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${badgeMap.dot}`} />
+            <span>{badgeMap.label}</span>
+          </span>
+        )
+      },
     },
     {
       key: 'actions',
       header: 'THAO TÁC',
       align: 'right',
       render: (item) => (
-        <div className="flex items-center justify-end relative">
-          <div className="relative">
+        <div className="flex items-center justify-end gap-1.5">
+          {item.status === 'pending' && (
+            <>
+              <button
+                type="button"
+                onClick={() => setApproveTarget(item)}
+                title="Phê duyệt video"
+                className="p-1.5 rounded-[8px] text-[#2e7d32] hover:bg-[#e8f5e9] transition-colors cursor-pointer"
+              >
+                <CheckCircle className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setRejectTarget(item)}
+                title="Từ chối video"
+                className="p-1.5 rounded-[8px] text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          {item.status !== 'pending' && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                setOpenMenuId(openMenuId === item.id ? null : item.id)
-              }}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Thao tác"
+              onClick={() => setHideTarget(item)}
+              title={item.status === 'published' ? 'Tạm ẩn video' : 'Khôi phục hiển thị'}
+              className="p-1.5 rounded-[8px] text-slate-400 hover:text-[#2e7d32] hover:bg-[#e8f5e9] transition-colors cursor-pointer"
             >
-              <MoreVertical className="w-4 h-4" />
+              {item.status === 'published' ? (
+                <EyeOff className="w-3.5 h-3.5" />
+              ) : (
+                <Eye className="w-3.5 h-3.5" />
+              )}
             </button>
+          )}
 
-            {openMenuId === item.id && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 top-full mt-1 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-30 animate-in fade-in zoom-in-95 text-xs font-semibold"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleOpenEditModal(item)}
-                  className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 flex items-center gap-2"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Xem chi tiết video</span>
-                </button>
-                <a
-                  href={item.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 flex items-center gap-2"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Mở xem trên YouTube</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={() => void handleToggleHide(item.id, item.title)}
-                  className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 flex items-center gap-2"
-                >
-                  {item.status === 'published' ? (
-                    <>
-                      <EyeOff className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Ẩn / Gỡ video</span>
-                    </>
-                  ) : (
-                    <>
-                      <RotateCcw className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Khôi phục video</span>
-                    </>
-                  )}
-                </button>
-                <div className="h-px bg-gray-100 my-1" />
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(item.id, item.title)}
-                  className="w-full text-left px-3.5 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Xóa video vĩnh viễn</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => handleOpenEditModal(item)}
+            title="Chỉnh sửa thông tin"
+            className="p-1.5 rounded-[8px] text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDeleteTarget(item)}
+            title="Xóa video"
+            className="p-1.5 rounded-[8px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       ),
     },
@@ -341,242 +348,343 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({
   return (
     <AdminLayout
       activeMenu="videos"
-      pageTitle="Quản lý Video"
-      pageSubtitle="Xem và quản lý các video hướng dẫn nấu ăn được đăng trên hệ thống."
+      pageTitle="Quản lý &amp; Kiểm duyệt Video Ẩm thực"
+      pageSubtitle="Kiểm duyệt các video hướng dẫn nấu món chay, thao tác bếp và chia sẻ công thức trực quan."
       onNavigate={onNavigate}
     >
-      <div className="space-y-6 pb-12">
-        {/* Top Header Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-4 -mt-2">
-          <div className="text-xs text-gray-500 font-medium">
-            Kênh video hướng dẫn nấu chay trực quan
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setRefreshTrigger((prev) => prev + 1)}
-              className="px-3.5 py-2 rounded-2xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs flex items-center gap-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Làm mới</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenCreateModal}
-              className="px-4 py-2 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] text-white text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Thêm video mới</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Feedback Alert */}
+      <div className="space-y-6">
+        {/* Action success alert */}
         {actionSuccessMsg && (
-          <div className="p-3.5 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200 text-xs font-medium flex items-center justify-between animate-in fade-in">
-            <span>✓ {actionSuccessMsg}</span>
-            <button
-              type="button"
-              onClick={() => setActionSuccessMsg(null)}
-              className="text-emerald-600 hover:text-emerald-900 font-bold ml-2 text-xs"
-            >
-              Đóng
-            </button>
+          <div className="p-4 rounded-[12px] bg-[#e8f5e9] border border-emerald-300 text-[#1b5e20] text-xs font-semibold flex items-center gap-2 shadow-2xs">
+            <CheckCircle2 className="w-4 h-4 text-[#2e7d32] shrink-0" />
+            <span>{actionSuccessMsg}</span>
           </div>
         )}
 
-        {/* Stats Row (3 Cards matching Figma Image 2) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: Tổng video trên hệ thống */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center">
-                <VideoIcon className="w-6 h-6" />
+        {/* Error alert */}
+        {error && (
+          <div className="p-4 rounded-[12px] bg-rose-50 border border-rose-300 text-rose-800 text-xs font-semibold flex items-center gap-2 shadow-2xs">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* 4 Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Tổng video</span>
+              <div className="w-8 h-8 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center">
+                <VideoIcon className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-[#EAF5EE] text-[#1E6531]">
-                <TrendingUp className="w-3.5 h-3.5" />
-                <span>+5% tháng này</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.totalCount ?? 35}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Tổng video trên hệ thống
-              </p>
+            <div>
+              <div className="text-2xl font-black text-[#1f2937] tabular-nums tracking-tight">
+                {stats?.totalCount ?? 0}
+              </div>
+              <p className="text-[11px] text-[#6b7280] mt-0.5">Video trong hệ thống</p>
             </div>
           </div>
 
-          {/* Card 2: Video đang hiển thị */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center">
-                <Play className="w-6 h-6 fill-[#1E6531]" />
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Đang hiển thị</span>
+              <div className="w-8 h-8 rounded-[10px] bg-emerald-50 text-[#2e7d32] flex items-center justify-center">
+                <CheckCircle className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EAF5EE] text-[#1E6531] border border-emerald-200/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>88.6% hoạt động</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.publishedCount ?? 31}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Video đang hiển thị
-              </p>
+            <div>
+              <div className="text-2xl font-black text-[#2e7d32] tabular-nums tracking-tight">
+                {stats?.publishedCount ?? 0}
+              </div>
+              <p className="text-[11px] text-[#2e7d32] mt-0.5">Công khai tới người dùng</p>
             </div>
           </div>
 
-          {/* Card 3: Video đã ẩn / gỡ */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                <EyeOff className="w-6 h-6" />
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Chờ kiểm duyệt</span>
+              <div className="w-8 h-8 rounded-[10px] bg-amber-50 text-amber-700 flex items-center justify-center">
+                <Clock className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                <span>Cần kiểm duyệt</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.hiddenCount ?? 4}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Video đã ẩn / gỡ
-              </p>
+            <div>
+              <div className="text-2xl font-black text-amber-700 tabular-nums tracking-tight">
+                {stats?.pendingCount ?? 0}
+              </div>
+              <p className="text-[11px] text-amber-700 mt-0.5">Cần phê duyệt xuất bản</p>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Đã tạm ẩn</span>
+              <div className="w-8 h-8 rounded-[10px] bg-slate-100 text-slate-600 flex items-center justify-center">
+                <EyeOff className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-slate-700 tabular-nums tracking-tight">
+                {stats?.hiddenCount ?? 0}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">Không công khai</p>
             </div>
           </div>
         </div>
 
-        {/* Search, Tabs and Dropdowns Filter Bar */}
-        <div className="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          {/* Left: Search input */}
-          <div className="relative flex-1 min-w-[280px]">
-            <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo tên video hoặc người đăng..."
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value)
+        {/* Filter Bar */}
+        <div className="bg-white rounded-[16px] border border-[#e5e7eb] p-4 shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button
+              type="button"
+              onClick={() => {
+                setStatusTab('all')
                 setCurrentPage(1)
               }}
-              className="w-full pl-11 pr-4 py-2 text-xs bg-transparent rounded-2xl focus:outline-none placeholder:text-gray-400 text-gray-900"
-            />
+              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
+                statusTab === 'all'
+                  ? 'bg-[#2e7d32] text-white shadow-xs'
+                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Tất cả video
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusTab('published')
+                setCurrentPage(1)
+              }}
+              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
+                statusTab === 'published'
+                  ? 'bg-[#2e7d32] text-white shadow-xs'
+                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Đang hiển thị
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusTab('pending')
+                setCurrentPage(1)
+              }}
+              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
+                statusTab === 'pending'
+                  ? 'bg-[#2e7d32] text-white shadow-xs'
+                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Chờ kiểm duyệt ({stats?.pendingCount ?? 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusTab('hidden')
+                setCurrentPage(1)
+              }}
+              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
+                statusTab === 'hidden'
+                  ? 'bg-[#2e7d32] text-white shadow-xs'
+                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Đã tạm ẩn
+            </button>
           </div>
 
-          {/* Right: Tabs & Selects */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Status Tabs matching Figma */}
-            <div className="flex items-center p-1 bg-slate-50 rounded-2xl border border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusTab('all')
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="relative min-w-56">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value)
                   setCurrentPage(1)
                 }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  statusTab === 'all'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Tất cả (35)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusTab('published')
-                  setCurrentPage(1)
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  statusTab === 'published'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Đang hiển thị (31)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusTab('hidden')
-                  setCurrentPage(1)
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  statusTab === 'hidden'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Đã ẩn / gỡ (4)
-              </button>
+                placeholder="Tìm tiêu đề, đầu bếp..."
+                className="w-full pl-9 pr-3 py-2 rounded-[10px] border border-[#e5e7eb] text-xs text-[#1f2937] focus:outline-none focus:border-[#2e7d32]"
+              />
             </div>
 
-            {/* Category Filter */}
-            <select
-              value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="px-3.5 py-2 bg-white rounded-2xl border border-slate-200 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer"
+            <button
+              type="button"
+              onClick={handleOpenCreateModal}
+              className="h-9 px-4 rounded-[10px] bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-bold transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
-              <option value="all">Tất cả danh mục</option>
-              <option value="main-dish">Món chính</option>
-              <option value="salad">Salad</option>
-              <option value="soup">Món nước</option>
-              <option value="drinks">Đồ uống</option>
-              <option value="cooking-tips">Mẹo nấu ăn</option>
-            </select>
-
-            {/* Sort Select */}
-            <select
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value as 'newest' | 'duration' | 'title')
-                setCurrentPage(1)
-              }}
-              className="px-3.5 py-2 bg-white rounded-2xl border border-slate-200 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer"
-            >
-              <option value="newest">Mới nhất</option>
-              <option value="duration">Thời lượng ngắn nhất</option>
-              <option value="title">Theo tên A - Z</option>
-            </select>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tải video mới</span>
+            </button>
           </div>
         </div>
 
-        {/* Data Table Container using SharedDataTable */}
+        {/* Shared Data Table */}
         <SharedDataTable<AdminVideoItem>
-          title="Danh sách video"
-          totalCountBadge={`${total} video`}
-          updatedAtText="Cập nhật lúc 15:30 hôm nay"
+          title="Danh sách Video Nấu ăn &amp; Hướng dẫn"
+          totalCountBadge={total}
+          updatedAtText="Đồng bộ thời gian thực"
           columns={columns}
           data={videos}
           keyExtractor={(item) => item.id}
           isLoading={loading}
-          error={error}
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={total}
           pageSize={6}
-          onPageChange={setCurrentPage}
+          onPageChange={(p) => setCurrentPage(p)}
           emptyMessage="Không tìm thấy video nào phù hợp."
         />
-      </div>
 
-      {/* Video Create / Edit Modal */}
-      <VideoModal
-        isOpen={isModalOpen}
-        videoToEdit={editingVideo}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleModalSubmit}
-      />
+        {/* Video Create / Edit Modal */}
+        <VideoModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          videoToEdit={editingVideo}
+          onSubmit={handleModalSubmit}
+        />
+
+        {/* Modal Confirm Approve */}
+        <Modal
+          isOpen={Boolean(approveTarget)}
+          onClose={() => setApproveTarget(null)}
+          title="Xác nhận Phê duyệt Xuất bản Video"
+          maxWidth="sm"
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-xs text-[#1b5e20] leading-relaxed">
+              Bạn có chắc chắn muốn phê duyệt video <strong>"{approveTarget?.title}"</strong>?
+              Video sẽ được công khai ngay lập tức trên thư viện video nấu ăn.
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setApproveTarget(null)}
+                className="px-4 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] hover:bg-[#f8faf8] cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={handleApprove}
+                className="px-4 py-2 rounded-[10px] bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {isProcessing ? 'Đang duyệt...' : 'Phê duyệt ngay'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Modal Confirm Reject */}
+        <Modal
+          isOpen={Boolean(rejectTarget)}
+          onClose={() => setRejectTarget(null)}
+          title="Từ chối Video"
+          maxWidth="sm"
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-[12px] bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+              Từ chối video <strong>"{rejectTarget?.title}"</strong> và gửi phản hồi cho tác giả.
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#1f2937] block mb-1">
+                Lý do từ chối kiểm duyệt
+              </label>
+              <textarea
+                rows={3}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Nhập lý do cần chỉnh sửa (chất lượng hình ảnh, nguyên liệu không thuần chay...)"
+                className="w-full p-2.5 rounded-[10px] border border-[#e5e7eb] text-xs text-[#1f2937] focus:outline-none focus:border-amber-600 resize-none"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectTarget(null)}
+                className="px-4 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] hover:bg-[#f8faf8] cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={handleReject}
+                className="px-4 py-2 rounded-[10px] bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {isProcessing ? 'Đang xử lý...' : 'Xác nhận từ chối'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Modal Confirm Toggle Hide */}
+        <Modal
+          isOpen={Boolean(hideTarget)}
+          onClose={() => setHideTarget(null)}
+          title={hideTarget?.status === 'published' ? 'Xác nhận Tạm ẩn video' : 'Khôi phục hiển thị'}
+          maxWidth="sm"
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-[12px] bg-slate-50 border border-slate-200 text-xs text-[#1f2937] leading-relaxed">
+              Bạn có chắc chắn muốn {hideTarget?.status === 'published' ? 'tạm ẩn' : 'khôi phục'}{' '}
+              video <strong>"{hideTarget?.title}"</strong>?
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setHideTarget(null)}
+                className="px-4 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] hover:bg-[#f8faf8] cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={handleToggleHide}
+                className="px-4 py-2 rounded-[10px] bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {isProcessing ? 'Đang lưu...' : 'Xác nhận'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Modal Confirm Delete */}
+        <Modal
+          isOpen={Boolean(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+          title="Xác nhận Xóa vĩnh viễn"
+          maxWidth="sm"
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-[12px] bg-rose-50 border border-rose-200 text-xs text-rose-800 leading-relaxed">
+              Bạn có chắc chắn muốn xóa vĩnh viễn video <strong>"{deleteTarget?.title}"</strong>?
+              Hành động này không thể hoàn tác.
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] hover:bg-[#f8faf8] cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {isProcessing ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      </div>
     </AdminLayout>
   )
 }
+
 export default AdminVideosPage
