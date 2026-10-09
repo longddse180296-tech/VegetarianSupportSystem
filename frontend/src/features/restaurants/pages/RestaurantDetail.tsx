@@ -2,17 +2,16 @@ import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
-  BadgeCheck,
   BookOpen,
   Calendar,
   CarFront,
   ChefHat,
   Clock,
   Coffee,
+  Compass,
   ExternalLink,
   Globe,
   Heart,
-  Leaf,
   MapPin,
   Navigation,
   Map as MapIcon,
@@ -21,7 +20,6 @@ import {
   Share2,
   Sparkles,
   Wallet,
-  Wifi,
 } from 'lucide-react'
 import {
   Button,
@@ -277,16 +275,15 @@ export default function RestaurantDetail({
           {/* Gallery (left) */}
           <div className="relative">
             <div
-              className="relative aspect-[4/3] overflow-hidden rounded-[18px] bg-[#EDF5EF] shadow-[0_8px_24px_rgba(31,122,63,0.08)]"
-              style={{ boxShadow: '0 8px 24px rgba(31, 122, 63, 0.08)' }}
+              className="relative aspect-[4/3] overflow-hidden rounded-[16px] bg-[#EDF5EF] shadow-[0_8px_24px_rgba(31,122,63,0.08)]"
             >
               <img
                 src={restaurant.imageUrl}
                 alt={restaurant.name}
                 className="h-full w-full object-cover"
               />
-              <span className="absolute left-3.5 top-3.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-[#CFE8D8] bg-white/96 px-3 py-[5px] text-[11.5px] font-bold text-[#1F7A3F] shadow-sm backdrop-blur">
-                <BadgeCheck size={13} /> Xác minh cộng đồng · 50+ review
+              <span className="absolute left-3.5 top-3.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/95 px-3 py-[5px] text-[11px] font-bold text-[#143A23] shadow-sm backdrop-blur">
+                <span className="text-[#2E7D32]">✓</span> Không gian đã được kiểm duyệt
               </span>
             </div>
             {/* 2 thumbnail dưới */}
@@ -294,13 +291,13 @@ export default function RestaurantDetail({
               {(restaurant.galleryImages && restaurant.galleryImages.length > 0
                 ? restaurant.galleryImages.slice(0, 2)
                 : [
-                    `${restaurant.imageUrl}&w1=thumb1`,
-                    `${restaurant.imageUrl}&w2=thumb2`,
+                    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
+                    'https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=600&q=80',
                   ]
               ).map((src, idx) => (
                 <div
                   key={idx}
-                  className="aspect-[16/10] overflow-hidden rounded-[14px] bg-[#EDF5EF]"
+                  className="aspect-[16/10] overflow-hidden rounded-[16px] bg-[#EDF5EF]"
                 >
                   <img
                     src={src}
@@ -313,116 +310,100 @@ export default function RestaurantDetail({
           </div>
 
           {/* Info block (right) */}
-          <div className="flex flex-col gap-3.5 rounded-[18px] border border-[#E2EDE6] bg-white p-[22px] shadow-[0_8px_24px_rgba(31,122,63,0.04)]">
+          <div className="flex flex-col gap-3.5 rounded-[16px] border border-[#E2EDE6] bg-white p-[22px] shadow-[0_8px_24px_rgba(31,122,63,0.04)]">
             {/* Tag row */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C6E3D2] bg-[#E4F3E9] px-2.5 py-1 text-[11.5px] font-extrabold text-[#1F7A3F]">
-                <Leaf size={12} /> NHÀ HÀNG CHAY · {dietStrong.toUpperCase()}
+              <span className="text-xs font-bold uppercase tracking-wider text-[#55695D]">
+                NHÀ HÀNG CHAY • {dietStrong.toUpperCase()}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F1FAF3] px-2.5 py-1 text-[12px] font-bold text-[#1F7A3F]">
-                <Clock size={11} /> Đang mở cửa · {restaurant.openingHours}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11.5px] font-bold text-[#2E7D32]">
+                <span className="h-2 w-2 rounded-full bg-[#2E7D32]" /> Đang mở cửa • {restaurant.openingHours}
               </span>
             </div>
 
             {/* Tên */}
-            <h1
-              className="m-0 font-extrabold tracking-[-0.3px] text-[#0E2A18]"
-              style={{ fontSize: '30px', lineHeight: '38px' }}
-            >
+            <h1 className="m-0 text-[30px] sm:text-[34px] font-extrabold tracking-tight text-[#0E2A18] leading-[1.2]">
               {restaurant.name}
             </h1>
 
             {/* Distance */}
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#D7EADE] bg-[#F4FAF5] px-3 py-[5px] text-[12.5px] font-bold text-[#1F7A3F]">
-              <Navigation size={12} /> Cách bạn{' '}
-              <strong>{restaurant.distanceKm.toFixed(1)} km</strong> · ⭐{' '}
-              {ratingFormatted} ({restaurant.reviewCount.toLocaleString('vi-VN')})
-            </span>
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#546C5C]">
+              <span className="flex items-center gap-1 text-[#2E7D32]">
+                <Navigation size={13} />
+                Cách bạn {restaurant.distanceKm.toFixed(1)} km
+              </span>
+              <span className="text-slate-300">|</span>
+              <span>{restaurant.district || 'Quận 1'}</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-amber-700 font-bold">⭐ {ratingFormatted}</span>
+            </div>
 
             {/* Contact block */}
-            <div className="flex flex-col gap-2.5 rounded-[14px] border border-[#E6EFE9] bg-[#F7FBF8] p-3.5 text-[13px] font-semibold leading-[1.5] text-[#2F4638]">
-              <div className="inline-flex items-start gap-2.5">
-                <MapPin
-                  size={15}
-                  className="mt-[2px] shrink-0 text-[#1F7A3F]"
-                />
-                <div>
-                  <strong>{restaurant.address}</strong>
-                  <div className="text-[#1F7A3F] font-medium">
-                    {restaurant.district}, {restaurant.city}
-                  </div>
-                </div>
+            <div className="flex flex-col gap-2 rounded-[14px] border border-[#E6EFE9] bg-[#F7FBF8] p-3.5 text-[13px] font-medium leading-relaxed text-[#2F4638]">
+              <div className="flex items-start gap-2.5">
+                <MapPin size={15} className="mt-0.5 shrink-0 text-[#2E7D32]" />
+                <span>
+                  {restaurant.address}, {restaurant.district}, {restaurant.city}
+                </span>
               </div>
-              <div className="inline-flex items-start gap-2.5">
-                <Phone size={15} className="mt-[2px] shrink-0 text-[#1F7A3F]" />
+              <div className="flex items-center gap-2.5">
+                <Phone size={15} className="shrink-0 text-[#2E7D32]" />
                 <span>
                   Số điện thoại:{' '}
                   <a
                     href={`tel:${restaurant.phoneNumber.replace(/\s/g, '')}`}
-                    className="text-[#1F7A3F] hover:underline"
+                    className="font-bold text-[#2E7D32] hover:underline"
                   >
-                    <strong>{restaurant.phoneNumber}</strong>
+                    {restaurant.phoneNumber}
                   </a>
                 </span>
               </div>
-              <div className="inline-flex items-start gap-2.5">
-                <Wallet size={15} className="mt-[2px] shrink-0 text-[#1F7A3F]" />
+              <div className="flex items-center gap-2.5">
+                <Wallet size={15} className="shrink-0 text-[#2E7D32]" />
                 <span>
-                  Khoảng giá:{' '}
-                  <strong className="text-[#1F7A3F]">{priceShort}</strong>
+                  Khoảng giá tham khảo:{' '}
+                  <strong className="text-[#2E7D32]">
+                    {restaurant.priceRange || '100.000đ - 250.000đ / người'}
+                  </strong>
                 </span>
               </div>
             </div>
 
-            {/* Diet / amenities chips */}
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#DFEAE3] bg-white px-2.5 py-[5px] text-[12px] font-semibold text-[#2F4638]">
-                <Sparkles size={12} className="text-[#1F7A3F]" />
-                Thuần chay 100%
+            {/* Amenities badges */}
+            <div className="flex flex-wrap gap-2 text-xs font-semibold text-[#2F4638]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#DFEAE3] bg-white px-3 py-1.5 shadow-2xs">
+                <span className="text-[#2E7D32]">✓</span> Thuần chay 100%
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#DFEAE3] bg-white px-2.5 py-[5px] text-[12px] font-semibold text-[#2F4638]">
-                <Leaf size={12} className="text-[#1F7A3F]" />
-                Món Việt thường vị
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#DFEAE3] bg-white px-3 py-1.5 shadow-2xs">
+                <span className="text-[#2E7D32]">✓</span> Món Việt thanh tự
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#DFEAE3] bg-white px-2.5 py-[5px] text-[12px] font-semibold text-[#2F4638]">
-                <Wifi size={12} className="text-[#1F7A3F]" />
-                Có chỗ để xe
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#DFEAE3] bg-white px-3 py-1.5 shadow-2xs">
+                <span className="text-[#2E7D32]">✓</span> Không gian xanh yên tĩnh
               </span>
-              {restaurant.hasDelivery && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#DFEAE3] bg-white px-2.5 py-[5px] text-[12px] font-semibold text-[#2F4638]">
-                  <CarFront size={12} className="text-[#1F7A3F]" />
-                  Giao ship
-                </span>
-              )}
-              {restaurant.website && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#DFEAE3] bg-white px-2.5 py-[5px] text-[12px] font-semibold text-[#2F4638]">
-                  <Globe size={12} className="text-[#1F7A3F]" />
-                  Website
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#DFEAE3] bg-white px-3 py-1.5 shadow-2xs">
+                <span className="text-[#2E7D32]">✓</span> Có chỗ đỗ ô tô
+              </span>
             </div>
 
             {/* Action buttons */}
-            <div className="mt-1 grid grid-cols-[1.5fr_1fr] gap-2.5">
+            <div className="mt-2 flex items-center gap-3">
               <Button
                 type="button"
                 variant="primary"
-                fullWidth
-                leftIcon={<Navigation size={14} />}
+                leftIcon={<Compass size={15} />}
                 onClick={() =>
-                  showToast(
-                    `🧭 Mở chỉ đường đến ${restaurant.name} (địa chỉ: ${restaurant.address})`,
-                  )
+                  showToast(`🧭 Mở lộ trình chỉ đường đến ${restaurant.name}`)
                 }
+                className="flex-1 !h-[42px] !rounded-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !font-bold text-sm"
               >
                 Chỉ đường
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                fullWidth
-                leftIcon={<MapIcon size={14} />}
-                onClick={() => showToast('🗺 Đã mở bản đồ lớn (demo).')}
+                leftIcon={<MapIcon size={15} />}
+                onClick={() => showToast('🗺 Đang hiển thị vị trí trên bản đồ lớn.')}
+                className="!h-[42px] !rounded-[12px] border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 text-sm px-4"
               >
                 Xem trên bản đồ
               </Button>

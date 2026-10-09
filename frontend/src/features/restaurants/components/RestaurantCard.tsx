@@ -111,25 +111,32 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         )}
 
         {/* ---- Thumbnail (168px, rounded-12) ---- */}
-        <button
-          type="button"
-          onClick={handleCTAClick}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              handleCTAClick()
-            }
-          }}
-          className="relative shrink-0 overflow-hidden rounded-[12px] w-[168px] h-[160px] focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/40"
-          aria-label={`Mở chi tiết nhà hàng ${restaurant.name}`}
-        >
-          <img
-            src={restaurant.imageUrl}
-            alt={restaurant.name}
-            loading="lazy"
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-          />
-        </button>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={handleCTAClick}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleCTAClick()
+              }
+            }}
+            className="relative block overflow-hidden rounded-[14px] w-[168px] h-[160px] focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/40"
+            aria-label={`Mở chi tiết nhà hàng ${restaurant.name}`}
+          >
+            <img
+              src={restaurant.imageUrl}
+              alt={restaurant.name}
+              loading="lazy"
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+            />
+            {/* Rating badge on top-left of image */}
+            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-extrabold text-amber-700 shadow-sm backdrop-blur">
+              <Star size={11} className="fill-amber-400 stroke-amber-400" />
+              {restaurant.rating.toFixed(1)}
+            </span>
+          </button>
+        </div>
 
         {/* ---- Right content ---- */}
         <div className="flex min-w-0 flex-1 flex-col">

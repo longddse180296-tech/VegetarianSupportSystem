@@ -232,6 +232,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
             fullWidth
             leftIcon={<Leaf size={14} />}
             onClick={handleSelect}
+            className="!rounded-[12px] !bg-[#e8f5e9] !text-[#2e7d32] hover:!bg-[#2e7d32] hover:!text-white transition-colors"
           >
             Xem công thức
           </Button>

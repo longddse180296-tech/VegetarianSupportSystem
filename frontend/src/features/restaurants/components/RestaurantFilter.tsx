@@ -1,4 +1,4 @@
-import { Filter, Search, X } from 'lucide-react'
+import { Filter, Search } from 'lucide-react'
 import { Button, Input } from '../../../shared/components'
 import type {
   RestaurantDietType,
@@ -141,29 +141,32 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
           <span className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#3E5146] min-w-[96px]">
             Tiện ích:
           </span>
-          {DIET_PILL_OPTIONS.map((opt) => {
+          {DIET_PILL_OPTIONS.map((opt, idx) => {
             const active = filter.diet === opt.value
             return (
-              <Button
-                type="button"
-                key={opt.value}
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  onChange({
-                    diet: (active ? 'all' : opt.value) as RestaurantDietType,
-                  })
-                }
-                className={`rounded-full !h-[26px] !px-3 !py-[5px] !text-[12px] font-bold !leading-[16px] transition
-                  ${
-                    active
-                      ? '!bg-[#2E7D32] !border-[#2E7D32] !text-white shadow-sm !hover:bg-[#1B5E20]'
-                      : '!bg-[#F0F4F8] border border-[#DDE5EC] !text-[#324253] hover:!border-[#B7D9C1] hover:!bg-[#EAF5EC]'
+              <span key={opt.value} className="inline-flex items-center gap-2">
+                {idx === 2 && <span className="text-slate-300 font-light select-none">|</span>}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    onChange({
+                      diet: (active ? 'all' : opt.value) as RestaurantDietType,
+                    })
                   }
-                `}
-              >
-                {opt.label}
-              </Button>
+                  className={`rounded-full !h-[28px] !px-3 !py-[5px] !text-[12px] font-semibold !leading-[16px] transition
+                    ${
+                      active
+                        ? '!bg-[#2E7D32] !border-[#2E7D32] !text-white shadow-sm !hover:bg-[#1B5E20]'
+                        : '!bg-[#F0F4F8] border border-[#DDE5EC] !text-[#324253] hover:!border-[#B7D9C1] hover:!bg-[#EAF5EC]'
+                    }
+                  `}
+                >
+                  {active && <span className="mr-1">✓</span>}
+                  {opt.label}
+                </Button>
+              </span>
             )
           })}
         </div>
@@ -172,17 +175,16 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11px] font-extrabold text-[#2E7D32]">
             <Filter size={11} />
-            {isLoading ? 'Đang tải...' : `${totalCount} quán ăn`}
+            {isLoading ? 'Đang tải...' : `${totalCount} địa điểm`}
           </span>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={onReset}
-            leftIcon={<X size={12} />}
-            className="!rounded-full !text-[#6B7280] hover:!bg-[#F3F4F6] hover:!text-[#1F2937]"
+            className="!rounded-full !text-[#6B7280] hover:!bg-[#F3F4F6] hover:!text-[#1F2937] text-xs font-semibold"
           >
-            Xóa bộ lọc
+            <span className="mr-1">↺</span> Xóa bộ lọc
           </Button>
         </div>
       </div>

@@ -202,7 +202,7 @@ export default function VideoList({ onNavigate, isLoggedIn: _isLoggedIn }: Video
   const filteredByFigmaPill = useMemo(() => {
     let list = items
     if (pillKey !== 'all') {
-      const allowKeys = FIGMA_PILL_TO_VIDEO_KEYS[pillKey] ?? []
+      const allowKeys = (FIGMA_PILL_TO_VIDEO_KEYS[pillKey] ?? []) as string[]
       list = list.filter((it) => allowKeys.includes(it.category))
     } else if (filter.category !== 'all') {
       list = list.filter((it) => it.category === filter.category)
@@ -236,8 +236,12 @@ export default function VideoList({ onNavigate, isLoggedIn: _isLoggedIn }: Video
     return list
   }, [items, pillKey, filter.category, filter.search, filter.sort, searchDraft, durationFilter, FIGMA_PILL_TO_VIDEO_KEYS])
 
+  const [aiIngredients, setAiIngredients] = useState('')
+
   const featuredVideo = useMemo(() => {
-    const published = filteredByFigmaPill.filter((v) => v.moderationStatus === 'published')
+    const published = filteredByFigmaPill.filter(
+      (v) => v.moderationStatus === 'published' || v.moderationStatus === 'approved',
+    )
     return published[0] ?? filteredByFigmaPill[0] ?? null
   }, [filteredByFigmaPill])
 
@@ -319,7 +323,7 @@ export default function VideoList({ onNavigate, isLoggedIn: _isLoggedIn }: Video
               className="font-extrabold tracking-[-0.015em] text-[#121C2A]"
               style={{ fontSize: '36px', lineHeight: '44px' }}
             >
-              Học nấu ăn chay
+              Video nấu ăn chay
             </h1>
             <p
               className="mt-3 max-w-[560px] font-normal text-[#6B7280]"
@@ -408,9 +412,8 @@ export default function VideoList({ onNavigate, isLoggedIn: _isLoggedIn }: Video
                     key={c.key}
                     type="button"
                     variant="ghost"
-                    size="sm"
                     onClick={() => handlePickPill(c.key as FigmaPillKey)}
-                    className={`rounded-full ${
+                    className={`!h-10 rounded-full px-4 text-sm font-medium transition-colors ${
                       active
                         ? '!border !border-[#2E7D32] !bg-[#2E7D32] !text-white shadow-sm hover:!bg-[#1b5e20] hover:!text-white'
                         : '!border !border-[#E5E7EB] !bg-white !text-[#1F2937] hover:!border-[#C8E6C9] hover:!bg-[#E8F5E9]/50 hover:!text-[#2E7D32]'
@@ -421,39 +424,44 @@ export default function VideoList({ onNavigate, isLoggedIn: _isLoggedIn }: Video
                 )
               })}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className="inline-flex items-center gap-1 text-[12px] font-medium text-[#6B7280]"
-              >
-                <FilterIcon size={13} />
-                Thời lượng:
-              </span>
-              <Select
-                id="video-duration-select"
-                value={durationFilter}
-                onChange={(e) => {
-                  setDurationFilter(e.target.value)
-                  setPage(1)
-                }}
-                options={browse?.durationOpts ?? []}
-                fullWidth={false}
-                className="!w-[180px]"
-              />
-              <Select
-                id="video-sort-select"
-                value={filter.sort}
-                onChange={(e) => {
-                  setFilter((prev) => ({
-                    ...prev,
-                    sort: e.target.value as VideoSortOption,
-                  }))
-                }}
-                options={browse?.sortOpts ?? []}
-                fullWidth={false}
-                className="hidden sm:!inline-flex !w-[160px]"
-                label="Sắp xếp"
-                aria-label="Sắp xếp video"
-              />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 text-[13px] font-medium text-[#6B7280]">
+                  <FilterIcon size={14} />
+                  Thời lượng:
+                </span>
+                <Select
+                  id="video-duration-select"
+                  value={durationFilter}
+                  onChange={(e) => {
+                    setDurationFilter(e.target.value)
+                    setPage(1)
+                  }}
+                  options={browse?.durationOpts ?? []}
+                  fullWidth={false}
+                  className="!h-10 !w-[170px] !rounded-[10px] !border-[#E5E7EB] !text-sm !py-0 shadow-none focus:!border-[#2E7D32]"
+                  aria-label="Lọc theo thời lượng"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 text-[13px] font-medium text-[#6B7280]">
+                  Sắp xếp:
+                </span>
+                <Select
+                  id="video-sort-select"
+                  value={filter.sort}
+                  onChange={(e) => {
+                    setFilter((prev) => ({
+                      ...prev,
+                      sort: e.target.value as VideoSortOption,
+                    }))
+                  }}
+                  options={browse?.sortOpts ?? []}
+                  fullWidth={false}
+                  className="!h-10 !w-[160px] !rounded-[10px] !border-[#E5E7EB] !text-sm !py-0 shadow-none focus:!border-[#2E7D32]"
+                  aria-label="Sắp xếp video"
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -822,50 +830,35 @@ export default function VideoList({ onNavigate, isLoggedIn: _isLoggedIn }: Video
                   Xem tất cả
                 </Button>
               </div>
-              <ul className="space-y-3.5">
+              <ul className="space-y-4">
                 {(browse?.topChefs ?? []).map((c) => (
                   <li key={c.id}>
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      fullWidth
                       onClick={() => {
                         setSearchDraft(c.name)
                         setFilter((prev) => ({ ...prev, search: c.name }))
                         setPage(1)
                       }}
-                      className="!rounded-[12px] !border !border-transparent !bg-transparent !px-1 !py-1.5 !text-left hover:!border-[#C8E6C9] hover:!bg-[#E8F5E9]/40"
+                      className="group flex w-full items-center rounded-xl p-2 text-left transition hover:bg-[#E8F5E9]/50 hover:border-[#C8E6C9] border border-transparent cursor-pointer"
                     >
-                      <span className="flex w-full items-center gap-3">
-                        <img
-                          src={AVATAR_URL(c.avatarSeed)}
-                          alt={c.name}
-                          className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-[#C8E6C9]"
-                        />
-                        <span className="min-w-0 flex-1 text-left">
-                          <span
-                            className="block truncate font-semibold text-[#1F2937]"
-                            style={{ fontSize: '14px', lineHeight: '20px' }}
-                          >
-                            {c.name}
-                          </span>
-                          <span
-                            className="block truncate font-medium text-[#6B7280]"
-                            style={{ fontSize: '12px', lineHeight: '16px' }}
-                          >
-                            {c.role}
-                          </span>
-                        </span>
-                        <span className="shrink-0 text-right">
-                          <span
-                            className="block font-bold tabular-nums text-[#2E7D32]"
-                            style={{ fontSize: '13px', lineHeight: '18px' }}
-                          >
-                            {c.videos} Video
-                          </span>
-                        </span>
+                      <img
+                        src={AVATAR_URL(c.avatarSeed)}
+                        alt={c.name}
+                        className="w-12 h-12 rounded-full object-cover shrink-0 border border-[#C8E6C9]"
+                      />
+                      <div className="flex-1 min-w-0 ml-3">
+                        <div className="font-semibold text-sm text-[#111827] truncate group-hover:text-[#2E7D32] transition-colors">
+                          {c.name}
+                        </div>
+                        <div className="text-xs text-[#6B7280] truncate mt-0.5">
+                          {c.role}
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold text-[#2E7D32] shrink-0 whitespace-nowrap ml-2">
+                        {c.videos} Video
                       </span>
-                    </Button>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -892,17 +885,23 @@ export default function VideoList({ onNavigate, isLoggedIn: _isLoggedIn }: Video
                 className="mb-4 font-normal text-[#1F2937]/80"
                 style={{ fontSize: '13px', lineHeight: '20px' }}
               >
-                Nhập các nguyên liệu bạn đang có sẵn trong tủ lạnh (rau củ, nấm, đậu hũ…), AI sẽ tìm ngay video công thức vừa nắm vừa hợp nhất.
+                Nhập các nguyên liệu bạn đang có sẵn trong tủ lạnh (rau củ, nấm, đậu hũ...), AI sẽ tìm ngay video công thức nấu phù hợp nhất!
               </p>
-              <div className="mb-4 rounded-[12px] border border-[#C8E6C9] bg-white px-3 py-2 text-[12px] font-medium text-[#6B7280]">
-                VD: Đậu hũ, nấm rơm, cà chua...
-              </div>
+              <Input
+                placeholder="VD: Đậu hũ, nấm rơm, cà chua..."
+                value={aiIngredients}
+                onChange={(e) => setAiIngredients(e.target.value)}
+                className="mb-4 !bg-white !rounded-[12px]"
+              />
               <Button
                 type="button"
                 variant="primary"
                 fullWidth
                 leftIcon={<SparklesIcon size={15} />}
-                onClick={() => onNavigate?.('/ai-chat')}
+                onClick={() => {
+                  onNavigate?.(aiIngredients ? `/ai-chat?q=${encodeURIComponent(aiIngredients)}` : '/ai-chat')
+                }}
+                className="!rounded-[10px] !bg-[#2E7D32] hover:!bg-[#1B5E20] font-bold"
               >
                 Gợi ý video công thức ngay
               </Button>
@@ -943,7 +942,7 @@ function VideoGridCard({
   onOpen: () => void
 }) {
   const categoryLabel = (() => {
-    const fk = CATEGORY_TO_FIGMA[video.category]
+    const fk = (CATEGORY_TO_FIGMA as Record<string, FigmaPillKey>)[video.category] ?? 'main'
     return categories.find((c) => c.key === fk)?.label ?? 'Món chính'
   })()
 
@@ -1029,12 +1028,12 @@ function VideoGridCard({
         <div className="mt-auto">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             fullWidth
             leftIcon={<PlayIcon size={13} />}
             onClick={onOpen}
-            className="!text-[13px] !font-semibold !text-[#2E7D32] hover:!bg-[#E8F5E9]"
+            className="!rounded-[8px] !bg-[#E8F5E9] !text-[#2E7D32] hover:!bg-[#2E7D32] hover:!text-white transition-colors !text-[12px] !font-semibold"
           >
             Xem video
           </Button>
@@ -1045,3 +1044,5 @@ function VideoGridCard({
     </article>
   )
 }
+
+export { VideoList, VideoList as VideosPage }

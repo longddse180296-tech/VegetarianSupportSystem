@@ -57,6 +57,10 @@ export interface Restaurant {
   email?: string
   website?: string
   priceRangeVND: { min: number; max: number }
+  priceRange?: string
+  description?: string
+  amenities?: string[]
+  menuItems?: RestaurantDish[]
   dietTypes: Exclude<RestaurantDietType, 'all'>[]
   rating: number // 0..5
   reviewCount: number

@@ -96,9 +96,9 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
             type="button"
             variant="outline"
             size="md"
-            leftIcon={<Sparkles size={15} className="text-[#2E7D32]" />}
+            leftIcon={<Sparkles size={15} className="text-[#2e7d32] group-hover:text-white" />}
             onClick={onOpenAI}
-            className="!h-11 !rounded-[14px] !px-5 !text-[#2E7D32]"
+            className="group !h-11 !rounded-[14px] !px-5 !border-[#2e7d32] !text-[#2e7d32] !bg-[#e8f5e9] hover:!bg-[#2e7d32] hover:!text-white transition-colors"
           >
             Khám phá theo Tủ bếp AI
           </Button>

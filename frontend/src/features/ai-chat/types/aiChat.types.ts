@@ -1,27 +1,54 @@
 export type ChatRole = 'user' | 'assistant'
 export type AppRole = 'Guest' | 'User' | 'Admin'
 
-// —— NEW TYPES for Figma UI (no behaviour change) ——
-export type BMIStatusTone = 'underweight' | 'normal' | 'overweight' | 'obese'
-
-export interface BMIThresholds {
-  underweight: number // <18.5
-  normalStart: number
-  normalEnd: number // 22.9
-  overweightEnd: number // 24.9
+// ---------- User Profile & Guest Session ----------
+export interface UserProfile {
+  bmi: number // 22.5
+  bmiStatus: string // 'Bình thường'
+  target: string // 'Duy trì cân nặng'
+  dietType: string // 'Thuần chay (Vegan)'
+  nutritionPreference: string // 'Giàu đạm, ít dầu mỡ'
+  allergyAvoid: string // 'Đậu phộng'
 }
 
-export interface BMIResult {
-  value: number // e.g 22.5
-  label: string // e.g "Bình thường"
+export interface GuestSession {
+  remainingQuestions: number // default 3
+  maxQuestions: number // 3
+  isLocked: boolean
+}
+
+// ---------- BMI Information & Asian Standard Scale ----------
+export type BMIStatusTone = 'underweight' | 'normal' | 'overweight' | 'obese'
+
+export interface BmiInfo {
+  value: number // 22.5
+  statusLabel: string // 'Chuẩn' / 'Bình thường'
   tone: BMIStatusTone
-  rangeLabel: string // e.g "18.5 - 22.9"
+  rangeLabel: string // '18.5 – 22.9'
   whoNote: string
+  dailyKcalRange: string // '1.800 - 1.900 kcal/ngày'
+  dailyProtein: string // '60 - 70g protein'
+  medicalDisclaimer: string
+}
+
+export interface BMIResult extends BmiInfo {
+  label: string
   dailyKcalRangeMin: number
   dailyKcalRangeMax: number
   dailyProteinG: number
   noteAvoid: string
   disclaimer: string
+}
+
+// ---------- Meal Suggestion Card ----------
+export interface MealCard {
+  id: string
+  tag: string // 'Tối • Thanh lọc' | 'Tối • Dễ tiêu'
+  kcal: number // 380 | 310
+  name: string // 'Salad bơ đậu gà sốt mè'
+  description: string
+  protein: string // '14g' | '15g'
+  recipeId?: string
 }
 
 export interface RecipePreviewTag {
@@ -35,16 +62,29 @@ export interface RecipePreview {
   kcal: number
   name: string
   description: string
-  nutrientLabel: string // e.g "Protein"
-  nutrientValue: string // e.g "14g"
+  nutrientLabel: string // 'Protein'
+  nutrientValue: string // '14g'
 }
 
-export interface ExperienceCreditsState {
-  used: number
-  limit: number
-  locked: boolean
+// ---------- Chat Message ----------
+export interface ChatMessage {
+  id: string
+  sender?: 'user' | 'assistant'
+  role: ChatRole
+  content: string
+  timestamp: string
+  typingStreamed?: boolean
+  richData?: {
+    bmiData?: BmiInfo
+    mealSuggestions?: MealCard[]
+  }
+  bmiAnalysis?: BMIResult
+  recipePreview?: RecipePreview[]
+  recipeSuggestions?: RecipeSuggestion[]
+  disclaimer?: string
 }
 
+// ---------- Sidebar and Navigation ----------
 export interface PersonalProfileField {
   key: string
   label: string
@@ -54,7 +94,7 @@ export interface PersonalProfileField {
 
 export interface FaqItem {
   id: string
-  icon?: string // lucide name (optional for legacy items)
+  icon?: string
   question: string
   answer?: string
 }
@@ -67,7 +107,6 @@ export interface HistoryItem {
   tone: 'recent' | 'mid' | 'old'
 }
 
-// —— EXISTING types preserved ——
 export interface RecipeSuggestion {
   id: string
   title: string
@@ -77,19 +116,6 @@ export interface RecipeSuggestion {
   timeMin: number
   tag: string
   matchReason: string
-}
-
-export interface ChatMessage {
-  id: string
-  role: ChatRole
-  content: string
-  timestamp: string
-  recipeSuggestions?: RecipeSuggestion[]
-  typingStreamed?: boolean
-  // NEW optional attachments for Figma UI blocks within bot bubbles
-  bmiAnalysis?: BMIResult
-  recipePreview?: RecipePreview[]
-  disclaimer?: string
 }
 
 export interface ChatConversation {
@@ -113,6 +139,10 @@ export interface ProfileSummary {
 export interface AiReplyPayload {
   reply: string
   recipeSuggestions?: RecipeSuggestion[]
+  richData?: {
+    bmiData?: BmiInfo
+    mealSuggestions?: MealCard[]
+  }
 }
 
 export interface GuestChatState {

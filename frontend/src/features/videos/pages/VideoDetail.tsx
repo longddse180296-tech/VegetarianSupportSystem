@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft as ArrowLeftIcon,
-  BookmarkPlus as BookmarkIcon,
+  Bookmark as BookmarkIcon,
   ChevronRight,
   Eye as EyeIcon,
-  Heart as HeartIcon,
-  MessageCircleHeart as CommentIcon,
+  Fullscreen as FullscreenIcon,
+  MessageSquare,
   Pause as PauseIcon,
   Play as PlayIcon,
   Reply as ReplyIcon,
@@ -17,13 +17,11 @@ import {
   User as UserIcon,
   Video as VideoIcon,
   Volume2 as VolumeIcon,
-  Maximize2 as FullscreenIcon,
 } from 'lucide-react'
 import {
   Button,
   EmptyState,
   SkeletonLoader,
-  StatusBadge,
   Textarea,
 } from '../../../shared/components'
 import {
@@ -34,16 +32,13 @@ import {
   type CommentItem,
   type RelatedVideo,
 } from '../api/videoApi'
-import type { VideoItem, VideoModerationStatus } from '../types/video.types'
-import { CATEGORY_LABELS, MODERATION_STATUS_LABELS, formatDuration } from '../types/video.types'
+import type { VideoItem } from '../types/video.types'
+import { formatDuration } from '../types/video.types'
 
 /* ============================= HELPERS ============================= */
 
 const THUMB = (seed: string) =>
   `https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodeURIComponent(seed)}&image_size=landscape_16_9`
-
-const AVATAR_IMG = (seed: string) =>
-  `https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodeURIComponent(seed)}&image_size=square`
 
 function formatCountCompact(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace('.0', '')}M`
@@ -51,33 +46,16 @@ function formatCountCompact(v: number): string {
   return String(v)
 }
 
-function mapModerationBadge(s: VideoModerationStatus) {
-  switch (s) {
-    case 'published':
-      return 'suitable' as const
-    case 'ai_checking':
-      return 'info' as const
-    case 'pending_admin':
-      return 'insufficient' as const
-    case 'rejected':
-      return 'unsuitable' as const
-    default:
-      return 'neutral' as const
-  }
-}
-
 /* ============================= PAGE COMPONENT ============================= */
 
-interface VideoDetailPageProps {
+export interface VideoDetailPageProps {
   videoId?: string
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
-type DetailTabKey = 'ingredients' | 'steps'
-
 export default function VideoDetail({
-  videoId = '',
+  videoId = 'dau-hu-sot-nam',
   onNavigate,
   isLoggedIn: _isLoggedIn,
 }: VideoDetailPageProps) {
@@ -85,6 +63,7 @@ export default function VideoDetail({
   const [isLoading, setIsLoading] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
 
+  const [isPlaying, setIsPlaying] = useState(false)
   const [liked, setLiked] = useState(false)
   const [saved, setSaved] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
@@ -98,7 +77,6 @@ export default function VideoDetail({
     actions: { key: string; label: string }[]
     description: string
   } | null>(null)
-  const [activeTab, setActiveTab] = useState<DetailTabKey>('ingredients')
 
   useEffect(() => {
     let cancelled = false
@@ -130,36 +108,71 @@ export default function VideoDetail({
     window.setTimeout(() => setToast(null), 1800)
   }
 
-  const currentVideoTitle = useMemo(() => meta?.title ?? video?.title ?? '', [meta, video])
+  const currentVideoTitle = useMemo(
+    () => meta?.title ?? video?.title ?? 'Đậu hũ sốt nấm đơn giản trong 20 phút',
+    [meta, video],
+  )
 
   const displayDuration = useMemo(() => {
-    const total = video?.durationSeconds ?? 522
-    const watched = Math.min(total * 0.43, 225)
+    const total = 522 // 08:42
+    const watched = 225 // 03:45
     return {
       watched: formatDuration(watched),
       total: formatDuration(total),
       percent: (watched / total) * 100,
     }
-  }, [video])
+  }, [])
+
+  const handleSubmitComment = () => {
+    const text = commentDraft.trim()
+    if (!text) return
+    const newComment: CommentItem = {
+      id: `new-${Date.now()}`,
+      initials: 'BẠN',
+      author: 'Bạn (Thành viên)',
+      badges: [{ label: 'Thành viên tích cực', tone: 'member' }],
+      timeAgo: 'Vừa xong',
+      content: text,
+      likes: 0,
+    }
+    setComments((prev) => [newComment, ...prev])
+    setCommentDraft('')
+    showToast('✅ Đã gửi bình luận')
+  }
+
+  // Group top-level comments and replies
+  const { topLevelComments, repliesMap } = useMemo(() => {
+    const top: CommentItem[] = []
+    const replies: Record<string, CommentItem[]> = {}
+    for (const c of comments) {
+      if (c.replyToId) {
+        if (!replies[c.replyToId]) replies[c.replyToId] = []
+        replies[c.replyToId].push(c)
+      } else {
+        top.push(c)
+      }
+    }
+    return { topLevelComments: top, repliesMap: replies }
+  }, [comments])
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FF]">
-        <div className="mx-auto max-w-[1200px] px-[24px] py-8 sm:px-[16px]">
+      <div className="min-h-screen bg-[#F8FAF8]">
+        <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-6">
           <Button
             type="button"
             size="sm"
             variant="outline"
-            leftIcon={<ArrowLeftIcon size={13} />}
+            leftIcon={<ArrowLeftIcon size={14} />}
             onClick={() => onNavigate?.('/videos')}
             className="mb-6"
           >
             Quay lại danh sách video
           </Button>
-          <SkeletonLoader count={1} variant="card" />
-          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-4">
-              <SkeletonLoader count={2} variant="card" />
+              <SkeletonLoader count={1} variant="card" />
+              <SkeletonLoader count={2} variant="text" />
             </div>
             <div className="space-y-4">
               <SkeletonLoader count={3} variant="card" />
@@ -172,438 +185,285 @@ export default function VideoDetail({
 
   if (!video || !meta) {
     return (
-      <div className="min-h-screen bg-[#F8F9FF]">
-        <div className="mx-auto max-w-[1200px] px-[24px] py-10 sm:px-[16px]">
+      <div className="min-h-screen bg-[#F8FAF8]">
+        <div className="mx-auto max-w-[1240px] px-4 py-10 sm:px-6">
           <EmptyState
             title="Không tìm thấy video này"
-            description={`ID "${videoId || '(trống)'}" không tồn tại trong kho video cộng đồng. Có thể video chưa được Admin phê duyệt hoặc đã bị xóa.`}
-            actionLabel="Quay lại trang videos"
+            description={`ID "${videoId || '(trống)'}" không tồn tại trong kho video cộng đồng.`}
+            actionLabel="Quay lại kho video"
             onAction={() => onNavigate?.('/videos')}
-            icon={<VideoIcon size={36} className="text-[#2E7D32]" />}
+            icon={<VideoIcon size={36} className="text-[#2e7d32]" />}
           />
         </div>
       </div>
     )
   }
 
-  const handleSubmitComment = () => {
-    const text = commentDraft.trim()
-    if (!text) return
-    const newComment: CommentItem = {
-      id: `new-${Date.now()}`,
-      initials: 'BAN',
-      author: 'Bạn',
-      timeAgo: 'vừa xong',
-      content: text,
-      likes: 0,
-    }
-    setComments((prev) => [newComment, ...prev])
-    setCommentDraft('')
-    showToast('✅ Đã gửi bình luận')
-  }
-
-  const pills = meta.pills
   const creator = meta.creator
 
   return (
-    <div className="min-h-screen bg-[#F8F9FF] text-[#1F2937] font-['Inter']">
-      <div className="mx-auto w-full max-w-[1200px] px-[24px] py-8 sm:px-[16px]">
+    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
+      <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">
         {/* ============= BREADCRUMBS ============= */}
         <nav
           aria-label="Breadcrumb"
-          className="mb-6 flex flex-wrap items-center gap-2 text-[#6B7280]"
-          style={{ fontSize: '14px', lineHeight: '20px' }}
+          className="mb-4 flex flex-wrap items-center gap-2 text-[14px] text-[#6B7280]"
         >
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => (window.location.hash = '/')}
-            className="!rounded-full !px-2.5 !py-1 !text-[#6B7280] hover:!text-[#2E7D32]"
+            onClick={() => onNavigate?.('/')}
+            className="hover:text-[#2e7d32] transition"
           >
             Trang chủ
-          </Button>
+          </button>
           <span className="text-[#9CA3AF]" aria-hidden>
             ›
           </span>
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
             onClick={() => onNavigate?.('/videos')}
-            className="!rounded-full !px-2.5 !py-1 !text-[#6B7280] hover:!text-[#2E7D32]"
+            className="hover:text-[#2e7d32] transition"
           >
             Video
-          </Button>
+          </button>
           <span className="text-[#9CA3AF]" aria-hidden>
             ›
           </span>
-          <span className="text-[#1F2937]">{currentVideoTitle}</span>
+          <span className="text-[#1F2937] font-medium">{currentVideoTitle}</span>
         </nav>
 
-        {/* ============= MAIN 2 CỘT lg: [1.2fr | 0.8fr] ============= */}
-        <main className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <article className="flex flex-col gap-6">
-            {/* ===== VIDEO PLAYER - aspect-video rounded-[16px] bg-black/95 ===== */}
-            <div className="aspect-video w-full overflow-hidden rounded-[16px] bg-black/95 relative shadow-[0_6px_24px_-12px_rgba(15,23,42,0.25)]">
+        {/* ============= MAIN 2 COLUMNS ============= */}
+        <main className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          {/* ============= LEFT COLUMN: PLAYER & CONTENT ============= */}
+          <article className="lg:col-span-8 flex flex-col gap-5">
+            {/* 16:9 Video Player */}
+            <div className="relative aspect-video w-full overflow-hidden rounded-[16px] bg-black shadow-[0_4px_20px_rgba(0,0,0,0.15)] group">
               <img
                 src={video.thumbnailUrl}
                 alt={currentVideoTitle}
-                className="h-full w-full object-cover opacity-85"
+                className="h-full w-full object-cover opacity-90 transition duration-300"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30 pointer-events-none" />
 
-              {/* Moderation badge top-left */}
-              <span className="absolute left-5 top-5 z-10 hidden sm:inline-flex">
-                <StatusBadge
-                  size="sm"
-                  status={mapModerationBadge(video.moderationStatus)}
-                  label={MODERATION_STATUS_LABELS[video.moderationStatus]}
-                  className="!bg-white/90 !backdrop-blur !text-[11px]"
-                />
-              </span>
-              {/* Category badge top-right */}
-              <span className="absolute right-5 top-5 z-10 hidden sm:inline-flex rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur">
-                {CATEGORY_LABELS[video.category]}
-              </span>
-
-              {/* Giant center play overlay */}
+              {/* Big Center Play Button */}
               <button
                 type="button"
                 aria-label="Phát video"
-                onClick={() => {
-                  if (typeof window !== 'undefined')
-                    window.open(video.videoUrl, '_blank', 'noopener,noreferrer')
-                }}
-                className="absolute inset-0 z-10 flex items-center justify-center"
+                onClick={() => setIsPlaying((p) => !p)}
+                className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer"
               >
-                <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white/95 shadow-2xl ring-4 ring-white/20 transition hover:scale-105">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#2E7D32] text-white">
-                    <PlayIcon size={26} className="ml-1.5" />
-                  </span>
-                </span>
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/95 shadow-2xl ring-4 ring-white/20 transition duration-200 transform group-hover:scale-110">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#2e7d32] text-white">
+                    {isPlaying ? (
+                      <PauseIcon size={24} />
+                    ) : (
+                      <PlayIcon size={26} className="ml-1 fill-white" />
+                    )}
+                  </div>
+                </div>
               </button>
 
-              {/* ===== CONTROL BAR ===== */}
-              <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-3 pt-8 sm:px-6 sm:pb-4">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="relative h-[6px] flex-1 cursor-pointer rounded-full bg-white/15">
+              {/* Video Control Bar */}
+              <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-3 pt-6 bg-gradient-to-t from-black/90 to-transparent">
+                {/* Progress bar */}
+                <div className="mb-2 flex items-center gap-3">
+                  <div className="relative h-[5px] flex-1 cursor-pointer rounded-full bg-white/30">
                     <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-[#2E7D32]"
+                      className="absolute inset-y-0 left-0 rounded-full bg-[#2e7d32]"
                       style={{ width: `${displayDuration.percent}%` }}
                     />
                     <span
                       aria-hidden
-                      className="absolute -top-1 h-3 w-3 -translate-x-1/2 rounded-full bg-white shadow-md"
+                      className="absolute -top-1 h-3 w-3 -translate-x-1/2 rounded-full bg-white shadow-md ring-2 ring-[#2e7d32]"
                       style={{ left: `${displayDuration.percent}%` }}
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-white">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <Button
+
+                {/* Control buttons & duration */}
+                <div className="flex items-center justify-between text-white text-[13px]">
+                  <div className="flex items-center gap-3">
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
                       aria-label="Tạm dừng / Tiếp tục"
-                      onClick={() => showToast('⏸ Đã tạm dừng')}
-                      className="!h-8 !w-8 !rounded-[8px] !bg-white/10 !p-0 !text-white backdrop-blur hover:!bg-white/20 hover:!text-white"
+                      onClick={() => setIsPlaying((p) => !p)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/20 transition text-white"
                     >
-                      <PauseIcon size={16} />
-                    </Button>
-                    <Button
+                      {isPlaying ? <PauseIcon size={16} /> : <PlayIcon size={16} className="fill-white" />}
+                    </button>
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Âm thanh"
-                      className="hidden sm:!inline-flex !h-8 !w-8 !rounded-[8px] !bg-white/10 !p-0 !text-white backdrop-blur hover:!bg-white/20 hover:!text-white"
+                      aria-label="Âm lượng"
+                      className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/20 transition text-white"
                     >
                       <VolumeIcon size={16} />
-                    </Button>
-                    <div
-                      className="text-[12px] font-semibold tabular-nums"
-                      style={{ lineHeight: '16px' }}
-                    >
+                    </button>
+                    <div className="font-medium tabular-nums text-white/90 text-[12px]">
                       <span>{displayDuration.watched}</span>
-                      <span className="mx-1.5 text-white/60">/</span>
+                      <span className="mx-1 text-white/60">/</span>
                       <span className="text-white/80">{displayDuration.total}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Button
+
+                  <div className="flex items-center gap-2">
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Cài đặt chất lượng"
-                      className="hidden sm:!inline-flex !h-8 !w-8 !rounded-[8px] !bg-white/10 !p-0 !text-white backdrop-blur hover:!bg-white/20 hover:!text-white"
+                      aria-label="Cài đặt"
+                      className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/20 transition text-white"
                     >
                       <SettingsIcon size={16} />
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
                       aria-label="Toàn màn hình"
-                      className="!h-8 !w-8 !rounded-[8px] !bg-white/10 !p-0 !text-white backdrop-blur hover:!bg-white/20 hover:!text-white"
+                      className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/20 transition text-white"
                     >
                       <FullscreenIcon size={16} />
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* ===== TABS ROW (Nguyên liệu | Cách làm) ===== */}
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="md"
-                onClick={() => setActiveTab('ingredients')}
-                className={
-                  activeTab === 'ingredients'
-                    ? '!bg-[#2E7D32] !text-white hover:!bg-[#1b5e20] hover:!text-white'
-                    : ''
-                }
-              >
-                Nguyên liệu
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="md"
-                onClick={() => setActiveTab('steps')}
-                className={
-                  activeTab === 'steps'
-                    ? '!bg-[#2E7D32] !text-white hover:!bg-[#1b5e20] hover:!text-white'
-                    : ''
-                }
-              >
-                Cách làm
-              </Button>
+            {/* Category Tags Row */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="inline-flex items-center rounded-full border border-[#C8E6C9] bg-[#E8F5E9] px-3 py-1 text-[12px] font-bold text-[#2e7d32]">
+                Món chính chay
+              </span>
+              <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-white px-3 py-1 text-[12px] font-medium text-[#4B5563]">
+                Nấu nhanh 20 phút
+              </span>
+              <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-white px-3 py-1 text-[12px] font-medium text-[#4B5563]">
+                Giàu đạm thực vật
+              </span>
             </div>
 
-            {/* ===== CATEGORY PILLS + TITLE ===== */}
-            <div className="flex flex-col gap-3 px-1">
-              <div className="flex flex-wrap gap-2">
-                {pills.map((p) => {
-                  const toneClass =
-                    p.tone === 'green'
-                      ? 'border-[#C8E6C9] bg-[#E8F5E9] text-[#2E7D32]'
-                      : p.tone === 'blue'
-                        ? 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]'
-                        : 'border-[#E5E7EB] bg-white text-[#1F2937]'
-                  return (
-                    <span
-                      key={p.label}
-                      className={`inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-bold ${toneClass}`}
-                    >
-                      {p.label}
-                    </span>
-                  )
-                })}
-              </div>
-              <h1
-                className="font-extrabold tracking-[-0.015em] text-[#121C2A]"
-                style={{ fontSize: '30px', lineHeight: '40px' }}
-              >
-                {currentVideoTitle}
-              </h1>
-            </div>
+            {/* Title */}
+            <h1 className="text-[24px] sm:text-[28px] font-extrabold tracking-tight text-[#111827] leading-tight">
+              {currentVideoTitle}
+            </h1>
 
-            {/* ===== CREATOR BAR + THEO DÕI ===== */}
-            <div
-              className="grid grid-cols-12 items-center gap-4 rounded-[16px] border border-[#E5E7EB] bg-white p-4 sm:p-5"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.03)' }}
-            >
-              <div className="col-span-12 flex items-center gap-4 sm:col-span-7">
-                <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#D1FAE5] text-[15px] font-extrabold text-[#065F46] ring-2 ring-[#A7F3D0]">
+            {/* Channel Bar & Action Buttons */}
+            <div className="flex flex-wrap items-center justify-between gap-4 py-1 border-b border-[#E5E7EB] pb-5">
+              {/* Channel Profile */}
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E8F5E9] text-[15px] font-extrabold text-[#2e7d32] border border-[#C8E6C9]">
                   {creator.initials}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span
-                      className="font-bold text-[#1F2937]"
-                      style={{ fontSize: '15px', lineHeight: '22px' }}
-                    >
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[15px] font-bold text-[#1F2937]">
                       {creator.name}
                     </span>
                     {creator.verified && (
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-label="Đã xác minh"
+                      <span
+                        className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[#2e7d32] text-white text-[10px] font-bold"
+                        title="Đã xác thực"
                       >
-                        <title>Đã xác minh</title>
-                        <path
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                          d="M12 2L14.5 4.5L18 4L18.5 7.5L21 9.5L19 12.5L20 16L16.7 17.2L16 20.5L12 19L8 20.5L7.3 17.2L4 16L5 12.5L3 9.5L5.5 7.5L6 4L9.5 4.5L12 2z"
-                          fill="#2E7D32"
-                          stroke="white"
-                          strokeWidth="1"
-                        />
-                        <path
-                          d="M8.5 12.2L11 14.7L16 9.5"
-                          stroke="white"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                        ✓
+                      </span>
                     )}
                   </div>
-                  <div
-                    className="flex flex-wrap items-center gap-1 font-medium text-[#6B7280]"
-                    style={{ fontSize: '12px', lineHeight: '18px' }}
-                  >
-                    <span>{formatCountCompact(creator.subscribers)} người theo dõi</span>
-                    <span className="mx-1 text-[#D1D5DB]">•</span>
-                    <span>{creator.postedAgo}</span>
+                  <div className="text-[12px] text-[#6B7280]">
+                    {formatCountCompact(creator.subscribers)} người theo dõi • {creator.postedAgo}
                   </div>
                 </div>
-              </div>
-              <div className="col-span-12 sm:col-span-5 sm:flex sm:justify-end">
                 <Button
                   type="button"
                   variant="primary"
-                  size="md"
+                  size="sm"
                   onClick={() => {
                     setSubscribed((v) => !v)
                     showToast(subscribed ? 'Đã bỏ theo dõi' : '✅ Đã theo dõi kênh')
                   }}
-                  className="sm:!px-5"
+                  className="ml-2 !rounded-full !bg-[#2e7d32] hover:!bg-[#1b5e20] !text-white !px-4 !py-1.5 !text-[13px] !font-semibold"
                 >
-                  <span className="mr-1 font-bold">{subscribed ? '✓' : '+'}</span>
-                  {subscribed ? 'Đang theo dõi' : 'Theo dõi'}
+                  {subscribed ? '✓ Đang theo dõi' : '+ Theo dõi'}
                 </Button>
               </div>
+
+              {/* Action Buttons: Like, Share, Save */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLiked((v) => !v)
+                    showToast(liked ? 'Đã bỏ thích' : '👍 Đã thích video này')
+                  }}
+                  className={`inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-[13px] font-medium transition ${
+                    liked
+                      ? 'bg-[#E8F5E9] text-[#2e7d32] border-[#C8E6C9]'
+                      : 'bg-white hover:bg-[#F9FAFB] text-[#374151]'
+                  }`}
+                >
+                  <ThumbsUpIcon size={14} className={liked ? 'fill-[#2e7d32]' : ''} />
+                  <span>1.2K Thích</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => showToast('🔗 Link video đã được sao chép')}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] px-3.5 py-1.5 text-[13px] font-medium text-[#374151] transition"
+                >
+                  <ShareIcon size={14} />
+                  <span>Chia sẻ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSaved((v) => !v)
+                    showToast(saved ? 'Đã bỏ lưu video' : '🔖 Đã lưu video vào danh sách')
+                  }}
+                  className={`inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-[13px] font-medium transition ${
+                    saved
+                      ? 'bg-[#E8F5E9] text-[#2e7d32] border-[#C8E6C9]'
+                      : 'bg-white hover:bg-[#F9FAFB] text-[#374151]'
+                  }`}
+                >
+                  <BookmarkIcon size={14} className={saved ? 'fill-[#2e7d32]' : ''} />
+                  <span>{saved ? 'Đã lưu' : 'Lưu video'}</span>
+                </button>
+              </div>
             </div>
 
-            {/* ===== 3 ACTION BUTTONS ===== */}
-            <div className="flex flex-wrap items-center gap-3 px-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                leftIcon={<ThumbsUpIcon size={15} className={liked ? 'fill-[#2E7D32] text-[#2E7D32]' : ''} />}
-                onClick={() => {
-                  setLiked((v) => !v)
-                  showToast(liked ? 'Đã bỏ thích' : '👍 Đã thích video này')
-                }}
-                className="!rounded-full !px-4"
-              >
-                {meta.actions[0]?.label ?? 'Thích'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                leftIcon={<ShareIcon size={15} />}
-                onClick={() => showToast('🔗 Link video đã được sao chép')}
-                className="!rounded-full !px-4"
-              >
-                {meta.actions[1]?.label ?? 'Chia sẻ'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                leftIcon={<BookmarkIcon size={15} className={saved ? 'fill-[#2E7D32] text-[#2E7D32]' : ''} />}
-                onClick={() => {
-                  setSaved((v) => !v)
-                  showToast(saved ? 'Đã bỏ lưu video' : '📌 Đã lưu video vào danh sách của bạn')
-                }}
-                className="!rounded-full !px-4"
-              >
-                {meta.actions[2]?.label ?? 'Lưu video'}
-              </Button>
+            {/* Description */}
+            <div className="text-[14px] leading-relaxed text-[#4B5563]">
+              <p>{meta.description}</p>
             </div>
 
-            {/* ===== MÔ TẢ ===== */}
-            <div
-              className="rounded-[16px] border border-[#E5E7EB] bg-white p-5"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.03)' }}
-            >
-              <p
-                className="whitespace-pre-line font-normal text-[#1F2937]"
-                style={{ fontSize: '14px', lineHeight: '24px' }}
-              >
-                {meta.description}
-              </p>
-              {video.tags && video.tags.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {video.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full border border-[#C8E6C9] bg-[#E8F5E9]/70 px-2.5 py-1 text-[11px] font-bold text-[#2E7D32]"
-                    >
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* ===== BÌNH LUẬN ===== */}
-            <section
-              className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 sm:p-6"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.03)' }}
-            >
+            {/* Comments Section */}
+            <section className="mt-4 rounded-[16px] border border-[#E5E7EB] bg-white p-5 sm:p-6 shadow-sm">
+              {/* Header */}
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <h2
-                    className="font-bold tracking-[-0.01em] text-[#1F2937]"
-                    style={{ fontSize: '18px', lineHeight: '26px' }}
-                  >
-                    Bình luận
-                  </h2>
-                  <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[11px] font-bold text-[#2E7D32]">
-                    {comments.length}
+                  <h2 className="text-[18px] font-bold text-[#1F2937]">Bình luận</h2>
+                  <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[12px] font-bold text-[#2e7d32]">
+                    48
                   </span>
                 </div>
-                <div
-                  className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#6B7280]"
-                  style={{ lineHeight: '18px' }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path d="M3 6h18M6 12h12M10 18h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  Sắp xếp: <span className="text-[#1F2937]">Mới nhất</span>
-                  <span className="mx-1 text-[#D1D5DB]">•</span>
-                  <span className="text-[#1F2937]">Hàng đầu</span>
+                <div className="inline-flex items-center gap-1 text-[12px] font-medium text-[#6B7280]">
+                  <span>Sắp xếp:</span>
+                  <span className="font-semibold text-[#1F2937]">Mới nhất</span>
+                  <span className="text-[#D1D5DB]">•</span>
+                  <span className="text-[#6B7280]">Hàng đầu</span>
                 </div>
               </div>
 
-              {/* Comment composer: shared Textarea + Button row */}
+              {/* Comment composer */}
               <div className="mb-7 flex items-start gap-3">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#E8F5E9] text-[#2E7D32] ring-2 ring-[#C8E6C9]">
-                  <UserIcon size={18} />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E8F5E9] text-[12px] font-bold text-[#2e7d32] border border-[#C8E6C9]">
+                  BẠN
                 </div>
                 <div className="min-w-0 flex-1">
                   <Textarea
-                    placeholder="Chia sẻ cảm nhận của bạn về video..."
+                    placeholder="Chia sẻ cảm nghĩ hoặc đặt câu hỏi về món ăn này..."
                     value={commentDraft}
                     onChange={(e) => setCommentDraft(e.target.value)}
                     rows={3}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && (e.ctrlKey || e.metaKey)) {
-                        e.preventDefault()
-                        handleSubmitComment()
-                      }
-                    }}
+                    className="!rounded-[10px] !text-[14px]"
                   />
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                    <div
-                      className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#2E7D32]"
-                      style={{ lineHeight: '18px' }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
-                        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-                        <path d="M12 8.5v4.5M12 17.2h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
+                    <div className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#2e7d32]">
+                      <span className="text-[14px]">🛡</span>
                       Giữ thảo luận văn minh &amp; tích cực
                     </div>
                     <div className="flex items-center gap-2">
@@ -623,6 +483,7 @@ export default function VideoDetail({
                         leftIcon={<SendIcon size={13} />}
                         onClick={handleSubmitComment}
                         disabled={!commentDraft.trim()}
+                        className="!bg-[#2e7d32] hover:!bg-[#1b5e20] !text-white !rounded-[8px]"
                       >
                         Gửi bình luận
                       </Button>
@@ -631,189 +492,206 @@ export default function VideoDetail({
                 </div>
               </div>
 
-              {/* Comment list */}
-              <ul className="space-y-6">
-                {comments.map((c) => (
-                  <li
-                    key={c.id}
-                    className={
-                      c.highlight === 'author'
-                        ? 'relative rounded-[16px] border-l-[3px] border-[#2E7D32] bg-[#F5FBF6] p-4'
-                        : 'flex items-start gap-3'
-                    }
-                  >
-                    {c.highlight === 'author' ? (
-                      <div className="flex items-start gap-3">
-                        {c.authorAvatarSeed ? (
-                          <img
-                            src={AVATAR_IMG(c.authorAvatarSeed)}
-                            alt={c.author}
-                            className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-[#A7F3D0]"
-                          />
-                        ) : (
-                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#2E7D32] text-[12px] font-extrabold text-white ring-2 ring-[#A7F3D0]">
-                            {c.initials ?? <UserIcon size={16} />}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <CommentMeta comment={c} />
-                          <CommentBody comment={c} />
-                          <CommentActions comment={c} onLike={() => showToast(`❤️ ${c.author}: +1 thích`)} />
-                        </div>
+              {/* Comments List */}
+              <div className="space-y-6">
+                {topLevelComments.map((comment) => (
+                  <div key={comment.id} className="space-y-3">
+                    {/* Top level item */}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
+                          comment.isExpert
+                            ? 'bg-[#E8F5E9] text-[#2e7d32] border border-[#C8E6C9]'
+                            : 'bg-[#F3F4F6] text-[#4B5563]'
+                        }`}
+                      >
+                        {comment.initials ?? <UserIcon size={16} />}
                       </div>
-                    ) : (
-                      <>
-                        {c.authorAvatarSeed ? (
-                          <img
-                            src={AVATAR_IMG(c.authorAvatarSeed)}
-                            alt={c.author}
-                            className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-[#BFDBFE]"
-                          />
-                        ) : (
-                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#E8F5E9] text-[#2E7D32] ring-2 ring-[#BFDBFE]">
-                            {c.initials ?? <UserIcon size={16} />}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <CommentMeta comment={c} />
-                          <CommentBody comment={c} />
-                          <CommentActions comment={c} onLike={() => showToast(`❤️ ${c.author}: +1 thích`)} />
-                        </div>
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </article>
-
-          {/* ============== SIDEBAR RIGHT ============== */}
-          <aside className="flex flex-col gap-6">
-            {/* ===== VIDEO BẠN CÓ THỂ THÍCH ===== */}
-            <div
-              className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 sm:p-6"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
-            >
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h2
-                  className="font-bold tracking-[-0.01em] text-[#1F2937]"
-                  style={{ fontSize: '18px', lineHeight: '26px' }}
-                >
-                  Video bạn có thể thích
-                </h2>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onNavigate?.('/videos')}
-                  rightIcon={<ChevronRight size={12} />}
-                  className="!rounded-full !bg-[#F8FAF8] !px-2.5 !py-1 !text-[12px] !font-bold !text-[#2E7D32] hover:!bg-[#E8F5E9] hover:!text-[#2E7D32]"
-                >
-                  Xem tất cả
-                </Button>
-              </div>
-
-              <ul className="space-y-5">
-                {relatedVideos.map((rv) => (
-                  <li key={rv.id}>
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => onNavigate?.(`/videos/${rv.id}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          onNavigate?.(`/videos/${rv.id}`)
-                        }
-                      }}
-                      className="group grid w-full cursor-pointer grid-cols-12 items-start gap-3 rounded-[12px] border border-transparent p-1 text-left transition hover:border-[#C8E6C9] hover:bg-[#E8F5E9]/30"
-                    >
-                      <div className="col-span-5 sm:col-span-5 xl:col-span-6">
-                        <div className="relative w-full aspect-video overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-slate-100">
-                          <img
-                            src={THUMB(rv.thumbnailSeed)}
-                            alt={rv.title}
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                          />
-                          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-slate-900/85 px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-white backdrop-blur">
-                            {rv.duration}
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <span className="text-[14px] font-bold text-[#1F2937]">
+                            {comment.author}
                           </span>
-                          {rv.badge === 'watching' && (
-                            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/90 px-2 py-0.5 text-[10px] font-bold text-[#1F2937] backdrop-blur">
-                              <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-                              Video vào danh chay
+                          {comment.badges?.map((b) => (
+                            <span
+                              key={b.label}
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                b.tone === 'pro'
+                                  ? 'bg-[#E8F5E9] text-[#2e7d32] border border-[#C8E6C9]'
+                                  : b.tone === 'author'
+                                    ? 'bg-[#2e7d32] text-white'
+                                    : 'bg-[#E8F5E9] text-[#2e7d32]'
+                              }`}
+                            >
+                              {b.label}
                             </span>
-                          )}
+                          ))}
+                          <span className="text-[12px] text-[#6B7280]">
+                            • {comment.timeAgo}
+                          </span>
                         </div>
-                      </div>
-                      <div className="col-span-7 sm:col-span-7 xl:col-span-6 flex min-w-0 flex-col gap-2">
-                        <span className="inline-flex w-fit rounded-full border border-[#C8E6C9] bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-bold text-[#2E7D32]">
-                          {rv.category}
-                        </span>
-                        <h4
-                          className="line-clamp-2 font-bold tracking-tight text-[#1F2937]"
-                          style={{ fontSize: '14px', lineHeight: '20px' }}
-                          title={rv.title}
-                        >
-                          {rv.title}
-                        </h4>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div
-                            className="inline-flex items-center gap-1 font-medium text-[#6B7280]"
-                            style={{ fontSize: '12px', lineHeight: '16px' }}
-                          >
-                            {rv.author}
-                          </div>
-                          <div
-                            className="inline-flex items-center gap-1 font-semibold text-[#6B7280] tabular-nums"
-                            style={{ fontSize: '12px', lineHeight: '16px' }}
-                          >
-                            <EyeIcon size={12} />
-                            {rv.views}
-                          </div>
-                        </div>
-                        <div className="mt-auto pt-1">
-                          <Button
+                        <p className="text-[14px] leading-relaxed text-[#374151]">
+                          {comment.content}
+                        </p>
+                        <div className="mt-2 flex items-center gap-4 text-[12px] font-medium text-[#6B7280]">
+                          <button
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            fullWidth
-                            leftIcon={<PlayIcon size={12} />}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onNavigate?.(`/videos/${rv.id}`)
-                            }}
-                            className="!text-[12px] !font-semibold !text-[#2E7D32] hover:!bg-[#E8F5E9]"
+                            onClick={() => showToast(`👍 Đã thích bình luận của ${comment.author}`)}
+                            className="inline-flex items-center gap-1 hover:text-[#2e7d32] transition"
                           >
-                            Xem video
-                          </Button>
+                            <ThumbsUpIcon size={13} />
+                            <span>{comment.likes}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCommentDraft(`@${comment.author} `)}
+                            className="hover:text-[#2e7d32] transition"
+                          >
+                            Trả lời
+                          </button>
                         </div>
                       </div>
                     </div>
-                  </li>
+
+                    {/* Nested replies if any */}
+                    {repliesMap[comment.id]?.map((reply) => (
+                      <div
+                        key={reply.id}
+                        className="ml-6 sm:ml-12 rounded-[12px] border-l-4 border-[#2e7d32] bg-[#F5FBF6] p-3.5 flex items-start gap-3"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2e7d32] text-[11px] font-bold text-white">
+                          {reply.initials ?? 'AN'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <span className="text-[14px] font-bold text-[#1F2937]">
+                              {reply.author}
+                            </span>
+                            {reply.badges?.map((b) => (
+                              <span
+                                key={b.label}
+                                className="inline-flex items-center rounded-full bg-[#2e7d32] px-2 py-0.5 text-[10px] font-semibold text-white"
+                              >
+                                {b.label}
+                              </span>
+                            ))}
+                            <span className="text-[12px] text-[#6B7280]">
+                              • {reply.timeAgo}
+                            </span>
+                          </div>
+                          <p className="text-[14px] leading-relaxed text-[#374151]">
+                            {reply.content}
+                          </p>
+                          <div className="mt-2 flex items-center gap-4 text-[12px] font-medium text-[#6B7280]">
+                            <button
+                              type="button"
+                              onClick={() => showToast(`👍 Đã thích phản hồi của ${reply.author}`)}
+                              className="inline-flex items-center gap-1 hover:text-[#2e7d32] transition"
+                            >
+                              <ThumbsUpIcon size={13} />
+                              <span>{reply.likes}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCommentDraft(`@${reply.author} `)}
+                              className="hover:text-[#2e7d32] transition"
+                            >
+                              Trả lời
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ))}
-              </ul>
+              </div>
+            </section>
+          </article>
+
+          {/* ============= RIGHT COLUMN: SIDEBAR ============= */}
+          <aside className="lg:col-span-4 flex flex-col gap-6">
+            {/* Box 1: Video bạn có thể thích */}
+            <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-[16px] font-bold text-[#1F2937]">
+                  Video bạn có thể thích
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('/videos')}
+                  className="inline-flex items-center gap-0.5 text-[12px] font-semibold text-[#2e7d32] hover:underline"
+                >
+                  Xem tất cả
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+
+              {/* 3 Related Video Cards stacked */}
+              <div className="space-y-4">
+                {relatedVideos.map((rv) => (
+                  <div
+                    key={rv.id}
+                    className="flex flex-col gap-2 rounded-[12px] border border-[#F3F4F6] p-2.5 transition hover:border-[#C8E6C9] hover:bg-[#F9FAF8]"
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative aspect-video w-full overflow-hidden rounded-[10px] bg-[#E5E7EB]">
+                      <img
+                        src={THUMB(rv.thumbnailSeed)}
+                        alt={rv.title}
+                        className="h-full w-full object-cover transition duration-300 hover:scale-105"
+                      />
+                      <span className="absolute bottom-1.5 right-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        {rv.duration}
+                      </span>
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex flex-col gap-1">
+                      <span className="w-fit rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-bold text-[#2e7d32]">
+                        {rv.category}
+                      </span>
+                      <h3
+                        className="text-[13px] font-bold text-[#1F2937] line-clamp-2 leading-snug cursor-pointer hover:text-[#2e7d32]"
+                        onClick={() => onNavigate?.(`/videos/${rv.id}`)}
+                      >
+                        {rv.title}
+                      </h3>
+                      <div className="flex items-center justify-between text-[11px] text-[#6B7280] pt-0.5">
+                        <span className="font-medium">{rv.author}</span>
+                        <span className="flex items-center gap-1 font-semibold">
+                          <EyeIcon size={11} />
+                          {rv.views}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Button Xem video */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      fullWidth
+                      leftIcon={<PlayIcon size={12} className="fill-[#2e7d32]" />}
+                      onClick={() => onNavigate?.(`/videos/${rv.id}`)}
+                      className="!mt-1 !h-8 !rounded-[8px] !border-none !bg-[#E8F5E9] !text-[12px] !font-semibold !text-[#2e7d32] hover:!bg-[#2e7d32] hover:!text-white transition"
+                    >
+                      Xem video
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* ===== AI ASSISTANT PANEL ===== */}
-            <div
-              className="rounded-[16px] border border-[#C8E6C9] bg-[#EFFAF1] p-6"
-              style={{ boxShadow: '0 1px 3px 0 rgba(15,23,42,0.04)' }}
-            >
-              <div className="mb-3 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-[#2E7D32]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#2E7D32]" />
+            {/* Box 2: TRỢ LÝ DINH DƯỠNG AI */}
+            <div className="rounded-[16px] border border-[#DCFCE7] bg-[#F0FDF4] p-5 shadow-sm">
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#2e7d32]">
+                <span className="h-2 w-2 rounded-full bg-[#2e7d32]" />
                 TRỢ LÝ DINH DƯỠNG AI
               </div>
-              <h3
-                className="mb-2 font-extrabold tracking-[-0.01em] text-[#121C2A]"
-                style={{ fontSize: '18px', lineHeight: '26px' }}
-              >
+              <h3 className="mb-2 text-[16px] font-bold text-[#111827]">
                 Cần giải đáp về video này?
               </h3>
-              <p
-                className="mb-5 font-normal text-[#1F2937]/80"
-                style={{ fontSize: '13px', lineHeight: '20px' }}
-              >
+              <p className="mb-4 text-[13px] leading-relaxed text-[#4B5563]">
                 Bạn muốn thay thế nguyên liệu hay điều chỉnh gia vị cho người tiểu đường? Hãy hỏi Trợ lý AI ngay.
               </p>
               <Button
@@ -822,6 +700,7 @@ export default function VideoDetail({
                 fullWidth
                 leftIcon={<SparklesIcon size={15} />}
                 onClick={() => onNavigate?.('/ai-chat')}
+                className="!rounded-[10px] !bg-[#2e7d32] hover:!bg-[#1b5e20] !text-white !py-2.5 !font-semibold !text-[14px]"
               >
                 Chat với AI dinh dưỡng
               </Button>
@@ -830,120 +709,20 @@ export default function VideoDetail({
         </main>
       </div>
 
-      {/* ===== TOAST ===== */}
-      {toast ? (
-        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 sm:bottom-10">
-          <div className="max-w-[460px] rounded-[12px] border border-[#C8E6C9] bg-white px-4 py-3 text-[13px] font-medium text-[#1F2937] shadow-xl ring-1 ring-black/5">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 pointer-events-none">
+          <div className="rounded-[10px] border border-[#C8E6C9] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1F2937] shadow-xl">
             {toast}
           </div>
         </div>
-      ) : null}
-
-      {/* unused imports silencer */}
-      <div className="hidden" aria-hidden>
-        <HeartIcon size={1} />
-        <ReplyIcon size={1} />
-        <CommentIcon size={1} />
-      </div>
-    </div>
-  )
-}
-
-/* ========================== COMMENT HELPERS ========================== */
-
-function CommentMeta({ comment }: { comment: CommentItem }) {
-  return (
-    <div className="mb-1.5 flex flex-wrap items-center gap-2">
-      <span
-        className="font-bold text-[#1F2937]"
-        style={{ fontSize: '14px', lineHeight: '20px' }}
-      >
-        {comment.author}
-      </span>
-      {comment.isExpert && (
-        <span className="rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[11px] font-bold text-[#2E7D32]">
-          Chuyên gia
-        </span>
       )}
-      {comment.badges?.map((b) => {
-        if (b.tone === 'member') {
-          return (
-            <span
-              key={b.label}
-              className="inline-flex items-center rounded-full border border-[#C8E6C9] bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-bold text-[#2E7D32]"
-            >
-              {b.label}
-            </span>
-          )
-        }
-        if (b.tone === 'pro') {
-          return (
-            <span
-              key={b.label}
-              className="inline-flex items-center gap-1 rounded-full border border-[#86EFAC] bg-[#2E7D32] px-2 py-0.5 text-[10px] font-bold text-white"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-[#A7F3D0]" />
-              {b.label}
-            </span>
-          )
-        }
-        return (
-          <span
-            key={b.label}
-            className="inline-flex items-center rounded-full border border-[#15803D] bg-[#166534] px-2 py-0.5 text-[10px] font-bold text-white"
-          >
-            {b.label}
-          </span>
-        )
-      })}
-      <span
-        className="font-medium text-[#6B7280]"
-        style={{ fontSize: '12px', lineHeight: '18px' }}
-      >
-        • {comment.timeAgo}
-      </span>
-    </div>
-  )
-}
 
-function CommentBody({ comment }: { comment: CommentItem }) {
-  return (
-    <p
-      className="font-normal leading-7 text-[#1F2937]"
-      style={{ fontSize: '14px', lineHeight: '24px' }}
-    >
-      {comment.content}
-    </p>
-  )
-}
-
-function CommentActions({
-  comment,
-  onLike,
-}: {
-  comment: CommentItem
-  onLike: () => void
-}) {
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-4">
-      <button
-        type="button"
-        onClick={onLike}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#6B7280] transition hover:text-[#2E7D32]"
-        style={{ lineHeight: '18px' }}
-      >
-        <HeartIcon size={13} />
-        <span className="tabular-nums">{comment.likes}</span>
-      </button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        leftIcon={<ReplyIcon size={13} />}
-        className="!text-[#6B7280] hover:!text-[#2E7D32]"
-      >
-        Trả lời
-      </Button>
+      {/* Hidden icon silencer */}
+      <div className="hidden" aria-hidden>
+        <MessageSquare size={1} />
+        <ReplyIcon size={1} />
+      </div>
     </div>
   )
 }

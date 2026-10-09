@@ -284,17 +284,17 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
 
         {/* ============== Tủ bếp AI banner ============== */}
         <section
-          className="mt-6 overflow-hidden rounded-[16px] border border-[#c8e6c9] bg-[#E8F5E9]"
+          className="mt-6 overflow-hidden rounded-[16px] bg-[#1B5E20] text-white shadow-sm"
         >
           <div className="grid gap-6 px-6 py-6 md:grid-cols-12 md:items-center md:px-8 md:py-7">
             <div className="md:col-span-8">
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2.5 py-1 text-[11.5px] font-semibold uppercase tracking-[0.02em] text-[#2E7D32] ring-1 ring-[#C8E6C9]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11.5px] font-semibold uppercase tracking-[0.02em] text-white backdrop-blur">
                 <Sparkles size={11} /> Tính năng thông minh mới
               </span>
-              <h2 className="mt-2 text-[24px] font-extrabold leading-[32px] text-[#1B5E20]">
+              <h2 className="mt-2 text-[24px] font-extrabold leading-[32px] text-white">
                 Bạn có sẵn nguyên liệu trong bếp?
               </h2>
-              <p className="mt-1.5 text-[14px] font-medium leading-[22px] text-[#2E7D32]">
+              <p className="mt-1.5 text-[14px] font-normal leading-[22px] text-emerald-100">
                 Thử ngay tính năng Tủ bếp AI để được gợi ý các món chay thơm ngon,
                 chuẩn dinh dưỡng từ chính những gì bạn đang có!
               </p>
@@ -305,7 +305,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
                 size="md"
                 variant="primary"
                 fullWidth={false}
-                className="!rounded-[12px] !bg-[#2E7D32] !px-5 hover:!bg-[#1B5E20]"
+                className="!rounded-[12px] !bg-white !text-[#1B5E20] !px-5 hover:!bg-[#E8F5E9] font-bold"
                 rightIcon={<ArrowRight size={16} />}
                 leftIcon={<Sparkles size={16} />}
                 onClick={() => {
@@ -313,7 +313,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
                   onNavigate?.('/pantry')
                 }}
               >
-                Khám phá Tủ bếp AI
+                Khám phá Tủ bếp AI -&gt;
               </Button>
             </div>
           </div>
@@ -343,7 +343,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
 
           {isLoading ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <SkeletonLoader count={8} variant="card" />
+              <SkeletonLoader count={6} variant="card" />
             </div>
           ) : totalFiltered === 0 ? (
             <EmptyState
@@ -449,3 +449,5 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
     </div>
   )
 }
+
+export { RecipeList, RecipeList as RecipesPage }

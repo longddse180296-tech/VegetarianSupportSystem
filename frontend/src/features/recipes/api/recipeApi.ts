@@ -4,71 +4,113 @@ import type {
   RecipeListFilter,
   RecipeListResponse,
   RecipeSortOption,
+  RelatedBlogCard,
+  RelatedRestaurantCard,
+  RelatedVideoCard,
 } from '../types/recipe.types'
 import { DEFAULT_RECIPE_FILTER, SORT_LABELS } from '../types/recipe.types'
 
 const delay = (ms = 500) => new Promise<void>((r) => setTimeout(r, ms))
 
-// ---------- Related Articles + Videos mock ----------
-const MOCK_ARTICLES = [
+// ---------- Related Articles + Videos + Restaurants mock ----------
+const MOCK_ARTICLES: RelatedBlogCard[] = [
   {
+    id: 'art-1',
     tag: 'Công thức này',
     tagCls: 'bg-[#DCFCE7] text-[#166534]',
     author: 'BS. Hoàng Nam',
     title: 'Cách bổ sung protein khi ăn chay',
-    desc: 'Phân tích các nguồn đạm thực vật chất lượng cao giúp duy trì lực và cơ bắp vững vàng.',
-    img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=3%20bowls%20of%20colorful%20vegan%20legumes%20chickpeas%20lentils%20black%20beans%20on%20wooden%20table%20top%20view&image_size=landscape_4_3',
-    emoji: '🥗',
+    desc: 'Phân tích các nguồn đạm thực vật chất lượng cao giúp duy trì thể lực và cơ bắp vững vàng.',
+    excerpt: 'Phân tích các nguồn đạm thực vật chất lượng cao giúp duy trì thể lực và cơ bắp vững vàng.',
+    readTime: '4 phút đọc',
+    imageUrl:
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
   },
   {
+    id: 'art-2',
     tag: 'Bài viết dinh dưỡng',
     tagCls: 'bg-[#FEF3C7] text-[#92400E]',
     author: 'ThS. Dinh dưỡng Lê Chi',
     title: 'Những lợi ích của đậu hũ',
     desc: 'Tìm hiểu giá trị đạm thực vật, canxi và isoflavone tự nhiên có trong đậu hũ cho sức khỏe tim mạch.',
-    img: '',
-    emoji: '📝',
+    excerpt: 'Tìm hiểu giá trị đạm thực vật, canxi và isoflavone tự nhiên có trong đậu hũ cho sức khỏe tim mạch.',
+    readTime: '3 phút đọc',
+    imageUrl:
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
   },
   {
+    id: 'art-3',
     tag: 'Bài viết thực hành',
     tagCls: 'bg-[#DBEAFE] text-[#1D4ED8]',
     author: 'Chuyên gia Minh Anh',
     title: 'Xây dựng bữa ăn chay cân bằng',
-    desc: 'Hướng dẫn phân bố hợp ví chế độ, chất xơ và đạm thực khoa học theo tiêu chuẩn BMI.',
-    img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=balanced%20vegan%20meal%20plate%20top%20view%20tofu%20quinoa%20broccoli%20roasted%20vegetables%20herbs%20white%20table&image_size=landscape_4_3',
-    emoji: '🥦',
+    desc: 'Hướng dẫn phối hợp tỉ lệ rau củ, chất xơ và đạm thực vật khoa học theo tiêu chuẩn BMI.',
+    excerpt: 'Hướng dẫn phối hợp tỉ lệ rau củ, chất xơ và đạm thực vật khoa học theo tiêu chuẩn BMI.',
+    readTime: '5 phút đọc',
+    imageUrl:
+      'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600&q=80',
   },
 ]
 
-const MOCK_VIDEOS = [
+const MOCK_VIDEOS: RelatedVideoCard[] = [
   {
+    id: 'vid-1',
     title: 'Cách làm đậu hũ sốt nấm trong 20 phút',
     channel: 'Bếp Chay An Yên',
     duration: '20:00',
-    img: '',
+    imageUrl:
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
   },
   {
+    id: 'vid-2',
     title: 'Cơm gạo lứt ăn cùng đậu hũ',
     channel: 'Đầu bếp Tuấn Khang',
     duration: '15:30',
-    img: '',
+    imageUrl:
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
   },
   {
+    id: 'vid-3',
     title: 'Các món chay giàu protein',
     channel: 'Sống Xanh Daily',
     duration: '18:45',
-    img: '',
+    imageUrl:
+      'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600&q=80',
   },
 ]
 
-export async function getRelatedArticles(_recipeId: string) {
+const MOCK_RESTAURANTS: RelatedRestaurantCard[] = [
+  {
+    id: 'res-an-lac',
+    name: 'Nhà hàng Chay An Lạc',
+    address: '124 Nguyễn Trãi, Quận 1, TP.HCM',
+    distanceKm: 1.2,
+    imageUrl:
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    id: 'res-moc-nhien',
+    name: 'Tiệm Chay Mộc Nhiên',
+    address: '45 Trịnh Hoài Đức, Hoàn Kiếm, Hà Nội',
+    distanceKm: 2.6,
+    imageUrl:
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
+  },
+]
+
+export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlogCard[]> {
   await delay(500)
   return MOCK_ARTICLES
 }
 
-export async function getRelatedVideos(_recipeId: string) {
+export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoCard[]> {
   await delay(500)
   return MOCK_VIDEOS
+}
+
+export async function getRelatedRestaurants(_recipeId: string): Promise<RelatedRestaurantCard[]> {
+  await delay(500)
+  return MOCK_RESTAURANTS
 }
 
 // ---------- Filter options ----------
@@ -139,66 +181,94 @@ export function getRecipeFilterOptions(): RecipeFilterOptions {
 // ---------- In-memory seed data (NO hardcode in Components) ----------
 const IN_MEMORY_RECIPES: Recipe[] = [
   {
-    id: 'r_001_tofu_tomato',
-    title: 'Đậu phụ xốt cà chua thơm ngọt tự nhiên',
+    id: 'dau-hu-sot-nam',
+    title: 'Đậu hũ sốt nấm',
     description:
-      'Công thức đơn giản, thơm mùi hành phi, cà chua chín nhừ kết hợp với đậu phụ vàng đều, ăn với cơm nóng là đỉnh của chóp. Đặc biệt phù hợp khi bạn mới bắt đầu ăn thuần thực vật.',
+      'Món đậu hũ kết hợp cùng nấm và rau củ, đậm đà, dễ làm và giàu dinh dưỡng, thích hợp cho bữa chay hàng ngày.',
+    category: 'Món chính',
+    dietType: 'Thuần chay (Vegan)',
+    prepTime: '10 phút',
+    cookTime: '20 phút',
+    totalTime: '30 phút',
+    servings: 2,
+    calories: 320,
+    protein: 18,
+    carbs: 28,
+    fat: 14,
+    plantRatio: '100%',
+    imageUrl:
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
     coverImage:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=vietnamese%20pan-fried%20tofu%20with%20tomato%20sauce%20rice%20bowl%20green%20garnish%20top%20view&image_size=landscape_4_3',
-    cookTimeMinutes: 25,
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+    cookTimeMinutes: 20,
     prepTimeMinutes: 10,
-    servingSize: 3,
+    servingSize: 2,
     dietCategory: 'vegan',
     difficulty: 'easy',
     isFavorite: true,
     favoriteCount: 1842,
     viewCount: 32110,
-    authorName: 'Bếp Nhà Mẹ',
+    authorName: 'Nguyễn Minh Anh',
     authorAvatar:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=friendly%20asian%20female%20chef%20avatar%20wearing%20green%20apron%20flat%20style&image_size=square',
-    tags: ['đậu phụ', 'cà chua', 'nhanh', 'dễ làm', 'cơm nhà'],
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    tags: ['đậu hũ', 'nấm', 'món chính', 'dễ làm', 'thuần chay'],
     ingredients: [
-      { id: 'ig_01', name: 'Đậu phụ tươi', amount: 400, unit: 'g' },
-      { id: 'ig_02', name: 'Cà chua chín', amount: 3, unit: 'quả', note: 'chọn quả mềm, đỏ đều' },
-      { id: 'ig_03', name: 'Hành tây', amount: 50, unit: 'g' },
-      { id: 'ig_04', name: 'Tỏi băm', amount: 1, unit: 'muỗng canh' },
+      { id: 'ig_01', name: 'Đậu hũ', amount: 200, unit: 'g' },
+      { id: 'ig_02', name: 'Nấm', amount: 150, unit: 'g' },
+      { id: 'ig_03', name: 'Cà rốt', amount: 50, unit: 'g' },
+      { id: 'ig_04', name: 'Hành boa-rô', amount: 20, unit: 'g' },
       { id: 'ig_05', name: 'Nước tương', amount: 2, unit: 'muỗng canh' },
-      { id: 'ig_06', name: 'Ớt trái cây (tuỳ chọn)', amount: 1, unit: 'quả' },
+      { id: 'ig_06', name: 'Dầu mè', amount: 1, unit: 'muỗng cà phê' },
+      { id: 'ig_07', name: 'Tiêu', amount: 'vừa đủ', unit: '' },
     ],
     steps: [
       {
         stepNo: 1,
-        title: 'Sơ chế đậu phụ',
-        description:
-          'Đậu phụ cắt miếng 2-3 cm, để ráo nước hoặc ướp nhẹ 1 muỗng cà phê nước tương 5 phút cho thấm đậm đà hơn.',
-        tip: 'Để ráo nước bông ăn tẩm đậu phụ, bánh sẽ ít bị dính và vàng đều hơn khi chiên.',
-        durationMinutes: 7,
+        stepNumber: 1,
+        title: 'Bước 1',
+        instruction: 'Sơ chế đậu hũ và củ, thái miếng vừa ăn.',
+        description: 'Sơ chế đậu hũ và củ, thái miếng vừa ăn.',
       },
       {
         stepNo: 2,
-        title: 'Chiên vàng đậu phụ',
-        description:
-          'Chảo nóng dầu ăn, đặt từng miếng đậu phụ vào chiên vàng đều 2 mặt, vớt ra đĩa có lót giấy thấm dầu.',
-        durationMinutes: 8,
+        stepNumber: 2,
+        title: 'Bước 2',
+        instruction: 'Rửa sạch nấm và cắt nhỏ.',
+        description: 'Rửa sạch nấm và cắt nhỏ.',
       },
       {
         stepNo: 3,
-        title: 'Làm xốt cà chua',
-        description:
-          'Sử dụng lại dầu còn lại trong chảo, phi thơm tỏi + hành tây băm, thêm cà chua đã cắt múi khoanh vào xào nhừ. Nêm nước tương, chút đường, nhỏ chút nước để cà chua nhừ đều.',
-        tip: 'Thêm 1 muỗng cà phê sốt ớt chua ngọt nếu muốn vị đậm đà hơn.',
-        durationMinutes: 7,
+        stepNumber: 3,
+        title: 'Bước 3',
+        instruction: 'Áp chảo đậu hũ đến khi vàng nhẹ.',
+        description: 'Áp chảo đậu hũ đến khi vàng nhẹ.',
       },
       {
         stepNo: 4,
-        title: 'Toss đậu phụ & hoàn thiện',
-        description:
-          'Thả đậu phụ chiên vàng vào chảo xốt, lắc nhẹ cho đậu phụ bao đều xốt. Nấu thêm 2-3 phút, rắc rau mùi hoặc hành lá cắt nhỏ rồi tắt bếp.',
-        durationMinutes: 3,
+        stepNumber: 4,
+        title: 'Bước 4',
+        instruction: 'Cho nấm và rau củ vào xào.',
+        description: 'Cho nấm và rau củ vào xào.',
+      },
+      {
+        stepNo: 5,
+        stepNumber: 5,
+        title: 'Bước 5',
+        instruction: 'Thêm nước tương, dầu mè và gia vị.',
+        description: 'Thêm nước tương, dầu mè và gia vị.',
+      },
+      {
+        stepNo: 6,
+        stepNumber: 6,
+        instruction: 'Đun thêm vài phút rồi hoàn thành món ăn.',
+        description: 'Đun thêm vài phút rồi hoàn thành món ăn.',
       },
     ],
-    nutrition: { kcal: 380, proteinG: 22, carbsG: 18, fatG: 24, fiberG: 6 },
+    nutrition: { kcal: 320, proteinG: 18, carbsG: 28, fatG: 14, fiberG: 5 },
     publishedAt: '2026-09-12',
+    relatedBlogs: MOCK_ARTICLES,
+    relatedVideos: MOCK_VIDEOS,
+    relatedRestaurants: MOCK_RESTAURANTS,
   },
   {
     id: 'r_002_chia_orange',
@@ -846,9 +916,32 @@ export async function getRecipes(
 }
 
 export async function getRecipeDetail(id: string): Promise<Recipe | null> {
-  await delay()
-  const found = IN_MEMORY_RECIPES.find((r) => r.id === id) ?? null
-  if (found) return { ...found, ingredients: [...found.ingredients], steps: [...found.steps] }
+  await delay(500)
+  const found =
+    IN_MEMORY_RECIPES.find((r) => r.id === id) ??
+    (id === 'dau-hu-sot-nam' || id === 'r_001_tofu_tomato' ? IN_MEMORY_RECIPES[0] : null)
+  if (found) {
+    return {
+      ...found,
+      imageUrl: found.imageUrl || found.coverImage,
+      prepTime: found.prepTime || `${found.prepTimeMinutes || 10} phút`,
+      cookTime: found.cookTime || `${found.cookTimeMinutes} phút`,
+      totalTime:
+        found.totalTime ||
+        `${(found.prepTimeMinutes || 10) + found.cookTimeMinutes} phút`,
+      servings: found.servings || found.servingSize,
+      calories: found.calories || found.nutrition.kcal,
+      protein: found.protein || found.nutrition.proteinG,
+      carbs: found.carbs || found.nutrition.carbsG,
+      fat: found.fat || found.nutrition.fatG,
+      plantRatio: found.plantRatio || '100%',
+      ingredients: [...found.ingredients],
+      steps: [...found.steps],
+      relatedBlogs: found.relatedBlogs || MOCK_ARTICLES,
+      relatedVideos: found.relatedVideos || MOCK_VIDEOS,
+      relatedRestaurants: found.relatedRestaurants || MOCK_RESTAURANTS,
+    }
+  }
   return null
 }
 
