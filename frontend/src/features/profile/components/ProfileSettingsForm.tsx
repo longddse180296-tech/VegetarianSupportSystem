@@ -129,13 +129,15 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-5 w-full">
-      {/* Top Header Card with Back Action */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm flex items-center justify-between gap-4">
+    <div className="flex flex-col gap-6 w-full">
+      {/* Top Header Card */}
+      <div className="bg-white rounded-[16px] border border-[#e5e7eb] p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Cài đặt Tài khoản &amp; Hồ sơ Ăn chay</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Chỉnh sửa thông tin cá nhân, ảnh đại diện, chế độ dinh dưỡng và các tiêu chuẩn an toàn
+          <h2 className="text-xl font-bold text-[#1f2937] tracking-tight">
+            Cài đặt Tài khoản &amp; Hồ sơ Dinh dưỡng
+          </h2>
+          <p className="text-xs text-[#6b7280] mt-0.5">
+            Chỉnh sửa thông tin cá nhân, ảnh đại diện, trường phái ăn chay và chỉ số thể trạng
           </p>
         </div>
 
@@ -144,7 +146,7 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
             variant="outline"
             size="sm"
             onClick={onBackToOverview}
-            leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}
+            leftIcon={<ArrowLeft className="w-3.5 h-3.5 text-[#2e7d32]" />}
           >
             Quay lại Tổng quan
           </Button>
@@ -153,29 +155,29 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
 
       {/* Save Success Alert */}
       {saveSuccess && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-2xs">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+        <div className="p-4 rounded-[12px] bg-[#e8f5e9] border border-emerald-300 text-[#1b5e20] text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-2xs">
+          <CheckCircle2 className="w-4 h-4 text-[#2e7d32] shrink-0" />
           <span>✓ Hồ sơ ăn chay và thông tin tài khoản đã được lưu thành công!</span>
         </div>
       )}
 
       {/* Error Alert */}
       {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-950 text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-2xs">
-          <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+        <div className="p-4 rounded-[12px] bg-rose-50 border border-rose-300 text-rose-900 text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-2xs">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Clean Horizontal Tabs */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-2 shadow-sm flex items-center gap-1.5 overflow-x-auto">
+      {/* Clean Horizontal Tabs (DESIGN.md Navigation) */}
+      <div className="bg-white rounded-[16px] border border-[#e5e7eb] p-2 shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex items-center gap-1.5 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab('info')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'info'
-              ? 'bg-emerald-700 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ? 'bg-[#2e7d32] text-white shadow-xs'
+              : 'text-[#1f2937] hover:bg-[#f8faf8] hover:text-[#2e7d32]'
           }`}
         >
           <User className="w-3.5 h-3.5" />
@@ -185,10 +187,10 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('diet')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'diet'
-              ? 'bg-emerald-700 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ? 'bg-[#2e7d32] text-white shadow-xs'
+              : 'text-[#1f2937] hover:bg-[#f8faf8] hover:text-[#2e7d32]'
           }`}
         >
           <Leaf className="w-3.5 h-3.5" />
@@ -198,10 +200,10 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('allergies')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'allergies'
-              ? 'bg-emerald-700 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ? 'bg-[#2e7d32] text-white shadow-xs'
+              : 'text-[#1f2937] hover:bg-[#f8faf8] hover:text-[#2e7d32]'
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
@@ -211,10 +213,10 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('metrics')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'metrics'
-              ? 'bg-emerald-700 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ? 'bg-[#2e7d32] text-white shadow-xs'
+              : 'text-[#1f2937] hover:bg-[#f8faf8] hover:text-[#2e7d32]'
           }`}
         >
           <Activity className="w-3.5 h-3.5" />
@@ -222,30 +224,30 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
         </button>
       </div>
 
-      {/* Main Tab Content */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-7 shadow-sm">
+      {/* Main Tab Content Card */}
+      <div className="bg-white rounded-[16px] border border-[#e5e7eb] p-6 sm:p-7 shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)]">
         {/* Tab 1: Personal Info & Avatar */}
         {activeTab === 'info' && (
           <div className="flex flex-col gap-6">
             <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">Thông tin Tài khoản &amp; Liên hệ</h3>
-              <span className="text-xs text-slate-400 font-mono">ID: {initialProfile.id}</span>
+              <h3 className="text-base font-bold text-[#1f2937]">Thông tin Tài khoản &amp; Liên hệ</h3>
+              <span className="text-xs text-[#6b7280] font-mono">ID: {initialProfile.id}</span>
             </div>
 
             {/* Avatar Section */}
-            <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex flex-col sm:flex-row items-center gap-5 p-5 rounded-[16px] bg-[#f8faf8] border border-[#e5e7eb]">
               <div className="relative group shrink-0">
                 <img
                   src={avatarUrl}
                   alt={fullName}
-                  className="w-20 h-20 rounded-full object-cover border-2 border-emerald-500 shadow-sm"
+                  className="w-20 h-20 rounded-full object-cover ring-4 ring-[#e8f5e9] border border-emerald-600/30 shadow-sm"
                   onError={(e) => {
                     ;(e.currentTarget as HTMLImageElement).src = PRESET_AVATARS[0]
                   }}
                 />
                 <label
                   htmlFor="avatar-file-input"
-                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-emerald-700 text-white cursor-pointer hover:bg-emerald-800 shadow transition-transform active:scale-95"
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#2e7d32] text-white cursor-pointer hover:bg-[#1b5e20] shadow transition-transform active:scale-95"
                   title="Tải ảnh mới từ máy tính"
                 >
                   <Camera className="w-3.5 h-3.5" />
@@ -262,23 +264,23 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
 
               <div className="flex flex-col gap-2 flex-1 w-full text-center sm:text-left">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900">Ảnh đại diện tài khoản</h4>
-                  <p className="text-xs text-slate-500">
-                    Tải ảnh từ máy tính (PNG, JPG, WebP) hoặc chọn nhanh mẫu avatar có sẵn bên dưới.
+                  <h4 className="text-sm font-bold text-[#1f2937]">Ảnh đại diện tài khoản</h4>
+                  <p className="text-xs text-[#6b7280]">
+                    Tải ảnh từ máy tính (PNG, JPG, WebP tối đa 5MB) hoặc nhấp chọn nhanh mẫu avatar có sẵn bên dưới.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-                  <span className="text-[11px] font-semibold text-slate-600">Chọn mẫu:</span>
+                <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start pt-1">
+                  <span className="text-[11px] font-semibold text-[#6b7280]">Chọn mẫu có sẵn:</span>
                   {PRESET_AVATARS.map((url, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setAvatarUrl(url)}
-                      className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all ${
+                      className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
                         avatarUrl === url
-                          ? 'border-emerald-600 ring-2 ring-emerald-300 scale-105'
-                          : 'border-slate-200 hover:border-emerald-400 opacity-70 hover:opacity-100'
+                          ? 'border-[#2e7d32] ring-2 ring-emerald-300 scale-105'
+                          : 'border-[#e5e7eb] hover:border-[#2e7d32] opacity-75 hover:opacity-100'
                       }`}
                       title={`Mẫu ${idx + 1}`}
                     >
@@ -288,10 +290,10 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
 
                   <label
                     htmlFor="avatar-file-input"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-emerald-800 cursor-pointer shadow-2xs ml-1"
+                    className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-[10px] bg-white border border-[#e5e7eb] text-[#1f2937] hover:bg-[#e8f5e9] hover:text-[#2e7d32] cursor-pointer shadow-2xs ml-1 transition-colors"
                   >
-                    <Upload className="w-3 h-3" />
-                    <span>Tải ảnh lên</span>
+                    <Upload className="w-3 h-3 text-[#2e7d32]" />
+                    <span>Tải ảnh từ máy</span>
                   </label>
                 </div>
               </div>
@@ -310,7 +312,7 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
                     setFullName(e.target.value)
                     if (nameError) setNameError(null)
                   }}
-                  leftIcon={<User className="w-4 h-4" />}
+                  leftIcon={<User className="w-4 h-4 text-slate-400" />}
                   placeholder="Văn Quang Duy"
                 />
               </div>
@@ -321,8 +323,8 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
                   required
                   value={initialProfile.email}
                   disabled
-                  leftIcon={<Mail className="w-4 h-4" />}
-                  rightIcon={<Lock className="w-4 h-4" />}
+                  leftIcon={<Mail className="w-4 h-4 text-slate-400" />}
+                  rightIcon={<Lock className="w-4 h-4 text-slate-400" />}
                   helperText="Email dùng đăng nhập và đặt lại mật khẩu, không thể chỉnh sửa."
                 />
               </div>
@@ -333,7 +335,7 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
                   value={phoneNumber}
                   disabled={isLoading}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  leftIcon={<Phone className="w-4 h-4" />}
+                  leftIcon={<Phone className="w-4 h-4 text-slate-400" />}
                   placeholder="0912 345 678"
                   helperText="Phục vụ liên hệ hỗ trợ hoặc nhận phản hồi từ cộng đồng."
                 />
@@ -341,7 +343,7 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
 
               <div>
                 <Select
-                  label="Khu vực ưu tiên tìm nhà hàng chay"
+                  label="Khu vực ưu tiên tìm quán chay"
                   value={preferredRegion}
                   disabled={isLoading}
                   onChange={(e) => setPreferredRegion(e.target.value)}
@@ -362,7 +364,7 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
           />
         )}
 
-        {/* Tab 3: Allergies */}
+        {/* Tab 3: Allergies & Hidden Guard */}
         {activeTab === 'allergies' && (
           <AllergyManager
             allergies={allergies}
@@ -373,7 +375,7 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
           />
         )}
 
-        {/* Tab 4: Body Metrics */}
+        {/* Tab 4: Body Metrics Calculator */}
         {activeTab === 'metrics' && (
           <BodyMetricsCalculator
             metrics={metrics}
@@ -383,8 +385,8 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
           />
         )}
 
-        {/* Non-floating Form Action Buttons (Clean at bottom of form) */}
-        <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-slate-200">
+        {/* Form Action Buttons */}
+        <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-[#e5e7eb]">
           {onBackToOverview && (
             <Button
               variant="outline"

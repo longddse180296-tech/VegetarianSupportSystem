@@ -5,11 +5,10 @@ import {
   Target,
   Scale,
   Ruler,
-  Sparkles,
-  Info,
   HeartPulse,
   Dumbbell,
   UserCheck,
+  Check,
 } from 'lucide-react'
 import type { BodyMetrics, GoalType, GenderType, ActivityLevel } from '../types'
 import { calculateAllMetrics } from '../api/profileApi'
@@ -76,7 +75,6 @@ const GOAL_OPTIONS: { value: GoalType; label: string; desc: string }[] = [
 export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
   metrics,
   onChange,
-  preferredProteins,
   disabled = false,
 }) => {
   const currentAge = metrics.age || 26
@@ -110,60 +108,66 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
       case 'underweight':
         return {
           label: 'Thiếu cân (< 18.5)',
-          color: 'bg-amber-100 text-amber-800 border-amber-200',
-          advice: 'Khuyến nghị bổ sung các bữa phụ giàu hạt dinh dưỡng và đạm thực vật.',
+          color: 'bg-amber-100 text-amber-900 border-amber-200',
+          advice: 'Khuyến nghị bổ sung các bữa phụ giàu hạt dinh dưỡng và đạm thực vật mật độ cao.',
         }
       case 'normal':
         return {
           label: 'Chuẩn lý tưởng (18.5 - 22.9)',
-          color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          color: 'bg-[#e8f5e9] text-[#1b5e20] border-emerald-300',
           advice: 'Thể trạng rất cân đối theo chuẩn Á Đông! Hãy tiếp tục duy trì chế độ hiện tại.',
         }
       case 'overweight':
         return {
           label: 'Thừa cân (23.0 - 24.9)',
-          color: 'bg-orange-100 text-orange-800 border-orange-200',
+          color: 'bg-orange-100 text-orange-900 border-orange-200',
           advice: 'Nên ưu tiên thực đơn thanh đạm, giảm dầu mỡ và tăng cường vận động nhẹ.',
         }
       case 'obese':
         return {
           label: 'Béo phì (≥ 25.0)',
-          color: 'bg-rose-100 text-rose-800 border-rose-200',
+          color: 'bg-rose-100 text-rose-900 border-rose-200',
           advice: 'Khuyến nghị áp dụng thực đơn thâm hụt calo khoa học và theo dõi chỉ số định kỳ.',
         }
     }
   }
 
   const bmiBadge = getBMIBadge()
-  // Bar scale: 15 to 30 BMI
-  const bmiPercentage = Math.min(Math.max(((metrics.bmi - 15) / 15) * 100, 4), 96)
+  const clampedBMI = Math.min(Math.max(metrics.bmi, 15), 30)
+  const bmiPercentage = ((clampedBMI - 15) / 15) * 100
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Activity className="w-5 h-5 text-emerald-600" />
-          <h3 className="text-base font-bold text-slate-900">
-            Chỉ số Thể trạng &amp; Nhu cầu Năng lượng Cá nhân
-          </h3>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-[10px] bg-[#e8f5e9] text-[#2e7d32] flex items-center justify-center">
+            <Activity className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-[#1f2937] leading-none">
+              Chỉ số Thể trạng &amp; Nhu cầu Năng lượng Cá nhân
+            </h3>
+            <p className="text-[11px] text-[#6b7280] mt-0.5">
+              Tính toán nhu cầu calo, đạm thực vật theo tiêu chuẩn Á Đông
+            </p>
+          </div>
         </div>
-        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#e8f5e9] text-[#2e7d32] border border-emerald-200 flex items-center gap-1.5 shadow-2xs">
           <HeartPulse className="w-3.5 h-3.5" />
-          <span>Chuẩn dinh dưỡng Á Đông</span>
+          <span>Mifflin-St Jeor Formula</span>
         </span>
       </div>
 
-      <p className="text-xs text-slate-600 leading-relaxed">
-        Hệ thống ứng dụng công thức khoa học <strong>Mifflin-St Jeor</strong> để ước tính năng lượng tiêu hao (TDEE)
-        và phân bổ vi chất cần thiết đồng bộ cho việc xây dựng thực đơn 7 ngày và Trợ lý AI.
+      <p className="text-xs text-[#6b7280] leading-relaxed">
+        Hệ thống tự động tính toán tỷ lệ trao đổi chất cơ bản (BMR), tổng năng lượng tiêu hao hàng ngày (TDEE) và phân bổ chất đạm thực vật chính xác để Trợ lý AI và Thực đơn tuần cá nhân hóa khẩu phần ăn cho bạn.
       </p>
 
-      {/* Primary Input Grid: Gender, Age, Height, Weight, Activity, Goal */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90">
+      {/* Primary Input Grid (Gender, Age, Height, Weight, Activity, Goal) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5 rounded-[16px] bg-[#f8faf8] border border-[#e5e7eb]">
         {/* Gender Selection */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+          <label className="text-xs font-semibold text-[#1f2937] flex items-center gap-1">
             <UserCheck className="w-3.5 h-3.5 text-slate-400" />
             <span>Giới tính sinh học</span>
             <span className="text-rose-500">*</span>
@@ -182,10 +186,10 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
                   currentGoal,
                 )
               }
-              className={`rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border ${
+              className={`rounded-[10px] text-xs font-bold transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
                 currentGender === 'male'
-                  ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  ? 'bg-[#2e7d32] text-white border-[#2e7d32] shadow-sm'
+                  : 'bg-white text-[#1f2937] border-[#e5e7eb] hover:bg-slate-50'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span>Nam</span>
@@ -203,23 +207,22 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
                   currentGoal,
                 )
               }
-              className={`rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border ${
+              className={`rounded-[10px] text-xs font-bold transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
                 currentGender === 'female'
-                  ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  ? 'bg-[#2e7d32] text-white border-[#2e7d32] shadow-sm'
+                  : 'bg-white text-[#1f2937] border-[#e5e7eb] hover:bg-slate-50'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span>Nữ</span>
             </button>
           </div>
-          <span className="text-[10px] text-slate-500">Dùng trong công thức tính chuyển hóa cơ bản (BMR)</span>
+          <span className="text-[10px] text-[#6b7280]">Hiệu chỉnh công thức BMR</span>
         </div>
 
         {/* Age Input */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="user-age" className="text-xs font-semibold text-slate-700 flex items-center gap-1">
-            <span>Tuổi</span>
-            <span className="text-rose-500">*</span>
+          <label htmlFor="user-age" className="text-xs font-semibold text-[#1f2937]">
+            Tuổi của bạn <span className="text-rose-500">*</span>
           </label>
           <div className="relative flex items-center">
             <input
@@ -240,18 +243,18 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
                   currentGoal,
                 )
               }}
-              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-slate-900 border border-slate-300 rounded-[10px] focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-[#1f2937] border border-[#e5e7eb] rounded-[10px] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9]"
             />
-            <span className="absolute right-3.5 text-xs text-slate-400 font-semibold pointer-events-none">
+            <span className="absolute right-3.5 text-xs text-[#6b7280] font-semibold pointer-events-none">
               tuổi
             </span>
           </div>
-          <span className="text-[10px] text-slate-500">Độ tuổi tiêu chuẩn từ 15 - 100 tuổi</span>
+          <span className="text-[10px] text-[#6b7280]">Độ tuổi từ 15 - 100</span>
         </div>
 
         {/* Height Input */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="user-height" className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+          <label htmlFor="user-height" className="text-xs font-semibold text-[#1f2937] flex items-center gap-1">
             <Ruler className="w-3.5 h-3.5 text-slate-400" />
             <span>Chiều cao</span>
             <span className="text-rose-500">*</span>
@@ -275,18 +278,18 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
                   currentGoal,
                 )
               }}
-              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-slate-900 border border-slate-300 rounded-[10px] focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-[#1f2937] border border-[#e5e7eb] rounded-[10px] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9]"
             />
-            <span className="absolute right-3.5 text-xs text-slate-400 font-semibold pointer-events-none">
+            <span className="absolute right-3.5 text-xs text-[#6b7280] font-semibold pointer-events-none">
               cm
             </span>
           </div>
-          <span className="text-[10px] text-slate-500">Ví dụ: 165 cm hoặc 170 cm</span>
+          <span className="text-[10px] text-[#6b7280]">Ví dụ: 165 cm</span>
         </div>
 
         {/* Weight Input */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="user-weight" className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+          <label htmlFor="user-weight" className="text-xs font-semibold text-[#1f2937] flex items-center gap-1">
             <Scale className="w-3.5 h-3.5 text-slate-400" />
             <span>Cân nặng</span>
             <span className="text-rose-500">*</span>
@@ -310,20 +313,19 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
                   currentGoal,
                 )
               }}
-              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-slate-900 border border-slate-300 rounded-[10px] focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-[#1f2937] border border-[#e5e7eb] rounded-[10px] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9]"
             />
-            <span className="absolute right-3.5 text-xs text-slate-400 font-semibold pointer-events-none">
+            <span className="absolute right-3.5 text-xs text-[#6b7280] font-semibold pointer-events-none">
               kg
             </span>
           </div>
-          <span className="text-[10px] text-slate-500">Trọng lượng cơ thể hiện tại</span>
+          <span className="text-[10px] text-[#6b7280]">Ví dụ: 55 kg</span>
         </div>
 
-        {/* Activity Level */}
-        <div className="flex flex-col gap-1.5">
+        {/* Activity Level Selector */}
+        <div className="flex flex-col gap-1.5 lg:col-span-2">
           <Select
-            label="Mức độ vận động"
-            required
+            label="Mức độ vận động thể chất hàng tuần"
             value={currentActivity}
             disabled={disabled}
             onChange={(e) =>
@@ -336,23 +338,18 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
                 currentGoal,
               )
             }
-          >
-            {ACTIVITY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
-          <span className="text-[10px] text-slate-500">
-            {ACTIVITY_OPTIONS.find((a) => a.value === currentActivity)?.desc}
-          </span>
+            options={ACTIVITY_OPTIONS.map((opt) => ({
+              value: opt.value,
+              label: `${opt.label} - ${opt.desc}`,
+            }))}
+            helperText="Quyết định hệ số nhân hoạt động thể chất (1.2 đến 1.9)"
+          />
         </div>
 
-        {/* Fitness / Health Goal */}
-        <div className="flex flex-col gap-1.5">
+        {/* Goal Selector */}
+        <div className="flex flex-col gap-1.5 lg:col-span-3">
           <Select
-            label="Mục tiêu sức khỏe & thể chất"
-            required
+            label="Mục tiêu dinh dưỡng & thể hình cá nhân"
             value={currentGoal}
             disabled={disabled}
             onChange={(e) =>
@@ -365,177 +362,179 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
                 e.target.value as GoalType,
               )
             }
-          >
-            {GOAL_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
-          <span className="text-[10px] text-slate-500">
-            {GOAL_OPTIONS.find((g) => g.value === currentGoal)?.desc}
-          </span>
+            options={GOAL_OPTIONS.map((g) => ({
+              value: g.value,
+              label: `${g.label} (${g.desc})`,
+            }))}
+            helperText="Hệ thống tự động bù/trừ năng lượng calo mục tiêu và lượng đạm thực vật"
+          />
         </div>
       </div>
 
-      {/* Calculated Result Dashboard: BMI & TDEE Stat Highlights */}
+      {/* Calculated Results Dashboard (4 Cards with 16px radius) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* BMI Result Card */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex flex-col justify-between gap-3">
+        {/* BMI Card */}
+        <div className="p-4 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Chỉ số BMI Á Đông</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#6b7280]">Chỉ số BMI Á Đông</span>
+            <div className="w-8 h-8 rounded-[10px] bg-[#e8f5e9] text-[#2e7d32] flex items-center justify-center">
               <Activity className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-slate-900 tracking-tight">{metrics.bmi}</div>
+            <div className="text-3xl font-black text-[#1f2937] tracking-tight tabular-nums">
+              {metrics.bmi}
+            </div>
             <div className="mt-2">
               <span
-                className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-md border ${bmiBadge.color}`}
+                className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${bmiBadge.color}`}
               >
                 {bmiBadge.label}
               </span>
             </div>
           </div>
-          <p className="text-[11px] text-slate-500 leading-tight pt-2 border-t border-slate-100">
+          <p className="text-[11px] text-[#6b7280] leading-tight pt-2 border-t border-slate-100">
             {bmiBadge.advice}
           </p>
         </div>
 
         {/* TDEE Energy Card */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex flex-col justify-between gap-3">
+        <div className="p-4 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Nhu cầu Năng lượng (TDEE)</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#6b7280]">Nhu cầu Năng lượng (TDEE)</span>
+            <div className="w-8 h-8 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center">
               <Flame className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-slate-900 tracking-tight">
+            <div className="text-3xl font-black text-[#1f2937] tracking-tight tabular-nums">
               {metrics.tdeeKcal.toLocaleString()}{' '}
-              <span className="text-sm font-semibold text-slate-500">kcal/ngày</span>
+              <span className="text-sm font-semibold text-[#6b7280]">kcal/ngày</span>
             </div>
             <div className="mt-2">
-              <span className="inline-block text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+              <span className="inline-block text-[11px] font-semibold text-[#6b7280] bg-[#f8faf8] border border-[#e5e7eb] px-2 py-0.5 rounded-[6px]">
                 Chuyển hóa BMR: ~{metrics.bmrKcal || 1450} kcal
               </span>
             </div>
           </div>
-          <p className="text-[11px] text-slate-500 leading-tight pt-2 border-t border-slate-100">
+          <p className="text-[11px] text-[#6b7280] leading-tight pt-2 border-t border-slate-100">
             Đã hiệu chỉnh theo mục tiêu {GOAL_OPTIONS.find((g) => g.value === currentGoal)?.label}
           </p>
         </div>
 
         {/* Daily Protein Target */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex flex-col justify-between gap-3">
+        <div className="p-4 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Mục tiêu Đạm thực vật</span>
-            <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#6b7280]">Mục tiêu Đạm thực vật</span>
+            <div className="w-8 h-8 rounded-[10px] bg-sky-50 text-sky-600 flex items-center justify-center">
               <Dumbbell className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-slate-900 tracking-tight">
+            <div className="text-3xl font-black text-[#1f2937] tracking-tight tabular-nums">
               {metrics.dailyProteinGrams}{' '}
-              <span className="text-sm font-semibold text-slate-500">g/ngày</span>
+              <span className="text-sm font-semibold text-[#6b7280]">g/ngày</span>
             </div>
             <div className="mt-2">
-              <span className="inline-block text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+              <span className="inline-block text-[11px] font-semibold text-[#1b5e20] bg-[#e8f5e9] border border-emerald-200 px-2.5 py-0.5 rounded-full">
                 ~{(metrics.dailyProteinGrams / currentWeight).toFixed(1)}g / kg thể trọng
               </span>
             </div>
           </div>
-          <p className="text-[11px] text-slate-500 leading-tight pt-2 border-t border-slate-100">
-            Cung cấp nguồn acid amin đầy đủ từ đậu, hạt và nấm.
+          <p className="text-[11px] text-[#6b7280] leading-tight pt-2 border-t border-slate-100">
+            Nguồn acid amin dồi dào từ đậu nành, đậu gà, hạt diêm mạch và nấm.
           </p>
         </div>
 
         {/* Goal Indicator Card */}
-        <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/90 shadow-sm flex flex-col justify-between gap-3">
+        <div className="p-4 rounded-[16px] bg-[#e8f5e9]/50 border border-emerald-200 shadow-2xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-900">Chiến lược Thực đơn</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#1b5e20]">Chiến lược Dinh dưỡng</span>
+            <div className="w-8 h-8 rounded-[10px] bg-[#2e7d32] text-white flex items-center justify-center">
               <Target className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="text-base font-bold text-emerald-950 leading-snug">
+            <div className="text-sm font-bold text-[#1b5e20] leading-snug">
               {GOAL_OPTIONS.find((g) => g.value === currentGoal)?.label}
             </div>
-            <p className="text-xs text-emerald-800 mt-1">
+            <p className="text-xs text-[#2e7d32] mt-1">
               Thực đơn 7 ngày sẽ tự động chọn món phù hợp mức năng lượng này.
             </p>
           </div>
-          <div className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 pt-2 border-t border-emerald-200/60">
-            <span>✓ Đang kích hoạt đồng bộ</span>
+          <div className="text-[11px] font-bold text-[#2e7d32] flex items-center gap-1.5 pt-2 border-t border-emerald-200/80">
+            <Check className="w-3.5 h-3.5" />
+            <span>Đang kích hoạt đồng bộ</span>
           </div>
         </div>
       </div>
 
-      {/* Visual BMI Bar Gauge */}
-      <div className="flex flex-col gap-2 p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm">
-        <div className="flex items-center justify-between text-xs text-slate-700 flex-wrap gap-2">
-          <span className="font-bold text-slate-900">Thang đo BMI chuẩn cộng đồng Á Đông</span>
-          <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+      {/* Visual BMI Bar Gauge (DESIGN.md #255: 8px linear track, floating 16px circular pin) */}
+      <div className="flex flex-col gap-3 p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)]">
+        <div className="flex items-center justify-between text-xs text-[#1f2937] flex-wrap gap-2">
+          <span className="font-bold">Thang đo BMI chuẩn cộng đồng Á Đông</span>
+          <span className="font-bold text-[#2e7d32] bg-[#e8f5e9] px-3 py-1 rounded-full border border-emerald-200">
             BMI của bạn: {metrics.bmi} ({bmiBadge.label})
           </span>
         </div>
 
         {/* Gauge Bar */}
-        <div className="relative pt-4 pb-2">
-          {/* Needle Indicator */}
+        <div className="relative pt-6 pb-2">
+          {/* Floating Pin Indicator */}
           <div
             className="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-all duration-300 z-10"
             style={{ left: `${bmiPercentage}%` }}
           >
-            <div className="w-3 h-3 bg-emerald-900 rotate-45 shadow-sm" />
+            <div className="bg-[#1b5e20] text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm whitespace-nowrap mb-1">
+              {metrics.bmi}
+            </div>
+            <div className="w-4 h-4 rounded-full bg-[#2e7d32] border-2 border-white ring-2 ring-emerald-300 shadow-sm" />
           </div>
 
-          <div className="w-full h-3.5 rounded-full flex overflow-hidden shadow-inner">
-            <div className="h-full bg-amber-300 flex-[3.5]" title="Thiếu cân (< 18.5)" />
-            <div className="h-full bg-emerald-500 flex-[4.5]" title="Chuẩn lý tưởng (18.5 - 22.9)" />
-            <div className="h-full bg-orange-400 flex-[2]" title="Thừa cân (23.0 - 24.9)" />
-            <div className="h-full bg-rose-500 flex-[5]" title="Béo phì (≥ 25.0)" />
+          <div className="w-full h-2 rounded-full flex overflow-hidden shadow-inner bg-slate-100">
+            <div className="h-full bg-amber-400 flex-[3.5]" title="Thiếu cân (< 18.5)" />
+            <div className="h-full bg-[#2e7d32] flex-[4.4]" title="Chuẩn lý tưởng (18.5 - 22.9)" />
+            <div className="h-full bg-orange-400 flex-[2.0]" title="Thừa cân (23.0 - 24.9)" />
+            <div className="h-full bg-rose-500 flex-[5.1]" title="Béo phì (≥ 25.0)" />
           </div>
         </div>
 
         {/* Labels under bar */}
-        <div className="grid grid-cols-4 text-[10px] text-slate-500 text-center font-medium pt-1">
+        <div className="grid grid-cols-4 text-[10px] sm:text-[11px] text-[#6b7280] text-center font-medium pt-1">
           <span>Thiếu cân (&lt; 18.5)</span>
-          <span className="text-emerald-700 font-bold">Chuẩn lý tưởng (18.5 - 22.9)</span>
+          <span className="text-[#1b5e20] font-bold">Chuẩn lý tưởng (18.5 - 22.9)</span>
           <span>Thừa cân (23 - 24.9)</span>
           <span>Béo phì (≥ 25)</span>
         </div>
       </div>
 
       {/* Macronutrient Distribution Card */}
-      <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex flex-col gap-4">
+      <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-900">
-            Phân bổ 3 nhóm chất đa lượng trong ngày ({metrics.tdeeKcal} kcal):
+          <span className="text-xs font-bold text-[#1f2937]">
+            Phân bổ 3 nhóm chất đa lượng trong ngày ({metrics.tdeeKcal.toLocaleString()} kcal):
           </span>
-          <span className="text-[11px] text-slate-500 font-medium">Tỷ lệ năng lượng chuẩn</span>
+          <span className="text-[11px] text-[#6b7280] font-medium">Tỷ lệ năng lượng chuẩn</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           {/* Protein */}
-          <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/70">
+          <div className="p-4 rounded-[12px] bg-[#e8f5e9]/60 border border-emerald-200">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-emerald-900">Đạm thực vật (Protein)</span>
-              <span className="text-xs font-bold text-emerald-700">
+              <span className="text-xs font-semibold text-[#1b5e20]">Đạm thực vật (Protein)</span>
+              <span className="text-xs font-bold text-[#2e7d32]">
                 {Math.round(((metrics.dailyProteinGrams * 4) / metrics.tdeeKcal) * 100)}%
               </span>
             </div>
-            <div className="text-xl font-black text-slate-900 mt-1">
+            <div className="text-xl font-black text-[#1f2937] mt-1 tabular-nums">
               {metrics.dailyProteinGrams}g{' '}
-              <span className="text-xs font-normal text-slate-500">
+              <span className="text-xs font-normal text-[#6b7280]">
                 ({metrics.dailyProteinGrams * 4} kcal)
               </span>
             </div>
-            <div className="w-full bg-emerald-200/60 h-2 rounded-full mt-2 overflow-hidden">
+            <div className="w-full bg-emerald-200/60 h-2 rounded-full mt-2.5 overflow-hidden">
               <div
-                className="bg-emerald-600 h-full rounded-full"
+                className="bg-[#2e7d32] h-full rounded-full transition-all"
                 style={{
                   width: `${Math.min(100, Math.round(((metrics.dailyProteinGrams * 4) / metrics.tdeeKcal) * 100))}%`,
                 }}
@@ -544,22 +543,22 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
           </div>
 
           {/* Carbs */}
-          <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/70">
+          <div className="p-4 rounded-[12px] bg-amber-50/60 border border-amber-200">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-amber-900">Tinh bột phức (Carbs)</span>
               <span className="text-xs font-bold text-amber-700">
                 {Math.round(((metrics.dailyCarbsGrams * 4) / metrics.tdeeKcal) * 100)}%
               </span>
             </div>
-            <div className="text-xl font-black text-slate-900 mt-1">
+            <div className="text-xl font-black text-[#1f2937] mt-1 tabular-nums">
               {metrics.dailyCarbsGrams}g{' '}
-              <span className="text-xs font-normal text-slate-500">
+              <span className="text-xs font-normal text-[#6b7280]">
                 ({metrics.dailyCarbsGrams * 4} kcal)
               </span>
             </div>
-            <div className="w-full bg-amber-200/60 h-2 rounded-full mt-2 overflow-hidden">
+            <div className="w-full bg-amber-200/60 h-2 rounded-full mt-2.5 overflow-hidden">
               <div
-                className="bg-amber-500 h-full rounded-full"
+                className="bg-amber-500 h-full rounded-full transition-all"
                 style={{
                   width: `${Math.min(100, Math.round(((metrics.dailyCarbsGrams * 4) / metrics.tdeeKcal) * 100))}%`,
                 }}
@@ -567,64 +566,29 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
             </div>
           </div>
 
-          {/* Fat */}
-          <div className="p-3.5 rounded-xl bg-sky-50/60 border border-sky-200/70">
+          {/* Fats */}
+          <div className="p-4 rounded-[12px] bg-sky-50/60 border border-sky-200">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-sky-900">Chất béo lành mạnh (Fat)</span>
+              <span className="text-xs font-semibold text-sky-900">Chất béo tốt (Healthy Fats)</span>
               <span className="text-xs font-bold text-sky-700">
                 {Math.round(((metrics.dailyFatGrams * 9) / metrics.tdeeKcal) * 100)}%
               </span>
             </div>
-            <div className="text-xl font-black text-slate-900 mt-1">
+            <div className="text-xl font-black text-[#1f2937] mt-1 tabular-nums">
               {metrics.dailyFatGrams}g{' '}
-              <span className="text-xs font-normal text-slate-500">
+              <span className="text-xs font-normal text-[#6b7280]">
                 ({metrics.dailyFatGrams * 9} kcal)
               </span>
             </div>
-            <div className="w-full bg-sky-200/60 h-2 rounded-full mt-2 overflow-hidden">
+            <div className="w-full bg-sky-200/60 h-2 rounded-full mt-2.5 overflow-hidden">
               <div
-                className="bg-sky-500 h-full rounded-full"
+                className="bg-sky-500 h-full rounded-full transition-all"
                 style={{
                   width: `${Math.min(100, Math.round(((metrics.dailyFatGrams * 9) / metrics.tdeeKcal) * 100))}%`,
                 }}
               />
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Preferred Protein Sources */}
-      <div className="flex flex-col gap-2.5 p-4 rounded-xl bg-slate-50 border border-slate-200">
-        <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-emerald-600" />
-          <span>Nguồn đạm thực vật ưu tiên được đề xuất trong thực đơn:</span>
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {preferredProteins.map((item) => (
-            <span
-              key={item}
-              className="text-xs px-2.5 py-1 rounded-lg bg-white text-emerald-800 font-semibold border border-slate-200 shadow-2xs flex items-center gap-1"
-            >
-              <span>✓</span>
-              <span>{item}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Mandatory Medical Disclaimer Banner (MVP Requirement Section 3) */}
-      <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-300 text-amber-950 text-xs flex items-start gap-3 shadow-2xs">
-        <Info className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
-        <div className="flex flex-col gap-1 leading-relaxed">
-          <strong className="text-amber-900 font-bold">
-            Khuyến cáo Dinh dưỡng &amp; Giới hạn Y khoa:
-          </strong>
-          <p>
-            Chỉ số BMI, TDEE và các mục tiêu vi chất trên đây là kết quả tính toán tham khảo theo công thức
-            khoa học, phục vụ việc xây dựng kế hoạch thực đơn cá nhân hóa trên hệ thống Vegetarian Support.{' '}
-            <strong>Hệ thống không đưa ra chẩn đoán y khoa, phác đồ điều trị hay thay thế tư vấn y khoa chuyên sâu.</strong>{' '}
-            Người có tình trạng bệnh lý đặc biệt (tim mạch, tiểu đường, phụ nữ mang thai) nên tham vấn bác sĩ chuyên khoa dinh dưỡng.
-          </p>
         </div>
       </div>
     </div>
