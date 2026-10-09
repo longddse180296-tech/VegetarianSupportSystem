@@ -32,11 +32,21 @@ import {
 } from '../../../shared/components'
 import {
   filterRestaurants,
+  getRelatedContent,
   getRestaurantDetail,
   getRestaurantMenu,
+  getReviewComments,
+  getWeekHours,
 } from '../api/restaurantApi'
 import { RestaurantCard } from '../components/RestaurantCard'
-import type { Restaurant, RestaurantDietType, RestaurantDish } from '../types/restaurant.types'
+import type {
+  RelatedContentCard,
+  Restaurant,
+  RestaurantDietType,
+  RestaurantDish,
+  ReviewComment,
+  WeekHour,
+} from '../types/restaurant.types'
 import {
   DIET_TYPE_LABELS,
   formatPriceRange,
@@ -47,94 +57,6 @@ interface RestaurantDetailPageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
-
-/* ---------- Mock data for Detail-only sections ---------- */
-const WEEK_HOURS = [
-  { day: 'Thứ Hai', label: 'Thứ Hai', time: '08:00 - 22:00' },
-  { day: 'Thứ Ba', label: 'Thứ Ba', time: '08:00 - 22:00' },
-  { day: 'Thứ Tư', label: 'Thứ Tư', time: '08:00 - 22:00' },
-  { day: 'Thứ Năm', label: 'Thứ Năm', time: '08:00 - 22:00' },
-  { day: 'Thứ Sáu', label: 'Thứ Sáu', time: '08:00 - 22:00', isToday: true },
-  { day: 'Thứ Bảy', label: 'Thứ Bảy', time: '08:00 - 23:00' },
-  { day: 'Chủ Nhật', label: 'Chủ Nhật', time: '08:00 - 23:00' },
-]
-
-interface ReviewComment {
-  id: string
-  userName: string
-  avatarSeed: string
-  rating: number
-  content: string
-  timeAgo: string
-}
-
-const MOCK_COMMENTS: ReviewComment[] = [
-  {
-    id: 'c1',
-    userName: 'Nguyễn Thảo Nhi',
-    avatarSeed: 'happy young vietnamese woman avatar portrait smiling',
-    rating: 5,
-    content:
-      'Đậu hũ sốt nấm ở đây đậm vị quá, nước dùng cà ri dừa béo không ngán. Không gian yên tĩnh, nhạc nhẹ, rất hợp đi với bạn bè hoặc người thân vào cuối tuần.',
-    timeAgo: '3 ngày trước',
-  },
-  {
-    id: 'c2',
-    userName: 'Trần Minh Đức',
-    avatarSeed: 'professional young vietnamese man avatar portrait glasses',
-    rating: 4,
-    content:
-      'Đi văn phòng gần đó ghé ăn trưa, giá ổn, phần ăn đủ no. Nhân viên phục vụ lịch sự, quán sạch sẽ. Chỉ trừ chỗ đậu xe hơi hơi nhỏ nên đi xe máy tiện hơn.',
-    timeAgo: '1 tuần trước',
-  },
-  {
-    id: 'c3',
-    userName: 'Lê Hoàng Anh',
-    avatarSeed: 'elderly vietnamese grandmother avatar portrait kind smiling',
-    rating: 5,
-    content:
-      'Món gỏi cuốn tươi lắm, nhà hàng dùng rau hữu cơ nên ăn rất yên tâm. Chủ quán rất nhiệt tình giới thiệu từng món và cách làm dinh dưỡng. Gia đình tôi sẽ quay lại!',
-    timeAgo: '2 tuần trước',
-  },
-]
-
-const RELATED_CONTENT: Array<{
-  id: string
-  tag: string
-  tagStyle: string
-  title: string
-  desc: string
-  meta: string
-  imgSeed: string
-}> = [
-  {
-    id: 'r1',
-    tag: 'Công thức nấu',
-    tagStyle: 'bg-[#E8F5E9] text-[#2E7D32] border-[#C4E5D0]',
-    title: 'Công thức: Đậu hũ sốt nấm',
-    desc: 'Tự nấu đậu hũ sốt nấm chay đậm đà, trọn vị thanh đạm ngay tại căn bếp nhỏ của bạn.',
-    meta: '⏱ 25 phút · 🔥 210 kcal',
-    imgSeed: 'vegan tofu mushroom recipe dish homemade cozy kitchen',
-  },
-  {
-    id: 'r2',
-    tag: 'Bài viết dinh dưỡng',
-    tagStyle: 'bg-[#FFF8F3] text-[#9C5B22] border-[#F1E0C6]',
-    title: 'Cẩm nang: 7 lợi ích của chế độ ăn chay đối với sức khỏe',
-    desc: 'Phân tích khoa học về tác động tích cực của thực dưỡng đối với tim mạch và hệ tiêu hóa.',
-    meta: '📖 BS. Hoàng Nam · 6 phút đọc',
-    imgSeed: 'nutritionist healthy vegan plate vegetables research article',
-  },
-  {
-    id: 'r3',
-    tag: 'Video hướng dẫn',
-    tagStyle: 'bg-[#EEF4FF] text-[#23509A] border-[#C7D6F3]',
-    title: 'Video: Bí quyết làm nấm chay thanh ngọt tại nhà',
-    desc: 'Hướng dẫn chi tiết cách làm nấm chay ngọt thanh 30 phút, không cần đậm đà, bớt ngọt và nướng 100%.',
-    meta: '⏱ 12:30 · 👁 15 355 lượt',
-    imgSeed: 'vegan cooking video tutorial mushroom dish home kitchen thumbnail',
-  },
-]
 
 /* ================================================================== */
 /* Main
@@ -150,7 +72,9 @@ export default function RestaurantDetail({
   const [toast, setToast] = useState<string | null>(null)
   const [favorite, setFavorite] = useState(false)
   const [menu, setMenu] = useState<RestaurantDish[]>([])
-  const [comments, setComments] = useState<ReviewComment[]>(MOCK_COMMENTS)
+  const [weekHours, setWeekHours] = useState<WeekHour[]>([])
+  const [comments, setComments] = useState<ReviewComment[]>([])
+  const [relatedContent, setRelatedContent] = useState<RelatedContentCard[]>([])
   const [newComment, setNewComment] = useState('')
 
   useEffect(() => {
@@ -158,14 +82,20 @@ export default function RestaurantDetail({
     ;(async () => {
       setIsLoading(true)
       try {
-        const [data, menuData] = await Promise.all([
+        const [data, menuData, hours, commentData, related] = await Promise.all([
           getRestaurantDetail(restaurantId),
           getRestaurantMenu(restaurantId),
+          getWeekHours(restaurantId),
+          getReviewComments(restaurantId),
+          getRelatedContent(restaurantId),
         ])
         if (!cancelled) {
           setRestaurant(data)
           setFavorite(false)
           setMenu(menuData)
+          setWeekHours(hours)
+          setComments(commentData)
+          setRelatedContent(related)
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -754,7 +684,7 @@ export default function RestaurantDetail({
             </h2>
             <div className="rounded-[16px] border border-[#E2EDE6] bg-white p-2.5 shadow-[0_4px_14px_rgba(31,122,63,0.04)]">
               <div className="flex flex-col gap-[2px]">
-                {WEEK_HOURS.map((wh) => (
+                {weekHours.map((wh) => (
                   <div
                     key={wh.day}
                     className={`flex items-center justify-between rounded-[10px] px-3 py-[10px] transition hover:bg-[#F5FAF6] ${
@@ -1012,7 +942,7 @@ export default function RestaurantDetail({
             </h2>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-            {RELATED_CONTENT.map((item) => {
+            {relatedContent.map((item) => {
               const isVideo = item.id === 'r3'
               return (
                 <article

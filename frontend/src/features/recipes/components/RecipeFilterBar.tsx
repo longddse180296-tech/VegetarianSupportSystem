@@ -60,7 +60,6 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
     filter.search.trim() !== '' ||
     filter.diet !== DEFAULT_RECIPE_FILTER.diet ||
     filter.difficulty !== DEFAULT_RECIPE_FILTER.difficulty ||
-    filter.favoritesOnly !== DEFAULT_RECIPE_FILTER.favoritesOnly ||
     category !== 'all' ||
     cookTimeTier !== 'all' ||
     kcalTier !== 'all'

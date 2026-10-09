@@ -125,6 +125,33 @@ export interface RestaurantDish {
   priceVND?: number
 }
 
+// ---------- Detail page supporting types ----------
+export interface WeekHour {
+  day: string
+  label: string
+  time: string
+  isToday?: boolean
+}
+
+export interface ReviewComment {
+  id: string
+  userName: string
+  avatarSeed: string
+  rating: number
+  content: string
+  timeAgo: string
+}
+
+export interface RelatedContentCard {
+  id: string
+  tag: string
+  tagStyle: string
+  title: string
+  desc: string
+  meta: string
+  imgSeed: string
+}
+
 // ---------- Helpers ----------
 export function formatPriceRange(min: number, max: number): string {
   const fmt = (n: number) =>

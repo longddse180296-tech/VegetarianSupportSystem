@@ -1,15 +1,91 @@
 import type {
   DishChip,
   MapPinMarker,
+  RelatedContentCard,
   Restaurant,
   RestaurantDish,
   RestaurantFilter,
   RestaurantListResponse,
   RestaurantSortOption,
+  ReviewComment,
+  WeekHour,
 } from '../types/restaurant.types'
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
 
 const delay = (ms = 500) => new Promise<void>((r) => setTimeout(r, ms))
+
+/* ---------- Restaurant Detail: Week hours ---------- */
+const MOCK_WEEK_HOURS: WeekHour[] = [
+  { day: 'Thứ Hai', label: 'Thứ Hai', time: '08:00 - 22:00' },
+  { day: 'Thứ Ba', label: 'Thứ Ba', time: '08:00 - 22:00' },
+  { day: 'Thứ Tư', label: 'Thứ Tư', time: '08:00 - 22:00' },
+  { day: 'Thứ Năm', label: 'Thứ Năm', time: '08:00 - 22:00' },
+  { day: 'Thứ Sáu', label: 'Thứ Sáu', time: '08:00 - 22:00', isToday: true },
+  { day: 'Thứ Bảy', label: 'Thứ Bảy', time: '08:00 - 23:00' },
+  { day: 'Chủ Nhật', label: 'Chủ Nhật', time: '08:00 - 23:00' },
+]
+
+/* ---------- Restaurant Detail: Review comments ---------- */
+const MOCK_REVIEW_COMMENTS: ReviewComment[] = [
+  {
+    id: 'c1',
+    userName: 'Nguyễn Thảo Nhi',
+    avatarSeed: 'happy young vietnamese woman avatar portrait smiling',
+    rating: 5,
+    content:
+      'Đậu hũ sốt nấm ở đây đậm vị quá, nước dùng cà ri dừa béo không ngán. Không gian yên tĩnh, nhạc nhẹ, rất hợp đi với bạn bè hoặc người thân vào cuối tuần.',
+    timeAgo: '3 ngày trước',
+  },
+  {
+    id: 'c2',
+    userName: 'Trần Minh Đức',
+    avatarSeed: 'professional young vietnamese man avatar portrait glasses',
+    rating: 4,
+    content:
+      'Đi văn phòng gần đó ghé ăn trưa, giá ổn, phần ăn đủ no. Nhân viên phục vụ lịch sự, quán sạch sẽ. Chỉ trừ chỗ đậu xe hơi hơi nhỏ nên đi xe máy tiện hơn.',
+    timeAgo: '1 tuần trước',
+  },
+  {
+    id: 'c3',
+    userName: 'Lê Hoàng Anh',
+    avatarSeed: 'elderly vietnamese grandmother avatar portrait kind smiling',
+    rating: 5,
+    content:
+      'Món gỏi cuốn tươi lắm, nhà hàng dùng rau hữu cơ nên ăn rất yên tâm. Chủ quán rất nhiệt tình giới thiệu từng món và cách làm dinh dưỡng. Gia đình tôi sẽ quay lại!',
+    timeAgo: '2 tuần trước',
+  },
+]
+
+/* ---------- Restaurant Detail: Related content cards ---------- */
+const MOCK_RELATED_CONTENT: RelatedContentCard[] = [
+  {
+    id: 'r1',
+    tag: 'Công thức nấu',
+    tagStyle: 'bg-[#E8F5E9] text-[#2E7D32] border-[#C4E5D0]',
+    title: 'Công thức: Đậu hũ sốt nấm',
+    desc: 'Tự nấu đậu hũ sốt nấm chay đậm đà, trọn vị thanh đạm ngay tại căn bếp nhỏ của bạn.',
+    meta: '⏱ 25 phút · 🔥 210 kcal',
+    imgSeed: 'vegan tofu mushroom recipe dish homemade cozy kitchen',
+  },
+  {
+    id: 'r2',
+    tag: 'Bài viết dinh dưỡng',
+    tagStyle: 'bg-[#FFF8F3] text-[#9C5B22] border-[#F1E0C6]',
+    title: 'Cẩm nang: 7 lợi ích của chế độ ăn chay đối với sức khỏe',
+    desc: 'Phân tích khoa học về tác động tích cực của thực dưỡng đối với tim mạch và hệ tiêu hóa.',
+    meta: '📖 BS. Hoàng Nam · 6 phút đọc',
+    imgSeed: 'nutritionist healthy vegan plate vegetables research article',
+  },
+  {
+    id: 'r3',
+    tag: 'Video hướng dẫn',
+    tagStyle: 'bg-[#EEF4FF] text-[#23509A] border-[#C7D6F3]',
+    title: 'Video: Bí quyết làm nấm chay thanh ngọt tại nhà',
+    desc: 'Hướng dẫn chi tiết cách làm nấm chay ngọt thanh 30 phút, không cần đậm đà, bớt ngọt và nướng 100%.',
+    meta: '⏱ 12:30 · 👁 15 355 lượt',
+    imgSeed: 'vegan cooking video tutorial mushroom dish home kitchen thumbnail',
+  },
+]
 
 /* ---------- Dish chips (món tìm kiếm nhanh) ---------- */
 const DISH_CHIPS: DishChip[] = [
@@ -571,6 +647,21 @@ export async function getRestaurantMenu(
 ): Promise<RestaurantDish[]> {
   await delay(500)
   return DISH_CARDS
+}
+
+export async function getWeekHours(_id: string): Promise<WeekHour[]> {
+  await delay(500)
+  return MOCK_WEEK_HOURS
+}
+
+export async function getReviewComments(_id: string): Promise<ReviewComment[]> {
+  await delay(500)
+  return MOCK_REVIEW_COMMENTS
+}
+
+export async function getRelatedContent(_id: string): Promise<RelatedContentCard[]> {
+  await delay(500)
+  return MOCK_RELATED_CONTENT
 }
 
 export { IN_MEMORY_RESTAURANTS as __DEBUG_IN_MEMORY_RESTAURANTS__ }
