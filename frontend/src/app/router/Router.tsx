@@ -18,7 +18,7 @@ import { PublicLayout } from '../layouts/PublicLayout'
 import HomePage from '../../features/home/pages/HomePage'
 import RecipeList from '../../features/recipes/pages/RecipeList'
 import RecipeDetail from '../../features/recipes/pages/RecipeDetail'
-import AiChatShell from '../../features/ai-chat/AiChatShell'
+import AiChatPage from '../../features/ai-chat/pages/AiChatPage'
 import {
   ArticleList,
   ArticleDetail,
@@ -100,8 +100,8 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     )
   }
 
-  if (path === '/ai-chat' || path === 'aichat') {
-    return withPublic(<AiChatShell />, 'ai-chat', ctx)
+  if (path === '/ai-chat' || path === 'aichat' || path === '/aichat' || path === 'ai-chat') {
+    return withPublic(<AiChatPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />, 'ai-chat', ctx)
   }
 
   const articleMatch = path.match(/^\/articles\/([^/]+)\/?$/)

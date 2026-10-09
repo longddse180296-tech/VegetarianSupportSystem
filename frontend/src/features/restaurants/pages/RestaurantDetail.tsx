@@ -1,303 +1,486 @@
+import { useEffect, useState } from 'react'
 import {
-  MapPin,
-  Phone,
+  ArrowLeft,
   Clock,
-  BadgeCheck,
-  Banknote,
-  Leaf,
-  UtensilsCrossed,
-  Wifi,
-  ParkingCircle,
-  TreePine,
+  Heart,
+  MapPin,
   Navigation,
-  Map,
-  ChevronRight,
+  Phone,
+  Star,
+  Wallet,
+  Globe,
+  ParkingCircle,
+  Calendar,
+  Sparkles,
+  Coffee,
+  Share2,
+  Truck,
 } from 'lucide-react'
-import './RestaurantDetail.css'
+import {
+  Button,
+  EmptyState,
+  SkeletonLoader,
+  StatusBadge,
+} from '../../../shared/components'
+import { getRestaurantDetail } from '../api/restaurantApi'
+import { RestaurantCard } from '../components/RestaurantCard'
+import type { Restaurant, RestaurantDietType } from '../types/restaurant.types'
+import {
+  DIET_TYPE_LABELS,
+  formatPriceRange,
+} from '../types/restaurant.types'
 
-interface Props {
-  restaurantId: string;
-  onNavigate?: (path: string) => void;
+interface RestaurantDetailPageProps {
+  restaurantId?: string
+  onNavigate?: (path: string) => void
+  isLoggedIn?: boolean
 }
 
-const HOURS = [
-  { day: 'Thứ Hai', time: '08:00 - 22:00', highlight: false, today: false },
-  { day: 'Thứ Ba', time: '08:00 - 22:00', highlight: false, today: false },
-  { day: 'Thứ Tư', time: '08:00 - 22:00', highlight: false, today: false },
-  { day: 'Thứ Năm', time: '08:00 - 22:00', highlight: false, today: true },
-  { day: 'Thứ Sáu', time: '08:00 - 22:00', highlight: false, today: false },
-  { day: 'Thứ Bảy', time: '08:00 - 23:00', highlight: false, today: false },
-  { day: 'Chủ Nhật', time: '08:00 - 23:00', highlight: false, today: false },
-] as const
+function mapDietBadge(
+  d: RestaurantDietType,
+): 'suitable' | 'info' | 'insufficient' | 'warning' | 'neutral' {
+  switch (d) {
+    case 'vegan':
+      return 'suitable'
+    case 'ovo-lacto':
+    case 'ovo':
+    case 'lacto':
+      return 'insufficient'
+    case 'raw':
+      return 'info'
+    case 'vegetarian-friendly':
+      return 'warning'
+    default:
+      return 'neutral'
+  }
+}
 
-const SIGNATURE_DISHES = [
-  { id: 'd1', name: 'Đậu hũ sốt nấm', desc: 'Đậu hũ chiên vàng sốt nấm hương và nấm đông cô đậm đà thanh vị.', tag: 'MÓN ĐƯỢC GỢI Ý', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Braised%20tofu%20with%20mushroom%20shiitake%20oyster%20sauce%20ceramic%20plate&image_size=square_hd' },
-  { id: 'd2', name: 'Đậu hũ áp chảo sốt tiêu đen', desc: 'Đậu hũ mềm ướp tiêu đen áp chảo tếu đen và dứa chưng Đà Lạt.', tag: 'THỰC DƯỠNG', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Pan%20seared%20tofu%20black%20pepper%20pineapple%20Vietnamese&image_size=square_hd' },
-  { id: 'd3', name: 'Cuốn đậu hũ nấm tươi', desc: 'Cuốn rấm mềm, nấm tươi và đậu hũ chiên lương mề rang.', tag: 'MÓN CUẨN THANH MẠT', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Fresh%20vegetable%20rice%20paper%20rolls%20tofu%20mushroom%20herbs&image_size=square_hd' },
-]
+export default function RestaurantDetail({
+  restaurantId = '',
+  onNavigate,
+  isLoggedIn: _isLoggedIn,
+}: RestaurantDetailPageProps) {
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [toast, setToast] = useState<string | null>(null)
+  const [favorite, setFavorite] = useState(false)
 
-const RELATED_CONTENT = [
-  { id: 'r1', type: 'Công thức nấu', title: 'Công thức: Đậu hũ sốt nấm', desc: 'Từ nấm đông cô thơm ngon, tron vị thanh đạm ngay tại tại bếp bạn.', meta: '👩🍳 25 phút   •   🔥 320 kcal', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Tofu%20mushroom%20recipe%20cooking%20bowl%20fresh%20herbs&image_size=square_hd' },
-  { id: 'r2', type: 'Bài viết dinh dưỡng', title: 'Cẩm nang: 7 lợi ích của chế độ ăn chay đối với sức khỏe', desc: 'Phân tích khoa học về tác động của dinh dưỡng thực vật đối với cơ thể người.', meta: '👨⚕ BS. Hoàng Nam    •   ⏳ 8 phút đọc', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vegan%20nutrition%20infographic%20doctor%20consultation%20greens&image_size=square_hd' },
-  { id: 'r3', type: 'Video hướng dẫn', title: 'Video: Bí quyết làm lẩu nấm chay thanh ngọt tại nhà', desc: 'Hướng dẫn chi tiết cách nấu nước dùng ngọt thanh từ củ cải, đậu ngọt và nấm hương tươi.', meta: '⏱ 12:20   •   🎯 HD 1080p', img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vegan%20mushroom%20hot%20pot%20cooking%20video%20tutorial%20fresh%20vegetables&image_size=square_hd' },
-]
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setIsLoading(true)
+      try {
+        const data = await getRestaurantDetail(restaurantId)
+        if (!cancelled) {
+          setRestaurant(data)
+          setFavorite(false)
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [restaurantId])
 
-const NEARBY = [
-  { id: 'n1', name: 'Bếp Chay An Lạc - Ẩm Thực Thực Dưỡng', address: '109 Phố Mai Hắc Đế, Đống Đa', distance: '1.8 km', img: '' },
-  { id: 'n2', name: 'The Fernery Garden & Cafe Chay', address: '24 Đường Quảng Khánh, Tây Hồ', distance: '2.4 km', img: '' },
-  { id: 'n3', name: 'Nhà Hàng Chay Sen Vàng', address: '52 Nguyễn Du, Hoàn Kiếm', distance: '3.8 km', img: '' },
-]
+  const showToast = (msg: string) => {
+    setToast(msg)
+    window.setTimeout(() => setToast(null), 1500)
+  }
 
-export default function RestaurantDetailPage({ restaurantId: _restaurantId, onNavigate }: Props) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f6faf7]">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            leftIcon={<ArrowLeft size={13} />}
+            onClick={() => onNavigate?.('/restaurants')}
+            className="mb-5"
+          >
+            Quay lại danh sách nhà hàng
+          </Button>
+          <SkeletonLoader count={1} variant="card" />
+          <div className="mt-5 grid gap-5 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <SkeletonLoader count={2} variant="card" />
+            </div>
+            <div>
+              <SkeletonLoader count={3} variant="card" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen bg-[#f6faf7]">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+          <EmptyState
+            title="Không tìm thấy nhà hàng này"
+            description={`ID "${restaurantId || '(trống)'}" không tồn tại hoặc đã bị xóa khỏi danh sách. Bạn có thể quay lại xem toàn bộ quán ăn chay 3 tỉnh thành.`}
+            actionLabel="Quay lại trang nhà hàng"
+            onAction={() => onNavigate?.('/restaurants')}
+            icon={<Coffee size={36} className="text-[#2e7d32]" />}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  const stars = restaurant.rating
+    .toFixed(1)
+    .toString()
+    .padEnd(3, '0')
+
   return (
-    <div className="rd-page">
-      {/* Breadcrumbs */}
-      <nav className="rd-breadcrumbs">
-        <span onClick={() => onNavigate?.('/')} className="rd-link">Trang chủ</span>
-        <span className="rd-sep">›</span>
-        <span onClick={() => onNavigate?.('/restaurants')} className="rd-link">Nhà hàng chay</span>
-        <span className="rd-sep">›</span>
-        <span className="rd-current">An Nhiên Vegetarian</span>
-      </nav>
+    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            leftIcon={<ArrowLeft size={13} />}
+            onClick={() => onNavigate?.('/restaurants')}
+          >
+            Quay lại danh sách nhà hàng
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              leftIcon={<Share2 size={12} />}
+              onClick={() => showToast('Đã copy link nhà hàng')}
+            >
+              Chia sẻ
+            </Button>
+            <Button
+              type="button"
+              variant={favorite ? 'danger' : 'primary'}
+              size="sm"
+              leftIcon={
+                <Heart size={13} className={favorite ? 'fill-current' : ''} />
+              }
+              onClick={() => {
+                setFavorite((v) => !v)
+                showToast(favorite ? 'Đã gỡ khỏi yêu thích' : '❤️ Đã lưu vào yêu thích')
+              }}
+            >
+              {favorite ? 'Đã yêu thích' : 'Lưu yêu thích'}
+            </Button>
+          </div>
+        </div>
 
-      {/* Hero 2-col: gallery + info */}
-      <section className="rd-hero">
-        <div className="rd-gallery">
-          <div className="rd-verified-chip">
-            <BadgeCheck size={14} /> Không gian được kiểm duyệt
-          </div>
-          <div className="rd-main-img">
-            <div className="rd-img-placeholder" />
-          </div>
-          <div className="rd-gallery-row">
-            <div className="rd-img-placeholder rd-thumb" />
-            <div className="rd-img-placeholder rd-thumb" />
-          </div>
-        </div>
-
-        <div className="rd-info">
-          <div className="rd-tags-row">
-            <span className="rd-tag rd-tag-strong">NHÀ HÀNG CHAY • THUẦN CHAY 100%</span>
-            <span className="rd-tag-soft"><Clock size={12} /> Đang mở cửa • 08:00 - 22:00</span>
-          </div>
-          <h1 className="rd-name">An Nhiên Vegetarian</h1>
-          <div className="rd-distance">
-            <MapPin size={14} /> Cách bạn 1.2 km (Quận 1)
-          </div>
-
-          <div className="rd-contact-block">
-            <div className="rd-contact-line">
-              <MapPin size={16} className="rd-icon-green" />
-              <span>123 Nguyễn Văn A, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</span>
-            </div>
-            <div className="rd-contact-line">
-              <Phone size={16} className="rd-icon-green" />
-              <span>Số điện thoại: 028 3822 6789</span>
-            </div>
-            <div className="rd-contact-line">
-              <Banknote size={16} className="rd-icon-green" />
-              <span>Khoảng giá tham khảo: 100.000đ - 250.000đ / người</span>
-            </div>
-          </div>
-
-          <div className="rd-chips-row">
-            <span className="rd-chip"><Leaf size={12} /> Thuần chay 100%</span>
-            <span className="rd-chip"><BadgeCheck size={12} /> Món Việt thanh vị</span>
-            <span className="rd-chip"><TreePine size={12} /> Không gian xanh yên tĩnh</span>
-            <span className="rd-chip"><ParkingCircle size={12} /> Có chỗ để ô tô</span>
-          </div>
-
-          <div className="rd-actions">
-            <button className="rd-btn rd-btn-primary">
-              <Navigation size={16} /> Chỉ đường
-            </button>
-            <button className="rd-btn rd-btn-secondary">
-              <Map size={16} /> Xem trên bản đồ
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 6 stat cards */}
-      <section className="rd-stats">
-        <div className="rd-stat-card">
-          <div className="rd-stat-icon"><MapPin size={20} /></div>
-          <div className="rd-stat-content">
-            <div className="rd-stat-lbl">Địa chỉ chính thức</div>
-            <div className="rd-stat-val">123 Nguyễn Văn A, Quận 1, TP.HCM</div>
-            <div className="rd-stat-sub">Khu vực trung tâm</div>
-          </div>
-        </div>
-        <div className="rd-stat-card">
-          <div className="rd-stat-icon"><Phone size={20} /></div>
-          <div className="rd-stat-content">
-            <div className="rd-stat-lbl">Số điện thoại</div>
-            <div className="rd-stat-val">028 3822 6789</div>
-            <div className="rd-stat-sub">Hỗ trợ đặt bàn & giữ chỗ</div>
-          </div>
-        </div>
-        <div className="rd-stat-card">
-          <div className="rd-stat-icon"><Clock size={20} /></div>
-          <div className="rd-stat-content">
-            <div className="rd-stat-lbl">Giờ mở cửa</div>
-            <div className="rd-stat-val">08:00 - 22:00</div>
-            <div className="rd-stat-sub">Hằng ngày (Phụ vụ)</div>
-          </div>
-        </div>
-        <div className="rd-stat-card">
-          <div className="rd-stat-icon"><Banknote size={20} /></div>
-          <div className="rd-stat-content">
-            <div className="rd-stat-lbl">Mức giá tham khảo</div>
-            <div className="rd-stat-val">100.000đ - 250.000đ / người</div>
-            <div className="rd-stat-sub">Phù hợp ăn cá nhân & nhóm</div>
-          </div>
-        </div>
-        <div className="rd-stat-card">
-          <div className="rd-stat-icon"><UtensilsCrossed size={20} /></div>
-          <div className="rd-stat-content">
-            <div className="rd-stat-lbl">Phong cách ẩm thực</div>
-            <div className="rd-stat-val">Thuần chay Việt Nam đương đại</div>
-            <div className="rd-stat-sub">Dương sinh, thanh nhiệt</div>
-          </div>
-        </div>
-        <div className="rd-stat-card">
-          <div className="rd-stat-icon"><Wifi size={20} /></div>
-          <div className="rd-stat-content">
-            <div className="rd-stat-lbl">Tiện ích không gian</div>
-            <div className="rd-stat-val">Điều hòa, Wifi, Đỗ ô tô</div>
-            <div className="rd-stat-sub">Có phòng riêng thanh lịch</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Giới thiệu */}
-      <section className="rd-intro">
-        <h2 className="rd-section-title">Giới thiệu</h2>
-        <p className="rd-intro-text">
-          An Nhiên Vegetarian phục vụ các món chay Việt Nam theo phong cách hiện đại, sử dụng nguồn nguyên liệu rau củ tươi ngon mỗi ngày và giá cách thuần tự nhiên.
-          Không gian được bài trí mộc mạc với gỗ ấm và nhiều cây xanh, mang đến trải nghiệm ẩm thực an lành, cân bằng chất xơ và tận tăng cường thượng nhật.
-        </p>
-        <div className="rd-intro-badges">
-          <div className="rd-intro-badge">
-            <div className="rd-badge-num">100%</div>
-            <div className="rd-badge-lbl">Người cũ hài cốt</div>
-          </div>
-          <div className="rd-intro-badge">
-            <div className="rd-badge-num">0%</div>
-            <div className="rd-badge-lbl">Phẩm mã hóa học</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Map + Hours */}
-      <section className="rd-map-hours">
-        <div className="rd-map-col">
-          <h2 className="rd-section-title">Vị trí & Đường đi</h2>
-          <div className="rd-map-wrap">
-            <div className="rd-map-header">
-              <span className="rd-map-pin-active"><MapPin size={12} /> An Nhiên Vegetarian</span>
-              <span className="rd-map-dist">| 1.2 km từ vị trí của bạn</span>
-              <button className="rd-map-maps-btn"><Map size={12} /> Mở Google Maps chỉ đường</button>
-            </div>
-            <div className="rd-map-body">
-              <div className="rd-map-placeholder" />
-              <div className="rd-map-bottom">
-                <span className="rd-map-chip">🚇 Tuyến đường thuận tiện nhất qua đường Hai Bà Trưng & Lê Duẩn</span>
-                <span className="rd-map-chip rd-map-chip-soft">🚗 Giao thông thông thoáng</span>
+        <article className="overflow-hidden rounded-[20px] border border-[#e5e7eb] bg-white shadow-xs">
+          {/* Cover */}
+          <div className="relative h-[260px] w-full overflow-hidden sm:h-[320px]">
+            <img
+              src={restaurant.imageUrl}
+              alt={restaurant.name}
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent" />
+            <span className="absolute left-5 right-5 top-5 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {restaurant.dietTypes.map((d) => (
+                  <StatusBadge
+                    key={d}
+                    status={mapDietBadge(d)}
+                    label={DIET_TYPE_LABELS[d]}
+                  />
+                ))}
               </div>
-            </div>
-          </div>
-          <div className="rd-map-foot">
-            <span className="rd-foot-chip">🛵 5 phút xe máy</span>
-            <span className="rd-foot-chip">🚌 12 phút đi bộ</span>
-            <span className="rd-foot-chip rd-foot-chip-soft">⏳ 12 phút đi bộ</span>
-          </div>
-        </div>
-
-        <div className="rd-hours-col">
-          <h2 className="rd-section-title">Giờ mở cửa chi tiết</h2>
-          <div className="rd-hours-list">
-            {HOURS.map((h) => (
-              <div
-                key={h.day}
-                className={`rd-hours-row ${h.today ? 'is-today' : ''} ${h.highlight ? 'is-highlight' : ''}`}
-              >
-                <div className="rd-hours-day">
-                  {h.day}
-                  {h.today && <span className="rd-hours-today-badge">Hôm nay</span>}
-                </div>
-                <div className="rd-hours-time">{h.time}</div>
-              </div>
-            ))}
-            <div className="rd-hours-note">
-              <Clock size={12} /> Đẹp nhận gọi món cuối lúc 21:30 hàng ngày.
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Signature dishes */}
-      <section className="rd-dishes">
-        <div className="rd-section-head">
-          <h2 className="rd-section-title">Món liên quan tận nhà hàng</h2>
-          <span className="rd-section-hint">
-            💡 Gợi ý dựa trên từ khóa tìm kiếm: <strong>"Đậu hũ"</strong>
-          </span>
-        </div>
-        <div className="rd-dishes-grid">
-          {SIGNATURE_DISHES.map((d) => (
-            <article key={d.id} className="rd-dish-card">
-              <div className="rd-dish-tag">{d.tag}</div>
-              <div className="rd-dish-img rd-img-placeholder-sm" />
-              <h3 className="rd-dish-name">{d.name}</h3>
-              <p className="rd-dish-desc">{d.desc}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* Related content */}
-      <section className="rd-related">
-        <h2 className="rd-section-title">Nội dung bạn có thể quan tâm</h2>
-        <div className="rd-related-grid">
-          {RELATED_CONTENT.map((r) => (
-            <article key={r.id} className="rd-related-card">
-              <div className="rd-related-tag">{r.type}</div>
-              <div className="rd-related-img rd-img-placeholder-sm" />
-              <h3 className="rd-related-name">{r.title}</h3>
-              <p className="rd-related-desc">{r.desc}</p>
-              <div className="rd-related-meta">{r.meta}</div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* Nearby */}
-      <section className="rd-nearby">
-        <div className="rd-section-head">
-          <h2 className="rd-section-title">Nhà hàng chay gần đây</h2>
-          <span className="rd-link" onClick={() => onNavigate?.('/restaurants')}>
-            Xem tất cả <ChevronRight size={14} />
-          </span>
-        </div>
-        <div className="rd-nearby-grid">
-          {NEARBY.map((n) => (
-            <article key={n.id} className="rd-nearby-card">
-              <div className="rd-nearby-img rd-img-placeholder-sm" />
-              <h3 className="rd-nearby-name">{n.name}</h3>
-              <div className="rd-nearby-address">
-                <MapPin size={12} /> {n.address}
-              </div>
-              <div className="rd-nearby-foot">
-                <span>
-                  <MapPin size={12} /> Cách {n.distance}
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-[12px] font-extrabold text-slate-900 backdrop-blur">
+                <Navigation size={12} className="text-[#2e7d32]" /> Cách bạn{' '}
+                <strong>{restaurant.distanceKm.toFixed(1)} km</strong>
+              </span>
+            </span>
+            <div className="absolute bottom-5 left-5 right-5 text-white">
+              <h1 className="text-2xl font-extrabold leading-tight tracking-tight drop-shadow sm:text-3xl">
+                {restaurant.name}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-4 text-[12px] font-semibold text-white/90">
+                <span className="inline-flex items-center gap-1">
+                  <MapPin size={13} /> {restaurant.district}, {restaurant.city}
                 </span>
-                <button className="rd-nearby-btn">Xem chi tiết</button>
+                <span className="inline-flex items-center gap-1">
+                  <Star size={13} className="fill-amber-400 stroke-amber-400" /> {stars} / 5 (
+                  {restaurant.reviewCount.toLocaleString('vi-VN')} đánh giá)
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock size={13} /> {restaurant.openingHours}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Wallet size={13} />{' '}
+                  {formatPriceRange(
+                    restaurant.priceRangeVND.min,
+                    restaurant.priceRangeVND.max,
+                  )}
+                </span>
               </div>
-            </article>
-          ))}
+            </div>
+          </div>
+
+          <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              {/* Address */}
+              <div className="rounded-[16px] border border-[#e5e7eb] bg-[#fafefb] p-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-[#e8f5e9] text-[#2e7d32]">
+                    <MapPin size={16} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] font-extrabold">Địa chỉ nhà hàng</div>
+                    <div className="mt-1 text-sm leading-6 text-[#1f2937]">
+                      {restaurant.address}
+                    </div>
+                    <div className="mt-1 text-[11px] text-[#6b7280]">
+                      Quận/Huyện: {restaurant.district} · TP. {restaurant.city}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Highlights */}
+              <div className="mt-5 rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
+                <div className="mb-3 flex items-center gap-2">
+                  <Sparkles size={14} className="text-[#2e7d32]" />
+                  <h2 className="text-[16px] font-extrabold tracking-tight">
+                    Điểm nổi bật của nhà hàng
+                  </h2>
+                </div>
+                <ul className="space-y-2">
+                  {restaurant.highlights.map((h, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2.5 rounded-[10px] border border-transparent px-2 py-1.5 text-sm hover:border-[#e5e7eb] hover:bg-[#fafefb]"
+                    >
+                      <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#2e7d32] text-[11px] font-extrabold text-white">
+                        {i + 1}
+                      </span>
+                      <span className="leading-6 text-[#1f2937]">{h}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Tags */}
+              <div className="mt-5 flex flex-wrap gap-1.5">
+                {restaurant.tags.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full bg-[#e8f5e9] px-2.5 py-1 text-[11px] font-extrabold text-[#2e7d32]"
+                  >
+                    #{t}
+                  </span>
+                ))}
+              </div>
+
+              {/* Gallery placeholder */}
+              <div className="mt-5 rounded-[16px] border border-dashed border-[#c8e6c9] bg-white/60 p-4 text-center">
+                <Coffee size={18} className="mx-auto mb-1 text-[#2e7d32]" />
+                <div className="text-[13px] font-bold text-[#1f2937]">
+                  Bộ sưu tập ảnh thực tế
+                </div>
+                <p className="mx-auto mt-1 max-w-lg text-[11px] leading-5 text-[#6b7280]">
+                  Ảnh thực tế từ các reviewer cộng đồng sẽ sớm được cập nhật. Hiện tại bạn có thể
+                  tham khảo ảnh đại diện phía trên hoặc mở trang chủ nhà hàng.
+                </p>
+              </div>
+
+              {/* Related */}
+              <div className="mt-5 rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
+                <div className="mb-3 flex items-center gap-2">
+                  <h3 className="text-[15px] font-extrabold tracking-tight">
+                    Nhà hàng cùng khu vực có thể bạn thích
+                  </h3>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <RestaurantCard
+                    restaurant={restaurant}
+                    onSelect={(id) => onNavigate?.(`/restaurants/${encodeURIComponent(id)}`)}
+                  />
+                  <div className="flex items-center justify-center rounded-[16px] border border-dashed border-[#c8e6c9] bg-[#fafefb] p-5 text-center">
+                    <div>
+                      <MapPin size={22} className="mx-auto mb-1 text-[#2e7d32]" />
+                      <div className="text-[13px] font-bold text-[#1f2937]">
+                        Ghé thăm danh sách chính
+                      </div>
+                      <p className="mx-auto mt-1 max-w-xs text-[11px] leading-5 text-[#6b7280]">
+                        Xem thêm các nhà hàng khác trong cùng quận, cùng thành phố bạn đang ở.
+                      </p>
+                      <div className="mt-3">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onNavigate?.('/restaurants')}
+                        >
+                          Xem tất cả
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <aside className="space-y-4">
+              <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
+                <h3 className="text-[14px] font-extrabold">Thông tin liên hệ & giờ mở cửa</h3>
+                <dl className="mt-3 space-y-2 text-[12px]">
+                  <div className="flex items-start gap-2">
+                    <Clock size={13} className="mt-0.5 text-[#2e7d32]" />
+                    <div>
+                      <dt className="font-semibold text-[#6b7280]">Giờ mở cửa</dt>
+                      <dd className="font-bold text-[#1f2937]">{restaurant.openingHours}</dd>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Calendar size={13} className="mt-0.5 text-[#2e7d32]" />
+                    <div>
+                      <dt className="font-semibold text-[#6b7280]">Nghỉ</dt>
+                      <dd className="font-bold text-[#1f2937]">{restaurant.closingDay}</dd>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Phone size={13} className="mt-0.5 text-[#2e7d32]" />
+                    <div>
+                      <dt className="font-semibold text-[#6b7280]">Điện thoại</dt>
+                      <dd className="font-bold text-[#1f2937]">{restaurant.phoneNumber}</dd>
+                    </div>
+                  </div>
+                  {restaurant.email && (
+                    <div className="flex items-start gap-2">
+                      <Globe size={13} className="mt-0.5 text-[#2e7d32]" />
+                      <div>
+                        <dt className="font-semibold text-[#6b7280]">Email</dt>
+                        <dd className="truncate font-bold text-[#1f2937]">{restaurant.email}</dd>
+                      </div>
+                    </div>
+                  )}
+                  {restaurant.website && (
+                    <div className="flex items-start gap-2">
+                      <Globe size={13} className="mt-0.5 text-[#2e7d32]" />
+                      <div>
+                        <dt className="font-semibold text-[#6b7280]">Website</dt>
+                        <dd className="truncate font-bold text-[#2e7d32]">
+                          <a
+                            href={restaurant.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {restaurant.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        </dd>
+                      </div>
+                    </div>
+                  )}
+                </dl>
+                <div className="mt-4 space-y-2">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    fullWidth
+                    leftIcon={<Phone size={13} />}
+                    onClick={() => showToast(`☎️ Gọi nhà hàng: ${restaurant.phoneNumber}`)}
+                  >
+                    Gọi đặt bàn ngay
+                  </Button>
+                  {restaurant.acceptsBooking && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      fullWidth
+                      leftIcon={<Calendar size={13} />}
+                      onClick={() => showToast('🎫 Đã mở form đặt chỗ (demo).')}
+                    >
+                      Đặt chỗ trước
+                    </Button>
+                  )}
+                  {restaurant.hasDelivery && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      fullWidth
+                      leftIcon={<Truck size={13} />}
+                      onClick={() => showToast('🛵 Đã mở app giao hàng (Grab/Foody)...')}
+                    >
+                      Gọi ship đến nhà
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Tiện ích */}
+              <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/70 p-4 shadow-xs">
+                <h3 className="mb-2 text-[14px] font-extrabold text-[#2e7d32]">
+                  Tiện ích có tại nhà hàng
+                </h3>
+                <ul className="space-y-2 text-[12px] font-semibold text-[#1f2937]">
+                  <li className="flex items-center gap-2">
+                    <ParkingCircle size={14} className="text-[#2e7d32]" />
+                    {restaurant.hasParking ? '✅ Có chỗ để xe ô tô / xe máy' : '❌ Không có chỗ đậu ô tô'}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Truck size={14} className="text-[#2e7d32]" />
+                    {restaurant.hasDelivery ? '✅ Giao hàng tận nơi' : '❌ Chỉ ăn tại chỗ / mang về'}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Coffee size={14} className="text-[#2e7d32]" />
+                    {restaurant.hasTakeAway ? '✅ Mang về / take-away' : '❌ Không dịch vụ take-away'}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Calendar size={14} className="text-[#2e7d32]" />
+                    {restaurant.acceptsBooking ? '✅ Đặt bàn trước được' : '❌ Chỉ nhận khách trực tiếp'}
+                  </li>
+                </ul>
+              </div>
+
+              {/* Gợi ý món */}
+              <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
+                <h3 className="mb-2 text-[14px] font-extrabold">Gợi ý AI hôm nay ăn gì?</h3>
+                <p className="text-[12px] leading-6 text-[#6b7280]">
+                  Hãy cho AI biết bạn đang thèm phong vị Miền Bắc / Nam / Trung hay món nướng, canh,
+                  hầm... AI sẽ đề xuất món phù hợp với quán này.
+                </p>
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    fullWidth
+                    onClick={() =>
+                      onNavigate?.(
+                        `/ai-chat?prompt=${encodeURIComponent(
+                          `Đề xuất các món nên thử tại nhà hàng ${restaurant.name} (${restaurant.city}).`,
+                        )}`,
+                      )
+                    }
+                  >
+                    Hỏi AI gợi ý món tại đây
+                  </Button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </article>
+      </div>
+
+      {toast && (
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-bold text-white shadow-lg backdrop-blur">
+          {toast}
         </div>
-      </section>
+      )}
     </div>
   )
 }
