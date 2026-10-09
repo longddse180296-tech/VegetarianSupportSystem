@@ -1,24 +1,34 @@
 import React, { useEffect, useState } from 'react'
+import { Button } from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
+import { useAuth } from '../../auth'
 import {
   addArticleComment,
   getArticleById,
   toggleArticleLike,
   toggleArticleSave,
+  toggleArticleCommentLike,
 } from '../api/articles.api'
-import type { ArticleDetailDto } from '../types/article.types'
+import type { ArticleDetailDto, ArticleComment } from '../types/article.types'
 import { ArticleDetailSkeleton } from '../components/ArticleSkeleton'
+import { RichContentRenderer } from '../components/RichContentRenderer'
 
 interface ArticleDetailProps {
   articleId: string
   onBackToList: () => void
   onSelectRelatedArticle: (id: string) => void
+  onCreateArticle?: () => void
+  onEditArticle?: (id: string) => void
 }
 
 export const ArticleDetail: React.FC<ArticleDetailProps> = ({
   articleId,
   onBackToList,
   onSelectRelatedArticle,
+  onCreateArticle,
+  onEditArticle,
 }) => {
+  const { user } = useAuth()
   const [article, setArticle] = useState<ArticleDetailDto | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,9 +37,20 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
   const [isLiked, setIsLiked] = useState<boolean>(false)
   const [likesCount, setLikesCount] = useState<number>(0)
   const [isSaved, setIsSaved] = useState<boolean>(false)
+  const [comments, setComments] = useState<ArticleComment[]>([])
   const [commentText, setCommentText] = useState<string>('')
   const [submittingComment, setSubmittingComment] = useState<boolean>(false)
   const [commentSuccess, setCommentSuccess] = useState<boolean>(false)
+
+  const canEdit = Boolean(
+    user &&
+      article &&
+      (user.fullName === article.author.name ||
+        user.id === article.author.id ||
+        user.role === 'Admin' ||
+        article.author.name === 'Bạn' ||
+        article.author.name === 'Van Quang Duy')
+  )
 
   useEffect(() => {
     let isMounted = true
@@ -41,6 +62,7 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
         if (isMounted) {
           setArticle(data)
           setLikesCount(data.likesCount || 0)
+          setComments(data.comments || [])
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -85,6 +107,27 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
     }
   }
 
+  const handleToggleCommentLike = async (commentId: string) => {
+    setComments((prev) =>
+      prev.map((c) => {
+        if (c.id === commentId) {
+          const nextLiked = !c.isLiked
+          return {
+            ...c,
+            isLiked: nextLiked,
+            likesCount: nextLiked ? c.likesCount + 1 : Math.max(0, c.likesCount - 1),
+          }
+        }
+        return c
+      })
+    )
+    try {
+      await toggleArticleCommentLike(commentId)
+    } catch {
+      // Handled silently
+    }
+  }
+
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!article || !commentText.trim()) return
@@ -94,27 +137,20 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
       await addArticleComment(article.id, commentText)
 
       // Optimistically insert comment
-      const newComment = {
+      const newComment: ArticleComment = {
         id: `c-new-${Date.now()}`,
         articleId: article.id,
-        authorName: 'Bạn',
+        authorName: user?.fullName || 'Bạn',
         authorAvatar:
           'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-        badge: 'Bạn đọc',
+        badge: user?.role === 'Admin' ? 'Quản trị viên' : 'Bạn đọc',
         createdAt: 'Vừa xong',
         content: commentText.trim(),
         likesCount: 0,
+        isLiked: false,
       }
 
-      setArticle((prev) =>
-        prev
-          ? {
-              ...prev,
-              comments: [newComment, ...prev.comments],
-            }
-          : null
-      )
-
+      setComments((prev) => [newComment, ...prev])
       setCommentText('')
       setCommentSuccess(true)
       setTimeout(() => setCommentSuccess(false), 3000)
@@ -131,18 +167,12 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
 
   if (error || !article) {
     return (
-      <div className="max-w-3xl mx-auto py-16 px-4 text-center">
-        <div className="w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-2xl mx-auto mb-4">
-          ⚠️
-        </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy bài viết</h2>
-        <p className="text-sm text-gray-600 mb-6">{error || 'Bài viết không tồn tại hoặc đã bị gỡ.'}</p>
-        <button
-          onClick={onBackToList}
-          className="px-6 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-semibold hover:bg-emerald-800 transition-colors"
-        >
-          Quay lại danh sách bài viết
-        </button>
+      <div className="max-w-3xl mx-auto py-16 px-4">
+        <AlertError
+          title="Không tìm thấy bài viết"
+          message={error || 'Bài viết không tồn tại hoặc đã bị gỡ.'}
+          onRetry={onBackToList}
+        />
       </div>
     )
   }
@@ -151,26 +181,51 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
     <article className="min-h-screen bg-white pb-20">
       {/* Header Container */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-6">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-gray-500 mb-6 truncate">
-          <button
-            type="button"
-            onClick={onBackToList}
-            className="hover:text-emerald-700 transition-colors shrink-0"
-          >
-            Trang chủ
-          </button>
-          <span className="shrink-0">/</span>
-          <button
-            type="button"
-            onClick={onBackToList}
-            className="hover:text-emerald-700 transition-colors shrink-0"
-          >
-            Bài viết
-          </button>
-          <span className="shrink-0">/</span>
-          <span className="text-emerald-700 font-semibold truncate">{article.title}</span>
-        </nav>
+        {/* Breadcrumb & Action */}
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <nav className="flex items-center gap-2 text-xs font-medium text-slate-500 truncate">
+            <button
+              type="button"
+              onClick={onBackToList}
+              className="hover:text-emerald-700 transition-colors shrink-0"
+            >
+              Trang chủ
+            </button>
+            <span className="shrink-0">&gt;</span>
+            <button
+              type="button"
+              onClick={onBackToList}
+              className="hover:text-emerald-700 transition-colors shrink-0"
+            >
+              Bài viết
+            </button>
+            <span className="shrink-0">&gt;</span>
+            <span className="font-semibold text-slate-800 truncate">{article.title}</span>
+          </nav>
+          <div className="flex items-center gap-2">
+            {canEdit && onEditArticle && (
+              <button
+                type="button"
+                onClick={() => onEditArticle(article.id)}
+                className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-100 active:scale-95 transition-all shrink-0"
+              >
+                <span>✏️</span>
+                <span>Chỉnh sửa bài viết</span>
+              </button>
+            )}
+            {onCreateArticle && (
+              <button
+                type="button"
+                onClick={onCreateArticle}
+                className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-emerald-700 active:scale-95 transition-all shrink-0"
+              >
+                <span className="font-bold text-emerald-700">+</span>
+                <span>Viết bài mới</span>
+                <span className="text-slate-400">&rarr;</span>
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Category Tag */}
         <div className="mb-3">
@@ -180,12 +235,12 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-snug mb-4">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-snug mb-4 break-words">
           {article.title}
         </h1>
 
         {/* Excerpt */}
-        <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-6 font-normal">
+        <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-6 font-normal break-words">
           {article.excerpt}
         </p>
 
@@ -211,7 +266,7 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
             <span>📅 {article.publishedAt}</span>
             <span>•</span>
             <span>⏱️ {article.readTimeMinutes} phút đọc</span>
-            {article.viewsCount && (
+            {article.viewsCount !== undefined && (
               <>
                 <span>•</span>
                 <span>👁️ {article.viewsCount.toLocaleString()} lượt xem</span>
@@ -240,23 +295,23 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
         <div className="prose prose-emerald max-w-none mb-12">
           {article.sections.map((sec, index) => (
             <div key={index} className="mb-6">
-              {sec.number ? (
-                <div className="flex items-start gap-3 mb-2">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">
-                    {sec.number}
-                  </span>
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900">
+              {sec.title ? (
+                <div className="flex items-start gap-3 mb-2.5">
+                  {sec.number ? (
+                    <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white text-xs sm:text-sm font-bold flex items-center justify-center mt-0.5 shadow-sm">
+                      {sec.number}
+                    </span>
+                  ) : (
+                    <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full bg-emerald-600 mt-2 shadow-xs" />
+                  )}
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 tracking-tight break-words leading-snug">
                     {sec.title}
                   </h2>
                 </div>
               ) : null}
-              <p
-                className={`text-sm sm:text-base text-gray-700 leading-relaxed ${
-                  sec.number ? 'pl-9' : ''
-                }`}
-              >
-                {sec.content}
-              </p>
+              <div className={sec.number ? 'pl-10 sm:pl-11' : sec.title ? 'pl-6' : ''}>
+                <RichContentRenderer content={sec.content} />
+              </div>
             </div>
           ))}
 
@@ -350,15 +405,28 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
             </div>
             <p className="text-xs text-gray-600 leading-relaxed mb-3">
               {article.author.bio ||
-                'Chuyên gia nghiên cứu và phát triển kiến thức lối sống thuần chay khoa học, đồng hành cùng bạn trên con đường sống xanh an lành.'}
+                (article.author.isExpert
+                  ? 'Chuyên gia nghiên cứu và phát triển kiến thức lối sống thuần chay khoa học, đồng hành cùng bạn trên con đường sống xanh an lành.'
+                  : 'Thành viên cộng đồng ăn chay thuần thực vật, tích cực chia sẻ kiến thức và kinh nghiệm sống xanh mỗi ngày.')}
             </p>
-            <button
-              type="button"
-              onClick={onBackToList}
-              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
-            >
-              Xem thêm bài viết của tác giả →
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={onBackToList}
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
+              >
+                Xem thêm bài viết của tác giả →
+              </button>
+              {canEdit && onEditArticle && (
+                <button
+                  type="button"
+                  onClick={() => onEditArticle(article.id)}
+                  className="text-xs font-semibold text-slate-600 hover:text-emerald-700 inline-flex items-center gap-1 border-l border-slate-200 pl-3"
+                >
+                  ✏️ Chỉnh sửa bài viết
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -366,7 +434,7 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
         <section className="mb-14">
           <div className="flex items-center gap-2 mb-6">
             <h3 className="text-base font-bold text-gray-900">
-              Bình luận ({article.comments.length})
+              Bình luận ({comments.length})
             </h3>
           </div>
 
@@ -384,13 +452,15 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
                 <span className="text-[11px] text-gray-500">
                   Vui lòng giữ văn minh và tôn trọng cộng đồng.
                 </span>
-                <button
+                <Button
                   type="submit"
-                  disabled={submittingComment || !commentText.trim()}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors"
+                  variant="primary"
+                  size="sm"
+                  isLoading={submittingComment}
+                  disabled={!commentText.trim()}
                 >
-                  {submittingComment ? 'Đang gửi...' : 'Gửi bình luận'}
-                </button>
+                  Gửi bình luận
+                </Button>
               </div>
             </div>
             {commentSuccess && (
@@ -402,7 +472,7 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
 
           {/* Comment List */}
           <div className="space-y-4">
-            {article.comments.map((comment) => (
+            {comments.map((comment) => (
               <div
                 key={comment.id}
                 className="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 flex gap-3"
@@ -432,9 +502,15 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
                   <div className="flex items-center gap-4 text-[11px] text-gray-500">
                     <button
                       type="button"
-                      className="hover:text-emerald-700 flex items-center gap-1 font-medium"
+                      onClick={() => handleToggleCommentLike(comment.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                        comment.isLiked
+                          ? 'bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 shadow-2xs'
+                          : 'hover:text-emerald-700 text-gray-500 hover:bg-gray-100'
+                      }`}
                     >
-                      <span>👍 Thích</span>
+                      <span>👍</span>
+                      <span>{comment.isLiked ? 'Đã thích' : 'Thích'}</span>
                       <span>({comment.likesCount})</span>
                     </button>
                     <button

@@ -8,6 +8,14 @@ import type {
   UserArticleItem,
 } from '../types/article.types'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
+import {
+  Button,
+  Input,
+  Select,
+  EmptyState,
+  Modal,
+} from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
 
 interface MyArticlesPageProps {
   onNavigate: (path: string) => void
@@ -29,6 +37,10 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null)
+
+  // Modal delete state
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState<boolean>(false)
 
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
@@ -64,17 +76,19 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
     }
   }, [activeTab, searchKeyword, sortBy, currentPage, refreshTrigger])
 
-  const handleDeleteArticle = async (id: string, title: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa bài viết "${title}" không?`)) {
-      return
-    }
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
     try {
-      await deleteUserArticle(id)
-      setActionSuccessMsg(`Đã xóa bài viết "${title}" thành công.`)
+      setIsDeleting(true)
+      await deleteUserArticle(deleteTarget.id)
+      setActionSuccessMsg(`Đã xóa bài viết "${deleteTarget.title}" thành công.`)
+      setDeleteTarget(null)
       setTimeout(() => setActionSuccessMsg(null), 3000)
       setRefreshTrigger((prev) => prev + 1)
     } catch {
       setError('Không thể xóa bài viết. Vui lòng thử lại.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -100,7 +114,7 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
         { label: 'Tài khoản', path: '/profile' },
         { label: 'Bài viết của tôi' },
       ]}
-      statBadge={{ count: 12, label: 'Bài viết' }}
+      statBadge={{ count: articlesData.totalCount, label: 'Bài viết' }}
       onNavigate={onNavigate}
     >
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
@@ -112,24 +126,25 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
               Quản lý, theo dõi hiệu suất và xuất bản nội dung chia sẻ cộng đồng thuần chay.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => onNavigate('/articles/editor')}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-sm transition-colors shrink-0"
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => onNavigate('/articles/create')}
+            className="rounded-2xl shadow-sm px-5"
+            leftIcon={<span className="text-base font-bold leading-none">+</span>}
           >
-            <span>+</span>
-            <span>Viết bài mới</span>
-          </button>
+            Viết bài mới
+          </Button>
         </div>
 
         {/* Action message */}
         {actionSuccessMsg && (
-          <div className="my-4 p-3 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-medium border border-emerald-100 flex items-center justify-between">
+          <div className="my-4 p-3.5 bg-emerald-50 text-emerald-800 rounded-2xl text-xs font-semibold border border-emerald-200 flex items-center justify-between">
             <span>✓ {actionSuccessMsg}</span>
             <button
               type="button"
               onClick={() => setActionSuccessMsg(null)}
-              className="text-emerald-600 hover:text-emerald-800"
+              className="text-emerald-600 hover:text-emerald-800 p-1"
             >
               ✕
             </button>
@@ -148,10 +163,10 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'all'
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  : 'text-gray-600 hover:bg-gray-50 border border-transparent'
               }`}
             >
-              Tất cả <span className="opacity-70">(12)</span>
+              Tất cả
             </button>
             <button
               type="button"
@@ -162,10 +177,10 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'published'
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  : 'text-gray-600 hover:bg-gray-50 border border-transparent'
               }`}
             >
-              Đã xuất bản <span className="opacity-70">(10)</span>
+              Đã xuất bản
             </button>
             <button
               type="button"
@@ -176,10 +191,10 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                 activeTab === 'draft'
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  : 'text-gray-600 hover:bg-gray-50 border border-transparent'
               }`}
             >
-              Bản nháp <span className="opacity-70">(2)</span>
+              Bản nháp
             </button>
           </div>
 
@@ -192,11 +207,8 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
 
         {/* Search & Sort Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <div className="sm:col-span-2 relative">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
-              🔍
-            </span>
-            <input
+          <div className="sm:col-span-2">
+            <Input
               type="text"
               value={searchKeyword}
               onChange={(e) => {
@@ -204,19 +216,25 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
                 setCurrentPage(1)
               }}
               placeholder="Tìm bài viết theo tiêu đề, danh mục..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              leftIcon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              }
+              fullWidth
             />
           </div>
 
           <div>
-            <select
+            <Select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'newest' | 'views')}
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-            >
-              <option value="newest">Sắp xếp: Mới nhất</option>
-              <option value="views">Sắp xếp: Lượt xem cao nhất</option>
-            </select>
+              options={[
+                { value: 'newest', label: 'Sắp xếp: Mới nhất' },
+                { value: 'views', label: 'Sắp xếp: Lượt xem cao nhất' },
+              ]}
+              fullWidth
+            />
           </div>
         </div>
 
@@ -241,33 +259,23 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
         )}
 
         {error && !loading && (
-          <div className="p-6 bg-red-50 border border-red-200 rounded-2xl text-center text-red-700">
-            <p className="text-xs font-semibold mb-2">Đã xảy ra lỗi</p>
-            <p className="text-xs text-red-600 mb-4">{error}</p>
-            <button
-              onClick={() => setRefreshTrigger((prev) => prev + 1)}
-              className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-medium hover:bg-red-700"
-            >
-              Thử lại
-            </button>
+          <div className="mb-6">
+            <AlertError
+              title="Không thể tải danh sách bài viết"
+              message={error}
+              onRetry={() => setRefreshTrigger((prev) => prev + 1)}
+            />
           </div>
         )}
 
         {!loading && !error && articlesData.items.length === 0 && (
-          <div className="py-16 text-center">
-            <div className="text-4xl mb-3">📝</div>
-            <h3 className="text-sm font-bold text-gray-900 mb-1">
-              Chưa có bài viết nào
-            </h3>
-            <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-              Bạn chưa có bài viết nào ở trạng thái này. Hãy bắt đầu chia sẻ kiến thức ngay hôm nay!
-            </p>
-            <button
-              onClick={() => onNavigate('/articles/editor')}
-              className="px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition-colors"
-            >
-              Viết bài mới ngay
-            </button>
+          <div className="py-8">
+            <EmptyState
+              title="Chưa có bài viết nào"
+              description="Bạn chưa có bài viết nào ở trạng thái này. Hãy bắt đầu chia sẻ kiến thức ngay hôm nay!"
+              actionLabel="Viết bài mới ngay"
+              onAction={() => onNavigate('/articles/create')}
+            />
           </div>
         )}
 
@@ -309,8 +317,8 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
 
                     <button
                       type="button"
-                      onClick={() => handleDeleteArticle(art.id, art.title)}
-                      className="text-gray-400 hover:text-red-600 text-sm p-1 rounded-lg hover:bg-gray-50"
+                      onClick={() => setDeleteTarget({ id: art.id, title: art.title })}
+                      className="text-gray-400 hover:text-red-600 text-sm p-1.5 rounded-lg hover:bg-red-50 transition-colors"
                       title="Xóa bài viết"
                     >
                       🗑️
@@ -319,7 +327,10 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
 
                   {/* Title & Excerpt */}
                   <div>
-                    <h3 className="text-base font-bold text-gray-900 hover:text-emerald-700 transition-colors cursor-pointer mb-1.5">
+                    <h3
+                      onClick={() => onNavigate(isDraft ? `/articles/editor/${art.id}` : `/articles/${art.id}`)}
+                      className="text-base font-bold text-gray-900 hover:text-emerald-700 transition-colors cursor-pointer mb-1.5"
+                    >
                       {art.title}
                     </h3>
                     <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
@@ -361,40 +372,44 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
                     <div className="flex items-center gap-2">
                       {isDraft ? (
                         <>
-                          <button
-                            type="button"
+                          <Button
+                            variant="primary"
+                            size="sm"
                             onClick={() => onNavigate(`/articles/editor/${art.id}`)}
-                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition-colors"
+                            className="rounded-xl"
+                            leftIcon={<span>✏️</span>}
                           >
-                            <span>✏️</span>
-                            <span>Tiếp tục chỉnh sửa</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteArticle(art.id, art.title)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors"
+                            Tiếp tục chỉnh sửa
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => setDeleteTarget({ id: art.id, title: art.title })}
+                            className="rounded-xl"
                           >
                             Xóa nháp
-                          </button>
+                          </Button>
                         </>
                       ) : (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => onNavigate('/articles/art-1')}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold transition-colors"
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onNavigate(`/articles/${art.id}`)}
+                            className="rounded-xl"
+                            leftIcon={<span>👁️</span>}
                           >
-                            <span>👁️</span>
-                            <span>Xem</span>
-                          </button>
-                          <button
-                            type="button"
+                            Xem
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => onNavigate(`/articles/editor/${art.id}`)}
-                            className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-xs font-semibold transition-colors"
+                            className="rounded-xl"
+                            leftIcon={<span>✏️</span>}
                           >
-                            <span>✏️</span>
-                            <span>Sửa</span>
-                          </button>
+                            Sửa
+                          </Button>
                         </>
                       )}
                     </div>
@@ -408,16 +423,15 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
               <div className="flex items-center justify-between pt-6 border-t border-gray-100 text-xs">
                 <span className="text-gray-500">
                   Đang xem {articlesData.items.length > 0 ? (currentPage - 1) * 4 + 1 : 0} đến{' '}
-                  {Math.min(currentPage * 4, articlesData.totalCount)} trong{' '}
-                  {articlesData.totalCount} bài viết
+                  {Math.min(currentPage * 4, articlesData.totalCount)} trên {articlesData.totalCount} bài
                 </span>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     ‹
                   </button>
@@ -425,7 +439,7 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
                   {paginationPages.map((page, idx) => {
                     if (typeof page === 'string') {
                       return (
-                        <span key={`dots-${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400">
+                        <span key={idx} className="w-8 h-8 flex items-center justify-center text-gray-400">
                           ...
                         </span>
                       )
@@ -433,13 +447,13 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
                     const isActive = page === currentPage
                     return (
                       <button
-                        key={page}
+                        key={idx}
                         type="button"
                         onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 rounded-lg font-semibold transition-colors ${
+                        className={`w-8 h-8 rounded-lg font-semibold transition-all ${
                           isActive
                             ? 'bg-emerald-700 text-white'
-                            : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                            : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
                         {page}
@@ -451,7 +465,7 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
                     type="button"
                     disabled={currentPage === articlesData.totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(articlesData.totalPages, p + 1))}
-                    className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     ›
                   </button>
@@ -461,6 +475,38 @@ export const MyArticlesPage: React.FC<MyArticlesPageProps> = ({ onNavigate }) =>
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="Xác nhận xóa bài viết"
+        description={`Bạn có chắc chắn muốn xóa bài viết "${deleteTarget?.title}"? Hành động này sẽ loại bỏ bài viết khỏi danh sách.`}
+        footer={
+          <div className="flex items-center justify-end gap-3 w-full">
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setDeleteTarget(null)}
+              disabled={isDeleting}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              onClick={handleConfirmDelete}
+              isLoading={isDeleting}
+            >
+              Xác nhận xóa
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-xs text-gray-600">
+          Lưu ý: Thao tác này không thể hoàn tác. Các bình luận và tương tác liên quan đến bài viết này cũng sẽ bị gỡ bỏ.
+        </p>
+      </Modal>
     </UserProfileShell>
   )
 }

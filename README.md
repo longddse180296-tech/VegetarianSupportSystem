@@ -13,7 +13,8 @@ Mở hai terminal tại thư mục repository.
 Terminal backend:
 
 ```powershell
-dotnet run --project backend/src/Api --launch-profile http
+cd backend
+dotnet run
 ```
 
 Terminal frontend:

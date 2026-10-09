@@ -11,14 +11,25 @@ interface UserProfileShellProps {
   activeTab: 'overview' | 'my-articles' | 'my-comments' | 'my-videos'
   breadcrumbs?: BreadcrumbItem[]
   statBadge?: { count: number; label: string }
+  userName?: string
+  userEmail?: string
+  avatarUrl?: string
+  dietaryType?: string
   children: React.ReactNode
   onNavigate?: (path: string) => void
 }
+
+const DEFAULT_AVATAR =
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
 
 export const UserProfileShell: React.FC<UserProfileShellProps> = ({
   activeTab,
   breadcrumbs = [{ label: 'Trang chủ', path: '/' }, { label: 'Tài khoản', path: '/profile' }],
   statBadge = { count: 12, label: 'Bài viết' },
+  userName,
+  userEmail,
+  avatarUrl,
+  dietaryType,
   children,
   onNavigate,
 }) => {
@@ -31,7 +42,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
   const navMenuItems = [
     {
       id: 'overview',
-      label: 'Tổng quan',
+      label: 'Tổng quan & Hồ sơ',
       icon: '📊',
       path: '/profile',
     },
@@ -58,16 +69,35 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
     },
   ]
 
-  const displayName = user?.fullName || 'Nguyễn Minh Anh'
-  const displayEmail = user?.email || 'minhanh@example.com'
+  // Fallback to latest saved mock profile if props are not explicitly provided
+  const storedProfile = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('vegetarian_mock_user_profile')
+      if (raw) return JSON.parse(raw)
+    } catch {
+      // ignore
+    }
+    return null
+  }, [])
+
+  const displayName = userName || user?.fullName || storedProfile?.fullName || 'Quang Duy'
+  const displayEmail = userEmail || user?.email || storedProfile?.email || 'duy@gmail.com'
+  const displayAvatar = avatarUrl || user?.avatarUrl || storedProfile?.avatarUrl || DEFAULT_AVATAR
+  const displayDiet = dietaryType || storedProfile?.dietaryType || 'Thuần thực vật (Vegan)'
 
   return (
     <PublicLayout
-      activeNav="home"
+      activeNav="profile"
       onNavigate={onNavigate}
       isLoggedIn={Boolean(user)}
       userName={displayName}
-      onLogout={() => { void logout() }}
+      avatarUrl={displayAvatar}
+      onLogout={async () => {
+        await logout()
+        if (onNavigate) {
+          onNavigate('/')
+        }
+      }}
     >
       <div className="min-h-screen bg-slate-50/60 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
@@ -101,9 +131,13 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
             <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 text-center sm:text-left">
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
+                  src={displayAvatar}
                   alt={displayName}
                   className="w-16 h-16 rounded-full object-cover border-2 border-emerald-100 shadow-sm"
+                  onError={(e) => {
+                    // Fallback to default avatar if image fails to load
+                    ;(e.currentTarget as HTMLImageElement).src = DEFAULT_AVATAR
+                  }}
                 />
                 <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" />
               </div>
@@ -120,7 +154,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                   <span>•</span>
                   <span>📅 Tham gia từ tháng 03/2024</span>
                   <span>•</span>
-                  <span className="text-emerald-700 font-medium">🌱 Chế độ: Thuần thực vật (Vegan)</span>
+                  <span className="text-emerald-700 font-medium">🌱 Chế độ: {displayDiet}</span>
                 </div>
               </div>
             </div>
@@ -142,7 +176,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
             <aside className="lg:col-span-1">
               <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
                 <div className="px-3 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  Tài khoản & Quản trị
+                  Tài khoản &amp; Quản trị
                 </div>
                 <nav className="flex flex-col gap-1 mt-2">
                   {navMenuItems.map((item) => {
@@ -188,3 +222,5 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
     </PublicLayout>
   )
 }
+
+export default UserProfileShell

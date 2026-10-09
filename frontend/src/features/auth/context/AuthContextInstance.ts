@@ -10,6 +10,7 @@ export interface AuthContextType {
   register: (payload: RegisterPayload) => Promise<User>
   logout: () => Promise<void>
   refreshUser: () => Promise<User | null>
+  updateUser?: (updates: Partial<User>) => void
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)

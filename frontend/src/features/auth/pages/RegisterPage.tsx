@@ -15,7 +15,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const handleRegister = async (payload: RegisterPayload) => {
     await register(payload)
     if (onNavigate) {
-      onNavigate('/profile')
+      onNavigate('/')
     }
   }
 

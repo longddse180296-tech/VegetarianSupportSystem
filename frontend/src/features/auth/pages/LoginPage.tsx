@@ -18,7 +18,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
       if (loggedInUser?.role === 'Admin') {
         onNavigate('/admin/members')
       } else {
-        onNavigate('/profile')
+        onNavigate('/')
       }
     }
   }
