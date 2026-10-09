@@ -441,10 +441,10 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({ onNavigate }) 
                 setStatusTab('all')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                 statusTab === 'all'
-                  ? 'bg-[#2e7d32] text-white shadow-xs'
-                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Tất cả video
@@ -455,10 +455,10 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({ onNavigate }) 
                 setStatusTab('published')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                 statusTab === 'published'
-                  ? 'bg-[#2e7d32] text-white shadow-xs'
-                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Đang hiển thị
@@ -469,10 +469,10 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({ onNavigate }) 
                 setStatusTab('pending')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                 statusTab === 'pending'
-                  ? 'bg-[#2e7d32] text-white shadow-xs'
-                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Chờ kiểm duyệt ({stats?.pendingCount ?? 0})
@@ -483,10 +483,10 @@ export const AdminVideosPage: React.FC<AdminVideosPageProps> = ({ onNavigate }) 
                 setStatusTab('hidden')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                 statusTab === 'hidden'
-                  ? 'bg-[#2e7d32] text-white shadow-xs'
-                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Đã tạm ẩn

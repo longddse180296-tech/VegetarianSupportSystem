@@ -364,10 +364,10 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({ onNavi
                 setActiveTab('all')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
                 activeTab === 'all'
-                  ? 'bg-[#2e7d32] text-white shadow-xs'
-                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Tất cả
@@ -378,10 +378,10 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({ onNavi
                 setActiveTab('food_type')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
                 activeTab === 'food_type'
-                  ? 'bg-[#2e7d32] text-white shadow-xs'
-                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Chế độ ăn chay (4 loại)
@@ -392,10 +392,10 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({ onNavi
                 setActiveTab('recipe')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
                 activeTab === 'recipe'
-                  ? 'bg-[#2e7d32] text-white shadow-xs'
-                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Công thức nấu ăn
@@ -406,10 +406,10 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({ onNavi
                 setActiveTab('ingredient')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-2 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
                 activeTab === 'ingredient'
-                  ? 'bg-[#2e7d32] text-white shadow-xs'
-                  : 'text-[#1f2937] hover:bg-[#f8faf8]'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Nguyên liệu chay

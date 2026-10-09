@@ -170,14 +170,14 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
       )}
 
       {/* Clean Horizontal Tabs (DESIGN.md Navigation) */}
-      <div className="bg-white rounded-[16px] border border-[#e5e7eb] p-2 shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex items-center gap-1.5 overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-2 shadow-xs flex items-center gap-1.5 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab('info')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
             activeTab === 'info'
-              ? 'bg-[#2e7d32] text-white shadow-xs'
-              : 'text-[#1f2937] hover:bg-[#f8faf8] hover:text-[#2e7d32]'
+              ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+              : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
           }`}
         >
           <User className="w-3.5 h-3.5" />
@@ -187,10 +187,10 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('diet')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
             activeTab === 'diet'
-              ? 'bg-[#2e7d32] text-white shadow-xs'
-              : 'text-[#1f2937] hover:bg-[#f8faf8] hover:text-[#2e7d32]'
+              ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+              : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
           }`}
         >
           <Leaf className="w-3.5 h-3.5" />
@@ -200,10 +200,10 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('allergies')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
             activeTab === 'allergies'
-              ? 'bg-[#2e7d32] text-white shadow-xs'
-              : 'text-[#1f2937] hover:bg-[#f8faf8] hover:text-[#2e7d32]'
+              ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+              : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
@@ -213,10 +213,10 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('metrics')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-xs font-bold transition-all shrink-0 cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
             activeTab === 'metrics'
-              ? 'bg-[#2e7d32] text-white shadow-xs'
-              : 'text-[#1f2937] hover:bg-[#f8faf8] hover:text-[#2e7d32]'
+              ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+              : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
           }`}
         >
           <Activity className="w-3.5 h-3.5" />
