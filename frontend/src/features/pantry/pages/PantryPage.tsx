@@ -1,482 +1,387 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  Search,
-  Plus,
-  Sparkles,
-  ShieldCheck,
-  AlertTriangle,
   ChefHat,
-  Leaf,
-  Lightbulb,
-  Clock,
-  Flame,
-  BookOpenCheck,
-  BookmarkPlus,
-  Heart,
-  X,
-  Activity,
+  Plus,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Warehouse,
 } from 'lucide-react'
-import './PantryPage.css'
+import {
+  Button,
+  EmptyState,
+  Select,
+  SkeletonLoader,
+  StatusBadge,
+} from '../../../shared/components'
+import type { SelectOption } from '../../../shared/components/Select'
 
-interface Props {
-  onNavigate?: (path: string) => void;
+import {
+  addPantryItem,
+  deletePantryItem,
+  getPantryItems,
+  getRecipeMatches,
+} from '../api/pantryApi'
+import { AddIngredientModal } from '../components/AddIngredientModal'
+import { PantryItemList } from '../components/PantryItemList'
+import { RecipeMatchList } from '../components/RecipeMatchList'
+import type {
+  AddIngredientFormState,
+  PantryCategory,
+  PantryItem,
+  RecipeMatch,
+} from '../types/pantry.types'
+import { PANTRY_CATEGORY_LABELS } from '../types/pantry.types'
+
+interface PantryPageProps {
+  onNavigate?: (path: string) => void
+  isLoggedIn?: boolean
 }
 
-const SUGGESTED_QUICK = [
-  '+ Đậu hũ', '+ Nấm rơm', '+ Cà chua', '+ Bí đỏ',
-  '+ Đậu cô ve', '+ Hạt sen', '+ Đậu hào', '+ Trứng gà',
-] as const
-
-const PANTRY_INGREDIENTS = [
-  { id: 'i1', name: 'Đậu hũ trắng (300g)', status: 'ok' as const },
-  { id: 'i2', name: 'Nấm hương tươi (150g)', status: 'ok' as const },
-  { id: 'i3', name: 'Cà chua chín mọng (2 quả)', status: 'ok' as const },
-  { id: 'i4', name: 'Đậu hào (Hàu oyster)', status: 'danger' as const },
-  { id: 'i5', name: 'Trứng gà tươi', status: 'warn' as const },
+const ALL_CATEGORY_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'Tất cả danh mục' },
+  ...(Object.keys(PANTRY_CATEGORY_LABELS) as PantryCategory[]).map((key) => ({
+    value: key,
+    label: PANTRY_CATEGORY_LABELS[key],
+  })),
 ]
 
-const SAFE_INGREDIENTS = [
-  { name: 'Đậu hũ trắng (300g)', icon: '✅' },
-  { name: 'Nấm hương tươi (150g)', icon: '✅' },
-  { name: 'Cà chua chín mọng (2 quả)', icon: '✅' },
-]
+export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: PantryPageProps) {
+  const [items, setItems] = useState<PantryItem[]>([])
+  const [matches, setMatches] = useState<RecipeMatch[]>([])
+  const [isLoadingItems, setIsLoadingItems] = useState(false)
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false)
+  const [isAddSubmitting, setIsAddSubmitting] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<PantryCategory | 'all'>('all')
+  const [search, setSearch] = useState('')
 
-const VIOLATIONS = [
-  {
-    id: 'v1',
-    level: 'danger' as const,
-    title: 'Đậu hào (Hàu oyster)',
-    tag: 'Món mặn / Gốc động vật',
-    reason: 'Chứa chiết xuất hàu biển động vật. Không phù hợp với người ăn chay ở bất kỳ hình thức nào.',
-    alt: 'Sốt đậu hào chay từ nấm hương hữu cơ',
-  },
-  {
-    id: 'v2',
-    level: 'warn' as const,
-    title: 'Trứng gà tươi',
-    tag: 'Không hợp với Vegan',
-    reason: 'Không phù hợp với hồ sơ Thuần chay (Vegan). Chỉ phù hợp với chế độ Ovo hoặc Lacto-ovo vegetarian.',
-    alt: 'Đậu hũ non tán (Tofu Scramble)',
-  },
-]
+  // 1. Load pantry
+  const loadItems = async () => {
+    setIsLoadingItems(true)
+    try {
+      const data = await getPantryItems(activeCategory)
+      setItems(data)
+    } finally {
+      setIsLoadingItems(false)
+    }
+  }
 
-const AI_ALTERNATIVES = [
-  {
-    id: 'a1',
-    before: 'Đậu hào →',
-    after: 'Sốt đậu hào chay từ nấm hương hữu cơ',
-    match: 'Tương thích 96%',
-    usage: 'Tỷ lệ thay thế:\nThay 1: 1.3 muỗng canh sốt thay cho 1 muỗng',
-    tip: 'Thời gian chế biến:\n30 - 45 phút Nấu',
-  },
-  {
-    id: 'a2',
-    before: 'Trứng gà →',
-    after: 'Đậu hũ non tán (Tofu Scramble)',
-    match: '100% Thuần Chay',
-    usage: 'Tỷ lệ thay thế:\n1 quả trứng ~ 80g đậu hũ non tán',
-    tip: 'Thời gian chế biến:\n30 - 45 phút Nấu',
-  },
-]
+  useEffect(() => {
+    void loadItems()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory])
 
-const MATCHED_RECIPES = [
-  {
-    id: 'mr1',
-    matchText: '✓ Khớp 3/3 nguyên liệu sẵn có',
-    badge: '100% Thuần Chay (Vegan)',
-    name: 'Đậu hũ sốt cà chua nấm hương thanh vị',
-    time: 20,
-    kcal: 320,
-    protein: 18.5,
-    carb: 16.2,
-    fat: 12.0,
-    score: '100% Thuần chay',
-    ingredients: [
-      { text: 'Đậu hũ (Có ✓) • Nấm hương (Có ✓)', highlight: true },
-      { text: '• Cà chua (Có ✓)', highlight: true },
-      { text: '• Gia vị: Hành bắc-bồ, tiêu, đậu xay, mùi thơm (Gia vị có sẵn).', highlight: false },
-    ],
-  },
-  {
-    id: 'mr2',
-    matchText: '✓ Khớp 3/3 nguyên liệu sẵn có',
-    badge: '100% Thuần Chay (Vegan)',
-    name: 'Canh nấm đậu hũ cà chua chua ngọt',
-    time: 15,
-    kcal: 180,
-    protein: 12.0,
-    carb: 14.0,
-    fat: 4.5,
-    score: '100% Thuần chay',
-    ingredients: [
-      { text: 'Tủ bếp: Đậu hũ, Nấm hương, Cà chua', highlight: true },
-      { text: '(Bất Ngợi)', highlight: true },
-      { text: 'Gia vị: Nồng độ gà, hành hoa bò-một, chút tiêu xay cối.', highlight: false },
-    ],
-  },
-  {
-    id: 'mr3',
-    matchText: '✓ Khớp 2/3 nguyên liệu (Thiếu: Xanh)',
-    badge: '100% Thuần Chay (Vegan)',
-    name: 'Đậu hũ nấm kho tiêu sốt nấm đậm đà',
-    time: 25,
-    kcal: 260,
-    protein: 16.2,
-    carb: 18.0,
-    fat: 9.0,
-    score: '100% Thuần chay',
-    ingredients: [
-      { text: 'Tủ bếp: Đậu hũ (Có ✓) • Nấm hương (Có sẵn thay bằng tiêu xanh).', highlight: true },
-      { text: '', highlight: false },
-      { text: 'Can mua thêm: 1 thìa hạt tiêu xanh tươi (hoặc thay bằng tiêu xay).', highlight: false },
-    ],
-  },
-  {
-    id: 'mr4',
-    matchText: '✓ Khớp 3/3 nguyên liệu sẵn có',
-    badge: '100% Thuần Chay (Vegan)',
-    name: 'Đậu hũ áp chảo sốt nấm hương ngũ vị',
-    time: 15,
-    kcal: 295,
-    protein: 17.0,
-    carb: 15.5,
-    fat: 11.2,
-    score: '100% Thuần chay',
-    ingredients: [
-      { text: 'Tủ bếp: Đậu hũ vàng, nấm hương, nước tương đậu nành thường (Tương đậu thay)', highlight: true },
-      { text: '', highlight: false },
-      { text: 'Gia vị thêm: Bột ngọt, bột năng, hành tây thái hạt lựu', highlight: false },
-    ],
-  },
-]
+  // 2. Gợi ý món ăn: khi items thay đổi thì recalculate
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      setIsLoadingMatches(true)
+      try {
+        const data = await getRecipeMatches(items)
+        if (!cancelled) setMatches(data)
+      } finally {
+        if (!cancelled) setIsLoadingMatches(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [items])
 
-export default function PantryPage({ onNavigate }: Props) {
-  const [ingredientInput, setIngredientInput] = useState('')
-  const [ingredients, setIngredients] = useState(PANTRY_INGREDIENTS)
-  const [sortBy, setSortBy] = useState('Khớp nguyên liệu cao nhất (100%)')
+  const filteredItems = useMemo(() => {
+    if (!search.trim()) return items
+    const q = search.trim().toLowerCase()
+    return items.filter(
+      (it) =>
+        it.name.toLowerCase().includes(q) ||
+        PANTRY_CATEGORY_LABELS[it.category]?.toLowerCase().includes(q) ||
+        it.unit.toLowerCase().includes(q),
+    )
+  }, [items, search])
 
-  const removeIngredient = (id: string) => setIngredients((prev) => prev.filter((i) => i.id !== id))
-  const addIngredient = (label: string) => {
-    const name = label.replace(/^\+\s*/, '').trim()
-    if (!name || ingredients.some((i) => i.name === name)) return
-    setIngredients((prev) => [...prev, { id: `${Date.now()}`, name, status: 'ok' }])
-    setIngredientInput('')
+  const stats = useMemo(() => {
+    const total = items.length
+    const suitable = items.filter((i) => i.isSuitable === 'suitable').length
+    const warning = items.filter((i) => i.isSuitable === 'warning').length
+    const unsuitable = items.filter((i) => i.isSuitable === 'unsuitable').length
+    const totalKcalPotential = matches.slice(0, 6).reduce((acc, m) => acc + m.kcal, 0)
+    return { total, suitable, warning, unsuitable, totalKcalPotential }
+  }, [items, matches])
+
+  const handleAddSubmit = async (form: AddIngredientFormState) => {
+    setIsAddSubmitting(true)
+    try {
+      const created = await addPantryItem(form)
+      // Nếu đang xem all thì append vào list, hoặc nếu category khớp thì append
+      if (activeCategory === 'all' || activeCategory === created.category) {
+        setItems((prev) => [created, ...prev])
+      } else {
+        // Force refetch khi không khớp category đang filter (sai UI nếu không)
+        await loadItems()
+      }
+    } finally {
+      setIsAddSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    const res = await deletePantryItem(id)
+    if (res.deleted) {
+      setItems((prev) => prev.filter((p) => p.id !== id))
+    }
+  }
+
+  const handleRefresh = () => {
+    void loadItems()
   }
 
   return (
-    <div className="pp-page">
-      {/* Breadcrumbs */}
-      <nav className="pp-breadcrumbs">
-        <span className="pp-link" onClick={() => onNavigate?.('/')}>🏠 Trang chủ</span>
-        <span className="pp-sep">/</span>
-        <span className="pp-link" onClick={() => onNavigate?.('/recipes')}>Công thức</span>
-        <span className="pp-sep">/</span>
-        <span className="pp-current">Gợi ý món từ Tủ Bếp AI</span>
-      </nav>
-
-      {/* Header */}
-      <div className="pp-head">
-        <div className="pp-head-left">
-          <h1 className="pp-title">
-            Gợi ý Món Chay Từ Tủ Bếp AI
-            <span className="pp-title-badge"><Sparkles size={14} /> Smart Pantry 2-4</span>
-          </h1>
-          <p className="pp-sub">
-            Khám phá các món ăn thông minh, chuẩn dinh dưỡng từ những nguyên liệu sẵn có trong gian bếp của bạn cùng Trợ lý AI thông minh.
-          </p>
-        </div>
-        <div className="pp-head-right">
-          <button className="pp-scan-btn">
-            <Heart size={15} /> Đổi sơát khẩu phần
-          </button>
-        </div>
-      </div>
-
-      {/* Status banner */}
-      <div className="pp-diet-banner">
-        <div className="pp-diet-icon"><Leaf size={20} /></div>
-        <div>
-          <div className="pp-diet-title">
-            <strong>Đã đóng bộ hồ sơ</strong> — Chế độ hiện tại: Thuần chay (Vegan)
+    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f5e9] px-3 py-1 text-[11px] font-extrabold text-[#2e7d32]">
+              <Warehouse size={12} /> Tủ bếp AI
+            </span>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1f2937] sm:text-3xl">
+              Quản lý nguyên liệu & Gợi ý món ăn theo tủ bếp
+            </h1>
+            <p className="mt-1 max-w-3xl text-sm text-[#6b7280]">
+              Thêm nguyên liệu bạn đang có trong tủ, hệ thống sẽ tính trực quan % khớp nguyên liệu từ kho
+              công thức thuần thực vật và gợi ý các món bạn có thể nấu ngay hôm nay.
+            </p>
           </div>
-          <div className="pp-diet-sub">
-            Hệ thống tự động quét nhận diện 100% nguyên liệu gốc động vật (thịt, cá, sữa bò, trứng giả cam, gelatin, mỡ động vật) để đảm
-            bảo món chay an tâm tuyệt đối.
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              leftIcon={<RefreshCw size={14} />}
+              onClick={handleRefresh}
+            >
+              Làm mới
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              leftIcon={<Plus size={14} />}
+              onClick={() => setShowAddModal(true)}
+            >
+              Thêm nguyên liệu
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* 2-col layout */}
-      <div className="pp-layout">
-        {/* Left column */}
-        <div className="pp-left">
-          {/* Pantry card */}
-          <div className="pp-card pp-card-pantry">
-            <div className="pp-card-head">
-              <div className="pp-card-title">
-                <span className="pp-icon-sq"><ChefHat size={18} /></span>
-                Tủ bếp của bạn
-                <span className="pp-count-badge">{ingredients.length} nguyên liệu đã chọn</span>
-              </div>
+        {/* Stats */}
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">
+              Tổng nguyên liệu
             </div>
-            <div className="pp-pantry-subtitle">Thêm nguyên liệu có sẵn</div>
-
-            {/* Add input */}
-            <div className="pp-add-row">
-              <div className="pp-input">
-                <Search size={16} />
-                <input
-                  placeholder="Nhập nguyên liệu bạn đang có (vd: đậu hũ, nấm, cà chua, đậu hà...)"
-                  value={ingredientInput}
-                  onChange={(e) => setIngredientInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') addIngredient(ingredientInput || '+ Đậu hũ') }}
-                />
-              </div>
-              <button
-                className="pp-btn-add"
-                onClick={() => addIngredient(ingredientInput || '+ Đậu hũ')}
-                type="button"
-              >
-                <Plus size={15} /> Thêm
-              </button>
-            </div>
-
-            {/* Quick chips */}
-            <div className="pp-quick-head">Gợi ý thêm nhanh:</div>
-            <div className="pp-quick-chips">
-              {SUGGESTED_QUICK.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  className={`pp-quick-chip ${q.includes('Đậu hào') || q.includes('Trứng') ? 'is-warn' : ''}`}
-                  onClick={() => addIngredient(q)}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-
-            {/* Pantry chips list */}
-            <div className="pp-pantry-list">
-              {ingredients.map((i) => (
-                <span
-                  key={i.id}
-                  className={`pp-ingredient-chip pp-ingredient-${i.status}`}
-                >
-                  {i.status === 'ok' ? '✅' : i.status === 'warn' ? '⚠️' : '🚫'} {i.name}
-                  <button
-                    type="button"
-                    className="pp-chip-remove"
-                    onClick={() => removeIngredient(i.id)}
-                    aria-label={`xóa ${i.name}`}
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-
-            {/* Vegan check */}
-            <div className="pp-vegan-check">
-              <button type="button" className="pp-btn-check">
-                <ShieldCheck size={15} /> Kiểm tra vi phạm Vegan:
-                <span className="pp-vegan-ok">3 Hợp lệ</span>
-                <span className="pp-vegan-warn">2 Cảnh báo</span>
-              </button>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <div className="text-3xl font-extrabold text-[#1f2937]">{stats.total}</div>
+              <StatusBadge status="info" label="items" size="sm" />
             </div>
           </div>
-
-          {/* Violation check */}
-          <div className="pp-card">
-            <div className="pp-card-title-no-icon">
-              <span className="pp-icon-sq pp-icon-green"><Lightbulb size={18} /></span>
-              Kết quả kiểm tra theo hồ sơ Vegan
-              <span className="pp-meta-text">
-                Hệ thống AI tự động phân tích từng nguồn gốc nguyên liệu đối chiếu với chế độ Thuần chay (Vegan).
-              </span>
+          <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/60 p-4 shadow-xs">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-[#2e7d32]">
+              Phù hợp
             </div>
-
-            <div className="pp-check-row pp-check-ok">
-              <div className="pp-check-icon-ok"><Leaf size={16} /></div>
-              <div className="pp-check-text">
-                <strong>Nguyên liệu hợp lệ (3 nguyên liệu)</strong>
-                <span className="pp-safe-badge">100% An toàn</span>
-              </div>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <div className="text-3xl font-extrabold text-[#2e7d32]">{stats.suitable}</div>
+              <StatusBadge status="suitable" size="sm" />
             </div>
-
-            <ul className="pp-safe-list">
-              {SAFE_INGREDIENTS.map((s) => (
-                <li key={s.name}>
-                  <span className="pp-check-icon-ok pp-check-icon-sm"><Leaf size={13} /></span>
-                  {s.name}
-                  <button className="pp-safe-remove" onClick={() => { const base = s.name.split(' (')[0]; const i = ingredients.find((x) => x.name.startsWith(base)); if (i) removeIngredient(i.id); }}>
-                    <X size={12} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            <div className="pp-check-row pp-check-danger">
-              <div className="pp-check-icon-danger"><AlertTriangle size={16} /></div>
-              <div className="pp-check-text">
-                <strong>Cảnh báo vi phạm chế độ ăn (2 nguyên liệu)</strong>
-                <button className="pp-btn-danger-tag">Cần loại trừ</button>
-              </div>
+          </div>
+          <div className="rounded-[16px] border border-amber-200 bg-amber-50/80 p-4 shadow-xs">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-amber-800">
+              Cần xem lại
             </div>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <div className="text-3xl font-extrabold text-amber-800">{stats.warning}</div>
+              <StatusBadge status="insufficient" size="sm" />
+            </div>
+          </div>
+          <div className="rounded-[16px] border border-red-200 bg-red-50/80 p-4 shadow-xs">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-red-700">
+              Không phù hợp
+            </div>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <div className="text-3xl font-extrabold text-red-700">{stats.unsuitable}</div>
+              <StatusBadge status="unsuitable" size="sm" />
+            </div>
+          </div>
+        </div>
 
-            <div className="pp-violation-list">
-              {VIOLATIONS.map((v) => (
-                <div key={v.id} className={`pp-violation-item pp-violation-${v.level}`}>
-                  <div className="pp-viol-head">
-                    <span className={`pp-viol-level pp-viol-level-${v.level}`}>
-                      {v.level === 'danger' ? '🚨' : '⚠️'} {v.title}
-                    </span>
-                    <span className="pp-viol-tag">{v.tag}</span>
-                  </div>
-                  <p className="pp-viol-reason">{v.reason}</p>
-                  <p className="pp-viol-alt">
-                    <span className="pp-viol-alt-label">💡 Gợi ý thay thế thuần thực vật</span>
-                    <strong>{v.alt}</strong>
+        {/* Main grid: Pantry items + Recipe Matches */}
+        <div className="grid gap-6 xl:grid-cols-[1.1fr_minmax(0,0.9fr)]">
+          {/* ====== Cột trái: Tủ bếp ====== */}
+          <section className="flex flex-col gap-5">
+            <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-xs sm:p-5">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-extrabold tracking-tight text-[#1f2937]">
+                    Nguyên liệu trong tủ
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[#6b7280]">
+                    Xem tất cả các nguyên liệu bạn đã lưu, xóa bớt hoặc thêm mới.
                   </p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* AI Alternatives */}
-          <div className="pp-card">
-            <div className="pp-alternative-head">
-              <span className="pp-icon-sq pp-icon-soft"><Sparkles size={18} /></span>
-              <div>
-                <div className="pp-alt-title">Gợi ý thay thế thuần thực vật từ AI</div>
-                <span className="pp-alt-100">100% Thuần Chay</span>
-              </div>
-            </div>
-
-            <div className="pp-alt-list">
-              {AI_ALTERNATIVES.map((a) => (
-                <div key={a.id} className="pp-alt-item">
-                  <div className="pp-alt-arrow">{a.before}</div>
-                  <div className="pp-alt-main">
-                    <div className="pp-alt-after">{a.after}</div>
-                    <span className="pp-alt-match">{a.match}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="w-56">
+                    <Select
+                      size={12}
+                      value={activeCategory}
+                      onChange={(e) =>
+                        setActiveCategory(e.target.value as PantryCategory | 'all')
+                      }
+                      options={ALL_CATEGORY_OPTIONS}
+                    />
                   </div>
-                  <div className="pp-alt-meta">
-                    <div className="pp-alt-meta-line">{a.usage}</div>
-                    <div className="pp-alt-meta-line">{a.tip}</div>
+                  <div className="w-60">
+                    <input
+                      type="search"
+                      placeholder="Tìm nguyên liệu..."
+                      className="h-11 w-full rounded-[10px] border border-[#e5e7eb] bg-white px-3.5 pl-10 text-sm outline-none focus:border-[#2e7d32] focus:ring-3 focus:ring-[#e8f5e9]"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      style={{
+                        backgroundImage:
+                          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2394a3b8' viewBox='0 0 24 24'><path stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z'/></svg>\")",
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'left 12px center',
+                      }}
+                    />
                   </div>
-                  <button className="pp-alt-apply" type="button">
-                    <Sparkles size={13} /> Áp dụng thay thế
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="pp-alt-auto-note">
-              <span className="pp-alt-auto-bullet">✅</span>
-              Tự động thay thế tất cả nguyên liệu vi phạm bằng phiên bản thực vật an toàn khi gợi ý công thức.
-            </div>
-          </div>
-        </div>
-
-        {/* Right column: matched recipes + expert corner */}
-        <div className="pp-right">
-          <div className="pp-head-rc">
-            <div className="pp-rc-title-wrap">
-              <h2 className="pp-rc-title">Món ngon có thể nấu ngay từ tủ bếp</h2>
-              <span className="pp-rc-badge">4 công thức</span>
-            </div>
-            <div className="pp-rc-sort">
-              <label>Sắp xếp:</label>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option>Khớp nguyên liệu cao nhất (100%)</option>
-                <option>Thời gian nấu: ngắn nhất</option>
-                <option>Calo: thấp nhất</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="pp-recipe-grid">
-            {MATCHED_RECIPES.map((r) => (
-              <article key={r.id} className="pp-recipe-card">
-                <div className="pp-recipe-match">{r.matchText}</div>
-                <div className="pp-recipe-img">
-                  <div className="pp-recipe-placeholder" />
-                  <span className="pp-recipe-time"><Clock size={12} /> {r.time} phút</span>
-                  <span className="pp-recipe-badge">{r.badge}</span>
-                </div>
-                <h3 className="pp-recipe-name">{r.name}</h3>
-                <div className="pp-recipe-ing">
-                  {r.ingredients.map((ing, idx) => (
-                    <div key={idx} className={`pp-recipe-ing-line ${ing.highlight ? 'is-highlight' : ''}`}>
-                      {ing.text}
-                    </div>
-                  ))}
-                </div>
-                <div className="pp-recipe-nutri">
-                  <div className="pp-nutri-item">
-                    <span className="pp-nutri-lbl">Calo</span>
-                    <span className="pp-nutri-val">{r.kcal}</span>
-                  </div>
-                  <div className="pp-nutri-item">
-                    <span className="pp-nutri-lbl">Đạm</span>
-                    <span className="pp-nutri-val">{r.protein.toFixed(1)}g</span>
-                  </div>
-                  <div className="pp-nutri-item">
-                    <span className="pp-nutri-lbl">Carb</span>
-                    <span className="pp-nutri-val">{r.carb.toFixed(1)}g</span>
-                  </div>
-                  <div className="pp-nutri-item">
-                    <span className="pp-nutri-lbl">Béo tốt</span>
-                    <span className="pp-nutri-val">{r.fat.toFixed(1)}g</span>
-                  </div>
-                </div>
-                <div className="pp-recipe-score">
-                  <span className="pp-leaf-ico"><Leaf size={12} /></span>
-                  Tỷ lệ thực vật &nbsp;
-                  <strong>{r.score}</strong>
-                </div>
-                <div className="pp-recipe-actions">
-                  <button
-                    className="pp-btn-recipe-main"
+                  <Button
                     type="button"
-                    onClick={() => onNavigate?.(`/recipes/${encodeURIComponent(r.id)}`)}
+                    size="sm"
+                    variant="outline"
+                    leftIcon={<Search size={12} />}
+                    onClick={() => setShowAddModal(true)}
                   >
-                    <BookOpenCheck size={14} /> Xem công thức chi tiết →
-                  </button>
-                  <button className="pp-btn-recipe-secondary" type="button" aria-label="Lưu">
-                    <BookmarkPlus size={14} />
-                  </button>
+                    Thêm nhanh
+                  </Button>
                 </div>
-              </article>
-            ))}
-          </div>
-
-          {/* Expert corner */}
-          <div className="pp-expert">
-            <div className="pp-expert-head">
-              <div className="pp-expert-icon">
-                <Activity size={18} />
               </div>
-              <div>
-                <div className="pp-expert-title">
-                  Góc chuyên gia dinh dưỡng thực vật AI
-                  <span className="pp-expert-chip">Chỉ số hấp thụ tối ưu</span>
+
+              {isLoadingItems && filteredItems.length === 0 ? (
+                <div className="py-2">
+                  <SkeletonLoader count={6} variant="card" />
                 </div>
-                <p className="pp-expert-text">
-                  Trợ lý AI đánh giá: Bộ 3 nguyên liệu <strong>Đậu hũ + Nấm hương + Cà chua</strong> là sự kết hợp hoàn hảo giữa <strong>Đạm thực vật hoàn chỉnh</strong>
-                  (Đậu hũ chứa tất cả 9 axit amin thiết yếu) + <strong>Beta-glucan tăng cường miễn dịch</strong> (từ Nấm hương) và <strong>Lycopene chống oxy hóa được hoạt hóa tốt nhất khi nấu cùng dầu thực vật</strong>
-                  (là chất béo trong đậu phụ chiên vàng). Bạn hoàn toàn có thể nấu một bữa ăn thuần chay cân bằng, ngon miệng mà không thiếu hụt vị chất.
-                </p>
-                <div className="pp-expert-checks">
-                  <span className="pp-check-line"><Leaf size={12} /> Phù hợp cho chế độ giảm cân & kiểm soát BMI</span>
-                  <span className="pp-check-line"><Flame size={12} /> • Chỉ số đường huyết (GI) thấp</span>
+              ) : filteredItems.length === 0 ? (
+                <EmptyState
+                  title="Tủ bếp chưa có nguyên liệu nào"
+                  description="Hãy bắt đầu thêm một vài nguyên liệu phổ biến (đậu phụ, cà chua, gạo lứt…) để tôi gợi ý các món ăn theo đúng tủ bếp bạn đang có."
+                  actionLabel="Thêm nguyên liệu"
+                  onAction={() => setShowAddModal(true)}
+                />
+              ) : (
+                <PantryItemList
+                  items={filteredItems}
+                  isLoading={isLoadingItems}
+                  onDelete={handleDelete}
+                />
+              )}
+            </div>
+          </section>
+
+          {/* ====== Cột phải: Gợi ý món ăn ====== */}
+          <section className="flex flex-col gap-5">
+            <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-xs sm:p-5">
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="inline-flex items-center gap-1 rounded-full bg-[#2e7d32] px-2.5 py-1 text-[10px] font-extrabold text-white">
+                    <Sparkles size={11} /> TÍNH ĐỘ KHỚP
+                  </div>
+                  <h2 className="mt-2 text-lg font-extrabold tracking-tight text-[#1f2937]">
+                    Gợi ý món ăn từ nguyên liệu đang có
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[#6b7280]">
+                    Hệ thống tính % khớp dựa trên số nguyên liệu bạn có trên tổng số nguyên liệu trong
+                    mỗi công thức.
+                  </p>
                 </div>
+                <div className="text-right text-xs text-[#6b7280]">
+                  <div className="font-semibold text-[#1f2937]">
+                    Tổng {matches.length} gợi ý
+                  </div>
+                  <div className="mt-1 inline-flex items-center gap-1">
+                    <ChefHat size={12} className="text-[#2e7d32]" />
+                    {stats.totalKcalPotential.toLocaleString('vi-VN')} kcal (top 6)
+                  </div>
+                </div>
+              </div>
+
+              <RecipeMatchList
+                matches={matches}
+                isLoading={isLoadingMatches}
+                onNavigate={onNavigate}
+              />
+            </div>
+
+            {/* Quick tips card */}
+            <div className="rounded-[20px] border border-[#c8e6c9] bg-[#e8f5e9]/60 p-5 shadow-xs">
+              <h3 className="text-[15px] font-extrabold text-[#2e7d32]">
+                💡 3 mẹo để có gợi ý chính xác hơn
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm leading-6 text-[#1f2937]">
+                <li>
+                  1. Nhập đầy đủ <strong>tên nguyên liệu + số lượng (g / kg / quả / bó…)</strong> — hệ
+                  thống sẽ ưu tiên gợi ý món bạn có đủ khối lượng.
+                </li>
+                <li>
+                  2. Nếu có sản phẩm chế biến sẵn, kiểm tra nhãn thành phần tại{' '}
+                  <button
+                    type="button"
+                    className="font-bold text-[#1f2937] underline decoration-[#2e7d32]/50 hover:decoration-[#2e7d32]"
+                    onClick={() => onNavigate?.('/food-scan')}
+                  >
+                    Quét thực phẩm
+                  </button>{' '}
+                  trước khi thêm vào tủ bếp.
+                </li>
+                <li>
+                  3. Thêm <strong>5-8 nguyên liệu phổ biến</strong> (đậu phụ, gạo lứt, cà chua, nấm,
+                  hành, tỏi, hạt chia) thường có đủ để gợi ý trên 15 món ăn khác nhau.
+                </li>
+              </ul>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<ChefHat size={13} />}
+                  onClick={() => onNavigate?.('/recipes')}
+                >
+                  Xem toàn bộ cộng đồng công thức
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Sparkles size={13} />}
+                  onClick={() => onNavigate?.('/ai-chat')}
+                >
+                  Hỏi AI thêm mẹo nấu ăn
+                </Button>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
+
+      {/* Add ingredient Modal */}
+      <AddIngredientModal
+        isOpen={showAddModal}
+        onClose={() => {
+          if (!isAddSubmitting) setShowAddModal(false)
+        }}
+        onSubmit={handleAddSubmit}
+        submitting={isAddSubmitting}
+      />
     </div>
   )
 }

@@ -1,412 +1,302 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'
 import {
-  MapPin,
-  Search,
-  Navigation,
-  Plus,
-  Minus,
-  LocateFixed,
-  Filter,
-  ToggleLeft,
-  ToggleRight,
-  ChevronDown,
-  Leaf,
-  ChevronRight,
-} from 'lucide-react';
-import './RestaurantList.css';
-
-interface RestaurantCardModel {
-  id: string;
-  img: string;
-  dietTag: 'Thuần chay (Vegan)' | 'Ăn chay có trứng sữa (Lacto-ovo)' | 'Ăn chay có trứng (Ovo)' | 'Ăn chay có sữa (Lacto-ovo)' | 'Ăn chay có sữa (Lacto)' | 'Chay dưỡng sinh' | 'Cà phê chay';
-  status: 'Đang mở cửa' | 'Mở cửa lúc 11:00' | 'Mở cửa lúc 10:00';
-  name: string;
-  address: string;
-  distanceKm: number;
-  priceFrom: number;
-  priceTo: number;
-  tagline: string[];
-  featured?: boolean;
-  isVeganOnly?: boolean;
-}
-
-const RESTAURANTS: RestaurantCardModel[] = [
-  {
-    id: 'r1',
-    img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Cozy%20Vietnamese%20vegetarian%20restaurant%20interior%20with%20wooden%20furniture%2C%20green%20plants%2C%20customers%20eating%2C%20lens%20flare&image_size=landscape_4_3',
-    dietTag: 'Ăn chay có trứng sữa (Lacto-ovo)',
-    status: 'Đang mở cửa',
-    name: 'An Nhiên Vegetarian Restaurant',
-    address: 'Số 18 Ngõ 71 Lĩnh Lang, Công Vị, Ba Đình, Hà Nội',
-    distanceKm: 1.2,
-    priceFrom: 45000,
-    priceTo: 150000,
-    tagline: ['Không gian xanh vui nhộn', 'Thực đơn thu dưỡng', 'Chỗ đỗ ô tô'],
-    featured: true,
-  },
-  {
-    id: 'r2',
-    img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Elegant%20vegetarian%20cafe%20garden%20style%20with%20ferns%20and%20big%20windows%2C%20lush%20greenery%2C%20asian%20food&image_size=landscape_4_3',
-    dietTag: 'Ăn chay có trứng sữa (Lacto-ovo)',
-    status: 'Đang mở cửa',
-    name: 'The Fernery Garden & Cafe Chay',
-    address: '24 Đường Quảng Khánh, Quảng An, Tây Hồ, Hà Nội',
-    distanceKm: 2.4,
-    priceFrom: 45000,
-    priceTo: 150000,
-    tagline: ['Không gian ngoài trời', 'Bánh ngọt thuần chay', 'View Hồ Tây'],
-  },
-  {
-    id: 'r3',
-    img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Minimalist%20Vietnamese%20vegan%20rice%20lunch%20set%20meal%20with%20tofu%20and%20greens%2C%20clean%20ceramic%20bowl&image_size=landscape_4_3',
-    dietTag: 'Thuần chay (Vegan)',
-    status: 'Đang mở cửa',
-    name: 'Bếp Chay An Lạc - Ẩm Thực Thực Dưỡng',
-    address: '109 Phố Mai Hắc Đế, Bùi Thị Xuân, Hai Bà Trưng, Hà Nội',
-    distanceKm: 3.1,
-    priceFrom: 50000,
-    priceTo: 120000,
-    tagline: ['Cơm văn phòng chay', 'Không bột ngọt', 'Đạm thực vật sạch'],
-    isVeganOnly: true,
-  },
-  {
-    id: 'r4',
-    img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Traditional%20Vietnamese%20Buddhist%20vegetarian%20family%20restaurant%20interior%20with%20wooden%20altar%20and%20lotus%20decor&image_size=landscape_4_3',
-    dietTag: 'Ăn chay có sữa (Lacto)',
-    status: 'Mở cửa lúc 11:00',
-    name: 'Nhà Hàng Chay Sen Vàng',
-    address: '52 Nguyễn Du, Phường Hàng Bài, Hoàn Kiếm, Hà Nội',
-    distanceKm: 3.8,
-    priceFrom: 80000,
-    priceTo: 250000,
-    tagline: ['Không gian thiện tĩnh', 'Tiệc chay gia đình', 'Trà thảo mộc'],
-  },
-];
-
-const DISH_CHIPS = [
-  { name: 'Phở chay', count: 8 },
-  { name: 'Bún riêu chay', count: 12 },
-  { name: 'Cơm tấm sườn chay', count: 15 },
-  { name: 'Lẩu nấm chay', count: 9 },
-  { name: 'Salad bò đậu gà', count: 14 },
-  { name: 'Há cảo chay', count: 6 },
-];
-
-const DIET_FILTERS = ['Thuần chay (Vegan)', 'Ăn chay có sữa (Lacto)', 'Ăn chay có trứng (Ovo)', 'Ăn chay có trứng sữa (Lacto-ovo)', 'Chay dưỡng sinh', 'Cà phê chay'];
-const DISTANCES = ['Tất cả', '< 1 km', '< 3 km', '< 5 km', '< 10 km'];
+  ChefHat,
+  Map as MapIcon,
+  RefreshCw,
+  Sparkles,
+  Star,
+  UtensilsCrossed,
+} from 'lucide-react'
+import {
+  Button,
+  EmptyState,
+  SkeletonLoader,
+  StatusBadge,
+} from '../../../shared/components'
+import {
+  filterRestaurants,
+  getRestaurantDetail,
+} from '../api/restaurantApi'
+import { RestaurantCard } from '../components/RestaurantCard'
+import { RestaurantFilterBar } from '../components/RestaurantFilter'
+import type {
+  Restaurant,
+  RestaurantCity,
+  RestaurantDietType,
+  RestaurantFilter,
+} from '../types/restaurant.types'
+import {
+  CITY_LABELS,
+  DEFAULT_RESTAURANT_FILTER,
+  DIET_TYPE_LABELS,
+} from '../types/restaurant.types'
 
 interface RestaurantListPageProps {
-  onNavigate?: (path: string) => void;
+  onNavigate?: (path: string) => void
+  isLoggedIn?: boolean
 }
 
-export default function RestaurantListPage({ onNavigate }: RestaurantListPageProps) {
-  const [search, setSearch] = useState('');
-  const [activeDist, setActiveDist] = useState('< 3 km');
-  const [activeDiet, setActiveDiet] = useState('Thuần chay (Vegan)');
-  const [matchOnly, setMatchOnly] = useState(true);
+export default function RestaurantList({
+  onNavigate,
+  isLoggedIn: _isLoggedIn,
+}: RestaurantListPageProps) {
+  const [filter, setFilter] = useState<RestaurantFilter>(DEFAULT_RESTAURANT_FILTER)
+  const [items, setItems] = useState<Restaurant[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
-  const formatVND = (n: number) =>
-    new Intl.NumberFormat('vi-VN').format(n / 1000) + '.000đ';
+  const showToast = (msg: string) => {
+    setToast(msg)
+    window.setTimeout(() => setToast(null), 1500)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setIsLoading(true)
+      try {
+        const res = await filterRestaurants(DEFAULT_RESTAURANT_FILTER)
+        if (cancelled) return
+        setItems(res.items)
+        setTotalCount(res.totalCount)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const t = window.setTimeout(() => {
+      ;(async () => {
+        setIsLoading(true)
+        try {
+          const res = await filterRestaurants(filter)
+          if (cancelled) return
+          setItems(res.items)
+          setTotalCount(res.totalCount)
+        } finally {
+          if (!cancelled) setIsLoading(false)
+        }
+      })()
+    }, 200)
+    return () => {
+      cancelled = true
+      window.clearTimeout(t)
+    }
+  }, [filter])
+
+  const stats = useMemo(() => {
+    const hn = items.filter((r) => r.city === 'Hà Nội').length
+    const hcm = items.filter((r) => r.city === 'TP.HCM').length
+    const dn = items.filter((r) => r.city === 'Đà Nẵng').length
+    const vegan = items.filter((r) =>
+      (r.dietTypes as unknown as string[]).includes('vegan'),
+    ).length
+    const avgRating =
+      items.length === 0
+        ? 0
+        : items.reduce((a, r) => a + r.rating, 0) / items.length
+    const delivery = items.filter((r) => r.hasDelivery).length
+    return { hn, hcm, dn, vegan, avgRating, delivery }
+  }, [items])
+
+  const updateFilter = (patch: Partial<RestaurantFilter>) =>
+    setFilter((prev) => ({ ...prev, ...patch }))
+
+  const resetFilter = () => setFilter(DEFAULT_RESTAURANT_FILTER)
+
+  const handleSelect = (id: string) => {
+    onNavigate?.(`/restaurants/${encodeURIComponent(id)}`)
+  }
+
+  const handleBook = async (id: string) => {
+    const r = await getRestaurantDetail(id)
+    if (!r) return
+    showToast(`📞 Đặt chỗ tại ${r.name}: ${r.phoneNumber}`)
+  }
 
   return (
-    <div className="rl-root">
-      {/* Breadcrumb */}
-      <div className="rl-topbar">
-        <div className="rl-breadcrumb">
-          <button type="button" className="crumb-link" onClick={() => onNavigate?.('/')}>
-            Trang chủ
-          </button>
-          <ChevronRight size={12} className="crumb-sep" />
-          <span className="crumb-active">Nhà hàng chay</span>
-        </div>
-        <button type="button" className="rl-geo-toggle">
-          <Navigation size={12} />
-          Sử dụng vị trí hiện tại
-        </button>
-      </div>
-
-      {/* Page title */}
-      <header className="rl-header">
-        <h1>Nhà hàng chay gần bạn</h1>
-        <p>
-          Khám phá các hàng và quán ăn chay thanh tịnh, dinh dưỡng phù hợp với vị trí hiện tại của bạn.
-        </p>
-      </header>
-
-      {/* Location banner */}
-      <section className="rl-location-banner">
-        <div className="rl-location-banner-left">
-          <MapPin size={18} />
-          <span>Cho phép truy cập vị trí để tìm nhà hàng chay gần bạn chính xác nhất.</span>
-        </div>
-        <button type="button" className="btn btn-primary-green">
-          Cho phép vị trí
-        </button>
-      </section>
-
-      {/* Search bar */}
-      <section className="rl-search-wrap">
-        <div className="rl-search">
-          <Search size={18} className="search-ic" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Tìm kiếm nhà hàng hoặc khu vực (quận, phố, tên quán)..."
-            className="rl-search-input"
-          />
-          <button type="button" className="btn btn-search-primary">
-            <Search size={14} /> Tìm kiếm
-          </button>
-        </div>
-
-        <div className="rl-filters">
-          <div className="rl-filter-row">
-            <span className="filter-label">Khoảng cách:</span>
-            <div className="chip-row">
-              {DISTANCES.map(d => (
-                <button
-                  key={d}
-                  type="button"
-                  className={`filter-chip ${activeDist === d ? 'active' : ''}`}
-                  onClick={() => setActiveDist(d)}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rl-filter-row mt">
-            <span className="filter-label">Tiện ích:</span>
-            <div className="chip-row">
-              {DIET_FILTERS.slice(0, 2).map(d => (
-                <button
-                  key={d}
-                  type="button"
-                  className={`filter-chip pill-purple ${activeDiet === d ? 'active' : ''}`}
-                  onClick={() => setActiveDiet(d)}
-                >
-                  {d}
-                </button>
-              ))}
-              <span className="filter-sep">|</span>
-              {DIET_FILTERS.slice(2).map(d => (
-                <button
-                  key={d}
-                  type="button"
-                  className="filter-chip"
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rl-filter-row mt between">
-            <span />
-            <button type="button" className="clear-filter">
-              <Filter size={12} /> Xóa bộ lọc
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Profile match banner */}
-      <div className="rl-profile-banner">
-        <div className="rl-profile-banner-left">
-          <div className="avatar-leaf">
-            <Leaf size={18} />
-          </div>
-          <div>
-            <div className="strong-row">
-              <strong>Chỉ hiện thị nhà hàng phù hợp với hồ sơ của tôi</strong>
-              <span className="recommend-chip">
-                <SparkleMini />
-                Thông minh
+    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* Hero */}
+        <section className="mb-6 overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-gradient-to-br from-white via-white to-[#e8f5e9] p-6 shadow-xs sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2e7d32] px-3 py-1 text-[11px] font-extrabold text-white shadow-sm">
+                <MapIcon size={12} /> DANH SÁCH 14+ QUÁN ĂN CHAY 3 TỈNH THÀNH
               </span>
+              <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+                Khám phá quán ăn thuần thực vật yêu thích quanh bạn
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+                Từ Hà Nội, Sài Gòn đến Đà Nẵng, tất cả các quán đều được cộng đồng review & xác minh
+                thực tế, dễ dàng lọc theo chế độ ăn bạn đang theo đuổi.
+              </p>
             </div>
-            <p className="banner-desc">
-              Hồ sơ của bạn: Thuần Chay (Vegan) • Tự động lọc các địa điểm đạt chuẩn
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                leftIcon={<ChefHat size={14} />}
+                onClick={() => onNavigate?.('/ai-chat')}
+              >
+                Hỏi AI gợi ý quán gần tôi
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                leftIcon={<RefreshCw size={14} />}
+                onClick={async () => {
+                  setIsLoading(true)
+                  try {
+                    const res = await filterRestaurants(filter)
+                    setItems(res.items)
+                    setTotalCount(res.totalCount)
+                  } finally {
+                    setIsLoading(false)
+                  }
+                }}
+              >
+                Làm mới
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                Tổng quán ăn
+              </div>
+              <div className="mt-1 flex items-end gap-2">
+                <div className="text-2xl font-extrabold text-[#1f2937]">{totalCount}</div>
+                <UtensilsCrossed size={14} className="mb-1 text-[#2e7d32]" />
+              </div>
+            </div>
+            <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/70 p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#2e7d32]">
+                Thuần thực vật 100%
+              </div>
+              <div className="mt-1 text-2xl font-extrabold text-[#2e7d32]">{stats.vegan}</div>
+            </div>
+            <div className="rounded-[16px] border border-sky-200 bg-sky-50/80 p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-sky-700">
+                Hà Nội
+              </div>
+              <div className="mt-1 text-2xl font-extrabold text-sky-700">{stats.hn}</div>
+            </div>
+            <div className="rounded-[16px] border border-amber-200 bg-amber-50/80 p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
+                TP.HCM
+              </div>
+              <div className="mt-1 text-2xl font-extrabold text-amber-700">{stats.hcm}</div>
+            </div>
+            <div className="rounded-[16px] border border-rose-200 bg-rose-50/80 p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-rose-700">
+                Đà Nẵng
+              </div>
+              <div className="mt-1 flex items-end gap-2">
+                <div className="text-2xl font-extrabold text-rose-700">{stats.dn}</div>
+                <span className="mb-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-rose-600">
+                  <Star size={11} className="fill-amber-500 stroke-amber-500" />
+                  ⌀ {stats.avgRating.toFixed(1)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Filter */}
+        <section className="mb-5">
+          <RestaurantFilterBar
+            filter={filter}
+            onChange={updateFilter}
+            onReset={resetFilter}
+            totalCount={totalCount}
+            isLoading={isLoading}
+          />
+        </section>
+
+        {/* Applied filter badges */}
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]">
+          {filter.city !== 'all' && (
+            <StatusBadge
+              status="info"
+              size="sm"
+              label={`Khu vực: ${CITY_LABELS[filter.city as RestaurantCity] ?? filter.city}`}
+            />
+          )}
+          {filter.diet !== 'all' && (
+            <StatusBadge
+              status="suitable"
+              size="sm"
+              label={`Chế độ: ${DIET_TYPE_LABELS[filter.diet as RestaurantDietType] ?? filter.diet}`}
+            />
+          )}
+          {filter.ratingMin > 0 && (
+            <StatusBadge
+              status="warning"
+              size="sm"
+              label={`Đánh giá ≥ ${filter.ratingMin.toFixed(1)} ★`}
+            />
+          )}
+          {filter.deliveryOnly && (
+            <StatusBadge status="suitable" size="sm" label="Chỉ xem có giao hàng" />
+          )}
+          {filter.search.trim() && (
+            <StatusBadge
+              status="neutral"
+              size="sm"
+              label={`Từ khóa: "${filter.search.trim()}"`}
+            />
+          )}
+          <div className="ml-auto hidden text-[11px] text-[#6b7280] sm:block">
+            <strong className="text-[#1f2937]">{stats.delivery}</strong> trong{' '}
+            <strong className="text-[#1f2937]">{totalCount}</strong> quán có dịch vụ giao hàng.
           </div>
         </div>
-        <button
-          type="button"
-          className="toggle-wrap"
-          onClick={() => setMatchOnly(v => !v)}
-          aria-label="toggle match"
-        >
-          {matchOnly ? <ToggleRight size={42} className="toggle-on" /> : <ToggleLeft size={42} />}
-        </button>
-      </div>
 
-      {/* Main content */}
-      <section className="rl-main">
-        {/* LIST COLUMN */}
-        <div className="rl-list-col">
-          <div className="rl-list-head-row">
-            <div>
-              <h3>Gần vị trí của bạn <span className="count-badge">18 địa điểm</span></h3>
+        {/* Results */}
+        <section>
+          {isLoading ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <SkeletonLoader count={6} variant="card" />
             </div>
-            <div className="sort-select">
-              <span>Sắp xếp:</span>
-              <button type="button" className="sort-btn">
-                Gần nhất
-                <ChevronDown size={14} />
-              </button>
-            </div>
-          </div>
-
-          <div className="rl-restaurant-list">
-            {RESTAURANTS.map(r => (
-              <article key={r.id} className={`rl-restaurant-card ${r.featured ? 'featured' : ''}`}>
-                {r.featured && (
-                  <span className="featured-chip">Gợi ý số 1 🏆</span>
-                )}
-                <div className="rl-restaurant-img-wrap">
-                  <img src={r.img} alt={r.name} className="rl-restaurant-img" />
-                </div>
-                <div className="rl-restaurant-body">
-                  <div className="rl-card-head">
-                    <span className={`diet-tag ${r.dietTag.includes('Thuần') ? 'vegan' : 'lacto'}`}>
-                      {r.dietTag}
-                    </span>
-                    <span className={`status-tag ${r.status === 'Đang mở cửa' ? 'open' : 'late'}`}>
-                      <span className="dot" />
-                      {r.status}
-                    </span>
-                  </div>
-
-                  <h4 className="rl-restaurant-name">{r.name}</h4>
-                  <p className="rl-restaurant-addr">
-                    <MapPin size={12} />
-                    {r.address}
-                  </p>
-
-                  <div className="rl-restaurant-meta">
-                    <span className="distance-chip">
-                      <Navigation size={12} /> {r.distanceKm} km
-                    </span>
-                    <span className="price-chip">
-                      Khoảng giá: {formatVND(r.priceFrom)} - {formatVND(r.priceTo)}
-                    </span>
-                  </div>
-
-                  <div className="rl-tagline-row">
-                    {r.tagline.map(t => (
-                      <span key={t} className="tagline-pill">🌿 {t}</span>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn btn-card-detail"
-                    onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(r.id)}`)}
-                  >
-                    Xem chi tiết
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* Dish chips */}
-          <div className="rl-dish-box">
-            <h4>Đang tìm món nào?</h4>
-            <p>Chọn món ăn để tìm các nhà hàng có phục vụ món bạn thích:</p>
-            <div className="rl-dish-chips">
-              {DISH_CHIPS.map(d => (
-                <button key={d.name} type="button" className="dish-chip">
-                  🍲 {d.name} ({d.count})
-                </button>
+          ) : items.length === 0 ? (
+            <EmptyState
+              title="Không tìm thấy nhà hàng nào phù hợp"
+              description="Bạn hãy thử nới lỏng bộ lọc chế độ ăn, thay đổi khu vực hoặc xóa từ khóa tìm kiếm. Nhấn nút bên dưới để xem toàn bộ danh sách quán ăn chay 3 tỉnh thành."
+              actionLabel="Xóa bộ lọc"
+              onAction={resetFilter}
+              icon={<Sparkles size={36} className="text-[#2e7d32]" />}
+            />
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {items.map((r) => (
+                <RestaurantCard
+                  key={r.id}
+                  restaurant={r}
+                  onSelect={handleSelect}
+                  onBook={handleBook}
+                />
               ))}
             </div>
-          </div>
+          )}
+        </section>
+      </div>
+
+      {toast && (
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-bold text-white shadow-lg backdrop-blur">
+          {toast}
         </div>
-
-        {/* MAP COLUMN */}
-        <div className="rl-map-col">
-          <div className="rl-map-wrap">
-            <img
-              src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Minimal%20flat%20street%20map%20with%20main%20roads%20in%20black%2C%20light%20green%20parks%2C%20blue%20river%2C%20Hanoi%20Westlake%20area%2C%20simple%20green%20location%20markers&image_size=portrait_4_3"
-              alt="Bản đồ nhà hàng chay Hà Nội"
-              className="rl-map-bg"
-            />
-
-            {/* Floating controls */}
-            <div className="map-controls top-right">
-              <button className="map-ctrl-btn" aria-label="Bản đồ">Bản đồ</button>
-              <button className="map-ctrl-btn alt" aria-label="Vệ tinh">Vệ tinh</button>
-              <button className="map-ctrl-btn" aria-label="fullscreen">
-                <LocateFixed size={14} />
-              </button>
-            </div>
-            <div className="map-controls right-middle">
-              <button className="map-ctrl-btn-stack" aria-label="zoom-in"><Plus size={14} /></button>
-              <button className="map-ctrl-btn-stack" aria-label="zoom-out"><Minus size={14} /></button>
-              <button className="map-ctrl-btn-stack" aria-label="my-location"><MapPin size={14} /></button>
-            </div>
-
-            {/* Pins */}
-            <button className="pin pin-1" aria-label="An Nhiên">
-              <Leaf size={14} />
-              <span className="pin-label">An Nhiên</span>
-            </button>
-            <button className="pin pin-2" aria-label="The Fernery">
-              <Leaf size={14} />
-              <span className="pin-label">The Fernery</span>
-            </button>
-            <button className="pin pin-3" aria-label="An Lac">
-              <Leaf size={14} />
-              <span className="pin-label">An Lạc</span>
-            </button>
-            <button className="pin pin-4" aria-label="Sen Vang">
-              <Leaf size={14} />
-              <span className="pin-label">Sen Vàng</span>
-            </button>
-            <button className="pin pin-me" aria-label="Vị trí của tôi">
-              <span className="pulse-me" />
-            </button>
-
-            {/* Popup */}
-            <div className="rl-map-popup">
-              <div className="popup-tag">
-                <Navigation size={12} />
-                Tìm khi di chuyển bản đồ (3/5)
-              </div>
-              <div className="popup-header">
-                <img
-                  src={RESTAURANTS[0].img}
-                  alt={RESTAURANTS[0].name}
-                  className="popup-img"
-                />
-                <div className="popup-text">
-                  <h5>An Nhiên Vegetarian</h5>
-                  <div className="popup-sub">
-                    <MapPin size={12} /> Cách 1.2 km • Ba Đình, Hà Nội
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="btn btn-popup-cta"
-                onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(RESTAURANTS[0].id)}`)}
-              >
-                Xem chi tiết & Chỉ đường →
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+      )}
     </div>
-  );
-}
-
-function SparkleMini() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2l1.5 5L19 8.5 13.5 10 12 15l-1.5-5L5 8.5 10.5 7z" />
-    </svg>
-  );
+  )
 }
