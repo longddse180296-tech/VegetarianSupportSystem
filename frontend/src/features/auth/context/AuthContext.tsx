@@ -1,10 +1,25 @@
 import React, { useState, useEffect } from 'react'
 import type { User, LoginCredentials, RegisterPayload } from '../types'
-import { authApi, getStoredUser, getStoredToken } from '../api/authApi'
+import { authApi, getStoredUser, setStoredUser, getStoredToken } from '../api/authApi'
 import { AuthContext, type AuthContextType } from './AuthContextInstance'
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => getStoredUser<User>())
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = getStoredUser<User>()
+    if (stored) {
+      try {
+        const rawProfile = localStorage.getItem('vegetarian_mock_user_profile')
+        if (rawProfile) {
+          const parsed = JSON.parse(rawProfile)
+          if (parsed.fullName) stored.fullName = parsed.fullName
+          if (parsed.avatarUrl) stored.avatarUrl = parsed.avatarUrl
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return stored
+  })
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
   const refreshUser = async (): Promise<User | null> => {
@@ -17,6 +32,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return null
     }
   }
+
+  const updateUser = (updates: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null
+      const updated = { ...prev, ...updates }
+      setStoredUser(updated)
+      try {
+        localStorage.setItem('auth_user', JSON.stringify(updated))
+      } catch {
+        // ignore
+      }
+      return updated
+    })
+  }
+
+  // Listen for user profile updates across components or storage changes
+  useEffect(() => {
+    const handleSync = (e: Event) => {
+      const customEvent = e as CustomEvent<Partial<User>>
+      if (customEvent.detail) {
+        setUser((prev) => {
+          if (!prev) return null
+          const updated = { ...prev, ...customEvent.detail }
+          setStoredUser(updated)
+          try {
+            localStorage.setItem('auth_user', JSON.stringify(updated))
+          } catch {
+            // ignore
+          }
+          return updated
+        })
+      } else {
+        const stored = getStoredUser<User>()
+        if (stored) {
+          try {
+            const rawProfile = localStorage.getItem('vegetarian_mock_user_profile')
+            if (rawProfile) {
+              const parsed = JSON.parse(rawProfile)
+              if (parsed.fullName) stored.fullName = parsed.fullName
+              if (parsed.avatarUrl) stored.avatarUrl = parsed.avatarUrl
+            }
+          } catch {
+            // ignore
+          }
+          setUser(stored)
+        }
+      }
+    }
+
+    window.addEventListener('vegetarian_user_updated', handleSync)
+    window.addEventListener('storage', handleSync)
+    return () => {
+      window.removeEventListener('vegetarian_user_updated', handleSync)
+      window.removeEventListener('storage', handleSync)
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -94,6 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     refreshUser,
+    updateUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

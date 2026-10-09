@@ -33,7 +33,7 @@ import {
   MyMealPlanPage,
   MealPlanDetailPage,
 } from '../../features/meal-plans'
-import { VideoListPage, VideoDetailPage } from '../../features/videos'
+import { VideoListPage, VideoDetailPage, MyVideosPage } from '../../features/videos'
 import { RestaurantListPage, RestaurantDetailPage } from '../../features/restaurants'
 import FoodScanPage from '../../features/food-scan/pages/FoodScanPage'
 import PantryPage from '../../features/pantry/pages/PantryPage'
@@ -54,14 +54,39 @@ const withPublic = (
   ctx: RouterRendererProps,
 ) => {
   const isLoggedIn = Boolean(ctx.user)
+
+  let displayUserName = ctx.user?.fullName
+  let displayAvatarUrl = ctx.user?.avatarUrl
+
+  try {
+    const rawProfile = localStorage.getItem('vegetarian_mock_user_profile')
+    if (rawProfile) {
+      const parsed = JSON.parse(rawProfile)
+      if (parsed.fullName) {
+        displayUserName = parsed.fullName
+      }
+      if (parsed.avatarUrl) {
+        displayAvatarUrl = parsed.avatarUrl
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  if (!displayUserName && isLoggedIn) {
+    displayUserName = 'Quang Duy'
+  }
+
   return (
     <PublicLayout
       activeNav={activeNav}
       onNavigate={ctx.onNavigate}
       isLoggedIn={isLoggedIn}
-      userName={ctx.user?.fullName}
-      onLogout={() => {
-        void ctx.logout()
+      userName={displayUserName}
+      avatarUrl={displayAvatarUrl}
+      onLogout={async () => {
+        await ctx.logout()
+        ctx.onNavigate('/')
       }}
     >
       {node}
@@ -106,13 +131,13 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     path === '/articles/new'
   ) {
     if (!ctx.user) {
-      return withPublic(<LoginPage onNavigate={onNavigate} />, 'auth', ctx)
+      return <LoginPage onNavigate={onNavigate} />
     }
     return <ArticleEditorPage onNavigate={onNavigate} />
   }
   if (articleEditorMatch) {
     if (!ctx.user) {
-      return withPublic(<LoginPage onNavigate={onNavigate} />, 'auth', ctx)
+      return <LoginPage onNavigate={onNavigate} />
     }
     const editId = decodeURIComponent(articleEditorMatch[1])
     return <ArticleEditorPage articleId={editId} onNavigate={onNavigate} />
@@ -148,7 +173,7 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   }
 
   const videoMatch = path.match(/^\/videos\/([^/]+)\/?$/)
-  if (path === '/videos' || path === 'videos' || path === '/my-videos') {
+  if (path === '/videos' || path === 'videos') {
     return withPublic(<VideoListPage onNavigate={onNavigate} />, 'videos', ctx)
   }
   if (videoMatch) {
@@ -234,10 +259,30 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
 
 
   if (path === '/profile/my-articles' || path === '/my-articles') {
+    if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
     return <MyArticlesPage onNavigate={onNavigate} />
   }
   if (path === '/profile/my-comments' || path === '/my-comments') {
+    if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
     return <MyCommentsPage onNavigate={onNavigate} />
+  }
+  if (path === '/profile/my-videos' || path === '/my-videos') {
+    if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
+    return <MyVideosPage onNavigate={onNavigate} />
+  }
+
+  if (path === '/profile/settings' || path === '/account/settings') {
+    if (!ctx.user) {
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    return <ProfilePage onNavigate={onNavigate} initialViewMode="settings" />
+  }
+
+  if (path === '/profile' || path === 'profile' || path === '/profile/overview' || path === '/account') {
+    if (!ctx.user) {
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    return <ProfilePage onNavigate={onNavigate} initialViewMode="overview" />
   }
 
   if (!ctx.user) {
