@@ -1,153 +1,146 @@
 import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from '../features/auth'
-import { LoginPage } from '../features/auth/pages/LoginPage'
-import { RegisterPage } from '../features/auth/pages/RegisterPage'
-import { ForgotPasswordPage } from '../features/auth/pages/ForgotPasswordPage'
-import { ProfilePage } from '../features/profile'
-import MembersPage from '../features/admin/members/pages/MembersPage'
-import { PublicLayout } from './layouts/PublicLayout'
-import RecipeList from '../features/recipes/pages/RecipeList'
-import RecipeDetail from '../features/recipes/pages/RecipeDetail'
-import AiChatShell from '../features/ai-chat/AiChatShell'
-import FoodScanPage from '../features/food-scan/pages/FoodScanPage'
-import { RestaurantListPage } from '../features/restaurants'
-import PantryPage from '../features/pantry/pages/PantryPage'
-import VideoList from '../features/videos/pages/VideoList'
+import { RouterRenderer } from './router/Router'
 
+/**
+ * Allowed public route prefixes for deep-link pathname → hash auto-sync.
+ * Includes canonical EN paths + Vietnamese aliases so direct URLs / share links
+ * continue to work without requiring the user to navigate from the home page.
+ */
+const PUBLIC_ROUTE_PREFIXES: readonly string[] = [
+  '/home',
+  '/recipes',
+  '/cong-thuc',
+  '/pantry',
+  '/tu-bep-ai',
+  '/tu-bep',
+  '/restaurants',
+  '/nha-hang-chay',
+  '/ai-chat',
+  '/aichat',
+  '/tro-ly-ai',
+  '/food-scan',
+  '/foodscan',
+  '/quet-thuc-pham',
+  '/videos',
+  '/video',
+  '/my-videos',
+  '/video-huong-dan',
+  '/articles',
+  '/bai-viet',
+  '/meal-plans',
+  '/thuc-don',
+  '/ke-hoach-thuc-don',
+  '/profile',
+  '/my-articles',
+  '/my-comments',
+  '/auth',
+  '/admin',
+] as const
+
+const pathIsKnown = (path: string): boolean => {
+  const normalized =
+    path === '/' || path === '' ? '/home' : path.replace(/\/+$/, '')
+  if (!normalized.startsWith('/')) return false
+  return PUBLIC_ROUTE_PREFIXES.some(
+    (prefix) => normalized === prefix || normalized.startsWith(prefix + '/'),
+  )
+}
+
+/**
+ * On first paint (no hash present) convert a deep-linked pathname URL into
+ * the equivalent hash so the hash-router has something to bind to.
+ */
+const syncPathnameToHash = (): void => {
+  if (typeof window === 'undefined') return
+  const existingHash = window.location.hash.replace(/^#/, '')
+  if (existingHash) return
+  const pn = window.location.pathname
+  if (pn === '/' || pn === '/index.html' || pn === '') {
+    window.location.hash = '/home'
+    return
+  }
+  if (pathIsKnown(pn)) {
+    window.location.hash = pn + (window.location.search || '')
+  }
+}
+
+/**
+ * Initialise the hash-router state from (1) explicit #hash, (2) pathname deep-link,
+ * or (3) the home page. Mirrors RouterRenderer expectations — always leading `/`.
+ */
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
     const hash = window.location.hash.replace(/^#/, '')
-    if (hash) return hash
-    if (window.location.pathname.startsWith('/admin')) {
-      return window.location.pathname
+    if (hash) {
+      return hash.startsWith('/') ? hash : `/${hash}`
+    }
+    const pn = window.location.pathname
+    if (pn === '/' || pn === '/index.html' || pn === '') {
+      return '/home'
+    }
+    if (pathIsKnown(pn)) {
+      try {
+        syncPathnameToHash()
+      } catch {
+        /* ignore history errors in embedded previews */
+      }
+      return pn.startsWith('/') ? pn : `/${pn}`
     }
   }
-  return '/auth/login'
+  return '/home'
 }
 
 const AppContent: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<string>(getInitialPath)
   const { user, logout } = useAuth()
 
-  // Sync route with URL hash so user can navigate directly
+  // Browser back / forward or user-edited #hash → update internal state.
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace(/^#/, '')
-      if (hash && hash !== currentPath) {
-        setCurrentPath(hash)
+      const raw = window.location.hash.replace(/^#/, '')
+      if (!raw) return
+      const next = raw.startsWith('/') ? raw : `/${raw}`
+      if (next !== currentPath) {
+        setCurrentPath(next)
       }
     }
     window.addEventListener('hashchange', handleHashChange)
+    syncPathnameToHash()
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [currentPath])
 
+  /**
+   * Canonical navigate used by every menu button + card CTA.
+   * Deliberately only writes `window.location.hash`. Pathname is cosmetic;
+   * replacing it via history.replaceState inside a hash-router triggers
+   * spurious HMR reloads / double-renders in Vite SPA builds.
+   */
   const handleNavigate = (path: string) => {
-    setCurrentPath(path)
+    if (path === undefined || path === null) return
+    const trimmed = String(path).trim()
+    if (!trimmed) return
+    const normalized = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+    // Avoid duplicate state updates when the user clicks the already-active link.
+    if (normalized === currentPath && window.location.hash === `#${normalized}`) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    setCurrentPath(normalized)
     if (typeof window !== 'undefined') {
-      window.location.hash = path
+      window.location.hash = normalized
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
     }
-  }
-
-  const renderCurrentView = () => {
-    const isRecipeList = currentPath === '/recipes' || currentPath === 'recipes'
-    const recipeMatch = currentPath.match(/^\/recipes\/([^/]+)\/?$/)
-    let recipeId: string | null = null
-    if (recipeMatch) {
-      try {
-        recipeId = decodeURIComponent(recipeMatch[1])
-      } catch {
-        recipeId = ''
-      }
-    }
-    const isRecipeDetail = recipeId !== null
-    const isAiChat = currentPath === '/ai-chat' || currentPath === 'aichat'
-    const isFoodScan =
-      currentPath === '/food-scan' ||
-      currentPath === 'foodscan' ||
-      currentPath === 'food-scan'
-    const isRestaurants =
-      currentPath === '/restaurants' ||
-      currentPath === 'restaurants' ||
-      currentPath === 'nha-hang-chay'
-    const isPantry =
-      currentPath === '/pantry' ||
-      currentPath === 'pantry' ||
-      currentPath === 'tu-bep' ||
-      currentPath === 'tu-bep-ai'
-    const isVideoList =
-      currentPath === '/videos' ||
-      currentPath === '/video' ||
-      currentPath === 'videos' ||
-      currentPath === 'video' ||
-      currentPath.match(/^\/videos\/[^/]+\/?$/)
-    const isArticles =
-      currentPath === '/articles' ||
-      currentPath === 'articles'
-
-    if (isRecipeList || isRecipeDetail || isAiChat || isFoodScan || isRestaurants || isPantry || isVideoList || isArticles) {
-      let activeNav = 'recipes'
-      if (isAiChat) activeNav = 'ai-chat'
-      else if (isFoodScan) activeNav = 'food-scan'
-      else if (isRestaurants) activeNav = 'restaurants'
-      else if (isPantry) activeNav = 'pantry'
-      else if (isVideoList) activeNav = 'videos'
-      else if (isArticles) activeNav = 'articles'
-      return (
-        <PublicLayout
-          activeNav={activeNav}
-          onNavigate={handleNavigate}
-          isLoggedIn={Boolean(user)}
-          userName={user?.fullName}
-          onLogout={() => { void logout() }}
-        >
-          {isAiChat ? (
-            <AiChatShell />
-          ) : isFoodScan ? (
-            <FoodScanPage onNavigate={handleNavigate} />
-          ) : isPantry ? (
-            <PantryPage onNavigate={handleNavigate} />
-          ) : isVideoList ? (
-            <VideoList onNavigate={handleNavigate} />
-          ) : isRestaurants ? (
-            <RestaurantListPage onNavigate={handleNavigate} />
-          ) : recipeId !== null ? (
-            <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={handleNavigate} />
-          ) : <RecipeList onNavigate={handleNavigate} />}
-        </PublicLayout>
-      )
-    }
-
-    // Auth pages
-    if (currentPath === '/auth/login' || (!user && currentPath === '/')) {
-      return <LoginPage onNavigate={handleNavigate} />
-    }
-
-    if (currentPath === '/auth/register') {
-      return <RegisterPage onNavigate={handleNavigate} />
-    }
-
-    if (currentPath === '/auth/forgot-password') {
-      return <ForgotPasswordPage onNavigate={handleNavigate} />
-    }
-
-    // Admin section
-    if (currentPath.startsWith('/admin')) {
-      const isDashboard = currentPath === '/admin/dashboard'
-      return (
-        <MembersPage
-          onNavigate={handleNavigate}
-          initialView={isDashboard ? 'dashboard' : 'members'}
-        />
-      )
-    }
-
-    // User Section (e.g., /profile)
-    return <ProfilePage onNavigate={handleNavigate} />
   }
 
   return (
     <div className="min-h-screen">
-      {renderCurrentView()}
+      <RouterRenderer
+        currentPath={currentPath}
+        onNavigate={handleNavigate}
+        user={user}
+        logout={logout}
+      />
     </div>
   )
 }

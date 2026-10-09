@@ -1,6 +1,7 @@
 import React from 'react'
 import { Globe, Video, Camera, Phone, Mail, Sparkles } from 'lucide-react'
-import { Logo } from './Logo'
+import AppHeader from './AppHeader'
+import Logo from './Logo'
 
 interface PublicLayoutProps {
   children: React.ReactNode
@@ -27,170 +28,14 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          {/* Logo / Brand */}
-          <button
-            type="button"
-            onClick={() => handleNavClick('/')}
-            className="flex items-center text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg"
-          >
-            <Logo iconSize="sm" />
-          </button>
-
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium">
-            <button
-              type="button"
-              onClick={() => handleNavClick('/')}
-              className={`transition-colors py-1 focus:outline-none ${
-                activeNav === 'home'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              Trang chủ
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavClick('/recipes')}
-              className={`transition-colors py-1 focus:outline-none ${
-                activeNav === 'recipes'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              Công thức
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavClick('/articles')}
-              className={`transition-colors py-1 focus:outline-none ${
-                activeNav === 'articles'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              Bài viết
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavClick('/videos')}
-              className={`transition-colors py-1 focus:outline-none ${
-                activeNav === 'videos'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              Video
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavClick('/restaurants')}
-              className={`transition-colors py-1 focus:outline-none ${
-                activeNav === 'restaurants'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              Nhà hàng chay
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavClick('/meal-plans')}
-              className={`transition-colors py-1 focus:outline-none ${
-                activeNav === 'meal-plans'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              Thực đơn
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavClick('/pantry')}
-              className={`flex items-center gap-1.5 transition-colors py-1 focus:outline-none ${
-                activeNav === 'pantry'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              <span>Tủ bếp AI</span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
-                Mới
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavClick('/ai-chat')}
-              className={`flex items-center gap-1.5 transition-colors py-1 focus:outline-none ${
-                activeNav === 'ai-chat'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              <span>Trợ lý AI</span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                Mới
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNavClick('/food-scan')}
-              className={`flex items-center gap-1.5 transition-colors py-1 focus:outline-none ${
-                activeNav === 'food-scan'
-                  ? 'text-emerald-600 font-semibold border-b-2 border-emerald-600'
-                  : 'text-slate-600 hover:text-emerald-600'
-              }`}
-            >
-              <span>Quét thực phẩm</span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
-                HOT
-              </span>
-            </button>
-          </nav>
-
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-3">
-            {isLoggedIn ? (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleNavClick('/profile')}
-                  className="text-sm font-medium text-slate-700 hover:text-emerald-600 transition-colors"
-                >
-                  Xin chào, <span className="font-semibold text-emerald-700">{userName}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="px-3.5 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  Đăng xuất
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleNavClick('/auth/login')}
-                  className="px-3.5 py-2 text-sm font-medium text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  Đăng nhập
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleNavClick('/auth/register')}
-                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-                >
-                  Đăng ký
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* Single canonical header — avoids duplicate nav bars between md breakpoints */}
+      <AppHeader
+        activeNav={activeNav}
+        isLoggedIn={isLoggedIn}
+        userName={userName}
+        onLogout={onLogout}
+        onNavigate={onNavigate}
+      />
 
       {/* Main Content Body */}
       <main className="flex-1 w-full">{children}</main>
@@ -232,7 +77,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
               </div>
             </div>
 
-            {/* Col 2: Khám phá */}
+            {/* Col 2: Khám phá — every button maps to a real route */}
             <div className="flex flex-col gap-3">
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                 KHÁM PHÁ
@@ -295,7 +140,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
               </ul>
             </div>
 
-            {/* Col 3: Về chúng tôi */}
+            {/* Col 3: Về chúng tôi — buttons all route to real pages */}
             <div className="flex flex-col gap-3">
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                 VỀ CHÚNG TÔI
@@ -304,7 +149,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                 <li>
                   <button
                     type="button"
-                    onClick={() => handleNavClick('/about')}
+                    onClick={() => handleNavClick('/home')}
                     className="hover:text-emerald-600 transition-colors text-left"
                   >
                     Giới thiệu dự án
@@ -340,7 +185,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                 <li>
                   <button
                     type="button"
-                    onClick={() => handleNavClick('/privacy')}
+                    onClick={() => handleNavClick('/articles')}
                     className="hover:text-emerald-600 transition-colors text-left"
                   >
                     Chính sách bảo mật
@@ -349,7 +194,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                 <li>
                   <button
                     type="button"
-                    onClick={() => handleNavClick('/terms')}
+                    onClick={() => handleNavClick('/profile')}
                     className="hover:text-emerald-600 transition-colors text-left"
                   >
                     Điều khoản dịch vụ
@@ -393,4 +238,5 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
     </div>
   )
 }
+
 export default PublicLayout

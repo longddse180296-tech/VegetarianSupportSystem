@@ -1,26 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  ChefHat,
-  Flame,
-  Heart,
-  Leaf,
-  RefreshCw,
-  Sparkles,
-  Utensils,
-} from 'lucide-react'
-import {
-  Button,
-  EmptyState,
-  SkeletonLoader,
-  StatusBadge,
-} from '../../../shared/components'
+import { ArrowLeft, ArrowRight, ChefHat, Leaf, Sparkles, UtensilsCrossed } from 'lucide-react'
+import { Button, EmptyState, SkeletonLoader } from '../../../shared/components'
 import { getRecipes, toggleFavorite } from '../api/recipeApi'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeFilterBar } from '../components/RecipeFilterBar'
-import type {
-  Recipe,
-  RecipeListFilter,
-} from '../types/recipe.types'
+import type { Recipe, RecipeListFilter, RecipeSortOption } from '../types/recipe.types'
 import { DEFAULT_RECIPE_FILTER } from '../types/recipe.types'
 
 interface RecipeListProps {
@@ -28,34 +12,81 @@ interface RecipeListProps {
   isLoggedIn?: boolean
 }
 
-// Router injects onNavigate, keep signature compatible.
+const PAGE_SIZE = 8
+
+function matchesCategory(r: Recipe, category: string) {
+  if (category === 'all') return true
+  const t = r.title.toLowerCase()
+  switch (category) {
+    case 'main':
+      return /(xào|rang|kho|đậu phụ|thập cẩm|hạt sen|cháo|gạo|ộp|riêu)/.test(t)
+    case 'salad':
+      return /salad/.test(t)
+    case 'soup':
+      return /(canh|chè|nước|phở|hủ tiếu|bún|mì|súp|riêu)/.test(t)
+    case 'drink':
+      return /(sinh tố|sữa|nước ép|trà|chia|pudding|sữa chua)/.test(t)
+    case 'dessert':
+      return /(bánh|chè|ngọt|cake|quyết|puding|tiramisu)/.test(t)
+    default:
+      return true
+  }
+}
+
+function matchesCook(r: Recipe, tier: string) {
+  if (tier === 'all') return true
+  const t = r.cookTimeMinutes
+  if (tier === 'lt15') return t < 15
+  if (tier === '15-30') return t >= 15 && t <= 30
+  if (tier === '30-45') return t > 30 && t <= 45
+  if (tier === 'gt45') return t > 45
+  return true
+}
+
+function matchesKcal(r: Recipe, tier: string) {
+  if (tier === 'all') return true
+  const k = r.nutrition.kcal
+  if (tier === 'lt200') return k < 200
+  if (tier === '200-350') return k >= 200 && k <= 350
+  if (tier === '350-500') return k >= 350 && k <= 500
+  if (tier === 'gt500') return k > 500
+  return true
+}
+
 export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: RecipeListProps) {
   const [filter, setFilter] = useState<RecipeListFilter>(DEFAULT_RECIPE_FILTER)
-  const [items, setItems] = useState<Recipe[]>([])
-  const [totalCount, setTotalCount] = useState(0)
+  const [allItems, setAllItems] = useState<Recipe[]>([])
+  const [_totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [heroToast, setHeroToast] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+
+  // UI filter states (client side)
+  const [category, setCategory] = useState('all')
+  const [cookTimeTier, setCookTimeTier] = useState('all')
+  const [kcalTier, setKcalTier] = useState('all')
+  const [dietPill, setDietPill] = useState('all')
+  const [matchProfile, setMatchProfile] = useState(true)
+  const [sort, setSort] = useState<RecipeSortOption>('relevance')
 
   const loadList = async (next: Partial<RecipeListFilter> = {}) => {
     const applied: RecipeListFilter = { ...filter, ...next }
     setIsLoading(true)
     try {
       const res = await getRecipes(applied)
-      setItems(res.items)
+      setAllItems(res.items)
       setTotalCount(res.totalCount)
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Initial mount
   useEffect(() => {
     void loadList()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Filter change: debounced search, instant other fields
   useEffect(() => {
     const t = window.setTimeout(() => {
       void loadList()
@@ -70,6 +101,11 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
 
   const resetFilter = () => {
     setFilter(DEFAULT_RECIPE_FILTER)
+    setCategory('all')
+    setCookTimeTier('all')
+    setKcalTier('all')
+    setDietPill('all')
+    setPage(1)
   }
 
   const handleSelect = (id: string) => {
@@ -83,7 +119,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
     setTogglingId(id)
     try {
       const res = await toggleFavorite(id, next)
-      setItems((prev) =>
+      setAllItems((prev) =>
         prev.map((r) =>
           r.id === id
             ? { ...r, isFavorite: res.isFavorite, favoriteCount: res.favoriteCount }
@@ -98,247 +134,315 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
     }
   }
 
-  const stats = useMemo(() => {
-    const favs = items.filter((i) => i.isFavorite).length
-    const veganCount = items.filter((i) => i.dietCategory === 'vegan').length
-    const quickCount = items.filter(
-      (i) => i.cookTimeMinutes <= 25 || i.dietCategory === 'quick',
-    ).length
-    const totalKcal = items.reduce((acc, i) => acc + i.nutrition.kcal, 0)
-    return { favs, veganCount, quickCount, totalKcal }
-  }, [items])
+  const showToast = (msg: string) => {
+    setHeroToast(msg)
+    window.setTimeout(() => setHeroToast(null), 1500)
+  }
+
+  // Apply UI + base filters
+  const filtered = useMemo(() => {
+    let arr = allItems.filter(
+      (r) =>
+        matchesCategory(r, category) &&
+        matchesCook(r, cookTimeTier) &&
+        matchesKcal(r, kcalTier),
+    )
+    if (dietPill !== 'all') {
+      arr = arr.filter((r) => r.dietCategory === dietPill)
+    }
+    if (matchProfile) {
+      // prefer vegan first then ovo-lacto
+      arr = [...arr].sort((a, b) => {
+        const order = (x: Recipe) =>
+          x.dietCategory === 'vegan' ? 0 : x.dietCategory === 'ovo-lacto' ? 1 : 2
+        return order(a) - order(b)
+      })
+    }
+    if (sort === 'newest') {
+      arr = [...arr].sort(
+        (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+      )
+    } else if (sort === 'cooktime_asc') {
+      arr = [...arr].sort((a, b) => a.cookTimeMinutes - b.cookTimeMinutes)
+    } else if (sort === 'favorite_desc') {
+      arr = [...arr].sort((a, b) => b.favoriteCount - a.favoriteCount)
+    }
+    return arr
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allItems, category, cookTimeTier, kcalTier, dietPill, matchProfile, sort])
+
+  const totalFiltered = filtered.length
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pagedItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
-      <div className="mx-auto w-full max-w-[1200px] px-[24px] py-10 sm:px-[16px]">
-        {/* ============ HERO ============ */}
-        <section
-          className="mb-10 overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-gradient-to-br from-[#FFFFFF] via-[#FFFFFF] to-[#E8F5E9] p-8"
-          style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-8">
-            <div className="max-w-[720px] flex-1">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#2E7D32] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.02em] text-white shadow-sm"
-                style={{ lineHeight: '16px' }}
-              >
-                <Sparkles size={14} />
-                Cộng đồng 1,000+ công thức
-              </span>
-
-              {/* headline-lg: 36/44 bold 700 */}
-              <h1
-                className="mt-4 font-bold tracking-[-0.015em] text-[#121C2A] sm:text-[26px] sm:leading-[34px]"
-                style={{ fontSize: '36px', lineHeight: '44px' }}
-              >
-                Khám phá kho công thức thuần thực vật thơm ngon
-              </h1>
-
-              {/* body-md 16/24 */}
-              <p
-                className="mt-4 font-normal text-[#6B7280]"
-                style={{ fontSize: '16px', lineHeight: '28px' }}
-              >
-                Từ món cơm nhà đơn giản (đậu phụ xốt cà) đến bánh ngọt, phở, bún riêu, bánh mì… tất
-                cả đều có hướng dẫn từng bước chi tiết. Bạn chọn món, nấu thôi.
-              </p>
-            </div>
-
-            <div className="flex shrink-0 flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                size="md"
-                variant="primary"
-                leftIcon={<ChefHat size={16} />}
-                onClick={() => onNavigate?.('/ai-chat')}
-              >
-                Hỏi AI gợi ý hôm nay ăn gì
-              </Button>
-              <Button
-                type="button"
-                size="md"
-                variant="secondary"
-                leftIcon={<RefreshCw size={16} />}
-                onClick={() => void loadList()}
-              >
-                Làm mới
-              </Button>
-            </div>
+    <div
+      className="min-h-screen text-[#1F2937] font-['Inter']"
+      style={{
+        background:
+          'linear-gradient(180deg, #F8FAFB 0%, #F0F8F2 25%, #F8FAFB 55%)',
+      }}
+    >
+      <div className="mx-auto w-full max-w-[1232px] px-[24px] pb-14 pt-8 sm:px-[16px]">
+        {/* ============== HERO (top bar w/ profile pill) ============== */}
+        <section className="flex flex-col items-center text-center">
+          <div
+            className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3 py-1 text-[12.5px] font-semibold text-[#2E7D32] ring-1 ring-[#C8E6C9]"
+          >
+            <Leaf size={12} /> Hồ sơ đang chọn: Thuần chay (Vegan)
           </div>
-
-          {/* Stats row - 4 cards gutter 24px */}
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Tổng */}
+          <h1
+            className="font-extrabold tracking-[-0.015em] text-[#121C2A]"
+            style={{ fontSize: '38px', lineHeight: '48px' }}
+          >
+            Công thức món chay
+          </h1>
+          <p
+            className="mt-3 max-w-[720px] font-normal text-[#6B7280]"
+            style={{ fontSize: '16px', lineHeight: '26px' }}
+          >
+            Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày được tinh chỉnh
+            khoa học theo nhu cầu dinh dưỡng.
+          </p>
+          {/* Stats 3 cards */}
+          <div className="mt-6 grid w-full grid-cols-1 gap-4 md:grid-cols-3 md:max-w-[720px]">
             <div
-              className="rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+              className="rounded-[16px] border border-[#E5E7EB] bg-white px-5 py-4 text-left"
               style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
             >
-              <div
-                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#6B7280]"
-                style={{ fontSize: '12px', lineHeight: '16px' }}
-              >
-                Tổng công thức
-                <Utensils size={18} className="text-[#2E7D32]" />
+              <div className="text-[28px] font-extrabold tabular-nums text-[#2E7D32]">
+                500+
               </div>
-              <div
-                className="mt-3 font-extrabold tabular-nums text-[#1F2937]"
-                style={{ fontSize: '32px', lineHeight: '40px' }}
-              >
-                {totalCount}
+              <div className="text-[13px] font-semibold text-[#6B7280]">
+                Món chay chọn lọc
               </div>
             </div>
-
-            {/* Thuần thực vật */}
             <div
-              className="rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9]/70 p-6"
+              className="rounded-[16px] border border-[#E5E7EB] bg-white px-5 py-4 text-left"
               style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
             >
-              <div
-                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#2E7D32]"
-                style={{ fontSize: '12px', lineHeight: '16px' }}
-              >
-                Thuần thực vật
-                <Leaf size={18} />
+              <div className="text-[28px] font-extrabold tabular-nums text-[#2E7D32]">
+                {'< 30p'}
               </div>
-              <div
-                className="mt-3 font-extrabold tabular-nums text-[#2E7D32]"
-                style={{ fontSize: '32px', lineHeight: '40px' }}
-              >
-                {stats.veganCount}
+              <div className="text-[13px] font-semibold text-[#6B7280]">
+                Chuẩn bị nhanh gọn
               </div>
             </div>
-
-            {/* Nhanh ≤ 25 phút */}
             <div
-              className="rounded-[16px] border border-amber-200 bg-amber-50 p-6"
+              className="rounded-[16px] border border-[#E5E7EB] bg-white px-5 py-4 text-left"
               style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
             >
-              <div
-                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-amber-700"
-                style={{ fontSize: '12px', lineHeight: '16px' }}
-              >
-                Nhanh ≤ 25 phút
-                <Flame size={18} />
+              <div className="text-[28px] font-extrabold tabular-nums text-[#2E7D32]">
+                100%
               </div>
-              <div
-                className="mt-3 font-extrabold tabular-nums text-amber-700"
-                style={{ fontSize: '32px', lineHeight: '40px' }}
-              >
-                {stats.quickCount}
-              </div>
-            </div>
-
-            {/* Yêu thích */}
-            <div
-              className="rounded-[16px] border border-rose-200 bg-rose-50 p-6"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
-            >
-              <div
-                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-rose-700"
-                style={{ fontSize: '12px', lineHeight: '16px' }}
-              >
-                Yêu thích (trong bộ lọc)
-                <Heart size={18} className="fill-rose-500 stroke-rose-600 text-rose-500" />
-              </div>
-              <div
-                className="mt-3 font-extrabold tabular-nums text-rose-600"
-                style={{ fontSize: '32px', lineHeight: '40px' }}
-              >
-                {stats.favs}
+              <div className="text-[13px] font-semibold text-[#6B7280]">
+                Chuẩn khoa học BMI
               </div>
             </div>
           </div>
         </section>
 
-        {/* ============ FILTER BAR ============ */}
-        <section className="mb-8">
+        {/* ============== FILTER BAR ============== */}
+        <section className="mt-8">
           <RecipeFilterBar
             filter={filter}
             onChange={updateFilter}
             onReset={resetFilter}
-            totalCount={totalCount}
+            totalCount={totalFiltered}
             isLoading={isLoading}
+            category={category}
+            setCategory={(c) => {
+              setCategory(c)
+              setPage(1)
+            }}
+            cookTimeTier={cookTimeTier}
+            setCookTimeTier={(c) => {
+              setCookTimeTier(c)
+              setPage(1)
+            }}
+            kcalTier={kcalTier}
+            setKcalTier={(c) => {
+              setKcalTier(c)
+              setPage(1)
+            }}
+            dietPill={dietPill}
+            setDietPill={(c) => {
+              setDietPill(c)
+              setPage(1)
+            }}
+            matchProfile={matchProfile}
+            setMatchProfile={setMatchProfile}
+            sort={sort}
+            setSort={setSort}
+            onOpenAI={() => {
+              showToast('✨ Đã chuyển đến Tủ bếp AI gợi ý món')
+              onNavigate?.('/pantry')
+            }}
           />
         </section>
 
-        {/* ============ RESULT ============ */}
-        <section>
-          {/* Applied filter badges + summary */}
-          <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge
-                status="info"
+        {/* ============== Tủ bếp AI banner ============== */}
+        <section
+          className="mt-6 overflow-hidden rounded-[16px] border border-[#c8e6c9] bg-[#E8F5E9]"
+        >
+          <div className="grid gap-6 px-6 py-6 md:grid-cols-12 md:items-center md:px-8 md:py-7">
+            <div className="md:col-span-8">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/60 px-2.5 py-1 text-[11.5px] font-semibold uppercase tracking-[0.02em] text-[#2E7D32] ring-1 ring-[#C8E6C9]">
+                <Sparkles size={11} /> Tính năng thông minh mới
+              </span>
+              <h2 className="mt-2 text-[24px] font-extrabold leading-[32px] text-[#1B5E20]">
+                Bạn có sẵn nguyên liệu trong bếp?
+              </h2>
+              <p className="mt-1.5 text-[14px] font-medium leading-[22px] text-[#2E7D32]">
+                Thử ngay tính năng Tủ bếp AI để được gợi ý các món chay thơm ngon,
+                chuẩn dinh dưỡng từ chính những gì bạn đang có!
+              </p>
+            </div>
+            <div className="flex justify-end md:col-span-4">
+              <Button
+                type="button"
                 size="md"
-                label={`${items.length} kết quả${isLoading ? ' (đang tải)' : ''}`}
-              />
-              {filter.favoritesOnly && (
-                <StatusBadge status="warning" size="md" label="Chỉ xem yêu thích" />
-              )}
-              {filter.diet !== 'all' && (
-                <StatusBadge status="suitable" size="md" label={`Chế độ: ${filter.diet}`} />
-              )}
-              {filter.difficulty !== 'all' && (
-                <StatusBadge
-                  status="insufficient"
-                  size="md"
-                  label={`Độ khó: ${filter.difficulty}`}
-                />
-              )}
-              {filter.search.trim() && (
-                <StatusBadge
-                  status="neutral"
-                  size="md"
-                  label={`Từ khóa: "${filter.search.trim()}"`}
-                />
-              )}
+                variant="primary"
+                fullWidth={false}
+                className="!rounded-[12px] !bg-[#2E7D32] !px-5 hover:!bg-[#1B5E20]"
+                rightIcon={<ArrowRight size={16} />}
+                leftIcon={<Sparkles size={16} />}
+                onClick={() => {
+                  showToast('✨ Đang mở Tủ bếp AI...')
+                  onNavigate?.('/pantry')
+                }}
+              >
+                Khám phá Tủ bếp AI
+              </Button>
             </div>
+          </div>
+        </section>
 
-            <div
-              className="hidden font-medium text-[#6B7280] sm:block"
-              style={{ fontSize: '14px', lineHeight: '20px' }}
-            >
-              Năng lượng trung bình bộ lọc:{' '}
-              <strong className="text-[#1F2937]">
-                {items.length ? Math.round(stats.totalKcal / items.length) : 0} kcal / phần
-              </strong>
+        {/* ============== Results header ============== */}
+        <section className="mt-8">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2
+                className="font-extrabold tracking-[-0.01em] text-[#121C2A]"
+                style={{ fontSize: '22px', lineHeight: '30px' }}
+              >
+                Công thức dành cho bạn
+              </h2>
+              <span className="inline-flex items-center rounded-full bg-[#2E7D32] px-2.5 py-1 text-[12px] font-bold text-white">
+                {totalFiltered} công thức
+              </span>
             </div>
-          </header>
+            <div className="hidden items-center gap-2 text-[13px] font-semibold text-[#6B7280] md:flex">
+              Sắp xếp theo:
+              <div className="rounded-[10px] border border-[#E5E7EB] bg-white px-3 py-2 shadow-xs">
+                Phù hợp nhất
+              </div>
+            </div>
+          </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <SkeletonLoader count={6} variant="card" />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <SkeletonLoader count={8} variant="card" />
             </div>
-          ) : items.length === 0 ? (
+          ) : totalFiltered === 0 ? (
             <EmptyState
               title="Không tìm thấy công thức nào phù hợp"
-              description="Hãy thử từ khóa khác, nới lỏng độ khó, hoặc thay đổi chế độ ăn. Có thể nhấn nút bên dưới để quay về bộ lọc mặc định xem toàn bộ kho công thức."
+              description="Hãy thử từ khóa khác, nới lỏng bộ lọc về thời gian, mức calo hoặc thay đổi chế độ ăn. Bạn cũng có thể dùng Tủ bếp AI để gợi ý theo nguyên liệu đang có."
               actionLabel="Xóa bộ lọc"
               onAction={resetFilter}
-              icon={<Utensils size={40} className="text-[#2E7D32]" />}
+              icon={<ChefHat size={40} className="text-[#2E7D32]" />}
             />
           ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((r) => (
-                <RecipeCard
-                  key={r.id}
-                  recipe={r}
-                  onSelect={handleSelect}
-                  onToggleFavorite={handleToggleFavorite}
-                  isTogglingFavorite={togglingId === r.id}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {pagedItems.map((r) => (
+                  <RecipeCard
+                    key={r.id}
+                    recipe={r}
+                    onSelect={handleSelect}
+                    onToggleFavorite={handleToggleFavorite}
+                    isTogglingFavorite={togglingId === r.id}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-[16px] border border-[#E5E7EB] bg-white px-5 py-4 shadow-xs md:flex-row">
+                <div className="text-[13px] font-medium text-[#6B7280]">
+                  Đang hiển thị <strong className="text-[#1F2937]">{1 + (safePage - 1) * PAGE_SIZE}</strong>{' '}
+                  - <strong className="text-[#1F2937]">{Math.min(safePage * PAGE_SIZE, totalFiltered)}</strong>{' '}
+                  trong tổng số <strong className="text-[#1F2937]">{totalFiltered}</strong> công thức
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setPage((p) => Math.max(1, p - 1))
+                      }
+                    }}
+                    disabled={safePage === 1}
+                    className="flex h-9 items-center gap-1 rounded-[10px] border border-[#E5E7EB] bg-white px-3 text-[13px] font-semibold text-[#4B5563] transition disabled:opacity-40 hover:bg-[#F5FBF6] hover:border-[#C8E6C9]"
+                  >
+                    <ArrowLeft size={14} /> Trước
+                  </button>
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const idx = i + 1
+                    const active = idx === safePage
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPage(idx)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setPage(idx)
+                          }
+                        }}
+                        className={`inline-flex h-9 w-9 items-center justify-center rounded-[10px] border text-[13px] font-bold transition ${
+                          active
+                            ? 'border-[#2E7D32] bg-[#2E7D32] text-white shadow-sm'
+                            : 'border-[#E5E7EB] bg-white text-[#4B5563] hover:bg-[#F5FBF6] hover:border-[#C8E6C9]'
+                        }`}
+                      >
+                        {idx}
+                      </button>
+                    )
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
+                    }}
+                    disabled={safePage === totalPages}
+                    className="flex h-9 items-center gap-1 rounded-[10px] border border-[#E5E7EB] bg-white px-3 text-[13px] font-semibold text-[#4B5563] transition disabled:opacity-40 hover:bg-[#F5FBF6] hover:border-[#C8E6C9]"
+                  >
+                    Sau <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </section>
       </div>
 
-      {/* Hero toast feedback */}
       {heroToast && (
         <div
           aria-live="polite"
-          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 font-semibold text-white shadow-lg backdrop-blur"
-          style={{ fontSize: '14px', lineHeight: '20px' }}
+          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 text-[14px] font-semibold text-white shadow-lg backdrop-blur"
+          style={{ lineHeight: '20px' }}
         >
+          <span className="mr-1.5 inline-flex items-center gap-1">
+            <UtensilsCrossed size={14} />
+          </span>
           {heroToast}
         </div>
       )}

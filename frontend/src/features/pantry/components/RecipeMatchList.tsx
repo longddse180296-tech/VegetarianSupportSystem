@@ -1,4 +1,4 @@
-import { Check, Clock, Flame, Leaf } from 'lucide-react'
+import { Clock, Flame, Leaf } from 'lucide-react'
 import { Button, SkeletonLoader } from '../../../shared/components'
 import type { RecipeMatch } from '../types/pantry.types'
 
@@ -6,23 +6,6 @@ interface RecipeMatchListProps {
   matches: RecipeMatch[]
   isLoading: boolean
   onNavigate?: (path: string) => void
-}
-
-function MatchBar({ percent }: { percent: number }) {
-  const color =
-    percent >= 75
-      ? 'bg-[#2E7D32]'
-      : percent >= 50
-      ? 'bg-[#F59E0B]'
-      : 'bg-slate-300'
-  return (
-    <div className="h-2 overflow-hidden rounded-full bg-[#E8F5E9]">
-      <div
-        className={`h-full rounded-full transition-all duration-300 ${color}`}
-        style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
-      />
-    </div>
-  )
 }
 
 export const RecipeMatchList: React.FC<RecipeMatchListProps> = ({
@@ -119,21 +102,17 @@ export const RecipeMatchList: React.FC<RecipeMatchListProps> = ({
               </div>
             </div>
 
-            {/* Match bar */}
-            <div className="mt-3">
-              <div
-                className="mb-1.5 flex items-center justify-between font-medium text-[#1F2937]"
-                style={{ fontSize: '12px', lineHeight: '16px' }}
-              >
-                <span className="inline-flex items-center gap-1.5 text-[#2E7D32]">
-                  <Check size={12} />
-                  Độ khớp nguyên liệu
-                </span>
-                <span className="tabular-nums">
-                  {m.matchedIngredients.length} / {m.totalIngredients}
-                </span>
+            {/* Match bar (bg-[#2E7D32] fill per design) */}
+            <div className="mt-3 flex items-center gap-3">
+              <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  style={{ width: `${Math.min(100, Math.max(0, m.matchPercent))}%` }}
+                  className="h-full rounded-full bg-[#2E7D32] transition-all"
+                />
               </div>
-              <MatchBar percent={m.matchPercent} />
+              <span className="shrink-0 text-xs font-bold text-[#2E7D32]">
+                {m.matchPercent}% khớp
+              </span>
             </div>
 
             {/* Kcal / time pills */}

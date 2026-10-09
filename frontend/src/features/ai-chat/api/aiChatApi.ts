@@ -1,17 +1,104 @@
 import type {
   AiReplyPayload,
   AppRole,
+  BMIResult,
   ChatConversation,
   ChatMessage,
   ChatRole,
   FaqItem,
   GuestChatState,
+  HistoryItem,
+  PersonalProfileField,
   ProfileSummary,
+  RecipePreview,
   RecipeSuggestion,
 } from '../types/aiChat.types'
 
-function delay(ms: number): Promise<void> {
+function delay(ms = 500): Promise<void> {
   return new Promise((res) => setTimeout(res, ms))
+}
+
+/* =====================================================
+ * STATIC FIGMA UI DATA (moved from pages/AiChatPage.tsx)
+ * =====================================================*/
+const PROFILE_FIELDS: PersonalProfileField[] = [
+  { key: 'bmi', label: 'Chỉ số BMI:', value: '22.5 (Bình thường)', tone: 'ok' },
+  { key: 'goal', label: 'Mục tiêu thể chất:', value: 'Duy trì cân nặng', tone: 'soft' },
+  { key: 'diet', label: 'Chế độ ăn:', value: 'Thuần chay (Vegan)', tone: 'ok' },
+  { key: 'pref', label: 'Sở thích dinh dưỡng:', value: 'Giàu đạm, ít dầu mỡ', tone: 'soft' },
+  { key: 'allergy', label: 'Dị ứng cần tránh:', value: '⚠ Đậu phộng', tone: 'warn' },
+]
+
+const FAQS_FIGMA: FaqItem[] = [
+  { id: 'f-figma-1', icon: 'ClipboardList', question: 'Món này có chay không?' },
+  { id: 'f-figma-2', icon: 'ClipboardList', question: 'Thành phần này có phù hợp với tôi không?' },
+  { id: 'f-figma-3', icon: 'ClipboardList', question: 'Hôm nay tôi nên ăn gì?' },
+]
+
+const HISTORY_FIGMA: HistoryItem[] = [
+  { id: 'h1', title: 'Nhu cầu protein cho người tập gym', messages: 12, dateLabel: 'Hôm qua', tone: 'recent' },
+  { id: 'h2', title: 'Thay thế đậu nành khi bị dị ứng', messages: 8, dateLabel: '3 ngày trước', tone: 'mid' },
+  { id: 'h3', title: 'Cách làm sữa hạt dinh dưỡng tại nhà', messages: 15, dateLabel: 'Tuần trước', tone: 'old' },
+]
+
+const DEFAULT_BMI: BMIResult = {
+  value: 22.5,
+  label: 'Bình thường',
+  tone: 'normal',
+  rangeLabel: '18.5 - 22.9 (Chuẩn)',
+  whoNote:
+    'Chỉ số BMI 22.5 của bạn nằm trong ngưỡng Bình thường (18.5 – 22.9) theo chuẩn Tổ chức Y tế Thế giới (WHO) dành cho người trưởng thành châu Á.',
+  dailyKcalRangeMin: 1800,
+  dailyKcalRangeMax: 1900,
+  dailyProteinG: 60,
+  noteAvoid: '70g protein từ đậu, hạt và ngũ cốc nguyên cám.',
+  disclaimer:
+    'Lưu ý: AI chỉ cung cấp kiến thức dinh dưỡng thực vật thường thức, không thay thế cho chẩn đoán hay điều trị y khoa.',
+}
+
+const RECIPE_PREVIEWS_FIGMA: RecipePreview[] = [
+  {
+    id: 'd1',
+    tags: [{ label: 'Tối • Thanh lọc', tone: 'green' }],
+    kcal: 380,
+    name: 'Salad bơ đậu gà sốt mè',
+    description: 'Bơ sáp, đậu gà luộc mềm, xà lách romaine và hạt hướng dương thơm bùi.',
+    nutrientLabel: 'Protein',
+    nutrientValue: '14g',
+  },
+  {
+    id: 'd2',
+    tags: [{ label: 'Tối • Dễ tiêu', tone: 'teal' }],
+    kcal: 310,
+    name: 'Canh nấm rau củ đậu hũ',
+    description: 'Nấm rơm, bắp ngọt, cà rốt và đậu hũ non thanh ngọt sáng khoái.',
+    nutrientLabel: 'Protein',
+    nutrientValue: '15g',
+  },
+]
+
+/* =====================================================
+ * Async wrappers with delay(500)
+ * =====================================================*/
+export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
+  await delay(500)
+  return PROFILE_FIELDS
+}
+export async function getFaqsFigma(): Promise<FaqItem[]> {
+  await delay(500)
+  return FAQS_FIGMA
+}
+export async function getChatHistoryFigma(): Promise<HistoryItem[]> {
+  await delay(500)
+  return HISTORY_FIGMA
+}
+export async function getDefaultBmi(): Promise<BMIResult> {
+  await delay(500)
+  return DEFAULT_BMI
+}
+export async function getRecipeSuggestions(_bmiScore = 22.5): Promise<RecipePreview[]> {
+  await delay(500)
+  return RECIPE_PREVIEWS_FIGMA
 }
 
 const WELCOME_RECIPES: RecipeSuggestion[] = [

@@ -1,197 +1,189 @@
-import { Filter, RefreshCw, Search, SlidersHorizontal } from 'lucide-react'
-import {
-  Button,
-  Input,
-  Select,
-  type SelectOption,
-} from '../../../shared/components'
+import { Filter, Search, X } from 'lucide-react'
+import { Button, Input } from '../../../shared/components'
 import type {
-  RestaurantCity,
   RestaurantDietType,
-  RestaurantFilter,
-  RestaurantSortOption,
+  RestaurantFilter as RestaurantFilterState,
 } from '../types/restaurant.types'
-import {
-  CITY_LABELS,
-  DEFAULT_RESTAURANT_FILTER,
-  DIET_TYPE_LABELS,
-  SORT_LABELS,
-} from '../types/restaurant.types'
+import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
 
-interface RestaurantFilterProps {
-  filter: RestaurantFilter
-  onChange: (next: Partial<RestaurantFilter>) => void
+interface RestaurantFilterBarProps {
+  filter: RestaurantFilterState
+  onChange: (next: Partial<RestaurantFilterState>) => void
   onReset: () => void
   totalCount: number
   isLoading?: boolean
+  onSearch?: () => void
 }
 
-const CITY_OPTIONS: SelectOption[] = [
-  { value: 'all', label: CITY_LABELS['all'] },
-  { value: 'Hà Nội', label: CITY_LABELS['Hà Nội'] },
-  { value: 'TP.HCM', label: CITY_LABELS['TP.HCM'] },
-  { value: 'Đà Nẵng', label: CITY_LABELS['Đà Nẵng'] },
+/* ---------- Constants ---------- */
+
+type DistancePillValue = 'all' | '1' | '3' | '5' | '10'
+
+const DISTANCE_OPTIONS: Array<{ value: DistancePillValue; label: string; km: 0 | 1 | 3 | 5 | 10 }> = [
+  { value: 'all', label: 'Tất cả', km: 0 },
+  { value: '1', label: '< 1 km', km: 1 },
+  { value: '3', label: '< 3 km', km: 3 },
+  { value: '5', label: '< 5 km', km: 5 },
+  { value: '10', label: '< 10 km', km: 10 },
 ]
 
-const DIET_OPTIONS: SelectOption[] = [
-  { value: 'all', label: DIET_TYPE_LABELS['all'] },
-  { value: 'vegan', label: DIET_TYPE_LABELS['vegan'] },
-  { value: 'ovo-lacto', label: DIET_TYPE_LABELS['ovo-lacto'] },
-  { value: 'ovo', label: DIET_TYPE_LABELS['ovo'] },
-  { value: 'lacto', label: DIET_TYPE_LABELS['lacto'] },
-  { value: 'raw', label: DIET_TYPE_LABELS['raw'] },
-  { value: 'vegetarian-friendly', label: DIET_TYPE_LABELS['vegetarian-friendly'] },
+const DIET_PILL_OPTIONS: Array<{ value: RestaurantDietType; label: string }> = [
+  { value: 'vegan', label: 'Thuần chay (Vegan)' },
+  { value: 'lacto', label: 'Ăn chay có sữa (Lacto)' },
+  { value: 'ovo', label: 'Ăn chay có trứng (Ovo)' },
+  { value: 'ovo-lacto', label: 'Ăn chay có trứng sữa (Lacto-ovo)' },
+  { value: 'raw', label: 'Chay dưỡng sinh' },
+  { value: 'vegetarian-friendly', label: 'Cà phê chay' },
 ]
 
-const SORT_OPTIONS: SelectOption[] = (
-  Object.keys(SORT_LABELS) as RestaurantSortOption[]
-).map((k) => ({ value: k, label: SORT_LABELS[k] }))
+/* ---------- Helpers ---------- */
 
-const RATING_OPTIONS: SelectOption[] = [
-  { value: '0', label: 'Tất cả đánh giá' },
-  { value: '3', label: 'Từ 3.0 ★' },
-  { value: '3.5', label: 'Từ 3.5 ★' },
-  { value: '4', label: 'Từ 4.0 ★' },
-  { value: '4.5', label: 'Từ 4.5 ★' },
-]
+function activeDistancePill(km: RestaurantFilterState['distanceMaxKm']): DistancePillValue {
+  switch (km) {
+    case 1:
+      return '1'
+    case 3:
+      return '3'
+    case 5:
+      return '5'
+    case 10:
+      return '10'
+    case 0:
+    default:
+      return 'all'
+  }
+}
 
-export const RestaurantFilterBar: React.FC<RestaurantFilterProps> = ({
+/* ---------- Exported Component ---------- */
+
+export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
   filter,
   onChange,
   onReset,
   totalCount,
   isLoading = false,
+  onSearch,
 }) => {
-  const isFiltering =
-    filter.search.trim() !== '' ||
-    filter.city !== DEFAULT_RESTAURANT_FILTER.city ||
-    filter.diet !== DEFAULT_RESTAURANT_FILTER.diet ||
-    filter.sort !== DEFAULT_RESTAURANT_FILTER.sort ||
-    filter.ratingMin !== DEFAULT_RESTAURANT_FILTER.ratingMin ||
-    filter.deliveryOnly !== DEFAULT_RESTAURANT_FILTER.deliveryOnly
+  const activeDist = activeDistancePill(filter.distanceMaxKm)
+
+  const runSearch = () => {
+    if (typeof onSearch === 'function') onSearch()
+    else onChange({ ...filter })
+  }
 
   return (
-    <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-xs sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#e8f5e9] text-[#2e7d32]">
-            <SlidersHorizontal size={15} />
+    <div
+      className="rounded-[16px] border border-[#E3EFE5] bg-white p-4 shadow-[0_8px_26px_-22px_rgba(16,52,30,0.25)] sm:p-5"
+    >
+      {/* ===== Search row ===== */}
+      <div className="mb-4 flex items-center gap-2 rounded-[14px] border border-[#DDEAE0] bg-[#F5F9F6] px-3.5 py-1.5">
+        <Search size={17} className="shrink-0 text-[#6B7280]" />
+        <Input
+          placeholder="Tìm kiếm nhà hàng hoặc khu vực (quận, phố, tên quán)..."
+          value={filter.search}
+          onChange={(e) => onChange({ search: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') runSearch()
+          }}
+          className="!h-10 !border-0 !bg-transparent !p-0 !shadow-none focus:!ring-0"
+          fullWidth
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="primary"
+          leftIcon={<Search size={14} />}
+          onClick={runSearch}
+          className="!bg-[#2E7D32] hover:!bg-[#1B5E20]"
+        >
+          Tìm kiếm
+        </Button>
+      </div>
+
+      {/* ===== Filter pills ===== */}
+      <div className="flex flex-col gap-4">
+        {/* Row 1: Khoảng cách pills */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+          <span className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#3E5146] min-w-[96px]">
+            Khoảng cách:
           </span>
-          <div>
-            <div className="text-[15px] font-extrabold tracking-tight text-[#1f2937]">
-              Bộ lọc nhà hàng & quán ăn chay
-            </div>
-            <div className="text-[11px] text-[#6b7280]">
-              Lọc theo khu vực, chế độ ăn, mức đánh giá & tiện ích bạn cần.
-            </div>
-          </div>
+          {DISTANCE_OPTIONS.map((opt) => {
+            const active = activeDist === opt.value
+            return (
+              <Button
+                type="button"
+                key={opt.value}
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  onChange({
+                    distanceMaxKm: active
+                      ? DEFAULT_RESTAURANT_FILTER.distanceMaxKm
+                      : opt.km,
+                  })
+                }
+                className={`rounded-full !h-[26px] !px-3 !py-[5px] !text-[12px] font-bold !leading-[16px] transition
+                  ${
+                    active
+                      ? '!bg-[#2E7D32] !border-[#2E7D32] !text-white shadow-sm !hover:bg-[#1B5E20]'
+                      : '!bg-[#F0F4F8] border border-[#DDE5EC] !text-[#324253] hover:!border-[#B7D9C1] hover:!bg-[#EAF5EC]'
+                  }
+                `}
+              >
+                {opt.label}
+              </Button>
+            )
+          })}
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-[#6b7280]">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f5e9] px-2.5 py-1 font-extrabold text-[#2e7d32]">
+
+        {/* Row 2: Tiện ích diet pills */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+          <span className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#3E5146] min-w-[96px]">
+            Tiện ích:
+          </span>
+          {DIET_PILL_OPTIONS.map((opt) => {
+            const active = filter.diet === opt.value
+            return (
+              <Button
+                type="button"
+                key={opt.value}
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  onChange({
+                    diet: (active ? 'all' : opt.value) as RestaurantDietType,
+                  })
+                }
+                className={`rounded-full !h-[26px] !px-3 !py-[5px] !text-[12px] font-bold !leading-[16px] transition
+                  ${
+                    active
+                      ? '!bg-[#2E7D32] !border-[#2E7D32] !text-white shadow-sm !hover:bg-[#1B5E20]'
+                      : '!bg-[#F0F4F8] border border-[#DDE5EC] !text-[#324253] hover:!border-[#B7D9C1] hover:!bg-[#EAF5EC]'
+                  }
+                `}
+              >
+                {opt.label}
+              </Button>
+            )
+          })}
+        </div>
+
+        {/* Row 3: Tổng số quán ăn + nút Xóa bộ lọc */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11px] font-extrabold text-[#2E7D32]">
             <Filter size={11} />
             {isLoading ? 'Đang tải...' : `${totalCount} quán ăn`}
           </span>
-          {isFiltering && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              leftIcon={<RefreshCw size={12} />}
-              onClick={onReset}
-            >
-              Xóa bộ lọc
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-12">
-        <div className="md:col-span-4">
-          <Input
-            label="Tìm nhà hàng / địa chỉ"
-            size={13}
-            placeholder="Tên quán, tên đường, quận, từ khóa..."
-            value={filter.search}
-            onChange={(e) => onChange({ search: e.target.value })}
-            leftIcon={<Search size={14} />}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <Select
-            label="Thành phố"
-            size={13}
-            value={filter.city}
-            onChange={(e) => onChange({ city: e.target.value as RestaurantCity })}
-            options={CITY_OPTIONS}
-          />
-        </div>
-        <div className="md:col-span-3">
-          <Select
-            label="Chế độ ăn chay"
-            size={13}
-            value={filter.diet}
-            onChange={(e) => onChange({ diet: e.target.value as RestaurantDietType })}
-            options={DIET_OPTIONS}
-          />
-        </div>
-        <div className="md:col-span-1.5 md:col-span-2">
-          <Select
-            label="Đánh giá"
-            size={13}
-            value={String(filter.ratingMin)}
-            onChange={(e) =>
-              onChange({ ratingMin: Number(e.target.value || 0) })
-            }
-            options={RATING_OPTIONS}
-          />
-        </div>
-        <div className="md:col-span-1">
-          <Select
-            label="Sắp xếp"
-            size={13}
-            value={filter.sort}
-            onChange={(e) => onChange({ sort: e.target.value as RestaurantSortOption })}
-            options={SORT_OPTIONS}
-          />
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label
-            htmlFor="delivery-only"
-            className={`inline-flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-1.5 text-[12px] font-extrabold transition ${
-              filter.deliveryOnly
-                ? 'border-[#2e7d32] bg-[#e8f5e9] text-[#2e7d32] shadow-sm'
-                : 'border-[#e5e7eb] bg-white text-[#1f2937] hover:border-[#c8e6c9]'
-            }`}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            leftIcon={<X size={12} />}
+            className="!rounded-full !text-[#6B7280] hover:!bg-[#F3F4F6] hover:!text-[#1F2937]"
           >
-            <input
-              id="delivery-only"
-              type="checkbox"
-              className="h-3.5 w-3.5 accent-[#2e7d32]"
-              checked={filter.deliveryOnly}
-              onChange={(e) => onChange({ deliveryOnly: e.target.checked })}
-            />
-            Chỉ xem có giao hàng
-          </label>
-          <label
-            htmlFor="fav-only"
-            className={`inline-flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-1.5 text-[12px] font-extrabold transition ${
-              filter.favoritesOnly
-                ? 'border-rose-300 bg-rose-50 text-rose-700 shadow-sm'
-                : 'border-[#e5e7eb] bg-white text-[#1f2937] hover:border-rose-200'
-            }`}
-          >
-            <input
-              id="fav-only"
-              type="checkbox"
-              className="h-3.5 w-3.5 accent-rose-500"
-              checked={filter.favoritesOnly}
-              onChange={(e) => onChange({ favoritesOnly: e.target.checked })}
-            />
-            Đã lưu yêu thích (demo)
-          </label>
+            Xóa bộ lọc
+          </Button>
         </div>
       </div>
     </div>

@@ -28,12 +28,12 @@ export const Logo: React.FC<{ iconSize?: 'sm' | 'md' | 'lg'; showText?: boolean 
       </div>
       {showText && (
         <div className="leading-tight">
-          <div className={`font-extrabold text-emerald-800 tracking-tight ${titleCls}`}>
+          <div className={`font-bold text-[#2E7D32] tracking-tight ${titleCls}`}>
             Vegetarian Support
           </div>
           {iconSize !== 'sm' && (
-            <div className="text-[11px] text-emerald-700/80 font-semibold uppercase tracking-wider">
-              Nền tảng ẩm thực & dinh dưỡng thực vật
+            <div className="text-[11px] text-[#2E7D32]/80 font-bold uppercase tracking-wider">
+              NỀN TẢNG ẨM THỰC & DINH DƯỠNG THỰC VẬT
             </div>
           )}
         </div>

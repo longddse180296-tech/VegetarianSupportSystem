@@ -1,12 +1,140 @@
+import type { SelectOption } from '../../../shared/components'
 import type {
   Recipe,
   RecipeListFilter,
   RecipeListResponse,
   RecipeSortOption,
 } from '../types/recipe.types'
-import { DEFAULT_RECIPE_FILTER } from '../types/recipe.types'
+import { DEFAULT_RECIPE_FILTER, SORT_LABELS } from '../types/recipe.types'
 
 const delay = (ms = 500) => new Promise<void>((r) => setTimeout(r, ms))
+
+// ---------- Related Articles + Videos mock ----------
+const MOCK_ARTICLES = [
+  {
+    tag: 'Công thức này',
+    tagCls: 'bg-[#DCFCE7] text-[#166534]',
+    author: 'BS. Hoàng Nam',
+    title: 'Cách bổ sung protein khi ăn chay',
+    desc: 'Phân tích các nguồn đạm thực vật chất lượng cao giúp duy trì lực và cơ bắp vững vàng.',
+    img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=3%20bowls%20of%20colorful%20vegan%20legumes%20chickpeas%20lentils%20black%20beans%20on%20wooden%20table%20top%20view&image_size=landscape_4_3',
+    emoji: '🥗',
+  },
+  {
+    tag: 'Bài viết dinh dưỡng',
+    tagCls: 'bg-[#FEF3C7] text-[#92400E]',
+    author: 'ThS. Dinh dưỡng Lê Chi',
+    title: 'Những lợi ích của đậu hũ',
+    desc: 'Tìm hiểu giá trị đạm thực vật, canxi và isoflavone tự nhiên có trong đậu hũ cho sức khỏe tim mạch.',
+    img: '',
+    emoji: '📝',
+  },
+  {
+    tag: 'Bài viết thực hành',
+    tagCls: 'bg-[#DBEAFE] text-[#1D4ED8]',
+    author: 'Chuyên gia Minh Anh',
+    title: 'Xây dựng bữa ăn chay cân bằng',
+    desc: 'Hướng dẫn phân bố hợp ví chế độ, chất xơ và đạm thực khoa học theo tiêu chuẩn BMI.',
+    img: 'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=balanced%20vegan%20meal%20plate%20top%20view%20tofu%20quinoa%20broccoli%20roasted%20vegetables%20herbs%20white%20table&image_size=landscape_4_3',
+    emoji: '🥦',
+  },
+]
+
+const MOCK_VIDEOS = [
+  {
+    title: 'Cách làm đậu hũ sốt nấm trong 20 phút',
+    channel: 'Bếp Chay An Yên',
+    duration: '20:00',
+    img: '',
+  },
+  {
+    title: 'Cơm gạo lứt ăn cùng đậu hũ',
+    channel: 'Đầu bếp Tuấn Khang',
+    duration: '15:30',
+    img: '',
+  },
+  {
+    title: 'Các món chay giàu protein',
+    channel: 'Sống Xanh Daily',
+    duration: '18:45',
+    img: '',
+  },
+]
+
+export async function getRelatedArticles(_recipeId: string) {
+  await delay(500)
+  return MOCK_ARTICLES
+}
+
+export async function getRelatedVideos(_recipeId: string) {
+  await delay(500)
+  return MOCK_VIDEOS
+}
+
+// ---------- Filter options ----------
+export interface DietPillOption {
+  value: string
+  label: string
+  cls?: string
+}
+
+export interface CategoryPillOption {
+  value: string
+  label: string
+}
+
+export interface RecipeFilterOptions {
+  categoryPills: CategoryPillOption[]
+  dietPills: DietPillOption[]
+  cookTimeOptions: SelectOption[]
+  kcalOptions: SelectOption[]
+  sortOptions: SelectOption[]
+}
+
+const CATEGORY_PILLS: CategoryPillOption[] = [
+  { value: 'all', label: 'Tất cả' },
+  { value: 'main', label: 'Món chính' },
+  { value: 'salad', label: 'Salad' },
+  { value: 'soup', label: 'Món nước' },
+  { value: 'drink', label: 'Đồ uống' },
+  { value: 'dessert', label: 'Tráng miệng' },
+]
+
+const DIET_PILLS: DietPillOption[] = [
+  { value: 'all', label: 'Thuần chay (Vegan)', cls: 'bg-[#E6F3EC] text-[#2E7D32] border-[#C8E6C9]' },
+  { value: 'lacto', label: 'Ăn chay có sữa (Lacto)', cls: 'bg-[#E6F3EC] text-[#2E7D32] border-[#C8E6C9]' },
+  { value: 'ovo', label: 'Chay có trứng (Ovo)', cls: 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]' },
+  { value: 'ovo-lacto', label: 'Trứng & Sữa (Lacto-ovo)', cls: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]' },
+]
+
+const COOKTIME_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'Tất cả thời gian' },
+  { value: 'lt15', label: '< 15 phút (siêu nhanh)' },
+  { value: '15-30', label: '15 - 30 phút' },
+  { value: '30-45', label: '30 - 45 phút' },
+  { value: 'gt45', label: '> 45 phút (chậm)' },
+]
+
+const KCAL_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'Tất cả mức calo' },
+  { value: 'lt200', label: '< 200 Kcal (thấp năng lượng)' },
+  { value: '200-350', label: '200 - 350 Kcal (cân đối)' },
+  { value: '350-500', label: '350 - 500 Kcal (bữa chính)' },
+  { value: 'gt500', label: '> 500 Kcal (năng lượng cao)' },
+]
+
+export function getRecipeFilterOptions(): RecipeFilterOptions {
+  const SORT_OPTIONS: SelectOption[] = (
+    Object.keys(SORT_LABELS) as RecipeSortOption[]
+  ).map((k) => ({ value: k, label: SORT_LABELS[k] }))
+  return {
+    categoryPills: CATEGORY_PILLS,
+    dietPills: DIET_PILLS,
+    cookTimeOptions: COOKTIME_OPTIONS,
+    kcalOptions: KCAL_OPTIONS,
+    sortOptions: SORT_OPTIONS,
+  }
+}
 
 // ---------- In-memory seed data (NO hardcode in Components) ----------
 const IN_MEMORY_RECIPES: Recipe[] = [

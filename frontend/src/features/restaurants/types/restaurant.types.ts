@@ -79,6 +79,8 @@ export interface RestaurantFilter {
   sort: RestaurantSortOption
   deliveryOnly: boolean
   favoritesOnly: boolean
+  /** Khoảng cách tối đa (km) theo pills Tất cả | <1 | <3 | <5 | <10. 0 = không lọc (Tất cả). */
+  distanceMaxKm: 0 | 1 | 3 | 5 | 10
 }
 
 export const DEFAULT_RESTAURANT_FILTER: RestaurantFilter = {
@@ -89,12 +91,38 @@ export const DEFAULT_RESTAURANT_FILTER: RestaurantFilter = {
   sort: 'relevance',
   deliveryOnly: false,
   favoritesOnly: false,
+  distanceMaxKm: 0,
 }
 
 export interface RestaurantListResponse {
   items: Restaurant[]
   totalCount: number
   appliedFilter: RestaurantFilter
+}
+
+// ---------- Supporting types (API layer helpers) ----------
+export interface DishChip {
+  label: string
+  count: number
+  emoji: string
+}
+
+export interface MapPinMarker {
+  top: string
+  left: string
+  id: string
+  color?: string
+  label: string
+}
+
+export interface RestaurantDish {
+  id: string
+  tag: string
+  tagColor?: string
+  name: string
+  desc: string
+  imgSeed: string
+  priceVND?: number
 }
 
 // ---------- Helpers ----------

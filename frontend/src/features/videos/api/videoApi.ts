@@ -1,3 +1,4 @@
+import type { SelectOption } from '../../../shared/components'
 import type {
   UploadVideoFormState,
   VideoCategory,
@@ -9,7 +10,10 @@ import type {
 } from '../types/video.types'
 import { DEFAULT_VIDEO_FILTER } from '../types/video.types'
 
-const delay = (ms = 500) => new Promise<void>((r) => setTimeout(r, ms))
+const delay = <T,>(data: T, ms = 500): Promise<T> =>
+  new Promise((r) => setTimeout(() => r(data), ms))
+
+const delayVoid = (ms = 500) => new Promise<void>((r) => setTimeout(r, ms))
 
 // ---------- AI Moderation rules (AI chỉ FLAG thôi, Admin quyết định cuối) ----------
 const AI_FLAG_KEYWORDS = [
@@ -38,7 +42,6 @@ function runAiModeration(form: { title: string; description: string }): {
       aiFlagNote: `${AI_FLAG_NOTE_GENERIC} Phát hiện từ khóa: ${matched.join(', ')}.`,
     }
   }
-  // Không có từ khóa → AI đang kiểm tra trong 1 vòng ngắn → về cơ bản cho sang pending hoặc published ngẫu nhiên
   // Luôn bắt đầu từ ai_checking (sau 1 vài vòng sẽ chuyển → đúng flow MVP AI flag, Admin duyệt)
   return { status: 'ai_checking' }
 }
@@ -273,6 +276,186 @@ const IN_MEMORY_VIDEOS: VideoItem[] = [
   },
 ]
 
+// ---------- VideoList page static mock data (moved out from pages/VideoList.tsx) ----------
+const FIGMA_PILL_CATEGORIES = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'main', label: 'Món chính' },
+  { key: 'salad', label: 'Salad' },
+  { key: 'soup', label: 'Món nước' },
+  { key: 'drink', label: 'Đồ uống' },
+  { key: 'dessert', label: 'Tráng miệng' },
+  { key: 'tip', label: 'Mẹo nấu ăn' },
+] as const
+export type FigmaPillKey = (typeof FIGMA_PILL_CATEGORIES)[number]['key']
+
+const FIGMA_HASHTAG_TOPICS = [
+  '#Đậu hũ',
+  '#Nấm',
+  '#Salad',
+  '#Bữa sáng',
+  '#Bữa tối',
+  '#Protein thực vật',
+  '#Ăn chay giảm cân',
+  '#Canh chay',
+]
+
+const FIGMA_TOP_CHEFS = [
+  {
+    id: 'chef-1',
+    name: 'Chef Minh Tuấn',
+    role: 'Bếp trưởng ẩm thực thuần dưỡng',
+    videos: 24,
+    avatarSeed: 'asian male chef clean cut professional avatar',
+  },
+  {
+    id: 'chef-2',
+    name: 'DS. Kim Oanh',
+    role: 'Chuyên gia cân bằng vi chất',
+    videos: 18,
+    avatarSeed: 'asian female dietician professional glasses avatar',
+  },
+  {
+    id: 'chef-3',
+    name: 'BS. Hoàng Nam',
+    role: 'Bác sĩ Dinh dưỡng dự phòng',
+    videos: 15,
+    avatarSeed: 'asian male doctor lab coat stethoscope friendly avatar',
+  },
+]
+
+const DURATION_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'Tất cả thời lượng' },
+  { value: 'short', label: 'Dưới 10 phút' },
+  { value: 'medium', label: '10 – 20 phút' },
+  { value: 'long', label: 'Trên 20 phút' },
+]
+
+const SORT_OPTIONS_VIDEO_LIST: SelectOption[] = [
+  { value: 'newest', label: 'Mới nhất' },
+  { value: 'trending', label: 'Xu hướng' },
+  { value: 'most_liked', label: 'Yêu thích nhất' },
+  { value: 'duration_asc', label: 'Thời lượng ngắn nhất' },
+]
+
+// ---------- VideoDetail page static mock data (moved out from pages/VideoDetail.tsx) ----------
+const DETAIL_TITLE = 'Đậu hũ sốt nấm đơn giản trong 20 phút'
+const DETAIL_CREATOR = {
+  initials: 'AN',
+  name: 'Bếp Chay An Nhiên',
+  verified: true,
+  subscribers: 45200,
+  postedAgo: 'Đã 2 ngày trước',
+}
+const DETAIL_CATEGORY_PILLS = [
+  { label: 'Món chính chay', tone: 'green' as const },
+  { label: 'Nấu nhanh 20 phút', tone: 'blue' as const },
+  { label: 'Giàu đạm thực vật', tone: 'neutral' as const },
+]
+const DETAIL_ACTIONS = [
+  { key: 'like', label: '1.2k Thích' },
+  { key: 'share', label: 'Chia sẻ' },
+  { key: 'save', label: 'Lưu video' },
+]
+const DETAIL_DESCRIPTION =
+  'Công thức đậu hũ non áp chảo sốt cùi nấm đông cô tươi, nấm đùi gà và nấm rơm đậm đà, hao cơm mà cực kỳ lành mạnh. Món ăn thanh nhẹ cùng cấp trọn vẹn axit amin thiết yếu cho bữa cơm thuần thực vật đủ chất.'
+
+export interface CommentItem {
+  id: string
+  initials?: string
+  authorAvatarSeed?: string
+  author: string
+  isExpert?: boolean
+  badges?: { label: string; tone: 'member' | 'pro' | 'author' }[]
+  timeAgo: string
+  content: string
+  likes: number
+  highlight?: 'author'
+}
+const DETAIL_COMMENTS: CommentItem[] = [
+  {
+    id: 'c1',
+    initials: 'TT',
+    author: 'Trần Thu Thủy',
+    badges: [{ label: 'Thành viên tích cực', tone: 'member' }],
+    timeAgo: '2 giờ trước',
+    content:
+      'Mình vừa thử làm theo công thức của đầu bếp, sốt nấm đậm đà và đậu hũ giòn vữa tỏng bên trong tuyệt vời quá! Cảm ơn kênh nhiều.',
+    likes: 24,
+  },
+  {
+    id: 'c2',
+    initials: 'HN',
+    author: 'Bác sĩ Dinh dưỡng Hoàng Nam',
+    isExpert: true,
+    badges: [{ label: 'Chuyên gia xác thực', tone: 'pro' }],
+    timeAgo: '5 giờ trước',
+    content:
+      'Món này cung cấp lượng đạm thực vật rất tốt từ nấm và đậu nành. Các bạn có thể thêm chút nấm hương tươi để tăng hương vị.',
+    likes: 38,
+  },
+  {
+    id: 'c3',
+    initials: 'MT',
+    author: 'Lê Minh Tuấn',
+    timeAgo: '1 ngày trước',
+    content:
+      'Cho mình hỏi nếu không có đậu hũ non thì thay thế bằng gì hợp với nấm sốt nhất vậy ạ?',
+    likes: 7,
+  },
+  {
+    id: 'c4',
+    initials: 'AN',
+    author: 'Kẹo Đậu Hũ An Nhiên',
+    badges: [{ label: 'Tác giả', tone: 'author' }],
+    timeAgo: '22 giờ trước',
+    content:
+      'Chào bạn Tuấn, bạn có thể thay bằng tamari cốt nấm hoặc 1 thìa nước tương nguyên chất pha cùng xíu mật mía táo để tạo độ sánh và vị thơm tự nhiên!',
+    likes: 12,
+    highlight: 'author',
+  },
+]
+
+export interface RelatedVideo {
+  id: string
+  thumbnailSeed: string
+  duration: string
+  category: string
+  title: string
+  author: string
+  views: string
+  badge?: 'watching'
+}
+const RELATED_VIDEOS: RelatedVideo[] = [
+  {
+    id: 'rv-1',
+    thumbnailSeed: 'brown rice salad vegetables bowl meal prep glass container',
+    duration: '12:15',
+    category: 'Món chính',
+    title: 'Cơm gạo lứt rau củ thập cẩm thanh vị',
+    author: 'DS. Kim Oanh',
+    views: '18.2K xem',
+  },
+  {
+    id: 'rv-2',
+    thumbnailSeed: 'vegan lotus root soup mushroom goji berries clear broth bowl',
+    duration: '15:30',
+    category: 'Món nước',
+    title: 'Canh nấm hạt sen táo đỏ bồi bổ cơ thể',
+    author: 'BS. Hoàng Nam',
+    views: '31.0K xem',
+  },
+  {
+    id: 'rv-3',
+    thumbnailSeed: 'avocado chickpea salad toasted sesame dressing bowl wooden',
+    duration: '08:40',
+    category: 'Salad',
+    title: 'Salad bơ và đậu gà sốt mè rang béo ngậy',
+    author: 'Lan Anh',
+    views: '24.1K xem',
+    badge: 'watching',
+  },
+]
+
 // ---------- Helpers ----------
 function normalize(s: string) {
   return s
@@ -317,24 +500,24 @@ function sortVideos(list: VideoItem[], sort: VideoSortOption): VideoItem[] {
   }
 }
 
-// ---------- Public API ----------
+// ---------- Public API (existing - keep all) ----------
 export async function getVideos(
   inputFilter: Partial<VideoListFilter> = {},
 ): Promise<VideoListResponse> {
-  await delay()
+  await delayVoid()
   const applied: VideoListFilter = { ...DEFAULT_VIDEO_FILTER, ...inputFilter }
   const items = applyFilter(IN_MEMORY_VIDEOS, applied)
   return { items, totalCount: items.length, appliedFilter: applied }
 }
 
 export async function getVideoDetail(id: string): Promise<VideoItem | null> {
-  await delay()
+  await delayVoid()
   const found = IN_MEMORY_VIDEOS.find((v) => v.id === id)
   return found ?? null
 }
 
 export async function uploadVideo(form: UploadVideoFormState): Promise<VideoItem> {
-  await delay()
+  await delayVoid()
   const aiRes = runAiModeration({ title: form.title, description: form.description })
   const category = (form.category || 'cooking-tutorial') as VideoCategory
   const dur = Number(form.duration) || 300
@@ -364,6 +547,49 @@ export async function uploadVideo(form: UploadVideoFormState): Promise<VideoItem
   }
   IN_MEMORY_VIDEOS.unshift(video)
   return video
+}
+
+// ---------- New async browse/detail wrappers ----------
+export async function getVideoListBrowseHelpers(): Promise<{
+  categories: typeof FIGMA_PILL_CATEGORIES
+  hashtagTopics: typeof FIGMA_HASHTAG_TOPICS
+  topChefs: typeof FIGMA_TOP_CHEFS
+  durationOpts: SelectOption[]
+  sortOpts: SelectOption[]
+}> {
+  await delayVoid(500)
+  return {
+    categories: FIGMA_PILL_CATEGORIES,
+    hashtagTopics: FIGMA_HASHTAG_TOPICS,
+    topChefs: FIGMA_TOP_CHEFS,
+    durationOpts: DURATION_OPTIONS,
+    sortOpts: SORT_OPTIONS_VIDEO_LIST,
+  }
+}
+
+export async function getVideoDetailComments(_videoId: string): Promise<CommentItem[]> {
+  return delay(DETAIL_COMMENTS, 500)
+}
+
+export async function getRelatedVideos(_videoId: string): Promise<RelatedVideo[]> {
+  return delay(RELATED_VIDEOS, 500)
+}
+
+export async function getVideoDetailMeta(_videoId: string): Promise<{
+  title: string
+  creator: typeof DETAIL_CREATOR
+  pills: typeof DETAIL_CATEGORY_PILLS
+  actions: { key: string; label: string }[]
+  description: string
+}> {
+  await delayVoid(500)
+  return {
+    title: DETAIL_TITLE,
+    creator: DETAIL_CREATOR,
+    pills: DETAIL_CATEGORY_PILLS,
+    actions: DETAIL_ACTIONS,
+    description: DETAIL_DESCRIPTION,
+  }
 }
 
 export { IN_MEMORY_VIDEOS as __DEBUG_IN_MEMORY_VIDEOS__ }

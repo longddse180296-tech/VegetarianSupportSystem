@@ -1,5 +1,8 @@
 import type {
+  DishChip,
+  MapPinMarker,
   Restaurant,
+  RestaurantDish,
   RestaurantFilter,
   RestaurantListResponse,
   RestaurantSortOption,
@@ -7,6 +10,82 @@ import type {
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
 
 const delay = (ms = 500) => new Promise<void>((r) => setTimeout(r, ms))
+
+/* ---------- Dish chips (món tìm kiếm nhanh) ---------- */
+const DISH_CHIPS: DishChip[] = [
+  { label: 'Phở chay', count: 8, emoji: '🍜' },
+  { label: 'Bún riêu chay', count: 12, emoji: '🍲' },
+  { label: 'Cơm tấm sườn chay', count: 15, emoji: '🍚' },
+  { label: 'Lẩu nấm chay', count: 9, emoji: '🍲' },
+  { label: 'Salad bộ đủ gà', count: 14, emoji: '🥗' },
+  { label: 'Há cảo chay', count: 6, emoji: '🥟' },
+]
+
+/* ---------- Map pins coordinates (mock) ---------- */
+const MAP_PINS: MapPinMarker[] = [
+  { top: '16%', left: '24%', id: 'r_hanoi_01', label: 'An Nhiền' },
+  { top: '30%', left: '72%', id: 'r_hanoi_05', label: 'Sống & Mơ' },
+  { top: '54%', left: '38%', id: 'r_hcm_01', color: '#459360', label: 'Sen Vàng' },
+  { top: '74%', left: '62%', id: 'r_danang_02', color: '#459360', label: 'An Lạc' },
+]
+
+/* ---------- Menu món ăn (mock) ---------- */
+const DISH_CARDS: RestaurantDish[] = [
+  {
+    id: 'd1',
+    tag: 'Món được giới thiệu',
+    tagColor: 'bg-[#2E7D32] text-white',
+    name: 'Đậu hũ sốt nấm',
+    desc: 'Đậu hũ chiên vàng sốt nấm hương và cà ri dừa thanh vị, có điểm làm thành vi.',
+    imgSeed: 'vietnamese crispy tofu mushroom curry sauce vegan dish',
+    priceVND: 65000,
+  },
+  {
+    id: 'd2',
+    tag: 'Thực dưỡng',
+    tagColor: 'bg-[#558B2F] text-white',
+    name: 'Đậu hũ áp chảo sốt tiêu đen',
+    desc: 'Đậu hũ nếm mềm áp chảo sốt tiêu đen đặc trưng Đà Lạt.',
+    imgSeed: 'tofu stir fry black pepper sauce garlic vegan vietnamese',
+    priceVND: 75000,
+  },
+  {
+    id: 'd3',
+    tag: 'Món đặc sản miền Nam',
+    tagColor: 'bg-[#0D47A1] text-white',
+    name: 'Gỏi cuốn đậu hũ nấm tươi',
+    desc: 'Cuốn tươi mềm, nhân đậu hũ chiên và đậu hũ nấm hương thơm ngang.',
+    imgSeed: 'fresh vegan salad rolls rice paper mushroom herbs vietnamese',
+    priceVND: 55000,
+  },
+  {
+    id: 'd4',
+    tag: 'Món nhậu thanh đạm',
+    tagColor: 'bg-[#6A1B9A] text-white',
+    name: 'Nấm bào ngư chiên bơ tỏi',
+    desc: 'Nấm bào ngư tươi chiên giòn, phủ lớp bơ tỏi thơm lừng và tiêu xanh.',
+    imgSeed: 'vegan abalone mushroom butter garlic fry crispy vietnamese',
+    priceVND: 95000,
+  },
+  {
+    id: 'd5',
+    tag: 'Món đặc sắc',
+    tagColor: 'bg-[#BF360C] text-white',
+    name: 'Cà ri đậu chickpea cải bó xôi',
+    desc: 'Cà ri vàng dừa béo, đậu gà nở mềm và cải bó xôi tươi, ăn kèm bánh mì nướng.',
+    imgSeed: 'chickpea spinach curry coconut milk vegan golden soup bread',
+    priceVND: 85000,
+  },
+  {
+    id: 'd6',
+    tag: 'Tráng miệng',
+    tagColor: 'bg-[#006064] text-white',
+    name: 'Chè đậu đỏ sen nướng dừa',
+    desc: 'Chè thanh mát, đậu đỏ hầm mềm, hạt sen thơm và cơm dừa nướng giòn.',
+    imgSeed: 'vegan red bean lotus seed sweet soup coconut toasted vietnamese dessert',
+    priceVND: 35000,
+  },
+]
 
 const IMG = (seed: string) =>
   `https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
@@ -426,6 +505,10 @@ function applyFilter(list: Restaurant[], f: RestaurantFilter): Restaurant[] {
     out = out.filter((r) => (r.dietTypes as string[]).includes(f.diet))
   if (f.ratingMin > 0) out = out.filter((r) => r.rating >= f.ratingMin)
   if (f.deliveryOnly) out = out.filter((r) => r.hasDelivery)
+  // Lọc theo khoảng cách tối đa (pill Tất cả / <1 / <3 / <5 / <10): 0 = Tất cả (bỏ qua)
+  if (typeof f.distanceMaxKm === 'number' && f.distanceMaxKm > 0) {
+    out = out.filter((r) => Number.isFinite(r.distanceKm) && r.distanceKm <= f.distanceMaxKm)
+  }
   return sortRestaurants(out, f.sort)
 }
 
@@ -470,6 +553,24 @@ export async function filterRestaurants(
   inputFilter: Partial<RestaurantFilter> = {},
 ): Promise<RestaurantListResponse> {
   return getRestaurants(inputFilter)
+}
+
+/* ---------- Public API helpers (chips / pins / menu) ---------- */
+export async function getDishChips(): Promise<DishChip[]> {
+  await delay(500)
+  return DISH_CHIPS
+}
+
+export async function getMapPins(): Promise<MapPinMarker[]> {
+  await delay(500)
+  return MAP_PINS
+}
+
+export async function getRestaurantMenu(
+  _id: string,
+): Promise<RestaurantDish[]> {
+  await delay(500)
+  return DISH_CARDS
 }
 
 export { IN_MEMORY_RESTAURANTS as __DEBUG_IN_MEMORY_RESTAURANTS__ }

@@ -3,26 +3,18 @@ import {
   ArrowLeft,
   ChefHat,
   Clock,
-  Eye,
   Flame,
   Heart,
-  Leaf,
-  Lightbulb,
-  List,
-  ListChecks,
   Play,
-  Share2,
-  Sparkles,
-  Timer,
   Users,
 } from 'lucide-react'
+import { Button, EmptyState, Input, SkeletonLoader } from '../../../shared/components'
 import {
-  Button,
-  EmptyState,
-  SkeletonLoader,
-  StatusBadge,
-} from '../../../shared/components'
-import { getRecipeDetail, toggleFavorite } from '../api/recipeApi'
+  getRecipeDetail,
+  toggleFavorite,
+  getRelatedArticles,
+  getRelatedVideos,
+} from '../api/recipeApi'
 import type { Recipe } from '../types/recipe.types'
 import {
   DIET_CATEGORY_LABELS,
@@ -35,7 +27,6 @@ interface RecipeDetailProps {
   isLoggedIn?: boolean
 }
 
-// Router injects recipeId and onNavigate, keep signature compatible.
 export default function RecipeDetail({
   recipeId = '',
   onNavigate,
@@ -46,6 +37,9 @@ export default function RecipeDetail({
   const [isNotFound, setIsNotFound] = useState(false)
   const [favLoading, setFavLoading] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({})
+  const [relatedArticles, setRelatedArticles] = useState<any[]>([])
+  const [relatedVideos, setRelatedVideos] = useState<any[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -58,11 +52,20 @@ export default function RecipeDetail({
       }
       setIsLoading(true)
       setIsNotFound(false)
+      setCheckedIds({})
       try {
         const data = await getRecipeDetail(recipeId)
         if (!cancelled) {
           setRecipe(data)
           setIsNotFound(data === null)
+        }
+        if (!cancelled && data) {
+          const [arts, vids] = await Promise.all([
+            getRelatedArticles(recipeId),
+            getRelatedVideos(recipeId),
+          ])
+          setRelatedArticles(arts)
+          setRelatedVideos(vids)
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -72,11 +75,6 @@ export default function RecipeDetail({
       cancelled = true
     }
   }, [recipeId])
-
-  const totalTime = useMemo(
-    () => (recipe ? recipe.cookTimeMinutes + (recipe.prepTimeMinutes ?? 0) : 0),
-    [recipe],
-  )
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -100,10 +98,15 @@ export default function RecipeDetail({
     }
   }
 
+  const nutrition = useMemo(() => {
+    if (recipe?.nutrition) return recipe.nutrition
+    return { kcal: 320, proteinG: 14, carbsG: 38, fatG: 12, fiberG: 0 }
+  }, [recipe])
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f6faf7]">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[#F8FAFB]">
+        <div className="mx-auto w-full max-w-[1168px] px-[24px] py-8 sm:px-[16px]">
           <Button
             type="button"
             size="sm"
@@ -114,14 +117,17 @@ export default function RecipeDetail({
           >
             Quay lại danh sách công thức
           </Button>
-          <SkeletonLoader count={1} variant="card" />
-          <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <SkeletonLoader count={3} variant="card" />
+          <div className="grid gap-6 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <SkeletonLoader count={1} variant="card" />
             </div>
-            <div>
+            <div className="lg:col-span-5">
               <SkeletonLoader count={2} variant="card" />
             </div>
+          </div>
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <SkeletonLoader count={1} variant="card" />
+            <SkeletonLoader count={1} variant="card" />
           </div>
         </div>
       </div>
@@ -130,340 +136,424 @@ export default function RecipeDetail({
 
   if (isNotFound || !recipe) {
     return (
-      <div className="min-h-screen bg-[#f6faf7]">
-        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[#F8FAFB]">
+        <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <EmptyState
             title="Không tìm thấy công thức này"
-            description={`ID "${recipeId || '(trống)'}" không tồn tại hoặc đã bị xóa. Bạn có thể quay lại xem toàn bộ kho công thức hoặc gợi ý ngẫu nhiên một món để nấu.`}
+            description={`ID "${recipeId || '(trống)'}" không tồn tại hoặc đã bị xóa. Quay lại danh sách để xem các công thức khác.`}
             actionLabel="Quay lại danh sách công thức"
             onAction={() => onNavigate?.('/recipes')}
-            icon={<ChefHat size={36} className="text-[#2e7d32]" />}
+            icon={<ChefHat size={36} className="text-[#2E7D32]" />}
           />
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              leftIcon={<Sparkles size={13} />}
-              onClick={() => onNavigate?.('/ai-chat')}
-            >
-              Hỏi AI gợi ý món nấu hôm nay
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              leftIcon={<Leaf size={13} />}
-              onClick={() => onNavigate?.('/pantry')}
-            >
-              Gợi ý theo nguyên liệu trong tủ
-            </Button>
-          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          leftIcon={<ArrowLeft size={13} />}
-          onClick={() => onNavigate?.('/recipes')}
-          className="mb-5"
-        >
-          Quay lại danh sách công thức
-        </Button>
+    <div
+      className="min-h-screen text-[#1F2937] font-['Inter']"
+      style={{ background: 'linear-gradient(180deg,#F8FAFB 0%,#F1F8F3 35%,#F8FAFB 70%)' }}
+    >
+      <div className="mx-auto w-full max-w-[1168px] px-[24px] py-7 sm:px-[16px]">
+        {/* Breadcrumb + Back */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[12.5px] font-medium text-[#6B7280]">
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/')}
+              className="hover:text-[#2E7D32]"
+            >
+              Trang chủ
+            </button>
+            <span className="text-[#9CA3AF]">›</span>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/recipes')}
+              className="hover:text-[#2E7D32]"
+            >
+              Công thức
+            </button>
+            <span className="text-[#9CA3AF]">›</span>
+            <span className="line-clamp-1 max-w-[260px] text-[#1F2937]">{recipe.title}</span>
+          </div>
+        </div>
 
-        {/* Cover */}
-        <article className="overflow-hidden rounded-[20px] border border-[#e5e7eb] bg-white shadow-xs">
-          <div className="relative h-[260px] w-full overflow-hidden sm:h-[340px]">
-            <img
-              src={recipe.coverImage}
-              alt={recipe.title}
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/30 to-transparent" />
-            <div className="absolute left-0 right-0 top-4 flex items-start justify-between px-5 sm:px-8">
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge
-                  status="suitable"
-                  label={DIET_CATEGORY_LABELS[recipe.dietCategory]}
-                />
-                <StatusBadge status="info" label={DIFFICULTY_LABELS[recipe.difficulty]} />
-                {recipe.tags.slice(0, 2).map((t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-extrabold text-slate-800 ring-1 ring-white/80 backdrop-blur"
+        {/* 1. Cover */}
+        <img
+          src={recipe.coverImage}
+          alt=""
+          className="h-80 w-full object-cover rounded-[16px]"
+        />
+
+        {/* Title + description below cover */}
+        <div className="mt-6">
+          <h1
+            className="font-extrabold tracking-[-0.01em] text-[#121C2A]"
+            style={{ fontSize: '30px', lineHeight: '38px' }}
+          >
+            {recipe.title}
+          </h1>
+          <p className="mt-2 text-[14.5px] font-normal leading-[24px] text-[#6B7280]">
+            {recipe.description}
+          </p>
+        </div>
+
+        {/* 2. Tags + CTA row (flex justify-between) */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
+              {DIET_CATEGORY_LABELS[recipe.dietCategory]}
+            </span>
+            <span className="rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-bold text-[#2E7D32]">
+              {DIFFICULTY_LABELS[recipe.difficulty]}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              leftIcon={<Heart />}
+              isLoading={favLoading}
+              onClick={handleToggleFavorite}
+            >
+              Lưu yêu thích
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => showToast('🍳 Bắt đầu thực hiện công thức!')}
+            >
+              Bắt đầu nấu
+            </Button>
+          </div>
+        </div>
+
+        {/* 3. Stats 4 cột */}
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 rounded-[16px] border border-[#E5E7EB] bg-white p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FFF7ED] text-[#F97316]">
+              <Flame size={16} />
+            </div>
+            <div>
+              <div className="text-[11.5px] font-semibold text-[#6B7280]">Năng lượng</div>
+              <div className="text-[15px] font-extrabold tabular-nums text-[#1F2937]">
+                {nutrition.kcal} kcal
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F0FDF4] text-[#2E7D32]">
+              <Users size={16} />
+            </div>
+            <div>
+              <div className="text-[11.5px] font-semibold text-[#6B7280]">Khẩu phần</div>
+              <div className="text-[15px] font-extrabold tabular-nums text-[#1F2937]">
+                {recipe.servingSize} người
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EFF6FF] text-[#2563EB]">
+              <Clock size={16} />
+            </div>
+            <div>
+              <div className="text-[11.5px] font-semibold text-[#6B7280]">Thời gian nấu</div>
+              <div className="text-[15px] font-extrabold tabular-nums text-[#1F2937]">
+                {recipe.cookTimeMinutes} phút
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FEF3C7] text-[#92400E]">
+              <ChefHat size={16} />
+            </div>
+            <div>
+              <div className="text-[11.5px] font-semibold text-[#6B7280]">Độ khó</div>
+              <div className="text-[15px] font-extrabold tabular-nums text-[#1F2937]">
+                {DIFFICULTY_LABELS[recipe.difficulty]}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Bảng Nutrition Facts */}
+        <section className="mt-6 rounded-[16px] bg-white p-5">
+          <h2
+            className="mb-4 flex items-center gap-2 font-extrabold tracking-[-0.005em] text-[#121C2A]"
+            style={{ fontSize: '18px', lineHeight: '26px' }}
+          >
+            <span className="h-2.5 w-2.5 rounded-full bg-[#2E7D32]" />
+            Thông tin dinh dưỡng
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-[14px] border border-[#C8E6C9] bg-white p-4 text-[#2E7D32] shadow-xs">
+              <div className="text-[12px] font-semibold text-[#6B7280]">Calories (kcal)</div>
+              <div
+                className="mt-1 text-center text-[22px] font-extrabold tabular-nums text-[#2E7D32]"
+                style={{ lineHeight: '28px' }}
+              >
+                {nutrition.kcal}
+              </div>
+            </div>
+            <div className="rounded-[14px] border border-[#BFDBFE] bg-white p-4 shadow-xs">
+              <div className="text-[12px] font-semibold text-[#6B7280]">Protein (g)</div>
+              <div
+                className="mt-1 text-center text-[22px] font-extrabold tabular-nums text-[#1D4ED8]"
+                style={{ lineHeight: '28px' }}
+              >
+                {nutrition.proteinG}
+              </div>
+            </div>
+            <div className="rounded-[14px] border border-[#FDE68A] bg-white p-4 shadow-xs">
+              <div className="text-[12px] font-semibold text-[#6B7280]">Carbs (g)</div>
+              <div
+                className="mt-1 text-center text-[22px] font-extrabold tabular-nums text-[#92400E]"
+                style={{ lineHeight: '28px' }}
+              >
+                {nutrition.carbsG}
+              </div>
+            </div>
+            <div className="rounded-[14px] border border-[#FECDD3] bg-white p-4 shadow-xs">
+              <div className="text-[12px] font-semibold text-[#6B7280]">Fat (g)</div>
+              <div
+                className="mt-1 text-center text-[22px] font-extrabold tabular-nums text-[#9F1239]"
+                style={{ lineHeight: '28px' }}
+              >
+                {nutrition.fatG}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 5. Nguyên liệu + Steps (2 cột) */}
+        <section className="mt-7 grid gap-6 md:grid-cols-2">
+          {/* Nguyên liệu */}
+          <div
+            className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-xs"
+          >
+            <h2
+              className="mb-4 flex items-center gap-2 font-extrabold tracking-[-0.005em] text-[#121C2A]"
+              style={{ fontSize: '18px', lineHeight: '26px' }}
+            >
+              <span className="h-2.5 w-2.5 rounded-full bg-[#2E7D32]" />
+              Danh sách nguyên liệu
+            </h2>
+            <ul className="divide-y divide-[#E5E7EB] rounded-[14px] border border-[#E5E7EB] bg-white">
+              {recipe.ingredients.map((ig) => {
+                const checked = !!checkedIds[ig.id]
+                return (
+                  <li
+                    key={ig.id}
+                    className="flex items-center gap-3 px-3 py-2.5 transition hover:bg-[#F5FBF6]"
                   >
-                    #{t}
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="!bg-white/90 !text-slate-800"
-                  leftIcon={<Share2 size={12} />}
-                  onClick={() => showToast('Đã copy link công thức')}
-                >
-                  Chia sẻ
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={recipe.isFavorite ? 'danger' : 'primary'}
-                  leftIcon={<Heart size={13} className={recipe.isFavorite ? 'fill-current' : ''} />}
-                  isLoading={favLoading}
-                  onClick={handleToggleFavorite}
-                >
-                  {recipe.isFavorite ? 'Đã yêu thích' : 'Lưu yêu thích'}
-                </Button>
-              </div>
-            </div>
-
-            <div className="absolute bottom-5 left-5 right-5 text-white sm:left-8 sm:right-8">
-              <h1 className="text-2xl font-extrabold leading-tight tracking-tight drop-shadow sm:text-3xl">
-                {recipe.title}
-              </h1>
-              <div className="mt-2 flex flex-wrap items-center gap-4 text-[12px] font-semibold text-white/90">
-                <span className="inline-flex items-center gap-1">
-                  <Users size={13} /> {recipe.servingSize} người ăn
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Clock size={13} /> Nấu: {recipe.cookTimeMinutes} phút
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Timer size={13} /> Tổng: {totalTime} phút
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Heart size={13} /> {recipe.favoriteCount.toLocaleString('vi-VN')}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Eye size={13} /> {recipe.viewCount.toLocaleString('vi-VN')}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Meta + Description */}
-          <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <p className="text-sm leading-7 text-[#1f2937]">{recipe.description}</p>
-
-              <div className="mt-6">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#e8f5e9] text-[#2e7d32]">
-                    <List size={14} />
-                  </span>
-                  <h2 className="text-[17px] font-extrabold tracking-tight">
-                    Chuẩn bị nguyên liệu ({recipe.ingredients.length} mục)
-                  </h2>
-                </div>
-                <div className="rounded-[16px] border border-[#e5e7eb] bg-[#fafefb] p-4">
-                  <ul className="grid gap-2 sm:grid-cols-2">
-                    {recipe.ingredients.map((ig) => (
-                      <li
-                        key={ig.id}
-                        className="flex items-center justify-between gap-3 rounded-[10px] border border-transparent px-3 py-2 hover:border-[#e5e7eb] hover:bg-white"
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <Input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setCheckedIds((prev) => ({
+                            ...prev,
+                            [ig.id]: !prev[ig.id],
+                          }))
+                        }
+                      />
+                      <span className="font-bold text-[#2E7D32] mr-2">
+                        {ig.amount}
+                        {ig.unit ? ` ${ig.unit}` : ''}
+                      </span>
+                      <span
+                        className={`font-medium ${
+                          checked
+                            ? 'line-through text-[#9CA3AF]'
+                            : 'text-[#1F2937]'
+                        }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-[#2e7d32]" />
-                          <span className="text-sm font-semibold text-[#1f2937]">{ig.name}</span>
-                        </div>
-                        <div className="text-right text-xs font-bold text-[#6b7280]">
-                          <div>
-                            {ig.amount} {ig.unit}
-                          </div>
-                          {ig.note && (
-                            <div className="text-[10px] font-medium text-[#2e7d32]">
-                              ({ig.note})
-                            </div>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Steps */}
-              <div className="mt-6">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#2e7d32] text-white shadow-sm">
-                    <Play size={14} />
-                  </span>
-                  <h2 className="text-[17px] font-extrabold tracking-tight">
-                    Hướng dẫn chi tiết {recipe.steps.length} bước
-                  </h2>
-                </div>
-                <ol className="space-y-4">
-                  {recipe.steps.map((s) => (
-                    <li
-                      key={s.stepNo}
-                      className="flex gap-4 rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs"
-                    >
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#2e7d32] text-sm font-extrabold text-white shadow-sm">
-                        {s.stepNo}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-[15px] font-extrabold tracking-tight text-[#1f2937]">
-                            {s.title || `Bước ${s.stepNo}`}
-                          </h3>
-                          {typeof s.durationMinutes === 'number' && s.durationMinutes > 0 && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f5e9] px-2 py-0.5 text-[11px] font-extrabold text-[#2e7d32]">
-                              <Timer size={10} /> {s.durationMinutes} phút
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1.5 text-sm leading-7 text-[#1f2937]">
-                          {s.description}
-                        </p>
-                        {s.tip && (
-                          <div className="mt-3 inline-flex items-start gap-2 rounded-[12px] border border-amber-200 bg-amber-50/80 p-3 text-xs leading-6 text-amber-800">
-                            <Lightbulb size={14} className="mt-0.5 flex-shrink-0 text-amber-600" />
-                            <div>
-                              <strong>Mẹo nấu ăn:</strong> {s.tip}
-                            </div>
-                          </div>
+                        {ig.name}
+                        {ig.note && (
+                          <span className="ml-1 text-[11.5px] text-[#2E7D32]">
+                            ({ig.note})
+                          </span>
                         )}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <aside className="space-y-5">
-              {/* Author */}
-              <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={recipe.authorAvatar}
-                    alt={recipe.authorName}
-                    className="h-11 w-11 rounded-full object-cover ring-2 ring-[#c8e6c9]"
-                  />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-extrabold text-[#1f2937]">
-                      {recipe.authorName}
-                    </div>
-                    <div className="truncate text-[11px] text-[#6b7280]">
-                      Công thức đăng: {new Date(recipe.publishedAt).toLocaleDateString('vi-VN')}
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  fullWidth
-                  className="mt-3"
-                  leftIcon={<ChefHat size={13} />}
-                  onClick={() => showToast(`Đã theo dõi ${recipe.authorName}`)}
-                >
-                  Theo dõi tác giả
-                </Button>
-              </div>
-
-              {/* Nutrition */}
-              <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/70 p-4 shadow-xs">
-                <div className="mb-3 flex items-center gap-2">
-                  <Flame size={15} className="text-[#2e7d32]" />
-                  <h3 className="text-[14px] font-extrabold text-[#1f2937]">
-                    Thành phần dinh dưỡng / phần
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-bold">
-                  <div className="rounded-[10px] bg-white/80 p-3">
-                    <div className="text-[#6b7280]">Năng lượng</div>
-                    <div className="mt-0.5 text-lg font-extrabold text-[#2e7d32]">
-                      {recipe.nutrition.kcal} <span className="text-xs">kcal</span>
-                    </div>
-                  </div>
-                  <div className="rounded-[10px] bg-white/80 p-3">
-                    <div className="text-[#6b7280]">Đạm</div>
-                    <div className="mt-0.5 text-lg font-extrabold text-[#1f2937]">
-                      {recipe.nutrition.proteinG} <span className="text-xs">g</span>
-                    </div>
-                  </div>
-                  <div className="rounded-[10px] bg-white/80 p-3">
-                    <div className="text-[#6b7280]">Carb</div>
-                    <div className="mt-0.5 text-lg font-extrabold text-[#1f2937]">
-                      {recipe.nutrition.carbsG} <span className="text-xs">g</span>
-                    </div>
-                  </div>
-                  <div className="rounded-[10px] bg-white/80 p-3">
-                    <div className="text-[#6b7280]">Chất xơ</div>
-                    <div className="mt-0.5 text-lg font-extrabold text-[#1f2937]">
-                      {recipe.nutrition.fiberG} <span className="text-xs">g</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-3 text-[11px] leading-5 text-[#2e7d32]">
-                  Dinh dưỡng ước tính dựa trên phần ăn tiêu chuẩn, có thể thay đổi một chút tùy cách nấu
-                  & kích thước nguyên liệu thực tế.
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  variant="primary"
-                  fullWidth
-                  leftIcon={<ListChecks size={14} />}
-                  onClick={() => onNavigate?.('/pantry')}
-                >
-                  Kiểm tra nguyên liệu trong tủ
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  fullWidth
-                  leftIcon={<Sparkles size={14} />}
-                  onClick={() =>
-                    onNavigate?.(
-                      `/ai-chat?prompt=${encodeURIComponent(
-                        `Hỏi mẹo làm món ${recipe.title} ngon hơn`,
-                      )}`,
-                    )
-                  }
-                >
-                  Hỏi AI mẹo làm món này ngon hơn
-                </Button>
-              </div>
-
-              {/* Related tags */}
-              <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
-                <div className="mb-2 text-[12px] font-extrabold text-[#6b7280]">
-                  Từ khóa liên quan
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {recipe.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full bg-[#e8f5e9] px-2.5 py-1 text-[11px] font-extrabold text-[#2e7d32]"
-                    >
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </aside>
+                      </span>
+                    </label>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
-        </article>
+
+          {/* 6. Steps */}
+          <div
+            className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-xs"
+          >
+            <h2
+              className="mb-4 flex items-center gap-2 font-extrabold tracking-[-0.005em] text-[#121C2A]"
+              style={{ fontSize: '18px', lineHeight: '26px' }}
+            >
+              <span className="h-2.5 w-2.5 rounded-full bg-[#2E7D32]" />
+              Các bước thực hiện
+            </h2>
+            <ol className="space-y-4">
+              {recipe.steps.map((s) => (
+                <li key={s.stepNo} className="flex gap-3">
+                  <span className="h-8 w-8 rounded-full bg-[#2E7D32] text-white grid place-items-center inline-flex shrink-0 text-sm font-bold">
+                    {s.stepNo}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {s.title ? (
+                      <h3 className="text-[14.5px] font-extrabold text-[#121C2A]">
+                        {s.title}
+                      </h3>
+                    ) : null}
+                    <p
+                      className="mt-1 font-normal text-[#4B5563]"
+                      style={{ fontSize: '14px', lineHeight: '22px' }}
+                    >
+                      {s.description}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* 7. Bài viết liên quan */}
+        <section className="mt-10">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <h2
+              className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
+              style={{ fontSize: '20px', lineHeight: '28px' }}
+            >
+              Bài viết liên quan
+            </h2>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/articles')}
+              className="text-[12.5px] font-semibold text-[#2E7D32] hover:underline"
+            >
+              Xem thêm công thức dinh dưỡng
+            </button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {relatedArticles.map((a, i) => (
+              <div
+                key={a.title + i}
+                className="group flex h-full flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-xs transition hover:-translate-y-[1px] hover:border-[#2E7D32]/30"
+              >
+                <div className="relative h-[160px] w-full overflow-hidden bg-gradient-to-br from-[#DCFCE7] to-[#A7F3D0]">
+                  {a.img ? (
+                    <img
+                      src={a.img}
+                      alt={a.title}
+                      className="h-full w-full object-cover transition group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[40px]">
+                      {a.emoji}
+                    </div>
+                  )}
+                  <span
+                    className={`absolute left-3 top-3 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold tracking-[0.02em] ring-1 ring-white/70 ${a.tagCls}`}
+                  >
+                    {a.tag}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col p-4">
+                  <div className="text-[12px] font-semibold text-[#6B7280]">{a.author}</div>
+                  <h3 className="mt-1 line-clamp-2 text-[15px] font-bold text-[#121C2A] group-hover:text-[#2E7D32]">
+                    {a.title}
+                  </h3>
+                  <p
+                    className="mt-1.5 line-clamp-2 text-[13px] text-[#6B7280]"
+                    style={{ lineHeight: '20px' }}
+                  >
+                    {a.desc}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => showToast(`📖 Đang mở: ${a.title}`)}
+                    className="mt-3 inline-flex w-fit items-center gap-1 text-[12.5px] font-bold text-[#2E7D32] hover:underline"
+                  >
+                    Đọc thêm →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Video liên quan */}
+        <section className="mt-10">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <h2
+              className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
+              style={{ fontSize: '20px', lineHeight: '28px' }}
+            >
+              Video liên quan
+            </h2>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/videos')}
+              className="text-[12.5px] font-semibold text-[#2E7D32] hover:underline"
+            >
+              Video hướng dẫn chế biến trực quan
+            </button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {relatedVideos.map((v, i) => (
+              <div
+                key={v.title + i}
+                className="group flex h-full flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-xs transition hover:-translate-y-[1px] hover:border-[#2E7D32]/30"
+              >
+                <div className="relative h-[160px] w-full overflow-hidden bg-slate-900">
+                  {v.img ? (
+                    <img
+                      src={v.img}
+                      alt={v.title}
+                      className="h-full w-full object-cover opacity-80 transition group-hover:scale-[1.03] group-hover:opacity-95"
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-label="Play video"
+                    onClick={() => showToast(`▶️ Đang mở video: ${v.title}`)}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg ring-4 ring-white/10">
+                      <Play size={22} className="translate-x-[2px]" />
+                    </span>
+                  </button>
+                  <span className="absolute bottom-2 right-2 rounded-md bg-slate-900/80 px-2 py-0.5 text-[11px] font-bold text-white">
+                    {v.duration}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col p-4">
+                  <div className="text-[12px] font-semibold text-[#6B7280]">{v.channel}</div>
+                  <h3 className="mt-1 line-clamp-2 text-[15px] font-bold text-[#121C2A] group-hover:text-[#2E7D32]">
+                    {v.title}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => showToast(`▶️ Đang mở video: ${v.title}`)}
+                    className="mt-3 inline-flex w-fit items-center gap-1 text-[12.5px] font-bold text-[#2E7D32] hover:underline"
+                  >
+                    Xem video →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
-      {/* Toast */}
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-bold text-white shadow-lg backdrop-blur">
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 text-[14px] font-semibold text-white shadow-lg backdrop-blur"
+          style={{ lineHeight: '20px' }}
+        >
           {toast}
         </div>
       )}
