@@ -120,30 +120,57 @@ export default function RestaurantList({
     showToast(`📞 Đặt chỗ tại ${r.name}: ${r.phoneNumber}`)
   }
 
+  const handleReload = async () => {
+    setIsLoading(true)
+    try {
+      const res = await filterRestaurants(filter)
+      setItems(res.items)
+      setTotalCount(res.totalCount)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Hero */}
-        <section className="mb-6 overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-gradient-to-br from-white via-white to-[#e8f5e9] p-6 shadow-xs sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2e7d32] px-3 py-1 text-[11px] font-extrabold text-white shadow-sm">
-                <MapIcon size={12} /> DANH SÁCH 14+ QUÁN ĂN CHAY 3 TỈNH THÀNH
+    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
+      <div className="mx-auto w-full max-w-[1200px] px-[24px] py-10 sm:px-[16px]">
+        {/* ============ HERO ============ */}
+        <section
+          className="mb-10 overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-gradient-to-br from-[#FFFFFF] via-[#FFFFFF] to-[#E8F5E9] p-8"
+          style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-8">
+            <div className="max-w-[720px] flex-1">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#2E7D32] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.02em] text-white shadow-sm"
+                style={{ lineHeight: '16px' }}
+              >
+                <MapIcon size={14} />
+                14+ quán ăn chay · 3 tỉnh thành
               </span>
-              <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+
+              <h1
+                className="mt-4 font-bold tracking-[-0.015em] text-[#121C2A] sm:text-[26px] sm:leading-[34px]"
+                style={{ fontSize: '36px', lineHeight: '44px' }}
+              >
                 Khám phá quán ăn thuần thực vật yêu thích quanh bạn
               </h1>
-              <p className="mt-2 text-sm leading-6 text-[#6b7280]">
-                Từ Hà Nội, Sài Gòn đến Đà Nẵng, tất cả các quán đều được cộng đồng review & xác minh
+
+              <p
+                className="mt-4 font-normal text-[#6B7280]"
+                style={{ fontSize: '16px', lineHeight: '28px' }}
+              >
+                Từ Hà Nội, Sài Gòn đến Đà Nẵng, tất cả các quán đều được cộng đồng review &amp; xác minh
                 thực tế, dễ dàng lọc theo chế độ ăn bạn đang theo đuổi.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               <Button
                 type="button"
                 variant="primary"
                 size="md"
-                leftIcon={<ChefHat size={14} />}
+                leftIcon={<ChefHat size={16} />}
                 onClick={() => onNavigate?.('/ai-chat')}
               >
                 Hỏi AI gợi ý quán gần tôi
@@ -152,69 +179,132 @@ export default function RestaurantList({
                 type="button"
                 variant="secondary"
                 size="md"
-                leftIcon={<RefreshCw size={14} />}
-                onClick={async () => {
-                  setIsLoading(true)
-                  try {
-                    const res = await filterRestaurants(filter)
-                    setItems(res.items)
-                    setTotalCount(res.totalCount)
-                  } finally {
-                    setIsLoading(false)
-                  }
-                }}
+                leftIcon={<RefreshCw size={16} />}
+                onClick={handleReload}
               >
                 Làm mới
               </Button>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+          {/* Stats row - 5 cards, gutter 24px */}
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            {/* Tổng quán */}
+            <div
+              className="rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#6B7280]"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Tổng quán ăn
+                <UtensilsCrossed size={18} className="text-[#2E7D32]" />
               </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-[#1f2937]">{totalCount}</div>
-                <UtensilsCrossed size={14} className="mb-1 text-[#2e7d32]" />
+              <div
+                className="mt-3 font-extrabold tabular-nums text-[#1F2937]"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {totalCount}
               </div>
             </div>
-            <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/70 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#2e7d32]">
-                Thuần thực vật 100%
+
+            {/* Thuần thực vật */}
+            <div
+              className="rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9]/70 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#2E7D32]"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
+                Thuần thực vật
+                <Sparkles size={18} />
               </div>
-              <div className="mt-1 text-2xl font-extrabold text-[#2e7d32]">{stats.vegan}</div>
+              <div
+                className="mt-3 font-extrabold tabular-nums text-[#2E7D32]"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.vegan}
+              </div>
             </div>
-            <div className="rounded-[16px] border border-sky-200 bg-sky-50/80 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-sky-700">
+
+            {/* Hà Nội */}
+            <div
+              className="rounded-[16px] border border-sky-200 bg-sky-50 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-sky-700"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Hà Nội
+                <MapIcon size={18} />
               </div>
-              <div className="mt-1 text-2xl font-extrabold text-sky-700">{stats.hn}</div>
-            </div>
-            <div className="rounded-[16px] border border-amber-200 bg-amber-50/80 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
-                TP.HCM
+              <div
+                className="mt-3 font-extrabold tabular-nums text-sky-700"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.hn}
               </div>
-              <div className="mt-1 text-2xl font-extrabold text-amber-700">{stats.hcm}</div>
             </div>
-            <div className="rounded-[16px] border border-rose-200 bg-rose-50/80 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-rose-700">
+
+            {/* TP.HCM */}
+            <div
+              className="rounded-[16px] border border-amber-200 bg-amber-50 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-amber-700"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
+                TP. HCM
+                <MapIcon size={18} />
+              </div>
+              <div
+                className="mt-3 font-extrabold tabular-nums text-amber-700"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.hcm}
+              </div>
+            </div>
+
+            {/* Đà Nẵng + rating */}
+            <div
+              className="rounded-[16px] border border-rose-200 bg-rose-50 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-rose-700"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Đà Nẵng
+                <MapIcon size={18} />
               </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-rose-700">{stats.dn}</div>
-                <span className="mb-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-rose-600">
-                  <Star size={11} className="fill-amber-500 stroke-amber-500" />
+              <div className="mt-3 flex items-end gap-3">
+                <div
+                  className="font-extrabold tabular-nums text-rose-700"
+                  style={{ fontSize: '32px', lineHeight: '40px' }}
+                >
+                  {stats.dn}
+                </div>
+                <div
+                  className="mb-1 inline-flex items-center gap-1 font-semibold text-amber-600"
+                  style={{ fontSize: '12px', lineHeight: '16px' }}
+                >
+                  <Star
+                    size={14}
+                    className="fill-amber-500 stroke-amber-500"
+                  />
                   ⌀ {stats.avgRating.toFixed(1)}
-                </span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Filter */}
-        <section className="mb-5">
+        {/* ============ FILTER BAR ============ */}
+        <section className="mb-6">
           <RestaurantFilterBar
             filter={filter}
             onChange={updateFilter}
@@ -224,49 +314,63 @@ export default function RestaurantList({
           />
         </section>
 
-        {/* Applied filter badges */}
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]">
-          {filter.city !== 'all' && (
-            <StatusBadge
-              status="info"
-              size="sm"
-              label={`Khu vực: ${CITY_LABELS[filter.city as RestaurantCity] ?? filter.city}`}
-            />
-          )}
-          {filter.diet !== 'all' && (
-            <StatusBadge
-              status="suitable"
-              size="sm"
-              label={`Chế độ: ${DIET_TYPE_LABELS[filter.diet as RestaurantDietType] ?? filter.diet}`}
-            />
-          )}
-          {filter.ratingMin > 0 && (
-            <StatusBadge
-              status="warning"
-              size="sm"
-              label={`Đánh giá ≥ ${filter.ratingMin.toFixed(1)} ★`}
-            />
-          )}
-          {filter.deliveryOnly && (
-            <StatusBadge status="suitable" size="sm" label="Chỉ xem có giao hàng" />
-          )}
-          {filter.search.trim() && (
-            <StatusBadge
-              status="neutral"
-              size="sm"
-              label={`Từ khóa: "${filter.search.trim()}"`}
-            />
-          )}
-          <div className="ml-auto hidden text-[11px] text-[#6b7280] sm:block">
-            <strong className="text-[#1f2937]">{stats.delivery}</strong> trong{' '}
-            <strong className="text-[#1f2937]">{totalCount}</strong> quán có dịch vụ giao hàng.
+        {/* Applied filter badges + summary */}
+        <header
+          className="mb-6 flex flex-wrap items-center justify-between gap-3"
+          style={{ fontSize: '12px', lineHeight: '16px' }}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            {filter.city !== 'all' && (
+              <StatusBadge
+                status="info"
+                size="md"
+                label={`Khu vực: ${
+                  CITY_LABELS[filter.city as RestaurantCity] ?? filter.city
+                }`}
+              />
+            )}
+            {filter.diet !== 'all' && (
+              <StatusBadge
+                status="suitable"
+                size="md"
+                label={`Chế độ: ${
+                  DIET_TYPE_LABELS[filter.diet as RestaurantDietType] ?? filter.diet
+                }`}
+              />
+            )}
+            {filter.ratingMin > 0 && (
+              <StatusBadge
+                status="warning"
+                size="md"
+                label={`Đánh giá ≥ ${filter.ratingMin.toFixed(1)} ★`}
+              />
+            )}
+            {filter.deliveryOnly && (
+              <StatusBadge
+                status="suitable"
+                size="md"
+                label="Chỉ xem có giao hàng"
+              />
+            )}
+            {!!filter.search.trim() && (
+              <StatusBadge
+                status="neutral"
+                size="md"
+                label={`Từ khóa: "${filter.search.trim()}"`}
+              />
+            )}
           </div>
-        </div>
 
-        {/* Results */}
+          <div className="hidden font-medium text-[#6B7280] sm:block">
+            <strong className="text-[#1F2937]">{stats.delivery}</strong> trong{' '}
+            <strong className="text-[#1F2937]">{totalCount}</strong> quán có dịch vụ giao hàng.
+          </div>
+        </header>
+
+        {/* ============ RESULTS ============ */}
         <section>
           {isLoading ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <SkeletonLoader count={6} variant="card" />
             </div>
           ) : items.length === 0 ? (
@@ -275,10 +379,10 @@ export default function RestaurantList({
               description="Bạn hãy thử nới lỏng bộ lọc chế độ ăn, thay đổi khu vực hoặc xóa từ khóa tìm kiếm. Nhấn nút bên dưới để xem toàn bộ danh sách quán ăn chay 3 tỉnh thành."
               actionLabel="Xóa bộ lọc"
               onAction={resetFilter}
-              icon={<Sparkles size={36} className="text-[#2e7d32]" />}
+              icon={<Sparkles size={40} className="text-[#2E7D32]" />}
             />
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((r) => (
                 <RestaurantCard
                   key={r.id}
@@ -293,7 +397,11 @@ export default function RestaurantList({
       </div>
 
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-bold text-white shadow-lg backdrop-blur">
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 font-semibold text-white shadow-lg backdrop-blur"
+          style={{ fontSize: '14px', lineHeight: '20px' }}
+        >
           {toast}
         </div>
       )}

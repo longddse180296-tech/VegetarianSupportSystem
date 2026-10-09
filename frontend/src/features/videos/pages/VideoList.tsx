@@ -61,6 +61,12 @@ const SORT_OPTIONS: SelectOption[] = (
   Object.keys(SORT_LABELS) as VideoSortOption[]
 ).map((k) => ({ value: k, label: SORT_LABELS[k] }))
 
+const isFilterDirty = (f: VideoListFilter): boolean =>
+  Object.entries(f).some(
+    ([k, v]) =>
+      (DEFAULT_VIDEO_FILTER as unknown as Record<string, unknown>)[k] !== v,
+  )
+
 export default function VideoList({
   onNavigate,
   isLoggedIn: _isLoggedIn,
@@ -152,7 +158,6 @@ export default function VideoList({
     setSubmitting(true)
     try {
       const created = await uploadVideo(form)
-      // Nếu filter all (hoặc trạng thái khớp) thì append
       const willAdd =
         (filter.status === 'all' || filter.status === created.moderationStatus) &&
         (filter.category === 'all' || filter.category === created.category)
@@ -173,38 +178,65 @@ export default function VideoList({
         created.moderationStatus === 'ai_checking'
           ? '✅ Đã gửi video, AI đang kiểm tra nội dung...'
           : created.moderationStatus === 'pending_admin'
-            ? '🚩 AI gắn cờ nội dung, đang chuyển Admin xem xét cuối cùng.'
-            : '✅ Video đã gửi lên hệ thống!',
+          ? '🚩 AI gắn cờ nội dung, đang chuyển Admin xem xét cuối cùng.'
+          : '✅ Video đã gửi lên hệ thống!',
       )
     } finally {
       setSubmitting(false)
     }
   }
 
+  const handleReload = async () => {
+    setIsLoading(true)
+    try {
+      const res = await getVideos(filter)
+      setItems(res.items)
+      setTotalCount(res.totalCount)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Hero */}
-        <section className="mb-6 overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-gradient-to-br from-white via-white to-[#e8f5e9] p-6 shadow-xs sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2e7d32] px-3 py-1 text-[11px] font-extrabold text-white shadow-sm">
-                <VideoIcon size={12} /> KÊNH VIDEO CHIA SẺ CỘNG ĐỒNG
+    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
+      <div className="mx-auto w-full max-w-[1200px] px-[24px] py-10 sm:px-[16px]">
+        {/* ============ HERO ============ */}
+        <section
+          className="mb-10 overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-gradient-to-br from-[#FFFFFF] via-[#FFFFFF] to-[#E8F5E9] p-8"
+          style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-8">
+            <div className="max-w-[720px] flex-1">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#2E7D32] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.02em] text-white shadow-sm"
+                style={{ lineHeight: '16px' }}
+              >
+                <VideoIcon size={14} />
+                Kênh video cộng đồng
               </span>
-              <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Kho video hướng dẫn nấu ăn thuần thực vật & lối sống lành mạnh
+
+              <h1
+                className="mt-4 font-bold tracking-[-0.015em] text-[#121C2A] sm:text-[26px] sm:leading-[34px]"
+                style={{ fontSize: '36px', lineHeight: '44px' }}
+              >
+                Kho video hướng dẫn nấu ăn thuần thực vật &amp; lối sống lành mạnh
               </h1>
-              <p className="mt-2 text-sm leading-6 text-[#6b7280]">
-                Học nấu qua hình ảnh, nghe chia sẻ của đầu bếp & creator Việt Nam. Bạn cũng có thể tự
+
+              <p
+                className="mt-4 font-normal text-[#6B7280]"
+                style={{ fontSize: '16px', lineHeight: '28px' }}
+              >
+                Học nấu qua hình ảnh, nghe chia sẻ của đầu bếp &amp; creator Việt Nam. Bạn cũng có thể tự
                 tải video của mình lên để chia sẻ cho cộng đồng.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               <Button
                 type="button"
                 variant="primary"
                 size="md"
-                leftIcon={<UploadIcon size={14} />}
+                leftIcon={<UploadIcon size={16} />}
                 onClick={() => setShowUpload(true)}
               >
                 Upload video của tôi
@@ -213,17 +245,8 @@ export default function VideoList({
                 type="button"
                 variant="secondary"
                 size="md"
-                leftIcon={<RefreshCw size={14} />}
-                onClick={async () => {
-                  setIsLoading(true)
-                  try {
-                    const res = await getVideos(filter)
-                    setItems(res.items)
-                    setTotalCount(res.totalCount)
-                  } finally {
-                    setIsLoading(false)
-                  }
-                }}
+                leftIcon={<RefreshCw size={16} />}
+                onClick={handleReload}
               >
                 Làm mới
               </Button>
@@ -231,86 +254,156 @@ export default function VideoList({
                 type="button"
                 variant="outline"
                 size="md"
-                leftIcon={<Shield size={14} />}
-                onClick={() => showToast('AI flag riêng, Admin duyệt riêng! Không trộn lẫn luồng.')}
+                leftIcon={<Shield size={16} />}
+                onClick={() =>
+                  showToast('AI gắn cờ riêng / Admin duyệt cuối — không trộn lẫn luồng.')
+                }
               >
                 Quy tắc kiểm duyệt
               </Button>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+          {/* Stats - 5 cards gutter 24px */}
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            {/* Tổng video */}
+            <div
+              className="rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#6B7280]"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Tổng video
+                <VideoIcon size={18} className="text-[#2E7D32]" />
               </div>
-              <div className="mt-1 text-2xl font-extrabold text-[#1f2937]">{totalCount}</div>
+              <div
+                className="mt-3 font-extrabold tabular-nums text-[#1F2937]"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {totalCount}
+              </div>
             </div>
-            <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/70 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#2e7d32]">
+
+            {/* Published */}
+            <div
+              className="rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9]/70 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#2E7D32]"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Đã xuất bản
-              </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-[#2e7d32]">{stats.published}</div>
                 <StatusBadge size="sm" status="suitable" />
               </div>
-            </div>
-            <div className="rounded-[16px] border border-sky-200 bg-sky-50/80 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-sky-700">
-                AI đang kiểm tra
+              <div
+                className="mt-3 font-extrabold tabular-nums text-[#2E7D32]"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.published}
               </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-sky-700">{stats.checking}</div>
+            </div>
+
+            {/* AI checking */}
+            <div
+              className="rounded-[16px] border border-sky-200 bg-sky-50 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-sky-700"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
+                AI đang kiểm tra
                 <StatusBadge size="sm" status="info" />
               </div>
-            </div>
-            <div className="rounded-[16px] border border-amber-200 bg-amber-50/80 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
-                Chờ Admin duyệt
+              <div
+                className="mt-3 font-extrabold tabular-nums text-sky-700"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.checking}
               </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-amber-700">{stats.pending}</div>
+            </div>
+
+            {/* Pending Admin */}
+            <div
+              className="rounded-[16px] border border-amber-200 bg-amber-50 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-amber-700"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
+                Chờ Admin duyệt
                 <StatusBadge size="sm" status="insufficient" />
               </div>
-            </div>
-            <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#6b7280]">
-                Lượt xem cộng đồng
+              <div
+                className="mt-3 font-extrabold tabular-nums text-amber-700"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.pending}
               </div>
-              <div className="mt-1 text-2xl font-extrabold text-[#1f2937]">
+            </div>
+
+            {/* Total views */}
+            <div
+              className="rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#6B7280]"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
+                Lượt xem
+                <PlayCircle size={18} className="text-[#2E7D32]" />
+              </div>
+              <div
+                className="mt-3 font-extrabold tabular-nums text-[#1F2937]"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
                 {stats.totalViews.toLocaleString('vi-VN')}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Filter bar */}
-        <section className="mb-5 rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-xs sm:p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#e8f5e9] text-[#2e7d32]">
-                <Filter size={15} />
+        {/* ============ FILTER BAR ============ */}
+        <section
+          className="mb-8 rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+          style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+        >
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden
+                className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#E8F5E9] text-[#2E7D32]"
+              >
+                <Filter size={18} />
               </span>
               <div>
-                <div className="text-[15px] font-extrabold tracking-tight">
-                  Bộ lọc video & tìm kiếm
+                <div
+                  className="font-semibold tracking-[-0.01em] text-[#1F2937]"
+                  style={{ fontSize: '18px', lineHeight: '26px' }}
+                >
+                  Bộ lọc video &amp; tìm kiếm
                 </div>
-                <div className="text-[11px] text-[#6b7280]">
+                <div
+                  className="font-normal text-[#6B7280]"
+                  style={{ fontSize: '14px', lineHeight: '20px' }}
+                >
                   Thời lượng trung bình danh sách hiện tại:{' '}
-                  <strong className="text-[#1f2937]">{formatDuration(stats.avgDur)}</strong>
+                  <strong className="text-[#1F2937]">{formatDuration(stats.avgDur)}</strong>
                 </div>
               </div>
             </div>
-            {Object.entries(filter).some(
-              ([k, v]) =>
-                (DEFAULT_VIDEO_FILTER as unknown as Record<string, unknown>)[k] !== v,
-            ) && (
+
+            {isFilterDirty(filter) && (
               <Button
                 type="button"
-                size="sm"
+                size="md"
                 variant="outline"
-                leftIcon={<RefreshCw size={12} />}
+                leftIcon={<RefreshCw size={14} />}
                 onClick={resetFilter}
               >
                 Xóa bộ lọc
@@ -318,27 +411,30 @@ export default function VideoList({
             )}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-12">
-            <div className="md:col-span-4">
+          {/* 12-col filter grid */}
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 md:col-span-5">
               <Input
                 label="Tìm video"
                 size={13}
                 placeholder="Tìm theo tên, tác giả, từ khóa..."
                 value={filter.search}
                 onChange={(e) => updateFilter({ search: e.target.value })}
-                leftIcon={<Search size={14} />}
+                leftIcon={<Search size={16} />}
               />
             </div>
-            <div className="md:col-span-3">
+            <div className="col-span-12 md:col-span-3">
               <Select
                 label="Danh mục"
                 size={13}
                 value={filter.category}
-                onChange={(e) => updateFilter({ category: e.target.value as VideoCategory | 'all' })}
+                onChange={(e) =>
+                  updateFilter({ category: e.target.value as VideoCategory | 'all' })
+                }
                 options={CATEGORY_OPTIONS}
               />
             </div>
-            <div className="md:col-span-3">
+            <div className="col-span-12 md:col-span-2">
               <Select
                 label="Trạng thái duyệt"
                 size={13}
@@ -349,7 +445,7 @@ export default function VideoList({
                 options={STATUS_OPTIONS}
               />
             </div>
-            <div className="md:col-span-2">
+            <div className="col-span-12 md:col-span-2">
               <Select
                 label="Sắp xếp"
                 size={13}
@@ -360,24 +456,47 @@ export default function VideoList({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px]">
-            {filter.status === 'all' ? null : (
-              <StatusBadge status="info" label={`Trạng thái: ${MODERATION_STATUS_LABELS[filter.status as VideoModerationStatus] ?? filter.status}`} />
+          {/* Applied filter chips */}
+          <div
+            className="mt-5 flex flex-wrap items-center gap-2"
+            style={{ fontSize: '12px', lineHeight: '16px' }}
+          >
+            {filter.status !== 'all' && (
+              <StatusBadge
+                status="info"
+                size="md"
+                label={`Trạng thái: ${
+                  MODERATION_STATUS_LABELS[filter.status as VideoModerationStatus] ??
+                  filter.status
+                }`}
+              />
             )}
-            {filter.category === 'all' ? null : (
-              <StatusBadge status="suitable" label={`Danh mục: ${CATEGORY_LABELS[filter.category as VideoCategory] ?? filter.category}`} />
+            {filter.category !== 'all' && (
+              <StatusBadge
+                status="suitable"
+                size="md"
+                label={`Danh mục: ${
+                  CATEGORY_LABELS[filter.category as VideoCategory] ?? filter.category
+                }`}
+              />
             )}
-            {!filter.search.trim() ? null : (
-              <StatusBadge status="neutral" label={`Từ khóa: "${filter.search.trim()}"`} />
+            {!!filter.search.trim() && (
+              <StatusBadge
+                status="neutral"
+                size="md"
+                label={`Từ khóa: "${filter.search.trim()}"`}
+              />
             )}
-            {isLoading && <StatusBadge status="insufficient" label="Đang tải lại..." />}
+            {isLoading && (
+              <StatusBadge status="insufficient" size="md" label="Đang tải lại..." />
+            )}
           </div>
         </section>
 
-        {/* Results */}
+        {/* ============ RESULTS ============ */}
         <section>
           {isLoading ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <SkeletonLoader count={6} variant="card" />
             </div>
           ) : items.length === 0 ? (
@@ -386,10 +505,10 @@ export default function VideoList({
               description="Hãy thử từ khóa khác, nới lỏng bộ lọc danh mục/trạng thái, hoặc nhấn nút bên dưới để xóa bộ lọc xem toàn bộ kho video cộng đồng."
               actionLabel="Xóa bộ lọc"
               onAction={resetFilter}
-              icon={<PlayCircle size={36} className="text-[#2e7d32]" />}
+              icon={<PlayCircle size={40} className="text-[#2E7D32]" />}
             />
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((v) => (
                 <VideoCard
                   key={v.id}
@@ -413,7 +532,11 @@ export default function VideoList({
       />
 
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-bold text-white shadow-lg backdrop-blur">
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 font-semibold text-white shadow-lg backdrop-blur"
+          style={{ fontSize: '14px', lineHeight: '20px' }}
+        >
           {toast}
         </div>
       )}

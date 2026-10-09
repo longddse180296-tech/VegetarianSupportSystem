@@ -83,7 +83,6 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
     setTogglingId(id)
     try {
       const res = await toggleFavorite(id, next)
-      // Optimistically reflect local state for instant feedback
       setItems((prev) =>
         prev.map((r) =>
           r.id === id
@@ -109,44 +108,48 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
     return { favs, veganCount, quickCount, totalKcal }
   }, [items])
 
-  const grid = (
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      {items.map((r) => (
-        <RecipeCard
-          key={r.id}
-          recipe={r}
-          onSelect={handleSelect}
-          onToggleFavorite={handleToggleFavorite}
-          isTogglingFavorite={togglingId === r.id}
-        />
-      ))}
-    </div>
-  )
-
   return (
-    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Hero */}
-        <section className="mb-6 overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-gradient-to-br from-[#ffffff] via-[#ffffff] to-[#e8f5e9] p-6 shadow-xs sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2e7d32] px-3 py-1 text-[11px] font-extrabold text-white shadow-sm">
-                <Sparkles size={12} /> CỘNG ĐỒNG 1,000+ CÔNG THỨC
+    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
+      <div className="mx-auto w-full max-w-[1200px] px-[24px] py-10 sm:px-[16px]">
+        {/* ============ HERO ============ */}
+        <section
+          className="mb-10 overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-gradient-to-br from-[#FFFFFF] via-[#FFFFFF] to-[#E8F5E9] p-8"
+          style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-8">
+            <div className="max-w-[720px] flex-1">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#2E7D32] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.02em] text-white shadow-sm"
+                style={{ lineHeight: '16px' }}
+              >
+                <Sparkles size={14} />
+                Cộng đồng 1,000+ công thức
               </span>
-              <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-[#1f2937] sm:text-4xl">
+
+              {/* headline-lg: 36/44 bold 700 */}
+              <h1
+                className="mt-4 font-bold tracking-[-0.015em] text-[#121C2A] sm:text-[26px] sm:leading-[34px]"
+                style={{ fontSize: '36px', lineHeight: '44px' }}
+              >
                 Khám phá kho công thức thuần thực vật thơm ngon
               </h1>
-              <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+
+              {/* body-md 16/24 */}
+              <p
+                className="mt-4 font-normal text-[#6B7280]"
+                style={{ fontSize: '16px', lineHeight: '28px' }}
+              >
                 Từ món cơm nhà đơn giản (đậu phụ xốt cà) đến bánh ngọt, phở, bún riêu, bánh mì… tất
-                cả đều có hướng dẫn từng bước chi tiết, bạn chọn món, nấu thôi.
+                cả đều có hướng dẫn từng bước chi tiết. Bạn chọn món, nấu thôi.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               <Button
                 type="button"
                 size="md"
                 variant="primary"
-                leftIcon={<ChefHat size={14} />}
+                leftIcon={<ChefHat size={16} />}
                 onClick={() => onNavigate?.('/ai-chat')}
               >
                 Hỏi AI gợi ý hôm nay ăn gì
@@ -155,7 +158,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
                 type="button"
                 size="md"
                 variant="secondary"
-                leftIcon={<RefreshCw size={14} />}
+                leftIcon={<RefreshCw size={16} />}
                 onClick={() => void loadList()}
               >
                 Làm mới
@@ -163,48 +166,92 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-4">
-            <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+          {/* Stats row - 4 cards gutter 24px */}
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Tổng */}
+            <div
+              className="rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#6B7280]"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Tổng công thức
+                <Utensils size={18} className="text-[#2E7D32]" />
               </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-[#1f2937]">{totalCount}</div>
-                <Utensils size={14} className="mb-1 text-[#2e7d32]" />
+              <div
+                className="mt-3 font-extrabold tabular-nums text-[#1F2937]"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {totalCount}
               </div>
             </div>
-            <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/70 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#2e7d32]">
+
+            {/* Thuần thực vật */}
+            <div
+              className="rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9]/70 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-[#2E7D32]"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Thuần thực vật
+                <Leaf size={18} />
               </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-[#2e7d32]">{stats.veganCount}</div>
-                <Leaf size={14} className="mb-1 text-[#2e7d32]" />
+              <div
+                className="mt-3 font-extrabold tabular-nums text-[#2E7D32]"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.veganCount}
               </div>
             </div>
-            <div className="rounded-[16px] border border-amber-200 bg-amber-50/80 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
+
+            {/* Nhanh ≤ 25 phút */}
+            <div
+              className="rounded-[16px] border border-amber-200 bg-amber-50 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-amber-700"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Nhanh ≤ 25 phút
+                <Flame size={18} />
               </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-amber-700">{stats.quickCount}</div>
-                <Flame size={14} className="mb-1 text-amber-600" />
+              <div
+                className="mt-3 font-extrabold tabular-nums text-amber-700"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.quickCount}
               </div>
             </div>
-            <div className="rounded-[16px] border border-rose-200 bg-rose-50/80 p-4">
-              <div className="text-[11px] font-extrabold uppercase tracking-wide text-rose-700">
+
+            {/* Yêu thích */}
+            <div
+              className="rounded-[16px] border border-rose-200 bg-rose-50 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+            >
+              <div
+                className="flex items-center justify-between font-semibold uppercase tracking-[0.02em] text-rose-700"
+                style={{ fontSize: '12px', lineHeight: '16px' }}
+              >
                 Yêu thích (trong bộ lọc)
+                <Heart size={18} className="fill-rose-500 stroke-rose-600 text-rose-500" />
               </div>
-              <div className="mt-1 flex items-end gap-2">
-                <div className="text-2xl font-extrabold text-rose-600">{stats.favs}</div>
-                <Heart size={14} className="mb-1 fill-rose-500 stroke-rose-600 text-rose-500" />
+              <div
+                className="mt-3 font-extrabold tabular-nums text-rose-600"
+                style={{ fontSize: '32px', lineHeight: '40px' }}
+              >
+                {stats.favs}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Filter Bar */}
-        <section className="mb-5">
+        {/* ============ FILTER BAR ============ */}
+        <section className="mb-8">
           <RecipeFilterBar
             filter={filter}
             onChange={updateFilter}
@@ -214,42 +261,51 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
           />
         </section>
 
-        {/* Result */}
+        {/* ============ RESULT ============ */}
         <section>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
+          {/* Applied filter badges + summary */}
+          <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
               <StatusBadge
                 status="info"
-                size="sm"
+                size="md"
                 label={`${items.length} kết quả${isLoading ? ' (đang tải)' : ''}`}
               />
               {filter.favoritesOnly && (
-                <StatusBadge status="warning" size="sm" label="Chỉ xem yêu thích" />
+                <StatusBadge status="warning" size="md" label="Chỉ xem yêu thích" />
               )}
               {filter.diet !== 'all' && (
-                <StatusBadge status="suitable" size="sm" label={`Chế độ: ${filter.diet}`} />
+                <StatusBadge status="suitable" size="md" label={`Chế độ: ${filter.diet}`} />
               )}
               {filter.difficulty !== 'all' && (
-                <StatusBadge status="insufficient" size="sm" label={`Độ khó: ${filter.difficulty}`} />
+                <StatusBadge
+                  status="insufficient"
+                  size="md"
+                  label={`Độ khó: ${filter.difficulty}`}
+                />
               )}
               {filter.search.trim() && (
                 <StatusBadge
                   status="neutral"
-                  size="sm"
+                  size="md"
                   label={`Từ khóa: "${filter.search.trim()}"`}
                 />
               )}
             </div>
-            <div className="hidden text-[11px] text-[#6b7280] sm:block">
-              Tổng năng lượng trung bình bộ lọc:{' '}
-              <strong className="text-[#1f2937]">
+
+            <div
+              className="hidden font-medium text-[#6B7280] sm:block"
+              style={{ fontSize: '14px', lineHeight: '20px' }}
+            >
+              Năng lượng trung bình bộ lọc:{' '}
+              <strong className="text-[#1F2937]">
                 {items.length ? Math.round(stats.totalKcal / items.length) : 0} kcal / phần
               </strong>
             </div>
-          </div>
+          </header>
 
           {isLoading ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <SkeletonLoader count={6} variant="card" />
             </div>
           ) : items.length === 0 ? (
@@ -258,17 +314,31 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
               description="Hãy thử từ khóa khác, nới lỏng độ khó, hoặc thay đổi chế độ ăn. Có thể nhấn nút bên dưới để quay về bộ lọc mặc định xem toàn bộ kho công thức."
               actionLabel="Xóa bộ lọc"
               onAction={resetFilter}
-              icon={<Utensils size={36} className="text-[#2e7d32]" />}
+              icon={<Utensils size={40} className="text-[#2E7D32]" />}
             />
           ) : (
-            grid
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((r) => (
+                <RecipeCard
+                  key={r.id}
+                  recipe={r}
+                  onSelect={handleSelect}
+                  onToggleFavorite={handleToggleFavorite}
+                  isTogglingFavorite={togglingId === r.id}
+                />
+              ))}
+            </div>
           )}
         </section>
       </div>
 
       {/* Hero toast feedback */}
       {heroToast && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-bold text-white shadow-lg backdrop-blur">
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 font-semibold text-white shadow-lg backdrop-blur"
+          style={{ fontSize: '14px', lineHeight: '20px' }}
+        >
           {heroToast}
         </div>
       )}

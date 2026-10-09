@@ -21,7 +21,9 @@ interface RecipeCardProps {
   isTogglingFavorite?: boolean
 }
 
-function mapDietStatus(cat: RecipeDietCategory): 'suitable' | 'info' | 'insufficient' | 'danger' | 'neutral' | 'warning' | 'unsuitable' {
+function mapDietStatus(
+  cat: RecipeDietCategory,
+): 'suitable' | 'info' | 'insufficient' | 'danger' | 'neutral' | 'warning' | 'unsuitable' {
   switch (cat) {
     case 'vegan':
       return 'suitable'
@@ -41,10 +43,10 @@ function mapDietStatus(cat: RecipeDietCategory): 'suitable' | 'info' | 'insuffic
   }
 }
 
-function diffPillColor(d: RecipeDifficulty) {
-  if (d === 'easy') return 'bg-[#e8f5e9] text-[#2e7d32]'
-  if (d === 'medium') return 'bg-amber-50 text-amber-700'
-  return 'bg-red-50 text-red-700'
+function diffPillClass(d: RecipeDifficulty) {
+  if (d === 'easy') return 'border-[#C8E6C9] bg-[#E8F5E9] text-[#2E7D32]'
+  if (d === 'medium') return 'border-amber-200 bg-amber-50 text-amber-800'
+  return 'border-red-200 bg-red-50 text-red-700'
 }
 
 export const RecipeCard: React.FC<RecipeCardProps> = ({
@@ -66,7 +68,10 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   const activeHeart = recipe.isFavorite || hoverHeart
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-[16px] border border-[#e5e7eb] bg-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <article
+      className="group relative flex flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white transition-all duration-200 hover:-translate-y-[2px] hover:border-[#2E7D32]/30"
+      style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+    >
       {/* Cover */}
       <button
         type="button"
@@ -78,8 +83,9 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
           src={recipe.coverImage}
           alt={recipe.title}
           loading="lazy"
-          className="h-44 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          className="h-[200px] w-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
+
         {/* Favorite button overlay */}
         <span
           className="absolute right-3 top-3"
@@ -91,7 +97,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
             size="sm"
             variant="ghost"
             isLoading={isTogglingFavorite}
-            className={`h-9 w-9 !rounded-full !p-0 shadow-sm ring-1 ring-black/5 backdrop-blur-sm ${
+            className={`h-10 w-10 !rounded-full !p-0 ring-1 ring-black/5 backdrop-blur-sm ${
               activeHeart
                 ? '!bg-rose-50 hover:!bg-rose-100'
                 : '!bg-white/90 hover:!bg-rose-50'
@@ -109,7 +115,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
             aria-label={recipe.isFavorite ? 'Bỏ yêu thích' : 'Lưu yêu thích'}
           >
             <Heart
-              size={16}
+              size={18}
               strokeWidth={2.25}
               className={
                 activeHeart
@@ -123,57 +129,83 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         {/* Diet category badge top-left */}
         <span className="absolute left-3 top-3">
           <StatusBadge
-            size="sm"
+            size="md"
             status={mapDietStatus(recipe.dietCategory)}
             label={DIET_CATEGORY_LABELS[recipe.dietCategory]}
           />
         </span>
+
+        {/* Cook time pill bottom-left */}
+        <span
+          aria-hidden
+          className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 font-semibold text-[#1F2937] ring-1 ring-[#E5E7EB] backdrop-blur-sm"
+          style={{ fontSize: '12px', lineHeight: '16px' }}
+        >
+          <Clock size={13} className="text-[#2E7D32]" />
+          {recipe.cookTimeMinutes} phút
+        </span>
       </button>
 
       {/* Body */}
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-1 flex-col p-5">
+        {/* Difficulty + ingredients count */}
+        <div className="mb-3 flex items-center justify-between gap-2">
           <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${diffPillColor(recipe.difficulty)}`}
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 font-semibold ${diffPillClass(recipe.difficulty)}`}
+            style={{ fontSize: '12px', lineHeight: '16px' }}
           >
             {DIFFICULTY_LABELS[recipe.difficulty]}
           </span>
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-[#6b7280]">
-            <Clock size={12} className="text-[#2e7d32]" /> {recipe.cookTimeMinutes} phút
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => onSelect(recipe.id)}
-          className="text-left"
-        >
-          <h3 className="line-clamp-2 text-[15px] font-extrabold leading-snug tracking-tight text-[#1f2937] group-hover:text-[#2e7d32]">
-            {recipe.title}
-          </h3>
-        </button>
-        <p className="line-clamp-2 text-[12px] leading-5 text-[#6b7280]">
-          {recipe.description}
-        </p>
-
-        <div className="mt-auto flex flex-wrap items-center gap-3 pt-1 text-[11px] font-semibold text-[#6b7280]">
-          <span className="inline-flex items-center gap-1">
-            <Eye size={12} />
-            {recipe.viewCount.toLocaleString('vi-VN')}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Heart size={12} className="fill-rose-400 stroke-rose-500 text-rose-500" />
-            {recipe.favoriteCount.toLocaleString('vi-VN')}
-          </span>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#f8faf8] px-2 py-0.5 ring-1 ring-[#e5e7eb]">
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-[#F8FAF8] px-2.5 py-1 font-medium text-[#6B7280] ring-1 ring-[#E5E7EB]"
+            style={{ fontSize: '12px', lineHeight: '16px' }}
+          >
             {recipe.ingredients.length} nguyên liệu
           </span>
         </div>
 
-        <div className="flex items-center gap-2 pt-1">
+        {/* Title & description */}
+        <button
+          type="button"
+          onClick={() => onSelect(recipe.id)}
+          className="group/title text-left"
+        >
+          <h3
+            className="line-clamp-2 font-semibold tracking-[-0.005em] text-[#1F2937] transition-colors group-hover/title:text-[#2E7D32]"
+            style={{ fontSize: '18px', lineHeight: '26px' }}
+            title={recipe.title}
+          >
+            {recipe.title}
+          </h3>
+        </button>
+        <p
+          className="mt-2 line-clamp-2 font-normal text-[#6B7280]"
+          style={{ fontSize: '14px', lineHeight: '22px' }}
+        >
+          {recipe.description}
+        </p>
+
+        {/* Stats row */}
+        <div
+          className="mt-4 flex flex-wrap items-center gap-3 font-medium text-[#6B7280]"
+          style={{ fontSize: '12px', lineHeight: '16px' }}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <Eye size={13} />
+            {recipe.viewCount.toLocaleString('vi-VN')} lượt xem
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Heart size={13} className="fill-rose-400 stroke-rose-500 text-rose-500" />
+            {recipe.favoriteCount.toLocaleString('vi-VN')}
+          </span>
+        </div>
+
+        {/* Footer CTA */}
+        <div className="mt-auto pt-5">
           <Button
             type="button"
             variant="primary"
-            size="sm"
+            size="md"
             fullWidth
             onClick={() => onSelect(recipe.id)}
           >
@@ -184,7 +216,11 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
       {/* Mini toast */}
       {toast && (
-        <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-slate-900/85 px-3 py-1.5 text-[11px] font-bold text-white shadow-md backdrop-blur">
+        <div
+          aria-live="polite"
+          className="pointer-events-none absolute bottom-20 left-1/2 z-20 -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-2 font-semibold text-white shadow-md backdrop-blur"
+          style={{ fontSize: '13px', lineHeight: '18px' }}
+        >
           {toast}
         </div>
       )}

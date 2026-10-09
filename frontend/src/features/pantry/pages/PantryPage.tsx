@@ -10,6 +10,7 @@ import {
 import {
   Button,
   EmptyState,
+  Input,
   Select,
   SkeletonLoader,
   StatusBadge,
@@ -137,28 +138,44 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
   }
 
   return (
-    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f5e9] px-3 py-1 text-[11px] font-extrabold text-[#2e7d32]">
-              <Warehouse size={12} /> Tủ bếp AI
+    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
+      {/* Section container max 1200px, gutter 24px desktop / 16px mobile theo DESIGN.md */}
+      <div className="mx-auto w-full max-w-[1200px] px-[24px] py-10 md:px-[24px] sm:px-[16px]">
+        {/* ============== PAGE HEADER ============== */}
+        <header className="mb-8 flex flex-wrap items-start justify-between gap-6">
+          <div className="min-w-0 flex-1">
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.02em] text-[#2E7D32]"
+              style={{ lineHeight: '16px' }}
+            >
+              <Warehouse size={14} />
+              Tủ bếp AI
             </span>
-            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1f2937] sm:text-3xl">
-              Quản lý nguyên liệu & Gợi ý món ăn theo tủ bếp
+
+            {/* headline-lg 36/44 bold 700 - desktop */}
+            <h1
+              className="mt-3 w-full font-bold tracking-[-0.015em] text-[#121C2A] sm:text-[26px] sm:leading-[34px]"
+              style={{ fontSize: '36px', lineHeight: '44px' }}
+            >
+              Quản lý nguyên liệu &amp; Gợi ý món ăn theo tủ bếp
             </h1>
-            <p className="mt-1 max-w-3xl text-sm text-[#6b7280]">
+
+            {/* body-md 16/24 regular 400 */}
+            <p
+              className="mt-3 max-w-[780px] font-normal text-[#6B7280]"
+              style={{ fontSize: '16px', lineHeight: '24px' }}
+            >
               Thêm nguyên liệu bạn đang có trong tủ, hệ thống sẽ tính trực quan % khớp nguyên liệu từ kho
               công thức thuần thực vật và gợi ý các món bạn có thể nấu ngay hôm nay.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
             <Button
               type="button"
               variant="secondary"
               size="md"
-              leftIcon={<RefreshCw size={14} />}
+              leftIcon={<RefreshCw size={16} />}
               onClick={handleRefresh}
             >
               Làm mới
@@ -167,117 +184,207 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               type="button"
               variant="primary"
               size="md"
-              leftIcon={<Plus size={14} />}
+              leftIcon={<Plus size={16} />}
               onClick={() => setShowAddModal(true)}
             >
               Thêm nguyên liệu
             </Button>
           </div>
-        </div>
+        </header>
 
-        {/* Stats */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4 shadow-xs">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">
-              Tổng nguyên liệu
+        {/* ============== STATS ROW 4 CARDS (12-col grid, gutter 24px) ============== */}
+        <section
+          aria-label="Thống kê nhanh tủ bếp"
+          className="mb-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          {/* Card Tổng */}
+          <div
+            className="rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+            style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
+          >
+            <div
+              className="flex items-center justify-between"
+              style={{ fontSize: '12px', lineHeight: '16px' }}
+            >
+              <span className="font-semibold uppercase tracking-[0.02em] text-[#6B7280]">
+                Tổng nguyên liệu
+              </span>
+              <Warehouse size={18} className="text-[#2E7D32]" />
             </div>
-            <div className="mt-2 flex items-end justify-between gap-2">
-              <div className="text-3xl font-extrabold text-[#1f2937]">{stats.total}</div>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div
+                className="font-extrabold tabular-nums text-[#1F2937]"
+                style={{ fontSize: '36px', lineHeight: '40px' }}
+              >
+                {stats.total}
+              </div>
               <StatusBadge status="info" label="items" size="sm" />
             </div>
           </div>
-          <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/60 p-4 shadow-xs">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#2e7d32]">
-              Phù hợp
+
+          {/* Card Phù hợp */}
+          <div
+            className="rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9]/70 p-6"
+            style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
+          >
+            <div
+              className="flex items-center justify-between"
+              style={{ fontSize: '12px', lineHeight: '16px' }}
+            >
+              <span className="font-semibold uppercase tracking-[0.02em] text-[#2E7D32]">
+                Phù hợp
+              </span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
             </div>
-            <div className="mt-2 flex items-end justify-between gap-2">
-              <div className="text-3xl font-extrabold text-[#2e7d32]">{stats.suitable}</div>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div
+                className="font-extrabold tabular-nums text-[#2E7D32]"
+                style={{ fontSize: '36px', lineHeight: '40px' }}
+              >
+                {stats.suitable}
+              </div>
               <StatusBadge status="suitable" size="sm" />
             </div>
           </div>
-          <div className="rounded-[16px] border border-amber-200 bg-amber-50/80 p-4 shadow-xs">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-amber-800">
-              Cần xem lại
+
+          {/* Card Cần xem lại */}
+          <div
+            className="rounded-[16px] border border-amber-200 bg-amber-50 p-6"
+            style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
+          >
+            <div
+              className="flex items-center justify-between"
+              style={{ fontSize: '12px', lineHeight: '16px' }}
+            >
+              <span className="font-semibold uppercase tracking-[0.02em] text-amber-800">
+                Cần xem lại
+              </span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
             </div>
-            <div className="mt-2 flex items-end justify-between gap-2">
-              <div className="text-3xl font-extrabold text-amber-800">{stats.warning}</div>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div
+                className="font-extrabold tabular-nums text-amber-800"
+                style={{ fontSize: '36px', lineHeight: '40px' }}
+              >
+                {stats.warning}
+              </div>
               <StatusBadge status="insufficient" size="sm" />
             </div>
           </div>
-          <div className="rounded-[16px] border border-red-200 bg-red-50/80 p-4 shadow-xs">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-red-700">
-              Không phù hợp
+
+          {/* Card Không phù hợp */}
+          <div
+            className="rounded-[16px] border border-red-200 bg-red-50 p-6"
+            style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
+          >
+            <div
+              className="flex items-center justify-between"
+              style={{ fontSize: '12px', lineHeight: '16px' }}
+            >
+              <span className="font-semibold uppercase tracking-[0.02em] text-red-700">
+                Không phù hợp
+              </span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" /></svg>
             </div>
-            <div className="mt-2 flex items-end justify-between gap-2">
-              <div className="text-3xl font-extrabold text-red-700">{stats.unsuitable}</div>
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div
+                className="font-extrabold tabular-nums text-red-700"
+                style={{ fontSize: '36px', lineHeight: '40px' }}
+              >
+                {stats.unsuitable}
+              </div>
               <StatusBadge status="unsuitable" size="sm" />
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Main grid: Pantry items + Recipe Matches */}
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_minmax(0,0.9fr)]">
-          {/* ====== Cột trái: Tủ bếp ====== */}
-          <section className="flex flex-col gap-5">
-            <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-xs sm:p-5">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        {/* ============== MAIN GRID: TỦ BẾP (c.1.1fr) + GỢI Ý MÓN (c.0.9fr), gutter 24px ============== */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          {/* ================= CỘT TRÁI: TỦ BẾP ================= */}
+          <section
+            aria-label="Danh sách nguyên liệu trong tủ"
+            className="flex flex-col gap-6"
+          >
+            <div
+              className="rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
+            >
+              {/* Section header */}
+              <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-extrabold tracking-tight text-[#1f2937]">
+                  <h2
+                    className="font-semibold tracking-[-0.01em] text-[#1F2937]"
+                    style={{ fontSize: '20px', lineHeight: '28px' }}
+                  >
                     Nguyên liệu trong tủ
                   </h2>
-                  <p className="mt-0.5 text-xs text-[#6b7280]">
+                  <p
+                    className="mt-1 font-normal text-[#6B7280]"
+                    style={{ fontSize: '14px', lineHeight: '20px' }}
+                  >
                     Xem tất cả các nguyên liệu bạn đã lưu, xóa bớt hoặc thêm mới.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="w-56">
-                    <Select
-                      size={12}
-                      value={activeCategory}
-                      onChange={(e) =>
-                        setActiveCategory(e.target.value as PantryCategory | 'all')
-                      }
-                      options={ALL_CATEGORY_OPTIONS}
-                    />
-                  </div>
-                  <div className="w-60">
-                    <input
-                      type="search"
-                      placeholder="Tìm nguyên liệu..."
-                      className="h-11 w-full rounded-[10px] border border-[#e5e7eb] bg-white px-3.5 pl-10 text-sm outline-none focus:border-[#2e7d32] focus:ring-3 focus:ring-[#e8f5e9]"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      style={{
-                        backgroundImage:
-                          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2394a3b8' viewBox='0 0 24 24'><path stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z'/></svg>\")",
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'left 12px center',
-                      }}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    leftIcon={<Search size={12} />}
-                    onClick={() => setShowAddModal(true)}
-                  >
-                    Thêm nhanh
-                  </Button>
+                <div
+                  className="inline-flex items-center gap-1 rounded-full bg-[#F8FAF8] px-2.5 py-1 text-[12px] font-medium text-[#6B7280]"
+                  style={{ lineHeight: '16px' }}
+                >
+                  {filteredItems.length} / {items.length} nguyên liệu
                 </div>
               </div>
 
+              {/* Filter row: 12-col sub-grid spacing 12px */}
+              <div className="mb-6 grid grid-cols-12 gap-3">
+                <div className="col-span-12 sm:col-span-5 md:col-span-4">
+                  <Select
+                    size={12}
+                    label="Danh mục"
+                    value={activeCategory}
+                    onChange={(e) =>
+                      setActiveCategory(e.target.value as PantryCategory | 'all')
+                    }
+                    options={ALL_CATEGORY_OPTIONS}
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-7 md:col-span-6">
+                  <Input
+                    label="Tìm kiếm"
+                    leftIcon={<Search size={16} />}
+                    placeholder="Tìm theo tên, danh mục, đơn vị..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <div className="col-span-12 md:col-span-2">
+                  <div className="invisible md:visible">
+                    <Button
+                      type="button"
+                      size="md"
+                      variant="outline"
+                      fullWidth
+                      leftIcon={<Plus size={14} />}
+                      onClick={() => setShowAddModal(true)}
+                    >
+                      Thêm nhanh
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loading / Empty / Data */}
               {isLoadingItems && filteredItems.length === 0 ? (
                 <div className="py-2">
                   <SkeletonLoader count={6} variant="card" />
                 </div>
               ) : filteredItems.length === 0 ? (
-                <EmptyState
-                  title="Tủ bếp chưa có nguyên liệu nào"
-                  description="Hãy bắt đầu thêm một vài nguyên liệu phổ biến (đậu phụ, cà chua, gạo lứt…) để tôi gợi ý các món ăn theo đúng tủ bếp bạn đang có."
-                  actionLabel="Thêm nguyên liệu"
-                  onAction={() => setShowAddModal(true)}
-                />
+                <div className="py-4">
+                  <EmptyState
+                    title="Tủ bếp chưa có nguyên liệu nào"
+                    description="Hãy bắt đầu thêm một vài nguyên liệu phổ biến (đậu phụ, cà chua, gạo lứt…) để tôi gợi ý các món ăn theo đúng tủ bếp bạn đang có."
+                    actionLabel="Thêm nguyên liệu"
+                    onAction={() => setShowAddModal(true)}
+                  />
+                </div>
               ) : (
                 <PantryItemList
                   items={filteredItems}
@@ -288,29 +395,61 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
             </div>
           </section>
 
-          {/* ====== Cột phải: Gợi ý món ăn ====== */}
-          <section className="flex flex-col gap-5">
-            <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-xs sm:p-5">
-              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          {/* ================= CỘT PHẢI: GỢI Ý MÓN ĂN ================= */}
+          <section
+            aria-label="Gợi ý món ăn theo nguyên liệu"
+            className="flex flex-col gap-6"
+          >
+            <div
+              className="rounded-[16px] border border-[#E5E7EB] bg-white p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
+            >
+              {/* Section header */}
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-1 rounded-full bg-[#2e7d32] px-2.5 py-1 text-[10px] font-extrabold text-white">
-                    <Sparkles size={11} /> TÍNH ĐỘ KHỚP
-                  </div>
-                  <h2 className="mt-2 text-lg font-extrabold tracking-tight text-[#1f2937]">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#2E7D32] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.02em] text-white"
+                    style={{ lineHeight: '16px' }}
+                  >
+                    <Sparkles size={14} />
+                    Tính độ khớp
+                  </span>
+                  <h2
+                    className="mt-3 font-semibold tracking-[-0.01em] text-[#1F2937]"
+                    style={{ fontSize: '20px', lineHeight: '28px' }}
+                  >
                     Gợi ý món ăn từ nguyên liệu đang có
                   </h2>
-                  <p className="mt-0.5 text-xs text-[#6b7280]">
+                  <p
+                    className="mt-1 max-w-[380px] font-normal text-[#6B7280]"
+                    style={{ fontSize: '14px', lineHeight: '20px' }}
+                  >
                     Hệ thống tính % khớp dựa trên số nguyên liệu bạn có trên tổng số nguyên liệu trong
                     mỗi công thức.
                   </p>
                 </div>
-                <div className="text-right text-xs text-[#6b7280]">
-                  <div className="font-semibold text-[#1f2937]">
-                    Tổng {matches.length} gợi ý
+                <div
+                  className="rounded-[12px] border border-[#E5E7EB] bg-[#F8FAF8] px-3 py-2 text-right"
+                  style={{ minWidth: '156px' }}
+                >
+                  <div
+                    className="font-medium text-[#6B7280]"
+                    style={{ fontSize: '12px', lineHeight: '16px' }}
+                  >
+                    Gợi ý hôm nay
                   </div>
-                  <div className="mt-1 inline-flex items-center gap-1">
-                    <ChefHat size={12} className="text-[#2e7d32]" />
-                    {stats.totalKcalPotential.toLocaleString('vi-VN')} kcal (top 6)
+                  <div
+                    className="mt-0.5 font-semibold tabular-nums text-[#1F2937]"
+                    style={{ fontSize: '18px', lineHeight: '26px' }}
+                  >
+                    {matches.length} món
+                  </div>
+                  <div
+                    className="mt-1 inline-flex items-center gap-1 font-medium text-[#2E7D32]"
+                    style={{ fontSize: '12px', lineHeight: '16px' }}
+                  >
+                    <ChefHat size={12} />
+                    {stats.totalKcalPotential.toLocaleString('vi-VN')} kcal
                   </div>
                 </div>
               </div>
@@ -323,37 +462,75 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
             </div>
 
             {/* Quick tips card */}
-            <div className="rounded-[20px] border border-[#c8e6c9] bg-[#e8f5e9]/60 p-5 shadow-xs">
-              <h3 className="text-[15px] font-extrabold text-[#2e7d32]">
+            <div
+              className="rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9]/70 p-6"
+              style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
+            >
+              <h3
+                className="font-semibold text-[#2E7D32]"
+                style={{ fontSize: '18px', lineHeight: '26px' }}
+              >
                 💡 3 mẹo để có gợi ý chính xác hơn
               </h3>
-              <ul className="mt-3 space-y-2 text-sm leading-6 text-[#1f2937]">
-                <li>
-                  1. Nhập đầy đủ <strong>tên nguyên liệu + số lượng (g / kg / quả / bó…)</strong> — hệ
-                  thống sẽ ưu tiên gợi ý món bạn có đủ khối lượng.
-                </li>
-                <li>
-                  2. Nếu có sản phẩm chế biến sẵn, kiểm tra nhãn thành phần tại{' '}
-                  <button
-                    type="button"
-                    className="font-bold text-[#1f2937] underline decoration-[#2e7d32]/50 hover:decoration-[#2e7d32]"
-                    onClick={() => onNavigate?.('/food-scan')}
+
+              <ul
+                className="mt-4 space-y-3 font-normal text-[#1F2937]"
+                style={{ fontSize: '14px', lineHeight: '22px' }}
+              >
+                <li className="flex gap-2.5">
+                  <span
+                    aria-hidden
+                    className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2E7D32] text-[11px] font-bold text-white"
+                    style={{ lineHeight: '1' }}
                   >
-                    Quét thực phẩm
-                  </button>{' '}
-                  trước khi thêm vào tủ bếp.
+                    1
+                  </span>
+                  <span>
+                    Nhập đầy đủ <strong>tên nguyên liệu + số lượng (g / kg / quả / bó…)</strong> — hệ
+                    thống sẽ ưu tiên gợi ý món bạn có đủ khối lượng.
+                  </span>
                 </li>
-                <li>
-                  3. Thêm <strong>5-8 nguyên liệu phổ biến</strong> (đậu phụ, gạo lứt, cà chua, nấm,
-                  hành, tỏi, hạt chia) thường có đủ để gợi ý trên 15 món ăn khác nhau.
+                <li className="flex gap-2.5">
+                  <span
+                    aria-hidden
+                    className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2E7D32] text-[11px] font-bold text-white"
+                    style={{ lineHeight: '1' }}
+                  >
+                    2
+                  </span>
+                  <span>
+                    Nếu có sản phẩm chế biến sẵn, kiểm tra nhãn thành phần tại{' '}
+                    <button
+                      type="button"
+                      className="font-semibold text-[#1F2937] underline decoration-[#2E7D32]/60 underline-offset-2 hover:decoration-[#2E7D32]"
+                      onClick={() => onNavigate?.('/food-scan')}
+                    >
+                      Quét thực phẩm
+                    </button>{' '}
+                    trước khi thêm vào tủ bếp.
+                  </span>
+                </li>
+                <li className="flex gap-2.5">
+                  <span
+                    aria-hidden
+                    className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2E7D32] text-[11px] font-bold text-white"
+                    style={{ lineHeight: '1' }}
+                  >
+                    3
+                  </span>
+                  <span>
+                    Thêm <strong>5-8 nguyên liệu phổ biến</strong> (đậu phụ, gạo lứt, cà chua, nấm,
+                    hành, tỏi, hạt chia) thường có đủ để gợi ý trên 15 món ăn khác nhau.
+                  </span>
                 </li>
               </ul>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Button
                   type="button"
                   variant="primary"
-                  size="sm"
-                  leftIcon={<ChefHat size={13} />}
+                  size="md"
+                  leftIcon={<ChefHat size={16} />}
                   onClick={() => onNavigate?.('/recipes')}
                 >
                   Xem toàn bộ cộng đồng công thức
@@ -361,8 +538,8 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  leftIcon={<Sparkles size={13} />}
+                  size="md"
+                  leftIcon={<Sparkles size={16} />}
                   onClick={() => onNavigate?.('/ai-chat')}
                 >
                   Hỏi AI thêm mẹo nấu ăn
