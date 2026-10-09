@@ -7,6 +7,10 @@ using Application.Features.Profiles;
 using Application.Features.Categories;
 using Application.Features.Ingredients;
 using Application.Features.Recipes;
+using Application.Features.Restaurants;
+using Application.Features.Pantry;
+using Application.Features.Favorites;
+using Application.Features.MealPlans;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -25,6 +29,10 @@ public static class DependencyInjection
         services.AddScoped<CategoryService>();
         services.AddScoped<IngredientService>();
         services.AddScoped<RecipeService>();
+        services.AddScoped<RestaurantService>();
+        services.AddScoped<PantryService>();
+        services.AddScoped<FavoriteService>();
+        services.AddScoped<MealPlanService>();
         return services;
     }
 }

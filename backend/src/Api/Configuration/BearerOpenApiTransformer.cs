@@ -56,8 +56,12 @@ public sealed class BearerOpenApiTransformer : IOpenApiDocumentTransformer
 
             if (!path.StartsWith("/api/moderation/", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/api/admin/moderation/", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/admin/", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/api/ai-chat/conversations", StringComparison.OrdinalIgnoreCase)
-                && !path.StartsWith("/api/food-scans/", StringComparison.OrdinalIgnoreCase))
+                && !path.StartsWith("/api/food-scans/", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/pantry/", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/meal-plans", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/favorites", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }

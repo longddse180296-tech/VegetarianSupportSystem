@@ -179,7 +179,7 @@ Khong dat logic nghiep vu rieng cua mot feature vao `shared`.
 
 ## 5. Phan chia 5 nguoi de de quan ly
 
-Day la goi y chia viec. Nhom co the doi ten nguoi nhung nen giu ranh gioi module.
+Phan cong cap nhat theo yeu cau can bang khoi luong ngay 08/10/2026. Xem `docs/backend-work-assignment.md` de biet task, phu thuoc va tieu chi nghiem thu. Nhom co the doi ten nguoi nhung nen giu ranh gioi module.
 
 ### FE 1
 
@@ -200,18 +200,20 @@ Day la goi y chia viec. Nhom co the doi ten nguoi nhung nen giu ranh gioi module
 
 ### BE 1
 
-- Auth, profile, member, role.
-- Folder chinh: `Application/Features/Auth`, `Application/Features/Profiles`, `Application/Features/Administration`, `Infrastructure/Identity`.
+- Auth, profile, member, role, dashboard, articles, comments va tuong tac like/vote.
+- Folder chinh: `Application/Features/Auth`, `Profiles`, `Administration`, `Articles`, `Comments`, `Infrastructure/Identity`, `Infrastructure/Email`.
 
 ### BE 2
 
-- Recipes, ingredients, restaurants, categories, favorites.
-- Folder chinh: `Application/Features/Recipes`, `Ingredients`, `Restaurants`, `Categories`, `Favorites`.
+- Recipes, ingredients, restaurants, categories, favorites, pantry, meal plans, shopping list va PDF.
+- Folder chinh: `Application/Features/Recipes`, `Ingredients`, `Restaurants`, `Categories`, `Favorites`, `Pantry`, `MealPlans`, `Infrastructure/Documents`.
 
 ### BE 3
 
-- Articles, videos, comments, moderation, AI chat, food scan, meal plans, pantry.
-- Folder chinh: `Application/Features/Articles`, `Videos`, `Comments`, `Moderation`, `AiChat`, `FoodScanning`, `MealPlans`, `Pantry`, `Infrastructure/AI/Gemini`.
+- Videos, moderation, AI chat, food scan/OCR/history, Gemini va storage/media dung chung.
+- Folder chinh: `Application/Features/Videos`, `Moderation`, `AiChat`, `FoodScanning`, `Infrastructure/AI/Gemini`, `Infrastructure/Storage`, `Infrastructure/BackgroundJobs` khi can.
+
+BE 1 so huu article draft/public/version; BE 3 so huu ket qua AI va quyet dinh moderation. BE 1/3 thong nhat contract ap dung quyet dinh len dung phien ban. BE 2 so huu pantry/meal plan va snapshot ke hoach; BE 3 so huu scan va snapshot scan. Like/vote do BE 1 so huu, favorite recipe/video/restaurant do BE 2 so huu. Moi BE tu lam model/config/migration va test module cua minh; BE 2 chi dieu phoi merge snapshot khi tich hop, khong lam thay migration cua hai nguoi con lai.
 
 Neu mot feature can ca FE va BE, hai nguoi phai thong nhat API contract truoc khi code.
 

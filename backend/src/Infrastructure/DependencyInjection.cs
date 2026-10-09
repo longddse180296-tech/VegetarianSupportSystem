@@ -10,8 +10,13 @@ using Infrastructure.Identity;
 using Application.Features.Categories;
 using Application.Features.Ingredients;
 using Application.Features.Recipes;
+using Application.Features.Restaurants;
+using Application.Features.Pantry;
+using Application.Features.Favorites;
+using Application.Features.MealPlans;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
+using Infrastructure.Documents;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,6 +56,11 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IIngredientRepository, IngredientRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
+        services.AddScoped<IRestaurantRepository, RestaurantRepository>();
+        services.AddScoped<IPantryRepository, PantryRepository>();
+        services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+        services.AddScoped<IMealPlanRepository, MealPlanRepository>();
+        services.AddSingleton<IMealPlanPdfRenderer, MealPlanPdfRenderer>();
         return services;
     }
 }
