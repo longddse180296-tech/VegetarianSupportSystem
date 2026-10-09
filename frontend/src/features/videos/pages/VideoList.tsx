@@ -1,421 +1,422 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'
 import {
-  Play,
-  Upload,
-  Video,
+  Filter,
+  PlayCircle,
+  RefreshCw,
   Search,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
-  CircleUser,
-  CalendarDays,
-  Eye,
-  ChefHat,
-  Sparkles,
-} from 'lucide-react';
-import './VideoList.css';
-
-interface VideoCardModel {
-  id: string;
-  thumbnail: string;
-  duration: string;
-  category: string;
-  title: string;
-  channel: string;
-  views: string;
-  date: string;
-}
-
-const FEATURED = {
-  id: 'feat',
-  thumbnail:
-    'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vietnamese%20vegetarian%20braised%20tofu%20with%20mushroom%20sauce%20in%20white%20bowl%2C%20steam%2C%20cooking%20scene%20with%20chopsticks%20and%20linen%20towel&image_size=landscape_16_9',
-  duration: '20:15',
-  categoryTags: ['Món chính', 'Công thức nhanh'],
-  title: 'Đậu hũ sốt nấm đơn giản trong 20 phút',
-  description:
-    'Hướng dẫn từng bước chiên đậu hũ vàng giòn rụm bên ngoài mềm mọng bên trong quyện cùng sốt nấm đông cô đậm đà thơm nức mùi, bổ sung nguồn đạm thực vật sạch và cân bằng.',
-  chef: 'Chef Minh Tuấn',
-  chefRole: 'Bếp trưởng ẩm thực chay',
-  date: '14/05/2026',
-  views: '42.5K',
-};
-
-const VIDEO_LIST: VideoCardModel[] = [
-  {
-    id: 'v1',
-    thumbnail:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vegan%20brown%20rice%20with%20colorful%20stir%20fried%20vegetables%20in%20white%20ceramic%20bowl%2C%20japanese%20wooden%20table%2C%20minimal%20aesthetic&image_size=landscape_16_9',
-    duration: '12:15',
-    category: 'Món chính',
-    title: 'Cơm gạo lứt rau củ thập cẩm thanh vị',
-    channel: 'DS. Kim Oanh',
-    views: '18.2K',
-    date: '3 ngày trước',
-  },
-  {
-    id: 'v2',
-    thumbnail:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Fresh%20vegan%20avocado%20chickpea%20sesame%20salad%20in%20white%20bowl%2C%20top%20down%2C%20bright%20kitchen&image_size=landscape_16_9',
-    duration: '08:40',
-    category: 'Salad',
-    title: 'Salad bơ đậu gà sốt mè rang béo ngậy',
-    channel: 'Lan Anh',
-    views: '24.1K',
-    date: '5 ngày trước',
-  },
-  {
-    id: 'v3',
-    thumbnail:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Hot%20vegan%20lotus%20root%20mushroom%20seaweed%20soup%20in%20white%20pot%2C%20steam%2C%20cozy%20dining&image_size=landscape_16_9',
-    duration: '15:30',
-    category: 'Món nước',
-    title: 'Canh nấm hạt sen tảo đỏ bồi bổ cơ thể',
-    channel: 'BS. Hoàng Nam',
-    views: '31.0K',
-    date: '1 tuần trước',
-  },
-  {
-    id: 'v4',
-    thumbnail:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vegan%20stir%20fried%20morning%20glory%20water%20spinach%20with%20garlic%20and%20chili%20in%20wok%2C%20vietnamese%20dish&image_size=landscape_16_9',
-    duration: '10:20',
-    category: 'Món chính',
-    title: 'Mĩ xào rau củ sốt dầu hào chay',
-    channel: 'Chef Minh Tuấn',
-    views: '15.6K',
-    date: '1 tuần trước',
-  },
-  {
-    id: 'v5',
-    thumbnail:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vegan%20cold%20pumpkin%20coconut%20milk%20soup%20dessert%20in%20glass%20bowl%20with%20lotus%20seed&image_size=landscape_16_9',
-    duration: '18:00',
-    category: 'Món nước',
-    title: 'Bún chay thanh đạm nước dùng củ quả',
-    channel: 'Thu Hằng',
-    views: '29.8K',
-    date: '2 tuần trước',
-  },
-  {
-    id: 'v6',
-    thumbnail:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Three%20tall%20green%20vegan%20detox%20smoothie%20glasses%20with%20spinach%20apple%20celery%2C%20morning%20sunlight%20bright&image_size=landscape_16_9',
-    duration: '05:10',
-    category: 'Đồ uống',
-    title: 'Sinh tố xanh detox giàu năng lượng và vi chất',
-    channel: 'Minh Đức',
-    views: '19.4K',
-    date: '3 tuần trước',
-  },
-];
-
-const TOPIC_TAGS = [
-  '#Đậu hũ', '#Nấm', '#Salad', '#Bữa sáng',
-  '#Bữa tối', '#Protein thực vật', '#Ăn chay giảm cân', '#Canh chay',
-];
-
-const TOP_CHEFS = [
-  { name: 'Chef Minh Tuấn', role: 'Bếp trưởng ẩm thực chay', count: '24 Video', avatarColor: 'bg-gold' },
-  { name: 'DS. Kim Oanh', role: 'Chuyên gia cân bằng vi chất', count: '18 Video', avatarColor: 'bg-rose' },
-  { name: 'BS. Hoàng Nam', role: 'Bác sĩ Dinh dưỡng dự phòng', count: '15 Video', avatarColor: 'bg-teal' },
-];
-
-const FILTER_TABS = ['Tất cả', 'Món chính', 'Salad', 'Món nước', 'Đồ uống', 'Tráng miệng', 'Mẹo nấu ăn'];
+  Shield,
+  Upload as UploadIcon,
+  VideoIcon,
+} from 'lucide-react'
+import {
+  Button,
+  EmptyState,
+  Input,
+  Select,
+  SkeletonLoader,
+  StatusBadge,
+} from '../../../shared/components'
+import type { SelectOption } from '../../../shared/components'
+import { getVideos, uploadVideo } from '../api/videoApi'
+import { UploadVideoModal } from '../components/UploadVideoModal'
+import { VideoCard } from '../components/VideoCard'
+import type {
+  UploadVideoFormState,
+  VideoCategory,
+  VideoItem,
+  VideoListFilter,
+  VideoModerationStatus,
+  VideoSortOption,
+} from '../types/video.types'
+import {
+  CATEGORY_LABELS,
+  DEFAULT_VIDEO_FILTER,
+  MODERATION_STATUS_LABELS,
+  SORT_LABELS,
+  formatDuration,
+} from '../types/video.types'
 
 interface VideoListPageProps {
-  onNavigate?: (path: string) => void;
+  onNavigate?: (path: string) => void
+  isLoggedIn?: boolean
 }
 
-export default function VideoListPage({ onNavigate }: VideoListPageProps) {
-  const [filter, setFilter] = useState('Tất cả');
-  const [search, setSearch] = useState('');
-  const [aiInput, setAiInput] = useState('');
+const CATEGORY_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'Tất cả danh mục' },
+  ...(Object.keys(CATEGORY_LABELS) as VideoCategory[]).map((k) => ({
+    value: k,
+    label: CATEGORY_LABELS[k],
+  })),
+]
+
+const STATUS_OPTIONS: SelectOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'published', label: MODERATION_STATUS_LABELS.published },
+  { value: 'ai_checking', label: MODERATION_STATUS_LABELS.ai_checking },
+  { value: 'pending_admin', label: MODERATION_STATUS_LABELS.pending_admin },
+  { value: 'rejected', label: MODERATION_STATUS_LABELS.rejected },
+]
+
+const SORT_OPTIONS: SelectOption[] = (
+  Object.keys(SORT_LABELS) as VideoSortOption[]
+).map((k) => ({ value: k, label: SORT_LABELS[k] }))
+
+export default function VideoList({
+  onNavigate,
+  isLoggedIn: _isLoggedIn,
+}: VideoListPageProps) {
+  const [filter, setFilter] = useState<VideoListFilter>(DEFAULT_VIDEO_FILTER)
+  const [items, setItems] = useState<VideoItem[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    window.setTimeout(() => setToast(null), 2000)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setIsLoading(true)
+      try {
+        const res = await getVideos(DEFAULT_VIDEO_FILTER)
+        if (cancelled) return
+        setItems(res.items)
+        setTotalCount(res.totalCount)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const t = window.setTimeout(() => {
+      ;(async () => {
+        setIsLoading(true)
+        try {
+          const res = await getVideos(filter)
+          if (cancelled) return
+          setItems(res.items)
+          setTotalCount(res.totalCount)
+        } finally {
+          if (!cancelled) setIsLoading(false)
+        }
+      })()
+    }, 200)
+    return () => {
+      cancelled = true
+      window.clearTimeout(t)
+    }
+  }, [filter])
+
+  const stats = useMemo(() => {
+    const published = items.filter((v) => v.moderationStatus === 'published').length
+    const checking = items.filter((v) => v.moderationStatus === 'ai_checking').length
+    const pending = items.filter((v) => v.moderationStatus === 'pending_admin').length
+    const avgDur =
+      items.length === 0
+        ? 0
+        : Math.round(
+            items.reduce((acc, v) => acc + v.durationSeconds, 0) / items.length,
+          )
+    const totalViews = items.reduce((acc, v) => acc + v.viewCount, 0)
+    return { published, checking, pending, avgDur, totalViews }
+  }, [items])
+
+  const updateFilter = (patch: Partial<VideoListFilter>) => {
+    setFilter((prev) => ({ ...prev, ...patch }))
+  }
+
+  const resetFilter = () => setFilter(DEFAULT_VIDEO_FILTER)
+
+  const handleSelect = (id: string) => {
+    onNavigate?.(`/videos/${encodeURIComponent(id)}`)
+  }
+
+  const handlePlay = (url: string) => {
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const handleUpload = async (form: UploadVideoFormState) => {
+    setSubmitting(true)
+    try {
+      const created = await uploadVideo(form)
+      // Nếu filter all (hoặc trạng thái khớp) thì append
+      const willAdd =
+        (filter.status === 'all' || filter.status === created.moderationStatus) &&
+        (filter.category === 'all' || filter.category === created.category)
+      if (willAdd) {
+        setItems((prev) => [created, ...prev])
+        setTotalCount((prev) => prev + 1)
+      } else {
+        setIsLoading(true)
+        try {
+          const res = await getVideos(filter)
+          setItems(res.items)
+          setTotalCount(res.totalCount)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      showToast(
+        created.moderationStatus === 'ai_checking'
+          ? '✅ Đã gửi video, AI đang kiểm tra nội dung...'
+          : created.moderationStatus === 'pending_admin'
+            ? '🚩 AI gắn cờ nội dung, đang chuyển Admin xem xét cuối cùng.'
+            : '✅ Video đã gửi lên hệ thống!',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
-    <div className="vl-root">
-      {/* Topbar */}
-      <div className="vl-topbar">
-        <div className="vl-breadcrumb">
-          <button type="button" className="crumb-link" onClick={() => onNavigate?.('/')}>
-            Trang chủ
-          </button>
-          <span className="crumb-sep">›</span>
-          <span className="crumb-active">Video</span>
-        </div>
-      </div>
-
-      {/* Hero */}
-      <header className="vl-header">
-        <div className="vl-header-main">
-          <span className="vl-badge">
-            <Video size={14} />
-            VIDEO HƯỚNG DẪN ĂN THỰC CHAY
-          </span>
-          <h1>Video nấu ăn chay</h1>
-          <p>
-            Khám phá các video hướng dẫn nấu món chay đơn giản, ngon miệng và dễ thực hiện tại nhà cùng các chuyên gia dinh dưỡng thực vật.
-          </p>
-        </div>
-        <div className="vl-header-actions">
-          <button type="button" className="btn btn-upload">
-            <Upload size={16} />
-            Tải video lên
-          </button>
-          <button type="button" className="btn btn-count">
-            <CalendarDays size={16} />
-            <div className="btn-count-col">
-              <strong>85+ Video</strong>
-              <span>Công thức chi tiết</span>
+    <div className="min-h-screen bg-[#f6faf7] text-[#1f2937]">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* Hero */}
+        <section className="mb-6 overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-gradient-to-br from-white via-white to-[#e8f5e9] p-6 shadow-xs sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2e7d32] px-3 py-1 text-[11px] font-extrabold text-white shadow-sm">
+                <VideoIcon size={12} /> KÊNH VIDEO CHIA SẺ CỘNG ĐỒNG
+              </span>
+              <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+                Kho video hướng dẫn nấu ăn thuần thực vật & lối sống lành mạnh
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+                Học nấu qua hình ảnh, nghe chia sẻ của đầu bếp & creator Việt Nam. Bạn cũng có thể tự
+                tải video của mình lên để chia sẻ cho cộng đồng.
+              </p>
             </div>
-          </button>
-        </div>
-      </header>
-
-      {/* Search */}
-      <section className="vl-search-wrap">
-        <div className="vl-search">
-          <Search size={18} className="search-ic" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Tìm kiếm video theo tên món hoặc chủ đề..."
-            className="vl-search-input"
-          />
-          <button type="button" className="btn btn-search-primary">
-            <Search size={14} /> Tìm kiếm
-          </button>
-        </div>
-
-        <div className="vl-filter-row">
-          <div className="vl-tabs">
-            {FILTER_TABS.map(tab => (
-              <button
-                key={tab}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
                 type="button"
-                className={`vl-tab ${filter === tab ? 'active' : ''}`}
-                onClick={() => setFilter(tab)}
+                variant="primary"
+                size="md"
+                leftIcon={<UploadIcon size={14} />}
+                onClick={() => setShowUpload(true)}
               >
-                {tab}
-              </button>
-            ))}
-          </div>
-          <div className="vl-sort">
-            <span>Thời lượng:</span>
-            <button type="button" className="sort-chip">
-              Tất cả thời lượng
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Main content grid */}
-      <div className="vl-main-grid">
-        <div className="vl-main-col">
-          {/* Featured video */}
-          <section className="vl-featured-section">
-            <div className="vl-section-head">
-              <h2>
-                <span className="vl-plus-mini">⊕</span>
-                Video nổi bật
-              </h2>
-            </div>
-            <article className="vl-featured-card">
-              <div className="vl-featured-thumb">
-                <img src={FEATURED.thumbnail} alt={FEATURED.title} />
-                <button type="button" className="vl-featured-play">
-                  <Play size={40} fill="currentColor" />
-                </button>
-                <span className="vl-duration-badge">{FEATURED.duration}</span>
-                <span className="vl-featured-tag">
-                  <Sparkles size={12} />
-                  Nổi bật
-                </span>
-              </div>
-              <div className="vl-featured-info">
-                <div className="vl-featured-tags">
-                  {FEATURED.categoryTags.map(t => (
-                    <span key={t} className="vl-cat-tag">{t}</span>
-                  ))}
-                </div>
-                <h3>{FEATURED.title}</h3>
-                <p>{FEATURED.description}</p>
-                <div className="vl-featured-meta">
-                  <div className="vl-meta-row">
-                    <div className="vl-avatar chef-a">
-                      <ChefHat size={18} />
-                    </div>
-                    <div>
-                      <strong>{FEATURED.chef}</strong>
-                      <span>{FEATURED.chefRole}</span>
-                    </div>
-                  </div>
-                  <div className="vl-meta-stats">
-                    <span>
-                      <CalendarDays size={13} /> {FEATURED.date}
-                    </span>
-                    <span>
-                      <Eye size={13} /> {FEATURED.views} lượt xem
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-watch-now"
-                  onClick={() => onNavigate?.(`/videos/${encodeURIComponent(FEATURED.id)}`)}
-                >
-                  <Play size={16} fill="currentColor" />
-                  Xem video
-                </button>
-              </div>
-            </article>
-          </section>
-
-          {/* Latest video grid */}
-          <section className="vl-latest-section">
-            <div className="vl-section-head between">
-              <h2>
-                <span className="vl-plus-mini">▣</span>
-                Video mới nhất
-              </h2>
-              <div className="sort-select-mini">
-                <span>Sắp xếp:</span>
-                <button type="button" className="sort-chip light">
-                  Mới nhất
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-
-            <div className="vl-latest-grid">
-              {VIDEO_LIST.map(v => (
-                <article key={v.id} className="vl-latest-card">
-                  <div className="vl-thumb-wrap">
-                    <img src={v.thumbnail} alt={v.title} />
-                    <button
-                      type="button"
-                      className="vl-play-sm"
-                      onClick={() => onNavigate?.(`/videos/${encodeURIComponent(v.id)}`)}
-                    >
-                      <Eye size={14} /> Xem video
-                    </button>
-                    <span className="vl-duration-sm">{v.duration}</span>
-                  </div>
-                  <div className="vl-latest-info">
-                    <span className="vl-cat-tag small">{v.category}</span>
-                    <h4>{v.title}</h4>
-                    <div className="vl-latest-meta">
-                      <span><CircleUser size={12} /> {v.channel}</span>
-                      <span><Eye size={12} /> {v.views} xem</span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <div className="vl-pagination">
-              <button type="button" className="page-btn nav" aria-label="prev" disabled>
-                <ChevronLeft size={16} />
-              </button>
-              {[1, 2, 3].map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  className={`page-btn ${n === 1 ? 'active' : ''}`}
-                >
-                  {n}
-                </button>
-              ))}
-              <span className="page-ellipsis"><MoreHorizontal size={16} /></span>
-              <button type="button" className="page-btn">8</button>
-              <button type="button" className="page-btn nav" aria-label="next">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </section>
-        </div>
-
-        {/* SIDEBAR */}
-        <aside className="vl-sidebar">
-          {/* Topics */}
-          <div className="vl-side-card">
-            <h3>
-              <span className="vl-plus-mini">※</span>
-              Chủ đề phổ biến
-            </h3>
-            <div className="vl-topics">
-              {TOPIC_TAGS.map(t => (
-                <button key={t} type="button" className="topic-chip">{t}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Top chefs */}
-          <div className="vl-side-card">
-            <div className="vl-side-head-between">
-              <h3>
-                <span className="vl-plus-mini">♛</span>
-                Đầu bếp nổi bật
-              </h3>
-              <button type="button" className="link-sm">Xem tất cả</button>
-            </div>
-            <div className="vl-chefs">
-              {TOP_CHEFS.map(c => (
-                <div key={c.name} className="vl-chef">
-                  <div className={`vl-chef-avatar ${c.avatarColor}`}>
-                    <ChefHat size={18} />
-                  </div>
-                  <div className="vl-chef-info">
-                    <strong>{c.name}</strong>
-                    <span>{c.role}</span>
-                  </div>
-                  <span className="vl-chef-count">{c.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* AI assistant */}
-          <div className="vl-side-card ai-card">
-            <div className="vl-ai-head">
-              <div className="vl-ai-badge">
-                <Sparkles size={12} />
-                TRỢ LÝ DINH DƯỠNG AI
-              </div>
-            </div>
-            <h3 className="vl-ai-title">Học nấu ăn cùng AI</h3>
-            <p>
-              Nhập các nguyên liệu bạn đang có sẵn trong tủ lạnh (rau củ, nấm, đậu…), AI sẽ tìm ngay video công thức phù hợp nhất cho bạn!
-            </p>
-            <div className="vl-ai-suggestion">
-              VD: Đậu hũ, nấm, rổ dầu, cà chua...
-            </div>
-            <div className="vl-ai-input-wrap">
-              <input
-                type="text"
-                value={aiInput}
-                onChange={e => setAiInput(e.target.value)}
-                placeholder="Bạn muốn nấu món gì hôm nay?"
-                className="vl-ai-input"
-              />
-              <button
+                Upload video của tôi
+              </Button>
+              <Button
                 type="button"
-                className="btn btn-ai"
-                onClick={() => {
-                  setAiInput('');
-                  onNavigate?.('/ai-chat');
+                variant="secondary"
+                size="md"
+                leftIcon={<RefreshCw size={14} />}
+                onClick={async () => {
+                  setIsLoading(true)
+                  try {
+                    const res = await getVideos(filter)
+                    setItems(res.items)
+                    setTotalCount(res.totalCount)
+                  } finally {
+                    setIsLoading(false)
+                  }
                 }}
               >
-                <Sparkles size={14} />
-                Gợi ý video công thức ngày
-              </button>
+                Làm mới
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                leftIcon={<Shield size={14} />}
+                onClick={() => showToast('AI flag riêng, Admin duyệt riêng! Không trộn lẫn luồng.')}
+              >
+                Quy tắc kiểm duyệt
+              </Button>
             </div>
           </div>
-        </aside>
+
+          {/* Stats */}
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                Tổng video
+              </div>
+              <div className="mt-1 text-2xl font-extrabold text-[#1f2937]">{totalCount}</div>
+            </div>
+            <div className="rounded-[16px] border border-[#c8e6c9] bg-[#e8f5e9]/70 p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#2e7d32]">
+                Đã xuất bản
+              </div>
+              <div className="mt-1 flex items-end gap-2">
+                <div className="text-2xl font-extrabold text-[#2e7d32]">{stats.published}</div>
+                <StatusBadge size="sm" status="suitable" />
+              </div>
+            </div>
+            <div className="rounded-[16px] border border-sky-200 bg-sky-50/80 p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-sky-700">
+                AI đang kiểm tra
+              </div>
+              <div className="mt-1 flex items-end gap-2">
+                <div className="text-2xl font-extrabold text-sky-700">{stats.checking}</div>
+                <StatusBadge size="sm" status="info" />
+              </div>
+            </div>
+            <div className="rounded-[16px] border border-amber-200 bg-amber-50/80 p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
+                Chờ Admin duyệt
+              </div>
+              <div className="mt-1 flex items-end gap-2">
+                <div className="text-2xl font-extrabold text-amber-700">{stats.pending}</div>
+                <StatusBadge size="sm" status="insufficient" />
+              </div>
+            </div>
+            <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-4">
+              <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#6b7280]">
+                Lượt xem cộng đồng
+              </div>
+              <div className="mt-1 text-2xl font-extrabold text-[#1f2937]">
+                {stats.totalViews.toLocaleString('vi-VN')}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Filter bar */}
+        <section className="mb-5 rounded-[20px] border border-[#e5e7eb] bg-white p-4 shadow-xs sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#e8f5e9] text-[#2e7d32]">
+                <Filter size={15} />
+              </span>
+              <div>
+                <div className="text-[15px] font-extrabold tracking-tight">
+                  Bộ lọc video & tìm kiếm
+                </div>
+                <div className="text-[11px] text-[#6b7280]">
+                  Thời lượng trung bình danh sách hiện tại:{' '}
+                  <strong className="text-[#1f2937]">{formatDuration(stats.avgDur)}</strong>
+                </div>
+              </div>
+            </div>
+            {Object.entries(filter).some(
+              ([k, v]) =>
+                (DEFAULT_VIDEO_FILTER as unknown as Record<string, unknown>)[k] !== v,
+            ) && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                leftIcon={<RefreshCw size={12} />}
+                onClick={resetFilter}
+              >
+                Xóa bộ lọc
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-12">
+            <div className="md:col-span-4">
+              <Input
+                label="Tìm video"
+                size={13}
+                placeholder="Tìm theo tên, tác giả, từ khóa..."
+                value={filter.search}
+                onChange={(e) => updateFilter({ search: e.target.value })}
+                leftIcon={<Search size={14} />}
+              />
+            </div>
+            <div className="md:col-span-3">
+              <Select
+                label="Danh mục"
+                size={13}
+                value={filter.category}
+                onChange={(e) => updateFilter({ category: e.target.value as VideoCategory | 'all' })}
+                options={CATEGORY_OPTIONS}
+              />
+            </div>
+            <div className="md:col-span-3">
+              <Select
+                label="Trạng thái duyệt"
+                size={13}
+                value={filter.status}
+                onChange={(e) =>
+                  updateFilter({ status: e.target.value as VideoModerationStatus | 'all' })
+                }
+                options={STATUS_OPTIONS}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Select
+                label="Sắp xếp"
+                size={13}
+                value={filter.sort}
+                onChange={(e) => updateFilter({ sort: e.target.value as VideoSortOption })}
+                options={SORT_OPTIONS}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px]">
+            {filter.status === 'all' ? null : (
+              <StatusBadge status="info" label={`Trạng thái: ${MODERATION_STATUS_LABELS[filter.status as VideoModerationStatus] ?? filter.status}`} />
+            )}
+            {filter.category === 'all' ? null : (
+              <StatusBadge status="suitable" label={`Danh mục: ${CATEGORY_LABELS[filter.category as VideoCategory] ?? filter.category}`} />
+            )}
+            {!filter.search.trim() ? null : (
+              <StatusBadge status="neutral" label={`Từ khóa: "${filter.search.trim()}"`} />
+            )}
+            {isLoading && <StatusBadge status="insufficient" label="Đang tải lại..." />}
+          </div>
+        </section>
+
+        {/* Results */}
+        <section>
+          {isLoading ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <SkeletonLoader count={6} variant="card" />
+            </div>
+          ) : items.length === 0 ? (
+            <EmptyState
+              title="Không tìm thấy video nào phù hợp"
+              description="Hãy thử từ khóa khác, nới lỏng bộ lọc danh mục/trạng thái, hoặc nhấn nút bên dưới để xóa bộ lọc xem toàn bộ kho video cộng đồng."
+              actionLabel="Xóa bộ lọc"
+              onAction={resetFilter}
+              icon={<PlayCircle size={36} className="text-[#2e7d32]" />}
+            />
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {items.map((v) => (
+                <VideoCard
+                  key={v.id}
+                  video={v}
+                  onSelect={handleSelect}
+                  onPlay={handlePlay}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
+
+      <UploadVideoModal
+        isOpen={showUpload}
+        onClose={() => {
+          if (!submitting) setShowUpload(false)
+        }}
+        onSubmit={handleUpload}
+        submitting={submitting}
+      />
+
+      {toast && (
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-bold text-white shadow-lg backdrop-blur">
+          {toast}
+        </div>
+      )}
     </div>
-  );
+  )
 }

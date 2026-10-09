@@ -32,8 +32,17 @@ app.Use(async (context, next) =>
 {
     if (context.Request.Headers.TryGetValue("Test-Role", out var role))
     {
+        var userId = context.Request.Headers.TryGetValue("Test-UserId", out var suppliedUserId)
+            && !string.IsNullOrWhiteSpace(suppliedUserId)
+            ? suppliedUserId.ToString()
+            : "test-" + role.ToString().ToLowerInvariant();
         context.User = new ClaimsPrincipal(
-            new ClaimsIdentity([new Claim(ClaimTypes.Role, role.ToString())], "Test"));
+            new ClaimsIdentity(
+            [
+                new Claim("sub", userId),
+                new Claim(ClaimTypes.Role, role.ToString())
+            ],
+            "Test"));
     }
     await next();
 });
