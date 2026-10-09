@@ -2,6 +2,7 @@ import type {
   ArticleDetailDto,
   ArticleFilterParams,
   ArticleFormData,
+  ArticleSection,
   ArticleSummary,
   PaginatedResult,
   UserArticleItem,
@@ -257,22 +258,60 @@ function parseContentToSections(content: string) {
   if (blocks.length === 0) {
     return [{ content }]
   }
-  return blocks.map((block) => {
-    const matchHeading = block.match(/^(?:#+|(\d+)\.)\s*(.+?)(?:\n([\s\S]*))?$/)
-    if (matchHeading) {
-      const num = matchHeading[1] ? parseInt(matchHeading[1], 10) : undefined
-      const title = matchHeading[2]
-      const body = matchHeading[3] ? matchHeading[3].trim() : ''
-      return {
-        number: num,
-        title,
-        content: body || title,
+
+  let autoNum = 1
+  const sections: ArticleSection[] = []
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]
+    const lines = block.split('\n').map((l) => l.trim()).filter(Boolean)
+    const firstLine = lines[0] || ''
+
+    const isHeading =
+      firstLine.startsWith('#') ||
+      /^(?:\d+[.)]|Phần\s+\d+)[\s:]/i.test(firstLine)
+
+    if (isHeading) {
+      const match = firstLine.match(
+        /^(?:#{1,3}\s*)?(?:(?:(\d+)[.)]|Phần\s+(\d+)[:.]?)\s*)?([^\n]+)$/i
+      )
+      const explicitNum = match ? match[1] || match[2] : null
+      const num = explicitNum ? parseInt(explicitNum, 10) : autoNum++
+      const rawTitle = match ? match[3] : firstLine
+      const cleanTitle = rawTitle
+        .replace(/^#{1,3}\s*/, '')
+        .replace(/^(?:\d+[.)]|Phần\s+\d+[:.]?)\s*/i, '')
+        .trim()
+
+      let body = lines.slice(1).join('\n').trim()
+
+      // If body is empty, check if next block is a non-heading paragraph to join
+      if (!body && i + 1 < blocks.length) {
+        const nextBlock = blocks[i + 1]
+        const nextFirstLine = nextBlock.split('\n')[0].trim()
+        const nextIsHeading =
+          nextFirstLine.startsWith('#') ||
+          /^(?:\d+[.)]|Phần\s+\d+)[\s:]/i.test(nextFirstLine)
+
+        if (!nextIsHeading) {
+          body = nextBlock
+          i++ // advance index
+        }
       }
+
+      sections.push({
+        number: num,
+        title: cleanTitle,
+        content: body || cleanTitle,
+      })
+    } else {
+      sections.push({
+        content: block,
+      })
     }
-    return {
-      content: block,
-    }
-  })
+  }
+
+  return sections.length > 0 ? sections : [{ content }]
 }
 
 /**

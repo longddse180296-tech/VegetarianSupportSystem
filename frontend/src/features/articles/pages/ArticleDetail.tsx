@@ -296,18 +296,20 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({
           {article.sections.map((sec, index) => (
             <div key={index} className="mb-6">
               {sec.title ? (
-                <div className="flex items-start gap-3 mb-2">
-                  {sec.number && (
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                <div className="flex items-start gap-3 mb-2.5">
+                  {sec.number ? (
+                    <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white text-xs sm:text-sm font-bold flex items-center justify-center mt-0.5 shadow-sm">
                       {sec.number}
                     </span>
+                  ) : (
+                    <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full bg-emerald-600 mt-2 shadow-xs" />
                   )}
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900 break-words">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 tracking-tight break-words leading-snug">
                     {sec.title}
                   </h2>
                 </div>
               ) : null}
-              <div className={sec.number ? 'pl-9' : ''}>
+              <div className={sec.number ? 'pl-10 sm:pl-11' : sec.title ? 'pl-6' : ''}>
                 <RichContentRenderer content={sec.content} />
               </div>
             </div>

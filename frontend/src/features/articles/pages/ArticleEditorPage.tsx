@@ -225,6 +225,39 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
     }, 0)
   }
 
+  const handleInsertNumberedSection = () => {
+    const textarea = contentTextareaRef.current
+    const current = currentContent
+
+    // Find the highest section number in current content
+    const matches = [...current.matchAll(/(?:^|\n)\s*(?:#{1,3}\s*)?(\d+)[.)]\s+/g)]
+    let nextNum = 1
+    if (matches.length > 0) {
+      const nums = matches.map((m) => parseInt(m[1], 10)).filter((n) => !isNaN(n))
+      if (nums.length > 0) {
+        nextNum = Math.max(...nums) + 1
+      }
+    }
+
+    const snippet = `\n\n## ${nextNum}. Tiêu đề phần ${nextNum}\nNội dung chi tiết giải thích cho phần ${nextNum}...`
+
+    if (!textarea) {
+      setValue('content', `${current}${snippet}`, { shouldValidate: true, shouldDirty: true })
+      return
+    }
+
+    const start = textarea.selectionStart ?? current.length
+    const newContent = current.substring(0, start) + snippet + current.substring(start)
+    setValue('content', newContent, { shouldValidate: true, shouldDirty: true })
+
+    setTimeout(() => {
+      textarea.focus()
+      const titleStart = start + `\n\n## ${nextNum}. `.length
+      const titleEnd = titleStart + `Tiêu đề phần ${nextNum}`.length
+      textarea.setSelectionRange(titleStart, titleEnd)
+    }, 0)
+  }
+
   // Handle local file upload
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -489,6 +522,18 @@ export const ArticleEditorPage: React.FC<ArticleEditorPageProps> = ({
                   <>
                     {/* Toolbar */}
                     <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs">
+                      <button
+                        type="button"
+                        onClick={handleInsertNumberedSection}
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-lg border border-emerald-300 active:scale-95 transition-all flex items-center gap-1.5 shadow-2xs"
+                        title="Thêm phần mục có số thứ tự chấm xanh và tiêu đề in đậm size to"
+                      >
+                        <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
+                          1
+                        </span>
+                        <span>Phần mục (chấm xanh)</span>
+                      </button>
+                      <div className="w-[1px] h-4 bg-slate-300 mx-0.5" />
                       <button
                         type="button"
                         onClick={() => handleToolbarInsert('# ')}

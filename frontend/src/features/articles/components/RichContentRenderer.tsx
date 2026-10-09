@@ -99,41 +99,55 @@ export const RichContentRenderer: React.FC<RichContentRendererProps> = ({
 
         const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean)
 
-        // Case 1: Heading 1 (# Heading)
-        if (lines.length === 1 && trimmed.startsWith('# ')) {
+        // Case 1: Numbered Section or Heading with green dot/badge & large bold title
+        // Matches "## 1. Title", "## Title", "# 1. Title", "### 1. Title", "1. Title", "Phần 1: Title"
+        const firstLine = lines[0]
+        const isHeadingLine =
+          firstLine.startsWith('#') || /^(?:\d+[.)]|Phần\s+\d+)[\s:]/i.test(firstLine)
+
+        if (isHeadingLine) {
+          const numberMatch = firstLine.match(
+            /^(?:#{1,3}\s*)?(?:(?:(\d+)[.)]|Phần\s+(\d+)[:.]?)\s*)?([^\n]+)$/i
+          )
+          const num = numberMatch ? numberMatch[1] || numberMatch[2] : null
+          const rawTitle = numberMatch ? numberMatch[3] : firstLine
+          const cleanTitle = rawTitle
+            .replace(/^#{1,3}\s*/, '')
+            .replace(/^(?:\d+[.)]|Phần\s+\d+[:.]?)\s*/i, '')
+            .trim()
+          const remainingLines = lines.slice(1)
+
           return (
-            <h1
-              key={pIdx}
-              className="text-2xl sm:text-3xl font-extrabold text-slate-900 pt-4 pb-1 border-b border-slate-100 tracking-tight"
-            >
-              {renderInline(trimmed.replace(/^#\s+/, ''))}
-            </h1>
+            <div key={pIdx} className="space-y-2 mb-6">
+              <div className="flex items-start gap-3 pt-4 pb-1">
+                {num ? (
+                  <span className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white text-xs sm:text-sm font-bold flex items-center justify-center mt-0.5 shadow-sm">
+                    {num}
+                  </span>
+                ) : (
+                  <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full bg-emerald-600 mt-2 shadow-xs" />
+                )}
+                <h2 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight break-words leading-snug">
+                  {renderInline(cleanTitle)}
+                </h2>
+              </div>
+              {remainingLines.length > 0 && (
+                <div className={num ? 'pl-10 sm:pl-11' : 'pl-6'}>
+                  <p className="text-sm sm:text-base text-slate-700 leading-relaxed">
+                    {remainingLines.map((line, lIdx) => (
+                      <React.Fragment key={lIdx}>
+                        {renderInline(line)}
+                        {lIdx < remainingLines.length - 1 && <br />}
+                      </React.Fragment>
+                    ))}
+                  </p>
+                </div>
+              )}
+            </div>
           )
         }
 
-        // Case 2: Heading 2 (## Heading)
-        if (lines.length === 1 && trimmed.startsWith('## ')) {
-          return (
-            <h2
-              key={pIdx}
-              className="text-xl sm:text-2xl font-bold text-slate-900 pt-3 pb-1 tracking-tight flex items-center gap-2"
-            >
-              <span className="w-1.5 h-6 bg-emerald-600 rounded-full shrink-0" />
-              <span>{renderInline(trimmed.replace(/^##\s+/, ''))}</span>
-            </h2>
-          )
-        }
-
-        // Case 3: Heading 3 (### Heading)
-        if (lines.length === 1 && trimmed.startsWith('### ')) {
-          return (
-            <h3 key={pIdx} className="text-lg sm:text-xl font-bold text-slate-800 pt-2 pb-0.5">
-              {renderInline(trimmed.replace(/^###\s+/, ''))}
-            </h3>
-          )
-        }
-
-        // Case 4: Blockquote (> quote)
+        // Case 2: Blockquote (> quote)
         if (lines.every((l) => l.startsWith('>'))) {
           const quoteText = lines.map((l) => l.replace(/^>\s*/, '')).join(' ')
           return (
