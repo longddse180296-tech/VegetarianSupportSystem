@@ -12,6 +12,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<UserAllergy> UserAllergies => Set<UserAllergy>();
     public DbSet<UserAvoidedFood> UserAvoidedFoods => Set<UserAvoidedFood>();
     public DbSet<ModerationSubmission> ModerationSubmissions => Set<ModerationSubmission>();
+    public DbSet<Video> Videos => Set<Video>();
+    public DbSet<FoodScanRecord> FoodScanRecords => Set<FoodScanRecord>();
     public DbSet<ModerationDecision> ModerationDecisions => Set<ModerationDecision>();
     public DbSet<AiChatConversation> AiChatConversations => Set<AiChatConversation>();
     public DbSet<AiChatMessage> AiChatMessages => Set<AiChatMessage>();

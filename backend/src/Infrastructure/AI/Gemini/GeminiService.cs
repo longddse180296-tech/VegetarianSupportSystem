@@ -67,6 +67,39 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         }
     }
 
+    public async Task<GeminiLabelResponse> ReadIngredientLabelAsync(
+        GeminiDishImageRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey))
+            return new GeminiLabelResponse(false, null, true, "NotConfigured");
+        var imagePart = new Dictionary<string, object>
+        {
+            ["inline_data"] = new Dictionary<string, string>
+            {
+                ["mime_type"] = request.MimeType,
+                ["data"] = Convert.ToBase64String(request.ImageBytes)
+            }
+        };
+        const string prompt = "Đọc CHỈ chữ nhìn thấy trong bảng thành phần của ảnh. Không tự điền chữ bị mờ hoặc bị cắt. Trả JSON {\"extractedText\":\"...\",\"isIncomplete\":true/false}. Đánh dấu isIncomplete=true nếu chữ mờ, thiếu, bị cắt hoặc không đọc được đầy đủ.";
+        var result = await GenerateAsync(prompt, cancellationToken, true, imagePart, imageModel);
+        if (!result.IsAvailable || result.Text is null)
+            return new GeminiLabelResponse(false, null, true, result.ErrorCode);
+        try
+        {
+            using var document = JsonDocument.Parse(StripFence(result.Text));
+            var root = document.RootElement;
+            var extracted = ReadString(root, "extractedText");
+            if (!root.TryGetProperty("isIncomplete", out var incomplete) ||
+                incomplete.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                return new GeminiLabelResponse(false, null, true, "InvalidOcrResponse");
+            return new GeminiLabelResponse(true, extracted?.Trim(), incomplete.GetBoolean());
+        }
+        catch (JsonException)
+        {
+            return new GeminiLabelResponse(false, null, true, "InvalidOcrResponse");
+        }
+    }
+
     private static GeminiDishImageResponse DishUnavailable(string errorCode) =>
         new(false, null, [], [], [], errorCode);
 
@@ -93,7 +126,9 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         var history = string.Join("\n", request.History.Select(turn =>
             $"{(turn.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase) ? "Trợ lý" : "Người dùng")}: {turn.Text}"));
         var prompt = "Bạn là trợ lý AI của Vegetarian Support. Trả lời bằng tiếng Việt, rõ ràng. " +
-            "Không khẳng định thành phần ẩn, không cam kết an toàn dị ứng, không thay thế tư vấn y tế.\n" +
+            "Không khẳng định thành phần ẩn, không cam kết an toàn dị ứng, không thay thế tư vấn y tế. " +
+            "Khi được yêu cầu lập thực đơn, hướng người dùng sang tính năng lập thực đơn; câu trả lời chat không phải kế hoạch đã lưu.\n" +
+            (request.ProfileContext is null ? "" : "Hồ sơ do người dùng khai báo: " + request.ProfileContext + "\n") +
             history + "\nNgười dùng: " + request.Prompt;
         var result = await GenerateAsync(prompt, cancellationToken);
         return result.IsAvailable
@@ -113,8 +148,9 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
             Bạn hỗ trợ gắn cờ nội dung cho nền tảng Vegetarian Support. Bạn đưa bằng chứng, không quyết định xuất bản.
             Kiểm tra tiêu đề và văn bản về spam, xúc phạm/không phù hợp, quảng cáo trái quy định, tuyên bố sức khỏe cần kiểm chứng hoặc không liên quan.
             Không khẳng định đã xem ảnh/video. {(hasMedia ? "Media reference có mặt nhưng chưa được phân tích, vì vậy trạng thái phải là Partial." : "")}
-            Trả về duy nhất JSON với các thuộc tính status, summary, checkedScope, uncheckedScope và flagReason.
-            Flagged cần flagReason cụ thể. Partial cần uncheckedScope. Không thêm bằng chứng không có trong văn bản.
+            Trả về duy nhất JSON với các thuộc tính status, summary, checkedScope, uncheckedScope, flagReason, flagType, priority, evidence.
+            flagType nếu có cờ: Spam, Abuse, Advertising, HealthClaim hoặc OffTopic; priority: Low, Medium, High.
+            evidence là trích đoạn NGẮN có thật trong tiêu đề/văn bản; nếu không có bằng chứng thì null. Flagged cần flagReason, flagType, priority và evidence cụ thể. Partial cần uncheckedScope. Không thêm bằng chứng không có trong văn bản.
             Loại nội dung: {request.ContentType}
             Tiêu đề: {request.Title}
             Nội dung: {request.Text}
@@ -137,14 +173,31 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
             var checkedScope = ReadString(root, "checkedScope");
             var uncheckedScope = ReadString(root, "uncheckedScope");
             var flagReason = ReadString(root, "flagReason");
+            var flagType = ReadString(root, "flagType");
+            var priority = ReadString(root, "priority");
+            var evidence = ReadString(root, "evidence");
             if (string.IsNullOrWhiteSpace(summary) || string.IsNullOrWhiteSpace(checkedScope)
                 || (status == AiFlagStatus.Flagged && string.IsNullOrWhiteSpace(flagReason))
+                || (status == AiFlagStatus.Flagged && (string.IsNullOrWhiteSpace(flagType)
+                    || string.IsNullOrWhiteSpace(priority) || string.IsNullOrWhiteSpace(evidence)))
                 || (status == AiFlagStatus.Partial && string.IsNullOrWhiteSpace(uncheckedScope)))
                 return new GeminiModerationResponse(false, null, null, null, null, "InvalidModerationResponse");
 
+            if (!string.IsNullOrWhiteSpace(evidence) &&
+                !(request.Title.Contains(evidence, StringComparison.OrdinalIgnoreCase) ||
+                  request.Text.Contains(evidence, StringComparison.OrdinalIgnoreCase)))
+                return new GeminiModerationResponse(false, null, null, null, null, "UnsupportedEvidence");
+
+            if (request.ContentType == ModeratedContentType.Video || hasMedia)
+            {
+                status = AiFlagStatus.Partial;
+                uncheckedScope = request.ContentType == ModeratedContentType.Video
+                    ? "Âm thanh và khung hình video chưa được kiểm tra; Admin cần xem trực tiếp."
+                    : "Ảnh hoặc media đính kèm chưa được kiểm tra; Admin cần xem trực tiếp.";
+            }
             return new GeminiModerationResponse(
-                true, status, summary, checkedScope, uncheckedScope,
-                status == AiFlagStatus.Flagged ? flagReason : null);
+                true, status, summary, checkedScope, uncheckedScope, null, flagReason,
+                flagType, priority, evidence);
         }
         catch (JsonException)
         {

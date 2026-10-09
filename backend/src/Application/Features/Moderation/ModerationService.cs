@@ -1,10 +1,22 @@
 using Domain.Entities;
 using Domain.Enums;
+using Application.Features.Videos;
 
 namespace Application.Features.Moderation;
 
-public sealed class ModerationService(IModerationRepository repository)
+public sealed class ModerationService(IModerationRepository repository, IVideoPublication videos)
 {
+    public async Task<ModerationSubmission> SubmitFirstVideoAsync(Guid videoId, string ownerUserId,
+        string title, string description, string mediaKey, CancellationToken ct)
+    {
+        if (await repository.GetLatestForContentAsync(videoId, ct) is not null)
+            throw new ModerationException(ModerationError.Conflict, "Video was already submitted.");
+        var submission = ModerationSubmission.Submit(videoId, 1, ModeratedContentType.Video,
+            ownerUserId, title, description, mediaKey, DateTimeOffset.UtcNow);
+        await repository.AddAsync(submission, ct);
+        await repository.SaveChangesAsync(ct);
+        return submission;
+    }
     public async Task<ModerationSubmission> SubmitAsync(
         string ownerUserId,
         SubmitModerationCommand command,
@@ -137,6 +149,10 @@ public sealed class ModerationService(IModerationRepository repository)
         var submission = await repository.GetByIdAsync(submissionId, cancellationToken)
             ?? throw new ModerationException(ModerationError.NotFound, "Submission was not found.");
 
+        var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
+        if (latest?.Id != submission.Id)
+            throw new ModerationException(ModerationError.Conflict, "AI result belongs to an older version.");
+
         try
         {
             submission.RecordAiResult(
@@ -145,7 +161,10 @@ public sealed class ModerationService(IModerationRepository repository)
                 result.CheckedScope,
                 result.UncheckedScope,
                 DateTimeOffset.UtcNow,
-                result.FlagReason);
+                result.FlagReason,
+                result.FlagType,
+                result.Priority,
+                result.Evidence);
         }
         catch (ArgumentException ex)
         {
@@ -207,6 +226,9 @@ public sealed class ModerationService(IModerationRepository repository)
 
         if (decision == ModerationDecisionType.Approve)
         {
+            var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
+            if (latest?.Id != submission.Id)
+                throw new ModerationException(ModerationError.Conflict, "Cannot approve an older version.");
             if (submission.AdminReviewStatus != AdminReviewStatus.PendingAdminReview
                 || submission.AiFlagStatus is not (
                     AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial))
@@ -225,6 +247,8 @@ public sealed class ModerationService(IModerationRepository repository)
 
                 submission.Decide(decision, adminUserId, reason, DateTimeOffset.UtcNow);
                 await repository.SaveChangesAsync(ct);
+                if (submission.ContentType == ModeratedContentType.Video)
+                    await videos.ApplyDecisionAsync(submission.ContentId, submission.Id, true, ct);
             }, cancellationToken);
         }
         else
@@ -238,7 +262,15 @@ public sealed class ModerationService(IModerationRepository repository)
                 throw new ModerationException(ModerationError.Conflict, ex.Message);
             }
 
-            await repository.SaveChangesAsync(cancellationToken);
+            if (decision == ModerationDecisionType.Remove && submission.ContentType == ModeratedContentType.Video)
+            {
+                await repository.ExecuteInTransactionAsync(async ct =>
+                {
+                    await repository.SaveChangesAsync(ct);
+                    await videos.ApplyDecisionAsync(submission.ContentId, submission.Id, false, ct);
+                }, cancellationToken);
+            }
+            else await repository.SaveChangesAsync(cancellationToken);
         }
         return submission;
     }

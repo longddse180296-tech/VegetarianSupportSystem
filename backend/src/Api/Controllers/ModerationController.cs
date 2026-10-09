@@ -17,6 +17,14 @@ public sealed class ModerationController(ModerationService moderationService) : 
         [FromBody] SubmitModerationRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.ContentType == ModeratedContentType.Video)
+            return BadRequest(new ProblemDetails { Detail = "Submit videos through /api/me/videos/{id}/submit." });
+        if (request.ContentType == ModeratedContentType.Article)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+            {
+                Status = StatusCodes.Status503ServiceUnavailable,
+                Detail = "Article draft/version backend is not integrated yet. No moderation submission was created."
+            });
         var ownerUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         if (string.IsNullOrWhiteSpace(ownerUserId)) return Unauthorized();
 
@@ -268,6 +276,9 @@ public sealed record ModerationSubmissionResponse(
     AdminReviewStatus AdminReviewStatus,
     string? AiSummary,
     string? AiFlagReason,
+    string? AiFlagType,
+    string? AiPriority,
+    string? AiEvidence,
     string? AiCheckedScope,
     string? AiUncheckedScope,
     DateTimeOffset? AiCheckedAt,
@@ -290,6 +301,9 @@ public sealed record ModerationSubmissionResponse(
         submission.AdminReviewStatus,
         submission.AiSummary,
         submission.AiFlagReason,
+        submission.AiFlagType,
+        submission.AiPriority,
+        submission.AiEvidence,
         submission.AiCheckedScope,
         submission.AiUncheckedScope,
         submission.AiCheckedAt,

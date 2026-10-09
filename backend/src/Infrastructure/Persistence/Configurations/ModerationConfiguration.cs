@@ -20,6 +20,9 @@ public sealed class ModerationSubmissionConfiguration : IEntityTypeConfiguration
         builder.Property(x => x.AdminReviewStatus).HasConversion<string>().HasMaxLength(24);
         builder.Property(x => x.AiSummary).HasMaxLength(2_000);
         builder.Property(x => x.AiFlagReason).HasMaxLength(2_000);
+        builder.Property(x => x.AiFlagType).HasMaxLength(100);
+        builder.Property(x => x.AiPriority).HasMaxLength(20);
+        builder.Property(x => x.AiEvidence).HasMaxLength(2_000);
         builder.Property(x => x.AiCheckedScope).HasMaxLength(2_000);
         builder.Property(x => x.AiUncheckedScope).HasMaxLength(2_000);
         builder.Property(x => x.RowVersion).IsRowVersion();

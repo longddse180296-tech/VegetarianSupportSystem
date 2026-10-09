@@ -43,6 +43,9 @@ public sealed class ModerationSubmission
     public AdminReviewStatus AdminReviewStatus { get; private set; }
     public string? AiSummary { get; private set; }
     public string? AiFlagReason { get; private set; }
+    public string? AiFlagType { get; private set; }
+    public string? AiPriority { get; private set; }
+    public string? AiEvidence { get; private set; }
     public string? AiCheckedScope { get; private set; }
     public string? AiUncheckedScope { get; private set; }
     public DateTimeOffset? AiCheckedAt { get; private set; }
@@ -81,7 +84,10 @@ public sealed class ModerationSubmission
         string? checkedScope,
         string? uncheckedScope,
         DateTimeOffset checkedAt,
-        string? flagReason = null)
+        string? flagReason = null,
+        string? flagType = null,
+        string? priority = null,
+        string? evidence = null)
     {
         if (AiFlagStatus != AiFlagStatus.Checking)
             throw new InvalidOperationException("AI result can only complete a pending check.");
@@ -97,6 +103,8 @@ public sealed class ModerationSubmission
 
         if (flagReason?.Length > 2_000)
             throw new ArgumentException("AI flag reason is too long.", nameof(flagReason));
+        if (flagType?.Length > 100 || priority?.Length > 20 || evidence?.Length > 2_000)
+            throw new ArgumentException("AI flag metadata is too long.");
 
         if (status == AiFlagStatus.Flagged && string.IsNullOrWhiteSpace(flagReason))
             throw new ArgumentException("A flagged result requires a reason.", nameof(flagReason));
@@ -118,6 +126,9 @@ public sealed class ModerationSubmission
         AiFlagStatus = status;
         AiSummary = summary.Trim();
         AiFlagReason = string.IsNullOrWhiteSpace(flagReason) ? null : flagReason.Trim();
+        AiFlagType = string.IsNullOrWhiteSpace(flagType) ? null : flagType.Trim();
+        AiPriority = string.IsNullOrWhiteSpace(priority) ? null : priority.Trim();
+        AiEvidence = string.IsNullOrWhiteSpace(evidence) ? null : evidence.Trim();
         AiCheckedScope = checkedScope?.Trim();
         AiUncheckedScope = uncheckedScope?.Trim();
         AiCheckedAt = checkedAt;
@@ -135,6 +146,9 @@ public sealed class ModerationSubmission
         AiFlagStatus = AiFlagStatus.Checking;
         AiSummary = null;
         AiFlagReason = null;
+        AiFlagType = null;
+        AiPriority = null;
+        AiEvidence = null;
         AiCheckedScope = null;
         AiUncheckedScope = null;
         AiCheckedAt = null;

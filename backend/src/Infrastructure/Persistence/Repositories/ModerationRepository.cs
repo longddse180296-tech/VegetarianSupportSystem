@@ -1,5 +1,6 @@
 using Application.Features.Moderation;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
         CancellationToken cancellationToken)
     {
         return dbContext.Set<ModerationSubmission>()
+            .Include(x => x.Decisions)
             .OrderByDescending(x => x.Version)
             .FirstOrDefaultAsync(x => x.ContentId == contentId, cancellationToken);
     }
@@ -32,6 +34,14 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
                 x => x.ContentId == contentId && x.IsCurrentPublished,
                 cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Guid>> GetCheckingIdsAsync(int count, CancellationToken cancellationToken) =>
+        await dbContext.ModerationSubmissions.AsNoTracking()
+            .Where(x => x.AiFlagStatus == AiFlagStatus.Checking &&
+                !dbContext.ModerationSubmissions.Any(newer =>
+                    newer.ContentId == x.ContentId && newer.Version > x.Version))
+            .OrderBy(x => x.SubmittedAt).Select(x => x.Id).Take(count)
+            .ToArrayAsync(cancellationToken);
 
     public async Task<ModerationPage> SearchAsync(
         ModerationSearch search,
@@ -47,6 +57,8 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
             query = query.Where(x => x.AiFlagStatus == aiStatus);
         if (search.AdminStatus is { } adminStatus)
             query = query.Where(x => x.AdminReviewStatus == adminStatus);
+        if (search.AdminStatus == AdminReviewStatus.Published)
+            query = query.Where(x => x.IsCurrentPublished);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query

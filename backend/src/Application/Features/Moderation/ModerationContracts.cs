@@ -15,7 +15,10 @@ public sealed record ModerationAiResult(
     string Summary,
     string? CheckedScope,
     string? UncheckedScope,
-    string? FlagReason);
+    string? FlagReason,
+    string? FlagType = null,
+    string? Priority = null,
+    string? Evidence = null);
 
 public sealed record ModerationSearch(
     string? OwnerUserId,

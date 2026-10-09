@@ -29,4 +29,5 @@ public enum AiChatAnswerStatus
 public sealed record AiChatSubmissionDto(
     AiChatMessageDto UserMessage,
     AiChatMessageDto? AssistantMessage,
-    AiChatAnswerStatus AnswerStatus);
+    AiChatAnswerStatus AnswerStatus,
+    IReadOnlyList<ChatRecipeSuggestion> RecipeSuggestions);
