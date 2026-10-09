@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import type { User, LoginCredentials, RegisterPayload, ResetPasswordResult } from '../types'
+import type { User, LoginCredentials, RegisterPayload } from '../types'
 import { authApi, getStoredUser, setStoredUser, getStoredToken } from '../api/authApi'
 import { AuthContext, type AuthContextType } from './AuthContextInstance'
-
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
@@ -158,21 +156,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const resetPassword = async (email: string): Promise<ResetPasswordResult> => {
-    if (!email) throw new Error('Vui lòng nhập email để khôi phục mật khẩu.')
-    setIsLoading(true)
-    try {
-      await delay(500)
-      return {
-        ok: true,
-        tempToken: `reset-${Math.random().toString(36).slice(2, 12)}`,
-        suggestedPassword: `Ch@y${Math.floor(100000 + Math.random() * 900000).toString(36)}`,
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const value: AuthContextType = {
     user,
     isLoading,
@@ -182,7 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     refreshUser,
-    resetPassword,
     updateUser,
   }
 

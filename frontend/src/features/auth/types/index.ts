@@ -21,18 +21,11 @@ export interface RegisterPayload {
   email: string
   password: string
   confirmPassword: string
-  goal?: 'lose_weight' | 'maintain' | 'gain_muscle' | 'vegan_lifestyle'
   agreeTerms?: boolean
 }
 
 export interface ForgotPasswordPayload {
   email: string
-}
-
-export interface ResetPasswordResult {
-  ok: true
-  tempToken: string
-  suggestedPassword?: string
 }
 
 export interface AuthResponse {

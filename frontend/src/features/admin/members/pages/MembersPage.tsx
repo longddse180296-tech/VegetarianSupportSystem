@@ -3,7 +3,6 @@ import { useAuth } from '../../../auth/hooks/useAuth'
 import { getStoredToken } from '../../../../shared/api/apiClient'
 import { AdminLayout } from '../../../../app/layouts/AdminLayout'
 import { MemberTable, type LiveMemberFilter } from '../components/MemberTable'
-import { AdminDashboardPage } from '../../dashboard/pages/AdminDashboardPage'
 import {
   ApiError, changeStatus, currentUser, getHistory, getMember, listMembers,
   type MemberDetail, type MemberPage, type StatusPage,
@@ -16,10 +15,9 @@ const dateTime = (value: string) => new Intl.DateTimeFormat('vi-VN', { dateStyle
 
 interface MembersPageProps {
   onNavigate?: (path: string) => void
-  initialView?: 'dashboard' | 'members'
 }
 
-export default function MembersPage({ onNavigate, initialView = 'members' }: MembersPageProps) {
+export default function MembersPage({ onNavigate }: MembersPageProps) {
   const { user, login: loginShared, logout: logoutShared } = useAuth()
   const [token, setToken] = useState(() => getStoredToken() ?? sessionStorage.getItem(TOKEN_KEY) ?? '')
   const [admin, setAdmin] = useState<{ id: string; fullName: string } | null>(null)
@@ -41,7 +39,6 @@ export default function MembersPage({ onNavigate, initialView = 'members' }: Mem
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
-  const [viewMode, setViewMode] = useState<'dashboard' | 'members'>(initialView)
 
   const signOut = useCallback(() => {
     sessionStorage.removeItem(TOKEN_KEY)
@@ -151,30 +148,17 @@ export default function MembersPage({ onNavigate, initialView = 'members' }: Mem
   const maxHistoryPage = Math.max(1, Math.ceil((history?.totalCount ?? 0) / 10))
 
   return <AdminLayout
-    activeMenu={viewMode === 'dashboard' ? 'dashboard' : 'members'}
-    pageTitle={selectedId ? 'Chi tiết thành viên' : viewMode === 'dashboard' ? 'Tổng quan hệ thống' : 'Quản lý thành viên'}
-    pageSubtitle={viewMode === 'dashboard' ? 'Số liệu tổng hợp hoạt động tài khoản, thành viên, đăng ký.' : 'Tìm kiếm tài khoản, xem chi tiết và quản lý trạng thái truy cập.'}
+    activeMenu="members"
+    pageTitle={selectedId ? 'Chi tiết thành viên' : 'Quản lý thành viên'}
+    pageSubtitle="Tìm kiếm tài khoản, xem chi tiết và quản lý trạng thái truy cập."
     adminName={admin.fullName}
     adminEmail={user?.email ?? ''}
     availableNavIds={['dashboard', 'members']}
-    onNavigate={(path) => {
-      if (path === '/admin/dashboard') setViewMode('dashboard')
-      else if (path === '/admin/members') {
-        setViewMode('members')
-        setSelectedId(null)
-      } else onNavigate?.(path)
-    }}
+    onNavigate={onNavigate}
     onLogout={() => { signOut(); onNavigate?.('/auth/login') }}
   >
       <div className="admin-content">
-        {viewMode === 'dashboard' ? (
-          <AdminDashboardPage
-            onNavigate={(p: string) => {
-              if (p === '/admin/members') setViewMode('members')
-              else onNavigate?.(p)
-            }}
-          />
-        ) : selectedId ? <>
+        {selectedId ? <>
           <div className="page-heading"><div><p className="eyebrow">QUẢN LÝ THÀNH VIÊN</p><h1>Chi tiết thành viên</h1><p>Thông tin tài khoản và lịch sử khóa/mở khóa.</p></div><button className="outline-button" onClick={() => { setSelectedId(null); setMember(null); setHistory(null); setError('') }}>← Quay lại danh sách</button></div>
           {member ? <>
             <section className="detail-hero"><div className="large-avatar">{member.fullName.slice(0, 1).toUpperCase()}</div><div className="detail-heading"><div><h2>{member.fullName}</h2><span className="role-tag">{member.role}</span><span className={`status-pill ${member.isLocked ? 'locked' : 'active'}`}>{member.isLocked ? 'Bị khóa' : 'Hoạt động'}</span></div><p>{member.email}</p></div><button className={member.isLocked ? 'primary-button' : 'danger-button'} disabled={!member.isLocked && member.id === admin.id} onClick={() => { setAction(!member.isLocked); setReason(''); setError('') }}>{member.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button></section>
