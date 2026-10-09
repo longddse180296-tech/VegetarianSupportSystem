@@ -782,28 +782,40 @@ const MOCK_RECOMMENDED_PLAN: RecommendedMealPlanData = {
     'Thực đơn ưu tiên protein thực vật từ đậu hũ và đậu gà, đồng thời tận dụng tối đa các nguyên liệu bạn đang có sẵn trong bếp và loại bỏ hoàn toàn các thực phẩm chứa đậu phộng theo yêu cầu dị ứng của bạn. Mỗi bữa ăn đều được tính toán để bạn nấu xong trong dưới 30 phút.',
 }
 
+const DIET_NAME_MAP: Record<DietType, string> = {
+  vegan: 'Thuần chay (Vegan)',
+  lacto: 'Chay có sữa (Lacto)',
+  ovo: 'Chay có trứng (Ovo)',
+  'lacto-ovo': 'Chay trứng sữa (Lacto-Ovo)',
+}
+
+let activeRecommendedPlan: RecommendedMealPlanData = JSON.parse(
+  JSON.stringify(MOCK_RECOMMENDED_PLAN)
+)
+
 export async function getRecommendedMealPlan(): Promise<RecommendedMealPlanData> {
-  await new Promise((resolve) => setTimeout(resolve, 600))
-  return JSON.parse(JSON.stringify(MOCK_RECOMMENDED_PLAN))
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  return JSON.parse(JSON.stringify(activeRecommendedPlan))
 }
 
 export async function regenerateRecommendedPlan(): Promise<RecommendedMealPlanData> {
-  await new Promise((resolve) => setTimeout(resolve, 900))
-  return JSON.parse(JSON.stringify(MOCK_RECOMMENDED_PLAN))
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  return JSON.parse(JSON.stringify(activeRecommendedPlan))
 }
 
 export async function saveRecommendedPlan(): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 700))
+  await new Promise((resolve) => setTimeout(resolve, 400))
+  syncRecommendedToWeeklyPlan()
   return true
 }
 
 export async function swapRecommendedMeal(
-  _dayId: DayOfWeek,
-  _mealId: string,
+  dayId: DayOfWeek,
+  mealId: string,
   replacement: MealReplacementOption
 ): Promise<RecommendedMealItem> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return {
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  const newMeal: RecommendedMealItem = {
     id: `swapped-${Date.now()}`,
     slot: 'lunch',
     slotTime: '12:00',
@@ -817,6 +829,19 @@ export async function swapRecommendedMeal(
     imageUrl:
       'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
   }
+
+  const targetDay = activeRecommendedPlan.days.find((d) => d.dayId === dayId)
+  if (targetDay) {
+    const mealIndex = targetDay.meals.findIndex((m) => m.id === mealId)
+    if (mealIndex >= 0) {
+      newMeal.slot = targetDay.meals[mealIndex].slot
+      newMeal.slotLabel = targetDay.meals[mealIndex].slotLabel
+      newMeal.slotTime = targetDay.meals[mealIndex].slotTime
+      targetDay.meals[mealIndex] = newMeal
+    }
+  }
+
+  return newMeal
 }
 
 // ==========================================
@@ -907,6 +932,30 @@ export async function submitPersonalizationPreferences(
     formData.activityLevel,
     formData.goal
   )
+
+  const updatedPlan: RecommendedMealPlanData = JSON.parse(
+    JSON.stringify(MOCK_RECOMMENDED_PLAN)
+  )
+
+  updatedPlan.userInfo = {
+    bmi: analysis.bmi,
+    bmiCategory: analysis.category,
+    goal:
+      formData.goal === 'weight-loss'
+        ? 'Giảm mỡ khoa học'
+        : formData.goal === 'muscle-gain'
+        ? 'Tăng cơ'
+        : formData.goal === 'detox'
+        ? 'Thanh lọc cơ thể'
+        : 'Duy trì cân nặng',
+    preferredIngredients: formData.availableIngredients,
+    allergens: formData.allergens,
+    mealsPerDay: '3 bữa chính + 1 bữa phụ',
+  }
+
+  updatedPlan.aiExplanation = `Thực đơn ${DIET_NAME_MAP[formData.dietType]} tối ưu cho mục tiêu ${analysis.estimatedCalories} kcal/ngày, loại trừ hoàn toàn các chất gây dị ứng (${formData.allergens.join(', ') || 'Không có'}) và tận dụng tối đa nguyên liệu có sẵn trong tủ bếp của bạn.`
+
+  activeRecommendedPlan = updatedPlan
 
   return {
     formData,
@@ -1483,9 +1532,74 @@ export const MOCK_MY_WEEKLY_PLAN_DATA: MyWeeklyPlanData = {
   },
 }
 
+let activeWeeklyPlanData: MyWeeklyPlanData = JSON.parse(
+  JSON.stringify(MOCK_MY_WEEKLY_PLAN_DATA)
+)
+
+export function syncRecommendedToWeeklyPlan(): void {
+  const synced: MyWeeklyPlanData = JSON.parse(
+    JSON.stringify(MOCK_MY_WEEKLY_PLAN_DATA)
+  )
+
+  synced.bmiMetrics = synced.bmiMetrics.map((metric) => {
+    if (metric.type === 'calories') {
+      return {
+        ...metric,
+        value: `${Math.round(activeRecommendedPlan.nutritionSummary?.caloriesConsumed || 1820)} kcal`,
+        subtitle: `BMI: ${activeRecommendedPlan.userInfo.bmi} • ${activeRecommendedPlan.userInfo.bmiCategory}`,
+      }
+    }
+    return metric
+  })
+
+  synced.days = activeRecommendedPlan.days.map((recDay) => {
+    const existing = synced.days.find((d) => d.id === recDay.dayId)
+    return {
+      id: recDay.dayId,
+      label: recDay.label,
+      dateStr: existing ? existing.dateStr : 'Th 2',
+      fullDate: existing ? existing.fullDate : '14/10/2026',
+      meals: recDay.meals.map((m) => ({
+        id: `wm-${recDay.dayId}-${m.slot}`,
+        slot: m.slot,
+        slotTime: m.slotTime,
+        slotLabel: m.slotLabel,
+        slotTag: m.categoryTag,
+        title: m.title,
+        description: m.description,
+        imageUrl: m.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+        calories: m.calories,
+        cookTimeMinutes: m.cookTimeMinutes,
+        protein: m.protein,
+        recipeId: m.recipeId || `rec-${m.id}`,
+      })),
+    }
+  })
+
+  activeWeeklyPlanData = synced
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vss_active_meal_plan', JSON.stringify(synced))
+    }
+  } catch {
+    // Ignore storage issues
+  }
+}
+
 export async function getMyWeeklyMealPlan(): Promise<MyWeeklyPlanData> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return JSON.parse(JSON.stringify(MOCK_MY_WEEKLY_PLAN_DATA)) as MyWeeklyPlanData
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  try {
+    const saved =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('vss_active_meal_plan')
+        : null
+    if (saved) {
+      activeWeeklyPlanData = JSON.parse(saved)
+    }
+  } catch {
+    // Ignore storage issues
+  }
+  return JSON.parse(JSON.stringify(activeWeeklyPlanData)) as MyWeeklyPlanData
 }
 
 export async function swapWeeklyMeal(
@@ -1544,17 +1658,13 @@ export async function swapWeeklyMeal(
     },
   }
 
-  if (poolAlternatives[mealId]) {
-    return poolAlternatives[mealId]
-  }
-
-  return {
+  const chosen = poolAlternatives[mealId] || {
     id: `alt-${mealId}-${Date.now()}`,
     slot: 'lunch',
     slotTime: '12:00',
     slotLabel: 'Bữa ăn thay thế',
     slotTag: 'Cân bằng vi chất',
-    title: `Món chay dinh dưỡng đổi mới (${dayId})`,
+    title: `Món chay đổi mới (${dayId.toUpperCase()})`,
     description:
       'Công thức chay khoa học cân bằng đạm thực vật và chất xơ, chuẩn vị ấm cúng.',
     imageUrl:
@@ -1563,15 +1673,55 @@ export async function swapWeeklyMeal(
     cookTimeMinutes: 25,
     protein: 24,
   }
+
+  const dayObj = activeWeeklyPlanData.days.find((d) => d.id === dayId)
+  if (dayObj) {
+    const mealIdx = dayObj.meals.findIndex((m) => m.id === mealId)
+    if (mealIdx >= 0) {
+      chosen.slot = dayObj.meals[mealIdx].slot
+      chosen.slotTime = dayObj.meals[mealIdx].slotTime
+      chosen.slotLabel = dayObj.meals[mealIdx].slotLabel
+      dayObj.meals[mealIdx] = chosen
+    }
+  }
+
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vss_active_meal_plan', JSON.stringify(activeWeeklyPlanData))
+    }
+  } catch {
+    // Ignore
+  }
+
+  return chosen
 }
 
 export async function applySavedPlanToWeekly(
   savedPlanId: string,
 ): Promise<{ success: boolean; message: string }> {
-  await new Promise((resolve) => setTimeout(resolve, 600))
-  const matched = MOCK_MY_WEEKLY_PLAN_DATA.savedPlans.find(
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  const matched = activeWeeklyPlanData.savedPlans.find(
     (p) => p.id === savedPlanId,
   )
+  if (matched) {
+    activeWeeklyPlanData.bmiMetrics = activeWeeklyPlanData.bmiMetrics.map((m) => {
+      if (m.type === 'calories') {
+        return {
+          ...m,
+          value: matched.highlightStat,
+          subtitle: `${matched.title} • ${matched.goalLabel}`,
+        }
+      }
+      return m
+    })
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('vss_active_meal_plan', JSON.stringify(activeWeeklyPlanData))
+      }
+    } catch {
+      // Ignore
+    }
+  }
   return {
     success: true,
     message: `Đã áp dụng "${matched ? matched.title : 'Thực đơn đã lưu'}" thành công cho tuần này!`,

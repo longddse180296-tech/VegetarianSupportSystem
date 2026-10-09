@@ -9,6 +9,7 @@ interface PublicLayoutProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
   userName?: string
+  avatarUrl?: string
   onLogout?: () => void
 }
 
@@ -18,6 +19,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
   onNavigate,
   isLoggedIn = false,
   userName = 'Người dùng',
+  avatarUrl,
   onLogout,
 }) => {
   const handleNavClick = (path: string) => {
@@ -33,6 +35,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
         activeNav={activeNav}
         isLoggedIn={isLoggedIn}
         userName={userName}
+        avatarUrl={avatarUrl}
         onLogout={onLogout}
         onNavigate={onNavigate}
       />

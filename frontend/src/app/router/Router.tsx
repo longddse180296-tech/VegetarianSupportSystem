@@ -33,7 +33,7 @@ import {
   MyMealPlanPage,
   MealPlanDetailPage,
 } from '../../features/meal-plans'
-import { VideoListPage, VideoDetailPage } from '../../features/videos'
+import { VideoListPage, VideoDetailPage, MyVideosPage } from '../../features/videos'
 import { RestaurantListPage, RestaurantDetailPage } from '../../features/restaurants'
 import FoodScanPage from '../../features/food-scan/pages/FoodScanPage'
 import PantryPage from '../../features/pantry/pages/PantryPage'
@@ -54,14 +54,39 @@ const withPublic = (
   ctx: RouterRendererProps,
 ) => {
   const isLoggedIn = Boolean(ctx.user)
+
+  let displayUserName = ctx.user?.fullName
+  let displayAvatarUrl = ctx.user?.avatarUrl
+
+  try {
+    const rawProfile = localStorage.getItem('vegetarian_mock_user_profile')
+    if (rawProfile) {
+      const parsed = JSON.parse(rawProfile)
+      if (parsed.fullName) {
+        displayUserName = parsed.fullName
+      }
+      if (parsed.avatarUrl) {
+        displayAvatarUrl = parsed.avatarUrl
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  if (!displayUserName && isLoggedIn) {
+    displayUserName = 'Quang Duy'
+  }
+
   return (
     <PublicLayout
       activeNav={activeNav}
       onNavigate={ctx.onNavigate}
       isLoggedIn={isLoggedIn}
-      userName={ctx.user?.fullName}
-      onLogout={() => {
-        void ctx.logout()
+      userName={displayUserName}
+      avatarUrl={displayAvatarUrl}
+      onLogout={async () => {
+        await ctx.logout()
+        ctx.onNavigate('/')
       }}
     >
       {node}
@@ -69,41 +94,12 @@ const withPublic = (
   )
 }
 
-const PATH_EQ = (p: string, ...candidates: string[]): boolean => {
-  if (!p) return false
-  // Normalize candidate forms (leading slash + trailing slash strip) to a set.
-  const normalizedInput = `/${p.replace(/^\/+|\/+$/g, '')}`
-  return candidates.some((c) => {
-    const nc = `/${c.replace(/^\/+|\/+$/g, '')}`
-    return normalizedInput === nc
-  })
-}
-
-/**
- * Strict prefix match — each `prefix` may be passed with or without a leading
- * slash but the final check always requires `input === /prefix` OR
- * `input.startsWith(/prefix/ )` so random prefix collisions (e.g. `/mealplanner`
- * matching `meal-plans` prefix form w/o slash) cannot happen.
- */
-const PATH_STARTS = (p: string, ...prefixes: string[]): boolean => {
-  if (!p) return false
-  const normalizedInput = `/${p.replace(/^\/+|\/+$/g, '')}`
-  return prefixes.some((prefixRaw) => {
-    const np = `/${String(prefixRaw).replace(/^\/+|\/+$/g, '')}`
-    if (np === '/') return normalizedInput === '/'
-    return normalizedInput === np || normalizedInput.startsWith(np + '/')
-  })
-}
-
 export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   const path = ctx.currentPath
   const { onNavigate } = ctx
   const isLoggedIn = Boolean(ctx.user)
 
-  // --------------------------------------------------------------------------
-  // 1. HOME
-  // --------------------------------------------------------------------------
-  if (PATH_EQ(path, '/', '', '/home', 'home', '/trang-chu', 'trang-chu')) {
+  if (path === '/' || path === '' || path === '/home' || path === 'home') {
     return withPublic(
       <HomePage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />,
       'home',
@@ -111,15 +107,8 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     )
   }
 
-  // --------------------------------------------------------------------------
-  // 2. RECIPES + detail alias /cong-thuc/:slug
-  // --------------------------------------------------------------------------
-  const recipeMatch =
-    path.match(/^\/recipes\/([^/]+)\/?$/) ||
-    path.match(/^\/cong-thuc\/([^/]+)\/?$/)
-  if (
-    PATH_EQ(path, '/recipes', 'recipes', '/cong-thuc', 'cong-thuc')
-  ) {
+  const recipeMatch = path.match(/^\/recipes\/([^/]+)\/?$/)
+  if (path === '/recipes' || path === 'recipes') {
     return withPublic(<RecipeList onNavigate={onNavigate} />, 'recipes', ctx)
   }
   if (recipeMatch) {
@@ -127,7 +116,7 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     try {
       recipeId = decodeURIComponent(recipeMatch[1])
     } catch {
-      recipeId = ''
+      // Let RecipeDetail handle malformed IDs without crashing the router.
     }
     return withPublic(
       <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={onNavigate} />,
@@ -136,65 +125,60 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     )
   }
 
-  // --------------------------------------------------------------------------
-  // 3. PANTRY + alias /tu-bep-ai
-  // --------------------------------------------------------------------------
-  if (PATH_EQ(path, '/pantry', 'pantry', '/tu-bep-ai', 'tu-bep-ai', '/tu-bep', 'tu-bep')) {
-    return withPublic(<PantryPage onNavigate={onNavigate} />, 'pantry', ctx)
+  if (path === '/ai-chat' || path === 'aichat' || path === '/aichat' || path === 'ai-chat') {
+    return withPublic(<AiChatPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />, 'ai-chat', ctx)
   }
 
-  // --------------------------------------------------------------------------
-  // 4. AI CHAT + alias /tro-ly-ai
-  // --------------------------------------------------------------------------
+  const articleEditorMatch = path.match(/^\/articles\/(?:editor|edit)\/([^/]+)\/?$/)
   if (
-    PATH_EQ(path, '/ai-chat', 'ai-chat', '/aichat', 'aichat', '/tro-ly-ai', 'tro-ly-ai')
+    path === '/articles/editor' ||
+    path === '/articles/create' ||
+    path === '/articles/new'
   ) {
+    if (!ctx.user) {
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    return <ArticleEditorPage onNavigate={onNavigate} />
+  }
+  if (articleEditorMatch) {
+    if (!ctx.user) {
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    const editId = decodeURIComponent(articleEditorMatch[1])
+    return <ArticleEditorPage articleId={editId} onNavigate={onNavigate} />
+  }
+
+  const articleMatch = path.match(/^\/articles\/([^/]+)\/?$/)
+  if (path === '/articles' || path === 'articles') {
     return withPublic(
-      <AiChatPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />,
-      'ai-chat',
+      <ArticleList
+        onSelectArticle={(id) => onNavigate(`/articles/${id}`)}
+        onCreateArticle={() => onNavigate(ctx.user ? '/articles/create' : '/auth/login')}
+        onNavigateHome={() => onNavigate('/')}
+        onOpenAiChat={() => onNavigate('/ai-chat')}
+      />,
+      'articles',
+      ctx,
+    )
+  }
+  if (articleMatch && !['editor', 'create', 'new', 'edit'].includes(articleMatch[1])) {
+    const articleId = decodeURIComponent(articleMatch[1])
+    return withPublic(
+      <ArticleDetail
+        key={articleId}
+        articleId={articleId}
+        onBackToList={() => onNavigate('/articles')}
+        onCreateArticle={() => onNavigate(ctx.user ? '/articles/create' : '/auth/login')}
+        onEditArticle={(id) => onNavigate(ctx.user ? `/articles/editor/${id}` : '/auth/login')}
+        onSelectRelatedArticle={(id) => onNavigate(`/articles/${id}`)}
+      />,
+      'articles',
       ctx,
     )
   }
 
-  // --------------------------------------------------------------------------
-  // 5. FOOD SCAN + alias /quet-thuc-pham
-  // --------------------------------------------------------------------------
-  if (
-    PATH_EQ(
-      path,
-      '/food-scan',
-      'food-scan',
-      '/foodscan',
-      'foodscan',
-      '/quet-thuc-pham',
-      'quet-thuc-pham',
-    )
-  ) {
-    return withPublic(
-      <FoodScanPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />,
-      'food-scan',
-      ctx,
-    )
-  }
-
-  // --------------------------------------------------------------------------
-  // 6. VIDEOS + detail /videos/:id alias /video/:id
-  // --------------------------------------------------------------------------
-  const videoMatch =
-    path.match(/^\/videos\/([^/]+)\/?$/) || path.match(/^\/video\/([^/]+)\/?$/)
-  if (
-    PATH_EQ(
-      path,
-      '/videos',
-      'videos',
-      '/video',
-      'video',
-      '/my-videos',
-      'my-videos',
-      '/video-huong-dan',
-      'video-huong-dan',
-    )
-  ) {
+  const videoMatch = path.match(/^\/videos\/([^/]+)\/?$/)
+  if (path === '/videos' || path === 'videos') {
     return withPublic(<VideoListPage onNavigate={onNavigate} />, 'videos', ctx)
   }
   if (videoMatch) {
@@ -206,21 +190,8 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     )
   }
 
-  // --------------------------------------------------------------------------
-  // 7. RESTAURANTS + alias /nha-hang-chay + detail
-  // --------------------------------------------------------------------------
-  const restaurantMatch =
-    path.match(/^\/restaurants\/([^/]+)\/?$/) ||
-    path.match(/^\/nha-hang-chay\/([^/]+)\/?$/)
-  if (
-    PATH_EQ(
-      path,
-      '/restaurants',
-      'restaurants',
-      '/nha-hang-chay',
-      'nha-hang-chay',
-    )
-  ) {
+  const restaurantMatch = path.match(/^\/restaurants\/([^/]+)\/?$/)
+  if (path === '/restaurants' || path === 'restaurants') {
     return withPublic(
       <RestaurantListPage onNavigate={onNavigate} />,
       'restaurants',
@@ -236,111 +207,40 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     )
   }
 
-  // --------------------------------------------------------------------------
-  // 8. ARTICLES + alias /bai-viet + detail
-  // Editor paths are parsed FIRST, before the generic :id detail regex, to
-  // prevent `/articles/editor/foo` being misinterpreted as article id="editor".
-  // --------------------------------------------------------------------------
-  const articleEditorNewMatch =
-    path.match(/^\/articles\/editor\/?$/) ||
-    path.match(/^\/bai-viet\/editor\/?$/)
-  const articleEditorEditMatch =
-    path.match(/^\/articles\/editor\/([^/]+)\/?$/) ||
-    path.match(/^\/bai-viet\/editor\/([^/]+)\/?$/)
-  const myArticlesMatch = PATH_EQ(
-    path,
-    '/profile/my-articles',
-    'profile/my-articles',
-    '/my-articles',
-    'my-articles',
-  )
-  const myCommentsMatch = PATH_EQ(
-    path,
-    '/profile/my-comments',
-    'profile/my-comments',
-    '/my-comments',
-    'my-comments',
-  )
-
-  const articleDetailMatch =
-    !articleEditorNewMatch &&
-    !articleEditorEditMatch &&
-    (path.match(/^\/articles\/([^/]+)\/?$/) ||
-      path.match(/^\/bai-viet\/([^/]+)\/?$/))
-
-  if (
-    PATH_EQ(
-      path,
-      '/articles',
-      'articles',
-      '/bai-viet',
-      'bai-viet',
-    )
-  ) {
+  if (path === '/food-scan' || path === 'foodscan' || path === '/foodscan' || path === 'food-scan') {
     return withPublic(
-      <ArticleList
-        onSelectArticle={(id) => onNavigate(`/articles/${id}`)}
-        onNavigateHome={() => onNavigate('/recipes')}
-        onOpenAiChat={() => onNavigate('/ai-chat')}
-      />,
-      'articles',
-      ctx,
-    )
-  }
-  if (articleDetailMatch) {
-    const articleId = decodeURIComponent(articleDetailMatch[1])
-    return withPublic(
-      <ArticleDetail
-        key={articleId}
-        articleId={articleId}
-        onBackToList={() => onNavigate('/articles')}
-        onSelectRelatedArticle={(id) => onNavigate(`/articles/${id}`)}
-      />,
-      'articles',
+      <FoodScanPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />,
+      'foodscan',
       ctx,
     )
   }
 
-  // --------------------------------------------------------------------------
-  // 9. MEAL-PLANS + alias /thuc-don, /ke-hoach-thuc-don
-  // --------------------------------------------------------------------------
-  const mealPlanDetailMatch =
-    path.match(/^\/meal-plans\/detail\/?(.+)?$/) ||
-    path.match(/^\/thuc-don\/detail\/?(.+)?$/)
+  if (path === '/pantry' || path === 'pantry') {
+    return withPublic(<PantryPage onNavigate={onNavigate} />, 'pantry', ctx)
+  }
 
-  if (PATH_EQ(path, '/meal-plans/setup', '/thuc-don/setup')) {
+  if (path === '/meal-plans/setup') {
     return withPublic(
       <PersonalizationSetupPage onNavigate={onNavigate} />,
       'meal-plans',
       ctx,
     )
   }
-  if (PATH_EQ(path, '/meal-plans/recommended', '/thuc-don/recommended')) {
+  if (path === '/meal-plans/recommended') {
     return withPublic(
       <RecommendedMealPlanPage onNavigate={onNavigate} />,
       'meal-plans',
       ctx,
     )
   }
-  if (
-    PATH_EQ(
-      path,
-      '/meal-plans/my-plan',
-      'meal-plans/my-plan',
-      '/meal-plans/weekly',
-      'meal-plans/weekly',
-      '/meal-plans/calendar',
-      'meal-plans/calendar',
-      '/thuc-don/my-plan',
-      'thuc-don/my-plan',
-      '/thuc-don/weekly',
-      'thuc-don/weekly',
-      '/thuc-don/calendar',
-      'thuc-don/calendar',
+  if (path === '/meal-plans/discover' || path === '/meal-plans/sample') {
+    return withPublic(
+      <GeneralMealPlanPage onNavigate={onNavigate} />,
+      'meal-plans',
+      ctx,
     )
-  ) {
-    return withPublic(<MyMealPlanPage onNavigate={onNavigate} />, 'meal-plans', ctx)
   }
+  const mealPlanDetailMatch = path.match(/^\/meal-plans\/detail\/?(.+)?$/)
   if (mealPlanDetailMatch) {
     return withPublic(
       <MealPlanDetailPage
@@ -352,112 +252,89 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     )
   }
   if (
-    PATH_STARTS(
-      path,
-      '/meal-plans',
-      'meal-plans',
-      '/thuc-don',
-      'thuc-don',
-      '/ke-hoach-thuc-don',
-      'ke-hoach-thuc-don',
-    )
+    path === '/meal-plans' ||
+    path === 'meal-plans' ||
+    path === '/meal-plans/my-plan' ||
+    path === '/meal-plans/weekly' ||
+    path === '/meal-plans/calendar' ||
+    path.startsWith('/meal-plans')
   ) {
-    return withPublic(
-      <GeneralMealPlanPage onNavigate={onNavigate} />,
-      'meal-plans',
-      ctx,
-    )
+    return withPublic(<MyMealPlanPage onNavigate={onNavigate} />, 'meal-plans', ctx)
   }
 
-  // --------------------------------------------------------------------------
-  // 10. MY ARTICLES / MY COMMENTS / ARTICLE EDITOR (wrapped in PublicLayout so header exists)
-  // --------------------------------------------------------------------------
-  if (articleEditorNewMatch) {
-    return withPublic(<ArticleEditorPage onNavigate={onNavigate} />, 'articles', ctx)
+
+  if (path === '/profile/my-articles' || path === '/my-articles') {
+    if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
+    return <MyArticlesPage onNavigate={onNavigate} />
   }
-  if (articleEditorEditMatch) {
-    const editId = decodeURIComponent(articleEditorEditMatch[1])
-    return withPublic(
-      <ArticleEditorPage articleId={editId} onNavigate={onNavigate} />,
-      'articles',
-      ctx,
-    )
+  if (path === '/profile/my-comments' || path === '/my-comments') {
+    if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
+    return <MyCommentsPage onNavigate={onNavigate} />
   }
-  if (myArticlesMatch) {
-    return withPublic(<MyArticlesPage onNavigate={onNavigate} />, 'articles', ctx)
-  }
-  if (myCommentsMatch) {
-    return withPublic(<MyCommentsPage onNavigate={onNavigate} />, 'articles', ctx)
+  if (path === '/profile/my-videos' || path === '/my-videos') {
+    if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
+    return <MyVideosPage onNavigate={onNavigate} />
   }
 
-  // --------------------------------------------------------------------------
-  // 11. AUTH (no PublicLayout so login/register/forgot are standalone centered)
-  // --------------------------------------------------------------------------
-  if (!ctx.user) {
-    if (PATH_EQ(path, '/auth/login', 'auth/login')) {
+  if (path === '/profile/settings' || path === '/account/settings') {
+    if (!ctx.user) {
       return <LoginPage onNavigate={onNavigate} />
     }
-    if (PATH_EQ(path, '/auth/register', 'auth/register')) {
-      return <RegisterPage onNavigate={onNavigate} />
+    return <ProfilePage onNavigate={onNavigate} initialViewMode="settings" />
+  }
+
+  if (path === '/profile' || path === 'profile' || path === '/profile/overview' || path === '/account') {
+    if (!ctx.user) {
+      return <LoginPage onNavigate={onNavigate} />
     }
-    if (PATH_EQ(path, '/auth/forgot-password', 'auth/forgot-password')) {
-      return <ForgotPasswordPage onNavigate={onNavigate} />
-    }
+    return <ProfilePage onNavigate={onNavigate} initialViewMode="overview" />
+  }
+
+  if (!ctx.user) {
+    if (path === '/auth/login' || path === '/login') return <LoginPage onNavigate={onNavigate} />
+    if (path === '/auth/register' || path === '/register') return <RegisterPage onNavigate={onNavigate} />
+    if (path === '/auth/forgot-password' || path === '/forgot-password') return <ForgotPasswordPage onNavigate={onNavigate} />
     return <LoginPage onNavigate={onNavigate} />
   }
 
-  // --------------------------------------------------------------------------
-  // 12. PROFILE (wrapped so user stays inside app shell with header)
-  // --------------------------------------------------------------------------
-  if (PATH_STARTS(path, '/profile', 'profile')) {
-    return withPublic(<ProfilePage onNavigate={onNavigate} />, 'profile', ctx)
-  }
-
-  // --------------------------------------------------------------------------
-  // 13. ADMIN (standalone admin layout, no public shell)
-  // --------------------------------------------------------------------------
   if (
-    PATH_EQ(
-      path,
-      '/admin',
-      'admin',
-      '/admin/dashboard',
-      'admin/dashboard',
-    )
+    path === '/admin' ||
+    path === 'admin' ||
+    path === '/admin/dashboard' ||
+    path === 'admin/dashboard'
   ) {
     return <AdminDashboardPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/articles', 'admin/articles')) {
+  if (path.startsWith('/admin/articles') || path === 'admin/articles') {
     return <AdminArticlesPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/categories', 'admin/categories')) {
+  if (path.startsWith('/admin/categories') || path === 'admin/categories') {
     return <AdminCategoriesPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/videos', 'admin/videos')) {
+  if (path.startsWith('/admin/videos') || path === 'admin/videos') {
     return <AdminVideosPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/comments', 'admin/comments')) {
+  if (path.startsWith('/admin/comments') || path === 'admin/comments') {
     return <AdminCommentsPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/members', 'admin/members')) {
+  if (path.startsWith('/admin/members')) {
     return <MembersPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/ingredients', 'admin/ingredients')) {
+  if (path.startsWith('/admin/ingredients')) {
     return <AdminIngredientsPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/recipes', 'admin/recipes')) {
+  if (path.startsWith('/admin/recipes')) {
     return <AdminRecipesPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/restaurants', 'admin/restaurants')) {
+  if (path.startsWith('/admin/restaurants')) {
     return <AdminRestaurantsPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin/moderation', 'admin/moderation')) {
+  if (path.startsWith('/admin/moderation')) {
     return <AdminModerationPage onNavigate={onNavigate} />
   }
-  if (PATH_STARTS(path, '/admin', 'admin')) {
+  if (path.startsWith('/admin')) {
     return <AdminDashboardPage onNavigate={onNavigate} />
   }
 
-  // Fallback: authenticated users without a matching route land on profile.
-  return withPublic(<ProfilePage onNavigate={onNavigate} />, 'profile', ctx)
+  return <ProfilePage onNavigate={onNavigate} />
 }

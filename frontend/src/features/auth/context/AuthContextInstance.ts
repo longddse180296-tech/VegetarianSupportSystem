@@ -11,6 +11,7 @@ export interface AuthContextType {
   logout: () => Promise<void>
   refreshUser: () => Promise<User | null>
   resetPassword: (email: string) => Promise<ResetPasswordResult>
+  updateUser?: (updates: Partial<User>) => void
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)

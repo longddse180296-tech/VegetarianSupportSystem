@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { UserLayout } from '../../../app/layouts/UserLayout'
+import { UserProfileShell } from '../components/UserProfileShell'
 import { useAuth } from '../../auth'
 import { profileApi } from '../api/profileApi'
 import { ProfileOverview } from '../components/ProfileOverview'
@@ -9,11 +9,22 @@ import { AlertCircle, RefreshCw } from 'lucide-react'
 
 interface ProfilePageProps {
   onNavigate?: (path: string) => void
+  initialViewMode?: 'overview' | 'settings'
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
-  const { user, logout } = useAuth()
-  const [viewMode, setViewMode] = useState<'overview' | 'settings'>('overview')
+export const ProfilePage: React.FC<ProfilePageProps> = ({
+  onNavigate,
+  initialViewMode = 'overview',
+}) => {
+  const { user, updateUser } = useAuth()
+  const [viewMode, setViewMode] = useState<'overview' | 'settings'>(initialViewMode)
+  const [prevMode, setPrevMode] = useState<'overview' | 'settings'>(initialViewMode)
+
+  if (initialViewMode !== prevMode) {
+    setPrevMode(initialViewMode)
+    setViewMode(initialViewMode)
+  }
+
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [stats, setStats] = useState<ProfileStats | null>(null)
   const [recentPosts, setRecentPosts] = useState<RecentPost[]>([])
@@ -66,32 +77,45 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     try {
       const updated = await profileApi.updateProfile(updates)
       setProfile(updated)
+      if (updateUser) {
+        updateUser({
+          fullName: updated.fullName,
+          avatarUrl: updated.avatarUrl,
+        })
+      }
+      setViewMode('overview')
     } finally {
       setIsUpdating(false)
     }
   }
 
+  const displayName = profile?.fullName || user?.fullName || 'Quang Duy'
+  const displayEmail = profile?.email || user?.email || 'duy@gmail.com'
+  const displayAvatar = profile?.avatarUrl || user?.avatarUrl
+  const displayDiet = profile?.dietaryType || 'Vegan'
+
   return (
-    <UserLayout
-      activeMenu="profile"
+    <UserProfileShell
+      activeTab="overview"
       onNavigate={onNavigate}
-      userName={profile?.fullName || user?.fullName || 'Người dùng'}
-      userEmail={profile?.email || user?.email || 'nguyen.an@example.com'}
-      userRole={user?.role || 'User'}
-      onLogout={async () => {
-        await logout()
-        onNavigate?.('/auth/login')
-      }}
+      userName={displayName}
+      userEmail={displayEmail}
+      avatarUrl={displayAvatar}
+      dietaryType={displayDiet}
+      statBadge={{ count: stats?.postCount ?? 12, label: 'Bài viết' }}
+      breadcrumbs={[
+        { label: 'Trang chủ', path: '/' },
+        { label: 'Tài khoản', path: '/profile' },
+        { label: viewMode === 'settings' ? 'Cài đặt hồ sơ & ăn chay' : 'Tổng quan' },
+      ]}
     >
       {/* Loading Skeleton State */}
       {isLoading && (
-        <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto animate-pulse">
-          <div className="h-6 w-36 bg-slate-200 rounded" />
-          <div className="h-40 bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-6">
-            <div className="w-20 h-20 rounded-full bg-slate-200 flex-shrink-0" />
-            <div className="flex-1 flex flex-col gap-3">
-              <div className="h-6 w-48 bg-slate-200 rounded" />
-              <div className="h-4 w-64 bg-slate-200 rounded" />
+        <div className="flex flex-col gap-6 w-full animate-pulse">
+          <div className="h-32 bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-slate-200" />
+            <div className="flex-1 flex flex-col gap-2">
+              <div className="h-5 w-48 bg-slate-200 rounded" />
               <div className="h-4 w-32 bg-slate-200 rounded" />
             </div>
           </div>
@@ -100,13 +124,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             <div className="h-28 bg-white rounded-2xl border border-slate-200" />
             <div className="h-28 bg-white rounded-2xl border border-slate-200" />
           </div>
-          <div className="h-64 bg-white rounded-2xl border border-slate-200" />
+          <div className="h-72 bg-white rounded-2xl border border-slate-200" />
         </div>
       )}
 
       {/* Error State */}
       {!isLoading && error && (
-        <div className="w-full max-w-md mx-auto my-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center flex flex-col items-center gap-4">
+        <div className="w-full my-8 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
             <AlertCircle className="w-6 h-6" />
           </div>
@@ -125,7 +149,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Loaded View Mode: Overview vs Settings */}
+      {/* Loaded View Mode: Overview (Default with all cards) vs Settings */}
       {!isLoading && !error && profile && stats && (
         <>
           {viewMode === 'overview' ? (
@@ -147,7 +171,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
           )}
         </>
       )}
-    </UserLayout>
+    </UserProfileShell>
   )
 }
+
 export default ProfilePage

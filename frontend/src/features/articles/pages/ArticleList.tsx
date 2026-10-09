@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import { Button, Input, EmptyState } from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
 import {
   CATEGORIES,
   TRENDING_TAGS,
@@ -19,12 +21,14 @@ import {
 
 interface ArticleListProps {
   onSelectArticle: (articleId: string) => void
+  onCreateArticle?: () => void
   onNavigateHome?: () => void
   onOpenAiChat?: () => void
 }
 
 export const ArticleList: React.FC<ArticleListProps> = ({
   onSelectArticle,
+  onCreateArticle,
   onNavigateHome,
   onOpenAiChat,
 }) => {
@@ -131,63 +135,73 @@ export const ArticleList: React.FC<ArticleListProps> = ({
   return (
     <div className="min-h-screen bg-slate-50/50 pb-16">
       {/* Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-gray-500 mb-6">
-          <button
-            type="button"
-            onClick={onNavigateHome}
-            className="hover:text-emerald-700 transition-colors"
-          >
-            Trang chủ
-          </button>
-          <span>/</span>
-          <span className="text-emerald-700 font-semibold">Bài viết</span>
-        </nav>
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-8 animate-in fade-in duration-200">
+        {/* Top Breadcrumb & Badge */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+            <button
+              type="button"
+              onClick={onNavigateHome}
+              className="hover:text-emerald-700 transition-colors"
+            >
+              Trang chủ
+            </button>
+            <span>&gt;</span>
+            <span className="font-semibold text-slate-800">Bài viết</span>
+          </div>
 
-        {/* Page Hero Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100 mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-              KHO TRI THỨC DINH DƯỠNG THUẦN THỰC VẬT
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs self-start sm:self-auto">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            <span>Kho tri thức dinh dưỡng thuần thực vật</span>
+          </div>
+        </div>
+
+        {/* Main Page Title and Subtitle with Link to Create Article */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
               Bài viết về lối sống chay
             </h1>
-            <p className="mt-2 text-sm sm:text-base text-gray-600 max-w-2xl leading-relaxed">
+            <p className="text-xs md:text-sm text-slate-500 max-w-2xl leading-relaxed">
               Khám phá kiến thức, kinh nghiệm và những chia sẻ hữu ích về dinh dưỡng, công thức và lối sống ăn chay khoa học, bền vững mỗi ngày.
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-gray-200/80 shadow-sm text-xs font-medium text-gray-700 self-start md:self-auto">
-            <span className="text-base">📗</span>
-            <span>120+ Bài nghiên cứu & Chia sẻ</span>
-          </div>
+          {onCreateArticle && (
+            <button
+              type="button"
+              onClick={onCreateArticle}
+              className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-emerald-700 active:scale-95 transition-all shrink-0"
+            >
+              <span className="font-bold text-emerald-700">+</span>
+              <span>Viết bài mới</span>
+              <span className="text-slate-400">&rarr;</span>
+            </button>
+          )}
         </div>
 
         {/* Search Bar Form */}
-        <form onSubmit={handleSearchSubmit} className="relative flex items-center mb-6">
-          <div className="relative flex-1">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-3 mb-6">
+          <Input
+            type="text"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            placeholder="Tìm kiếm bài viết, dưỡng chất (sắt, b12), kinh nghiệm..."
+            leftIcon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-            </span>
-            <input
-              type="text"
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="Tìm kiếm bài viết, dưỡng chất (sắt, b12), kinh nghiệm..."
-              className="w-full pl-11 pr-4 py-3.5 bg-white rounded-2xl border border-gray-200 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
-            />
-          </div>
-          <button
+            }
+            fullWidth
+          />
+          <Button
             type="submit"
-            className="ml-3 px-6 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
+            variant="primary"
+            size="md"
+            className="shrink-0 h-11 px-6 rounded-2xl"
           >
-            <span>Tìm kiếm</span>
-          </button>
+            Tìm kiếm
+          </Button>
         </form>
 
         {/* Category Pills Filter */}
@@ -225,54 +239,54 @@ export const ArticleList: React.FC<ArticleListProps> = ({
             ) : featuredArticle ? (
               <div
                 onClick={() => onSelectArticle(featuredArticle.id)}
-                className="group grid grid-cols-1 md:grid-cols-2 gap-6 bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all cursor-pointer"
+                className="group grid grid-cols-1 md:grid-cols-12 gap-6 bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all cursor-pointer items-center"
               >
-                <div className="relative aspect-[16/10] md:aspect-auto md:h-full rounded-2xl overflow-hidden bg-gray-100">
+                <div className="md:col-span-5 relative h-52 sm:h-56 md:h-60 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
                   <img
                     src={featuredArticle.thumbnailUrl}
                     alt={featuredArticle.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100">
+                  <div className="absolute top-3 left-3">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-2xs">
                       <span>⭐</span>
                       Được khuyên đọc
                     </span>
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between py-2">
+                <div className="md:col-span-7 flex flex-col justify-between py-1 h-full min-h-[200px]">
                   <div>
-                    <div className="flex items-center gap-3 mb-3 text-xs">
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+                    <div className="flex items-center gap-3 mb-2.5 text-xs">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">
                         {featuredArticle.categoryLabel}
                       </span>
                       <span className="text-gray-500">⏱️ {featuredArticle.readTimeMinutes} phút đọc</span>
                     </div>
 
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-emerald-700 transition-colors leading-snug mb-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-emerald-700 transition-colors leading-snug mb-2 line-clamp-2">
                       {featuredArticle.title}
                     </h3>
 
-                    <p className="text-xs sm:text-sm text-gray-600 line-clamp-3 leading-relaxed mb-6">
+                    <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 sm:line-clamp-3 leading-relaxed mb-4">
                       {featuredArticle.excerpt}
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-auto">
+                    <div className="flex items-center gap-2.5">
                       <img
                         src={featuredArticle.author.avatar}
                         alt={featuredArticle.author.name}
-                        className="w-10 h-10 rounded-full object-cover border border-emerald-100"
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-emerald-100"
                       />
                       <div className="flex flex-col text-xs">
                         <span className="font-bold text-gray-900">{featuredArticle.author.name}</span>
-                        <span className="text-gray-500">{featuredArticle.author.roleTitle} • {featuredArticle.publishedAt}</span>
+                        <span className="text-gray-500 text-[11px]">{featuredArticle.author.roleTitle} • {featuredArticle.publishedAt}</span>
                       </div>
                     </div>
 
-                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-semibold group-hover:bg-emerald-800 transition-colors">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-700 text-white text-xs font-semibold group-hover:bg-emerald-800 transition-colors shrink-0">
                       Đọc bài viết
                       <span>→</span>
                     </span>
@@ -315,15 +329,12 @@ export const ArticleList: React.FC<ArticleListProps> = ({
             <div className="lg:col-span-2 flex flex-col">
               {/* Error State */}
               {error && (
-                <div className="p-6 bg-red-50 border border-red-200 rounded-2xl text-center text-red-700 mb-6">
-                  <p className="text-sm font-semibold mb-2">Đã xảy ra lỗi khi tải dữ liệu</p>
-                  <p className="text-xs text-red-600 mb-4">{error}</p>
-                  <button
-                    onClick={handleResetFilters}
-                    className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-medium hover:bg-red-700"
-                  >
-                    Thử lại
-                  </button>
+                <div className="mb-6">
+                  <AlertError
+                    title="Đã xảy ra lỗi khi tải dữ liệu"
+                    message={error}
+                    onRetry={handleResetFilters}
+                  />
                 </div>
               )}
 
@@ -338,23 +349,12 @@ export const ArticleList: React.FC<ArticleListProps> = ({
 
               {/* Empty State */}
               {!loading && !error && articlesData && articlesData.items.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-3xl border border-gray-100 text-center">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center text-2xl text-emerald-600 mb-4">
-                    🔍
-                  </div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1">
-                    Không tìm thấy bài viết phù hợp
-                  </h3>
-                  <p className="text-xs text-gray-500 max-w-sm mb-6">
-                    Không có bài viết nào khớp với từ khóa hoặc danh mục đã chọn. Hãy thử tìm bằng từ khóa khác hoặc đặt lại bộ lọc.
-                  </p>
-                  <button
-                    onClick={handleResetFilters}
-                    className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition-colors"
-                  >
-                    Đặt lại bộ lọc
-                  </button>
-                </div>
+                <EmptyState
+                  title="Không tìm thấy bài viết phù hợp"
+                  description="Không có bài viết nào khớp với từ khóa hoặc danh mục đã chọn. Hãy thử tìm bằng từ khóa khác hoặc đặt lại bộ lọc."
+                  actionLabel="Đặt lại bộ lọc"
+                  onAction={handleResetFilters}
+                />
               )}
 
               {/* Articles Grid */}
@@ -431,6 +431,7 @@ export const ArticleList: React.FC<ArticleListProps> = ({
                   setCurrentPage(1)
                 }}
                 onOpenAiChat={onOpenAiChat}
+                onCreateArticle={onCreateArticle}
               />
             </div>
           </div>
