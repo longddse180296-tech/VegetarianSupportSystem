@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 using Api.Configuration;
@@ -80,6 +81,21 @@ public sealed class AuthTests
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<AuthController.RegisterRequest>(
             """{"fullName":"Test","email":"test@example.com","password":"StrongPass1","confirmPassword":"StrongPass1","role":"Admin"}""",
             new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<AuthController.LoginRequest>(
+            """{"email":"test@example.com","password":"StrongPass1","role":"Admin"}""",
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+    }
+
+    [Theory]
+    [InlineData(null, "password")]
+    [InlineData("not-an-email", "password")]
+    [InlineData("user@example.com", null)]
+    public void LoginRequestReportsFieldValidationErrors(string? email, string? password)
+    {
+        var request = new AuthController.LoginRequest { Email = email, Password = password };
+        var errors = new List<ValidationResult>();
+        Assert.False(Validator.TryValidateObject(request, new ValidationContext(request), errors, true));
+        Assert.NotEmpty(errors);
     }
 
     [Theory]

@@ -8,6 +8,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<User> Users => Set<User>();
     public DbSet<MemberStatusChange> MemberStatusChanges => Set<MemberStatusChange>();
     public DbSet<RevokedAccessToken> RevokedAccessTokens => Set<RevokedAccessToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<UserAllergy> UserAllergies => Set<UserAllergy>();
     public DbSet<UserAvoidedFood> UserAvoidedFoods => Set<UserAvoidedFood>();

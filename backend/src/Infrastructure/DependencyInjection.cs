@@ -17,6 +17,7 @@ using Application.Features.MealPlans;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
 using Infrastructure.Documents;
+using Infrastructure.Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +40,10 @@ public static class DependencyInjection
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IRevokedAccessTokenRepository, RevokedAccessTokenRepository>();
+        services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
+        services.AddSingleton<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
+        services.AddSingleton<IPasswordResetFailureReporter, PasswordResetFailureReporter>();
+        services.AddSingleton(new PasswordResetOptions(configuration["PasswordReset:ResetPageUrl"]));
         services.AddSingleton<IAccountPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IModerationRepository, ModerationRepository>();
         services.AddHttpClient<IGeminiService, GeminiService>(client =>

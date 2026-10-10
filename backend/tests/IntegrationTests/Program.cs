@@ -1,8 +1,10 @@
 using Application;
 using Api.Controllers;
+using Api.Configuration;
 using CoreDataChecks;
 using Infrastructure;
 using Infrastructure.Persistence;
+using Application.Features.Auth;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -19,8 +21,14 @@ var connection = new SqlConnectionStringBuilder(
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Configuration["ConnectionStrings:DefaultConnection"] = connection.ConnectionString;
+builder.Configuration["PasswordReset:ResetPageUrl"] = "http://localhost:5173/#/auth/reset-password";
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<IAccessTokenIssuer>(
+    new JwtAccessTokenIssuer("integration-tests", "integration-tests", new string('k', 32)));
+builder.Services.AddSingleton<CapturingResetEmailSender>();
+builder.Services.AddSingleton<IPasswordResetEmailSender>(provider =>
+    provider.GetRequiredService<CapturingResetEmailSender>());
 builder.Services.AddControllers().AddApplicationPart(typeof(CategoriesController).Assembly);
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
@@ -83,6 +91,10 @@ try
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
     await CoreDataApiChecks.RunAsync(client, db, Check);
     await SeedFilterChecks.RunAsync(client, db, Check);
+    await PasswordResetApiChecks.RunAsync(client,
+        app.Services.GetRequiredService<CapturingResetEmailSender>(), Check);
+    await SmtpTransportChecks.RunAsync(Check);
+    await PasswordResetChecks.RunAsync(db, Check);
 
     await app.StopAsync();
     await db.GetService<IMigrator>().MigrateAsync("0");

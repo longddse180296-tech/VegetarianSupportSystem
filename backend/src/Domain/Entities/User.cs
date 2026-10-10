@@ -25,6 +25,7 @@ public sealed class User
     public string? PhoneNumber { get; private set; }
     public string NormalizedEmail { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
+    public int TokenVersion { get; private set; }
     public UserRole Role { get; private set; }
     public bool IsLocked { get; private set; }
     public string? LockReason { get; private set; }
@@ -82,6 +83,7 @@ public sealed class User
     public void ChangePasswordHash(string passwordHash, DateTimeOffset updatedAtUtc)
     {
         PasswordHash = RequireText(passwordHash, 1_000, nameof(passwordHash));
+        TokenVersion++;
         UpdatedAtUtc = updatedAtUtc;
     }
 

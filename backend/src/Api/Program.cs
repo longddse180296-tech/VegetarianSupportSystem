@@ -1,4 +1,5 @@
 using Api.Configuration;
+using Api.Authorization;
 using Application;
 using Application.Features.Auth;
 using Infrastructure;
@@ -11,6 +12,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Seeding;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +70,7 @@ if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudienc
 }
 builder.Services.AddSingleton<IAccessTokenIssuer>(
     new JwtAccessTokenIssuer(jwtIssuer, jwtAudience, jwtSigningKey));
+builder.Services.AddScoped<AccountTokenValidator>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -77,29 +80,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnTokenValidated = async context =>
             {
-                var ids = context.Principal?.FindAll("sub").ToArray() ?? [];
-                var roles = context.Principal?.FindAll("role").ToArray() ?? [];
-                var tokenIds = context.Principal?.FindAll("jti").ToArray() ?? [];
-                if (ids.Length != 1 || roles.Length != 1 ||
-                    tokenIds.Length != 1 || !Guid.TryParseExact(tokenIds[0].Value, "N", out _) ||
-                    string.IsNullOrWhiteSpace(ids[0].Value) ||
-                    roles[0].Value is not ("User" or "Admin"))
-                {
-                    context.Fail("Invalid account claims.");
-                    return;
-                }
-
-                var accounts = context.HttpContext.RequestServices.GetRequiredService<IUserAccountRepository>();
-                var user = await accounts.FindByIdAsync(ids[0].Value, context.HttpContext.RequestAborted);
-                if (user is null || user.IsLocked || user.Role.ToString() != roles[0].Value)
-                {
-                    context.Fail("Account is unavailable or role has changed.");
-                    return;
-                }
-
-                var revokedTokens = context.HttpContext.RequestServices.GetRequiredService<IRevokedAccessTokenRepository>();
-                if (await revokedTokens.IsRevokedAsync(tokenIds[0].Value, context.HttpContext.RequestAborted))
-                    context.Fail("Token has been revoked.");
+                var validator = context.HttpContext.RequestServices.GetRequiredService<AccountTokenValidator>();
+                if (!await validator.IsValidAsync(context.Principal, context.HttpContext.RequestAborted))
+                    context.Fail("Token is no longer valid for this account.");
             }
         };
         options.TokenValidationParameters = new TokenValidationParameters
@@ -119,6 +102,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("password-reset-request", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("password-reset-submit", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 
 var app = builder.Build();
 await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
@@ -145,9 +152,11 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("/openapi/v1.json", "Vegetarian Support API v1"));
     app.MapGet("/", () => Results.Redirect("/swagger"))
         .ExcludeFromDescription();
-    app.MapPost("/api/dev-auth/token", (
+    app.MapPost("/api/dev-auth/token", async (
         DevelopmentTokenRequest request,
-        DevelopmentTokenIssuer tokenIssuer) =>
+        DevelopmentTokenIssuer tokenIssuer,
+        IUserAccountRepository accounts,
+        CancellationToken cancellationToken) =>
     {
         var userId = request.UserId?.Trim();
         var role = request.Role?.Trim();
@@ -161,7 +170,10 @@ if (app.Environment.IsDevelopment())
             });
         }
 
-        return Results.Ok(tokenIssuer.Issue(userId, role));
+        var user = await accounts.FindByIdAsync(userId, cancellationToken);
+        if (user is null || user.IsLocked || user.Role.ToString() != role)
+            return Results.BadRequest(new { message = "User ID and role must match an active account." });
+        return Results.Ok(tokenIssuer.Issue(userId, role, user.TokenVersion));
     }).WithTags("Development Auth");
 }
 
@@ -171,6 +183,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseRateLimiter();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();

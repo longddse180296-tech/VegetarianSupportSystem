@@ -17,6 +17,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.PhoneNumber).HasMaxLength(30);
         builder.Property(x => x.NormalizedEmail).HasMaxLength(254).IsRequired();
         builder.Property(x => x.PasswordHash).HasMaxLength(1_000).IsRequired();
+        builder.Property(x => x.TokenVersion).HasDefaultValue(0);
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(x => x.LockReason).HasMaxLength(1_000);
         builder.HasIndex(x => x.NormalizedEmail).IsUnique();

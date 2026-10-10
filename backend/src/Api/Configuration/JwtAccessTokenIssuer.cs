@@ -19,7 +19,8 @@ public sealed class JwtAccessTokenIssuer(string issuer, string audience, string 
             [
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-                new Claim("role", user.Role.ToString())
+                new Claim("role", user.Role.ToString()),
+                new Claim("ver", user.TokenVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
             ],
             expires: expiresAtUtc.UtcDateTime,
             signingCredentials: new SigningCredentials(

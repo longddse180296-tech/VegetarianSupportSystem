@@ -21,6 +21,8 @@ public static class DependencyInjection
     {
         services.AddScoped<AiChatService>();
         services.AddScoped<AuthService>();
+        services.AddScoped<PasswordResetService>();
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<AiChatGuestService>();
         services.AddScoped<FoodScanningService>();
         services.AddScoped<ModerationService>();
