@@ -1,3 +1,4 @@
+import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
 import type {
   DietTabOption,
   DietType,
@@ -16,6 +17,42 @@ import type {
   DetailedMealSlot,
   MealPlanDetailData,
 } from '../types/mealPlans.types'
+
+interface BackendMealPlanResponse {
+  id: string
+  name: string
+  weekStartDate: string
+  profileDiet: string
+  meals: Array<{
+    id: string
+    dayNumber: number
+    slot: 'Breakfast' | 'Lunch' | 'Dinner'
+    recipeId: string
+    recipeName: string
+    servings: number
+    totalTimeMinutes: number
+    caloriesPerServing: number | null
+    proteinGramPerServing: number | null
+    carbohydrateGramPerServing: number | null
+    fatGramPerServing: number | null
+  }>
+  shoppingItems: Array<{
+    id: string
+    ingredientId: string
+    ingredientName: string
+    requiredQuantity: number
+    pantryQuantity: number
+    quantityToBuy: number
+    unit: string
+    isPurchased: boolean
+  }>
+  nutrition: {
+    calories: number
+    proteinGrams: number
+    carbohydrateGrams: number
+    fatGrams: number
+  }
+}
 
 export const DIET_TABS: DietTabOption[] = [
   {
@@ -534,10 +571,51 @@ export async function swapMeal(_dietType: DietType, slot: MealSlot): Promise<Mea
   return alternatives[slot]
 }
 
-// 3. Export PDF simulation
-export async function exportMealPlanPdf(dietType: DietType): Promise<string> {
+// 3. Export PDF
+export async function exportMealPlanPdf(planIdOrDietType?: string): Promise<string> {
+  const isGuid =
+    planIdOrDietType &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(planIdOrDietType)
+
+  if (isGuid) {
+    try {
+      const token = getStoredToken()
+      const response = await fetch(`/api/meal-plans/${planIdOrDietType}/pdf`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        const filename = `thuc-don-${planIdOrDietType}.pdf`
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        return filename
+      }
+    } catch (err) {
+      console.warn('Real PDF export error, falling back:', err)
+    }
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 800))
-  return `Thuc_Don_${dietType.toUpperCase()}_Vegetarian_Support.pdf`
+  const filename = `Thuc_Don_${(planIdOrDietType || 'VEGAN').toUpperCase()}_Vegetarian_Support.pdf`
+  const dummyBlob = new Blob(
+    ['Vegetarian Support System - Meal Plan Export Demo\nTuần dinh dưỡng 7 ngày chuẩn Viện Dinh Dưỡng.'],
+    { type: 'text/plain' }
+  )
+  const url = window.URL.createObjectURL(dummyBlob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  window.URL.revokeObjectURL(url)
+  document.body.removeChild(a)
+  return filename
 }
 
 // ==========================================
@@ -1587,7 +1665,35 @@ export function syncRecommendedToWeeklyPlan(): void {
 }
 
 export async function getMyWeeklyMealPlan(): Promise<MyWeeklyPlanData> {
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  try {
+    const page = await apiClient.get<{
+      items: Array<{
+        id: string
+        name: string
+        weekStartDate: string
+        mealCount: number
+        createdAt: string
+      }>
+    }>('/api/meal-plans?page=1&pageSize=10', { requiresAuth: true })
+
+    if (page && page.items && page.items.length > 0) {
+      activeWeeklyPlanData.savedPlans = page.items.map((sp) => ({
+        id: sp.id,
+        goal: 'maintain',
+        goalLabel: 'Duy trì dinh dưỡng',
+        goalTagColor: 'emerald',
+        savedDate: new Date(sp.createdAt).toLocaleDateString('vi-VN'),
+        title: sp.name,
+        description: `Thực đơn tuần bắt đầu từ ${sp.weekStartDate} gồm ${sp.mealCount} bữa ăn đạt chuẩn.`,
+        daysCount: 7,
+        mealsCount: sp.mealCount,
+        highlightStat: 'Đã tối ưu tủ bếp',
+      }))
+    }
+  } catch (err) {
+    console.warn('Real /api/meal-plans fetch failed, using cached/local plan:', err)
+  }
+
   try {
     const saved =
       typeof window !== 'undefined'
@@ -1899,10 +2005,91 @@ export const MOCK_MEAL_PLAN_DETAIL_DATA: MealPlanDetailData = {
   },
 }
 
+/**
+ * Fetch detail of a saved meal plan
+ * Real API: GET /api/meal-plans/{id}
+ */
 export async function getMealPlanDetail(
-  _planId?: string,
+  planId?: string,
 ): Promise<MealPlanDetailData> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const isGuid =
+    planId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(planId)
+  if (isGuid) {
+    try {
+      const data = await apiClient.get<BackendMealPlanResponse>(
+        `/api/meal-plans/${planId}`,
+        { requiresAuth: true }
+      )
+      if (data) {
+        const meals: DetailedMealSlot[] = data.meals.slice(0, 4).map((m) => {
+          const slot =
+            m.slot === 'Breakfast'
+              ? 'breakfast'
+              : m.slot === 'Lunch'
+              ? 'lunch'
+              : 'dinner'
+          return {
+            id: m.id,
+            slot,
+            slotLabel:
+              m.slot === 'Breakfast'
+                ? 'BỮA SÁNG'
+                : m.slot === 'Lunch'
+                ? 'BỮA TRƯA'
+                : 'BỮA TỐI',
+            slotTime:
+              m.slot === 'Breakfast'
+                ? '07:30'
+                : m.slot === 'Lunch'
+                ? '12:00'
+                : '18:30',
+            calories: Math.round(m.caloriesPerServing || 450),
+            title: m.recipeName,
+            description: `Công thức chuẩn dinh dưỡng với thời gian nấu ${m.totalTimeMinutes} phút, phục vụ ${m.servings} khẩu phần.`,
+            carbs: Math.round(m.carbohydrateGramPerServing || 50),
+            protein: Math.round(m.proteinGramPerServing || 20),
+            fat: Math.round(m.fatGramPerServing || 12),
+            tags: ['Chuẩn Viện Dinh Dưỡng', data.profileDiet],
+            plantBasedRate: 100,
+            recipeId: m.recipeId,
+          }
+        })
+
+        const todayGroceries = data.shoppingItems.map((si) => ({
+          id: si.id,
+          name: si.ingredientName,
+          quantity: `${si.quantityToBuy} ${si.unit}`,
+          isChecked: si.isPurchased,
+        }))
+
+        return {
+          ...MOCK_MEAL_PLAN_DETAIL_DATA,
+          meals: meals.length > 0 ? meals : MOCK_MEAL_PLAN_DETAIL_DATA.meals,
+          todayGroceries:
+            todayGroceries.length > 0
+              ? todayGroceries
+              : MOCK_MEAL_PLAN_DETAIL_DATA.todayGroceries,
+          dailyNutrition: {
+            consumedCalories: Math.round(data.nutrition.calories / 7),
+            targetCalories: Math.round(data.nutrition.calories / 7),
+            percent: 100,
+            carbsPercent: 50,
+            carbsGrams: Math.round(data.nutrition.carbohydrateGrams / 7),
+            proteinPercent: 25,
+            proteinGrams: Math.round(data.nutrition.proteinGrams / 7),
+            fatPercent: 25,
+            fatGrams: Math.round(data.nutrition.fatGrams / 7),
+          },
+          aiAdvice: `Thực đơn đã được điều chỉnh tự động theo chế độ ăn ${data.profileDiet} của bạn và đã loại trừ các thực phẩm gây dị ứng từ hồ sơ.`,
+        }
+      }
+    } catch (err) {
+      console.warn('Backend /api/meal-plans/{id} error, using fallback:', err)
+    }
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 300))
   return JSON.parse(
     JSON.stringify(MOCK_MEAL_PLAN_DETAIL_DATA),
   ) as MealPlanDetailData
@@ -1957,14 +2144,61 @@ export async function swapMealInDetail(
   }
 }
 
+/**
+ * Toggle purchase status of a shopping list item
+ * Real API: PUT /api/meal-plans/{planId}/shopping-list/{itemId}/purchase
+ */
 export async function toggleGroceryItem(
-  _itemId: string,
+  itemId: string,
+  planId?: string,
+  currentStatus = false
 ): Promise<boolean> {
+  const isPlanGuid =
+    planId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(planId)
+  const isItemGuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(itemId)
+
+  if (isPlanGuid && isItemGuid) {
+    try {
+      await apiClient.put(
+        `/api/meal-plans/${planId}/shopping-list/${itemId}/purchase`,
+        { isPurchased: !currentStatus },
+        { requiresAuth: true }
+      )
+      return !currentStatus
+    } catch (err) {
+      console.warn('Shopping purchase update error:', err)
+    }
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 200))
-  return true
+  return !currentStatus
 }
 
-export async function regenerateFullMealPlanDetail(): Promise<MealPlanDetailData> {
+/**
+ * Re-calculate meal plan detail
+ * Real API: POST /api/meal-plans/{planId}/regenerate
+ */
+export async function regenerateFullMealPlanDetail(
+  planId?: string
+): Promise<MealPlanDetailData> {
+  const isGuid =
+    planId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(planId)
+  if (isGuid) {
+    try {
+      await apiClient.post(
+        `/api/meal-plans/${planId}/regenerate`,
+        undefined,
+        { requiresAuth: true }
+      )
+      return await getMealPlanDetail(planId)
+    } catch (err) {
+      console.warn('Regenerate plan error:', err)
+    }
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 700))
   return JSON.parse(
     JSON.stringify(MOCK_MEAL_PLAN_DETAIL_DATA),

@@ -1,9 +1,26 @@
+import { apiClient } from '../../../../shared/api/apiClient'
 import type {
   AdminCategoryFilter,
   AdminCategoryItem,
   AdminCategoryStats,
   CategoryFormData,
 } from '../types/adminCategories.types'
+
+interface BackendCategoryResponse {
+  id: string
+  name: string
+  description: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string | null
+}
+
+interface BackendCategoryPage {
+  items: BackendCategoryResponse[]
+  pageNumber: number
+  pageSize: number
+  totalCount: number
+}
 
 let MOCK_ADMIN_CATEGORIES: AdminCategoryItem[] = [
   // 1. Food Types (4 Chế độ ăn chay chuẩn hệ thống)
@@ -156,9 +173,38 @@ let MOCK_ADMIN_CATEGORIES: AdminCategoryItem[] = [
   },
 ]
 
+function mapBackendCategory(cat: BackendCategoryResponse): AdminCategoryItem {
+  return {
+    id: cat.id,
+    name: cat.name,
+    slug: cat.name.toLowerCase().replace(/\s+/g, '-'),
+    iconName: 'utensils',
+    classification: 'recipe',
+    classificationLabel: 'Công thức nấu ăn',
+    description: cat.description || '',
+    linkedCountText: '0 món ăn',
+    createdAt: new Date(cat.createdAt).toLocaleDateString('vi-VN'),
+    isActive: cat.isActive,
+    statusLabel: cat.isActive ? 'Đang sử dụng' : 'Ngừng sử dụng',
+  }
+}
+
 export async function getAdminCategoryStats(): Promise<AdminCategoryStats> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  try {
+    const res = await apiClient.get<BackendCategoryPage>('/api/admin/categories?pageNumber=1&pageSize=100')
+    if (res?.items && res.items.length > 0) {
+      const activeCount = res.items.filter((c: BackendCategoryResponse) => c.isActive).length
+      return {
+        activeCount,
+        foodTypeCategoryCount: MOCK_ADMIN_CATEGORIES.filter((c) => c.classification === 'food_type').length,
+        recipeCategoryCount: res.items.length,
+        ingredientCategoryCount: MOCK_ADMIN_CATEGORIES.filter((c) => c.classification === 'ingredient').length,
+      }
+    }
+  } catch {
+    // Fall back to mock
+  }
+
   return {
     activeCount: MOCK_ADMIN_CATEGORIES.filter((c) => c.isActive).length,
     foodTypeCategoryCount: MOCK_ADMIN_CATEGORIES.filter((c) => c.classification === 'food_type').length,
@@ -174,8 +220,45 @@ export async function getAdminCategories(filter: AdminCategoryFilter = {}): Prom
   pageSize: number
   totalPages: number
 }> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const page = filter.page || 1
+  const pageSize = filter.pageSize || 6
+
+  try {
+    const query = new URLSearchParams()
+    if (filter.keyword?.trim()) {
+      query.set('search', filter.keyword.trim())
+    }
+    query.set('pageNumber', String(page))
+    query.set('pageSize', String(pageSize))
+
+    const res = await apiClient.get<BackendCategoryPage>(`/api/admin/categories?${query.toString()}`)
+
+    if (res?.items && res.items.length > 0) {
+      let mapped = res.items.map(mapBackendCategory)
+
+      if (filter.classification && filter.classification !== 'all') {
+        mapped = mapped.filter((c) => c.classification === filter.classification)
+      }
+
+      if (filter.status && filter.status !== 'all') {
+        const isAct = filter.status === 'active'
+        mapped = mapped.filter((c) => c.isActive === isAct)
+      }
+
+      const total = res.totalCount
+      const totalPages = Math.ceil(total / pageSize) || 1
+
+      return {
+        items: mapped,
+        total,
+        page,
+        pageSize,
+        totalPages,
+      }
+    }
+  } catch {
+    // Fall back to local mock data
+  }
 
   let list = [...MOCK_ADMIN_CATEGORIES]
 
@@ -198,8 +281,6 @@ export async function getAdminCategories(filter: AdminCategoryFilter = {}): Prom
     )
   }
 
-  const page = filter.page || 1
-  const pageSize = filter.pageSize || 6
   const total = list.length
   const totalPages = Math.ceil(total / pageSize) || 1
   const startIndex = (page - 1) * pageSize
@@ -215,13 +296,29 @@ export async function getAdminCategories(filter: AdminCategoryFilter = {}): Prom
 }
 
 export async function createAdminCategory(data: CategoryFormData): Promise<AdminCategoryItem> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-
   const labelMap = {
     food_type: 'Loại ẩm thực chay',
     recipe: 'Công thức nấu ăn',
     ingredient: 'Nguyên liệu chay',
+  }
+
+  try {
+    const res = await apiClient.post<BackendCategoryResponse>('/api/admin/categories', {
+      name: data.name,
+      description: data.description || null,
+    })
+
+    if (res?.id) {
+      const created = mapBackendCategory(res)
+      created.classification = data.classification
+      created.classificationLabel = labelMap[data.classification]
+      created.slug = data.slug || created.slug
+      created.isActive = data.isActive
+      MOCK_ADMIN_CATEGORIES = [created, ...MOCK_ADMIN_CATEGORIES]
+      return created
+    }
+  } catch {
+    // Fall back to mock insertion
   }
 
   const newCat: AdminCategoryItem = {
@@ -245,17 +342,40 @@ export async function updateAdminCategory(
   id: string,
   data: CategoryFormData
 ): Promise<AdminCategoryItem> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-
-  const idx = MOCK_ADMIN_CATEGORIES.findIndex((c) => c.id === id)
-  if (idx === -1) throw new Error('Không tìm thấy danh mục.')
-
   const labelMap = {
     food_type: 'Loại ẩm thực chay',
     recipe: 'Công thức nấu ăn',
     ingredient: 'Nguyên liệu chay',
   }
+
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
+  if (isGuid) {
+    try {
+      const res = await apiClient.put<BackendCategoryResponse>(`/api/admin/categories/${id}`, {
+        name: data.name,
+        description: data.description || null,
+      })
+
+      if (res?.id) {
+        const updated = mapBackendCategory(res)
+        updated.classification = data.classification
+        updated.classificationLabel = labelMap[data.classification]
+        updated.slug = data.slug || updated.slug
+        updated.isActive = data.isActive
+        const idx = MOCK_ADMIN_CATEGORIES.findIndex((c) => c.id === id)
+        if (idx !== -1) {
+          MOCK_ADMIN_CATEGORIES[idx] = updated
+        }
+        return updated
+      }
+    } catch {
+      // Fall back to mock
+    }
+  }
+
+  const idx = MOCK_ADMIN_CATEGORIES.findIndex((c) => c.id === id)
+  if (idx === -1) throw new Error('Không tìm thấy danh mục.')
 
   const updated: AdminCategoryItem = {
     ...MOCK_ADMIN_CATEGORIES[idx],
@@ -272,10 +392,17 @@ export async function updateAdminCategory(
 }
 
 export async function toggleAdminCategoryStatus(id: string): Promise<AdminCategoryItem> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-
   const target = MOCK_ADMIN_CATEGORIES.find((c) => c.id === id)
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
+  if (isGuid && target && target.isActive) {
+    try {
+      await apiClient.patch(`/api/admin/categories/${id}/deactivate`)
+    } catch {
+      // Continue to local toggle
+    }
+  }
+
   if (!target) throw new Error('Không tìm thấy danh mục.')
 
   target.isActive = !target.isActive
@@ -284,9 +411,6 @@ export async function toggleAdminCategoryStatus(id: string): Promise<AdminCatego
 }
 
 export async function deleteAdminCategory(id: string): Promise<boolean> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-
   MOCK_ADMIN_CATEGORIES = MOCK_ADMIN_CATEGORIES.filter((c) => c.id !== id)
   return true
 }

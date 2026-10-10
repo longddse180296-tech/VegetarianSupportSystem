@@ -3,6 +3,7 @@ import { useAuth } from '../../features/auth'
 import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { RegisterPage } from '../../features/auth/pages/RegisterPage'
 import { ForgotPasswordPage } from '../../features/auth/pages/ForgotPasswordPage'
+import { ResetPasswordPage } from '../../features/auth/pages/ResetPasswordPage'
 import { ProfilePage } from '../../features/profile'
 import MembersPage from '../../features/admin/members/pages/MembersPage'
 import { AdminDashboardPage } from '../../features/admin/dashboard'
@@ -360,6 +361,10 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       return <LoginPage onNavigate={onNavigate} />
     }
     return <ProfilePage onNavigate={onNavigate} initialViewMode="overview" />
+  }
+
+  if (path.startsWith('/auth/reset-password') || path.startsWith('/reset-password')) {
+    return <ResetPasswordPage onNavigate={onNavigate} />
   }
 
   if (!ctx.user) {
