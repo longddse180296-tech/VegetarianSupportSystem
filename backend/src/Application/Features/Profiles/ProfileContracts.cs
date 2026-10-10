@@ -54,4 +54,9 @@ public sealed record UpdateBodyDetails(
     ActivityLevel? ActivityLevel,
     WeightGoal? WeightGoal);
 
+public sealed record ProfileEstimate(
+    decimal? Bmi,
+    AdultBmiCategory? AdultBmiCategory,
+    int? EstimatedTdeeKcal);
+
 public sealed class ProfileConflictException(string message) : Exception(message);

@@ -29,6 +29,7 @@ interface ProfileSettingsFormProps {
 }
 
 const REGION_OPTIONS = [
+  { value: '', label: 'Chưa chọn khu vực' },
   { value: 'Hà Nội (Khu vực trung tâm / Ba Đình)', label: 'Hà Nội (Khu vực trung tâm / Ba Đình)' },
   { value: 'Hà Nội (Cầu Giấy / Tây Hồ)', label: 'Hà Nội (Cầu Giấy / Tây Hồ)' },
   { value: 'Hà Nội (Đống Đa / Hai Bà Trưng)', label: 'Hà Nội (Đống Đa / Hai Bà Trưng)' },
@@ -55,9 +56,9 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
   const [activeTab, setActiveTab] = useState<'info' | 'diet' | 'allergies' | 'metrics'>('info')
   const [fullName, setFullName] = useState(initialProfile.fullName)
   const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatarUrl || PRESET_AVATARS[0])
-  const [phoneNumber, setPhoneNumber] = useState(initialProfile.phoneNumber || '0912 345 678')
+  const [phoneNumber, setPhoneNumber] = useState(initialProfile.phoneNumber || '')
   const [preferredRegion, setPreferredRegion] = useState(
-    initialProfile.preferredRegion || 'Hà Nội (Khu vực trung tâm / Ba Đình)',
+    initialProfile.preferredRegion || '',
   )
   const [dietaryType, setDietaryType] = useState<DietaryType>(initialProfile.dietaryType)
   const [allergies, setAllergies] = useState<string[]>(initialProfile.allergies)
@@ -220,7 +221,7 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
           }`}
         >
           <Activity className="w-3.5 h-3.5" />
-          <span>Chỉ số cơ thể &amp; BMI ({metrics.bmi})</span>
+          <span>Chỉ số cơ thể &amp; BMI ({metrics.bmi || '—'})</span>
         </button>
       </div>
 
@@ -379,7 +380,7 @@ export const ProfileSettingsForm: React.FC<ProfileSettingsFormProps> = ({
         {activeTab === 'metrics' && (
           <BodyMetricsCalculator
             metrics={metrics}
-            onChange={(newMetrics) => setMetrics(newMetrics)}
+            onChange={setMetrics}
             preferredProteins={initialProfile.preferredProteinSources}
             disabled={isLoading}
           />

@@ -92,7 +92,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const displayName = profile?.fullName || user?.fullName || 'Quang Duy'
   const displayEmail = profile?.email || user?.email || 'duy@gmail.com'
   const displayAvatar = profile?.avatarUrl || user?.avatarUrl
-  const displayDiet = profile?.dietaryType || 'Thuần thực vật (Vegan)'
+  const displayDiet = profile?.dietaryType || 'Chưa chọn chế độ ăn'
 
   return (
     <UserProfileShell

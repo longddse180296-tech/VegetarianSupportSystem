@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<FoodScanningService>();
         services.AddScoped<ModerationService>();
         services.AddScoped<ProfileService>();
+        services.AddScoped<IProfileContextReader>(provider => provider.GetRequiredService<ProfileService>());
         services.AddScoped<MemberService>();
         services.AddScoped<CategoryService>();
         services.AddScoped<IngredientService>();

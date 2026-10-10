@@ -77,6 +77,8 @@ Khối “Thông tin tài khoản & liên hệ” dùng `PUT /api/profile/me/per
 
 Khối “Chỉ số cơ thể & mục tiêu” dùng `PUT /api/profile/me/body` với `{ "birthDate": "2000-01-01", "sexForEnergyEstimate": "Female", "heightCm": 165.5, "weightKg": 60.2, "activityLevel": "ModeratelyActive", "weightGoal": "Maintain" }`. Endpoint thay toàn bộ sáu trường của khối này (`null` để xóa từng giá trị), giữ nguyên liên hệ, chế độ ăn, dị ứng và thực phẩm tránh; trả `200` với BMI/TDEE tính lại. Dữ liệu không hợp lệ trả `400`.
 
+Khi chỉnh sửa nhưng chưa lưu, `POST /api/profile/me/body/estimate` nhận đúng sáu trường của `PUT .../body` và trả `200` với `{ "bmi": 22.0, "adultBmiCategory": "HealthyWeight", "estimatedTdeeKcal": 2085 }`. Endpoint dùng cùng validation và cùng `ProfileNutritionEstimator` với response hồ sơ; không ghi DB hoặc sửa hồ sơ hiện tại. Trường thiếu dữ liệu trả `null` theo quy tắc bên trên. Guest nhận `401`, tài khoản/hồ sơ không tồn tại nhận `404`, dữ liệu không hợp lệ nhận `400`. FE có thể gọi khi input thay đổi (nên debounce) và chỉ hiển thị kết quả khớp với bộ input hiện tại. Kết quả xem trước chỉ được lưu khi người dùng gọi endpoint cập nhật hồ sơ.
+
 ## Dị ứng và thực phẩm cần tránh
 
 | Thao tác | Dị ứng | Thực phẩm cần tránh | Kết quả |
@@ -88,3 +90,13 @@ Khối “Chỉ số cơ thể & mục tiêu” dùng `PUT /api/profile/me/body`
 Body cho thêm/đổi tên: `{ "name": "Đậu phộng" }`. `name` dài 1–150 ký tự sau khi cắt khoảng trắng. Tên trùng trong cùng danh sách không phân biệt chữ hoa/thường trả `409`. Dị ứng và thực phẩm cần tránh là hai danh sách độc lập, nên cùng tên có thể nằm trong cả hai. ID không thuộc hồ sơ hiện tại trả `404`; tên không hợp lệ trả `400`. Không có kết luận an toàn dị ứng từ việc lưu danh sách này.
 
 Schema gốc có trong migration `UserAccountsAndProfiles`: `Users` 1–1 `UserProfiles`, và `UserProfiles` 1–n `UserAllergies`/`UserAvoidedFoods`. Migration `UserContactPhone` thêm cột `Users.PhoneNumber` tùy chọn; cần áp dụng migration này trên DB triển khai.
+
+## Mapping cho FE và các module backend
+
+FE giữ giao diện/profile model hiện tại và dùng `profileApi` để ánh xạ response `GET /api/profile/me` vào các tên đang hiển thị: `userId → id`, `restaurantArea → preferredRegion`, `diet → dietaryType`, `birthDate → metrics.age`, `sexForEnergyEstimate → metrics.gender`, `activityLevel → metrics.activityLevel`, `weightGoal → metrics.goal`, `memberSinceUtc → createdAt`, `updatedAtUtc → updatedAt`. Trước khi `PUT`, adapter chuyển các trường này về enum/tên backend, chỉ gửi các trường thuộc hợp đồng. FE đang nhập **tuổi**, nên khi tuổi thay đổi adapter quy đổi thành ngày sinh theo ngày hiện tại trừ số tuổi; đây là ngày quy đổi để tính toán, không phải ngày sinh chính xác do người dùng xác nhận. Nếu tuổi không đổi, giữ `birthDate` gốc. `allergies` được đối chiếu theo tên và gọi CRUD từng mục; `avoidedFoods` hiện được đọc và giữ nguyên.
+
+`bmi`, `adultBmiCategory` và `estimatedTdeeKcal` chỉ được đọc từ response backend. Khi chỉnh sửa số đo, giao diện cũ hiển thị kết quả xem trước từ `POST .../body/estimate`; sau `PUT` hiển thị kết quả hồ sơ đã lưu. FE dùng `0` nội bộ để biểu diễn kết quả `null` và hiển thị `—`/“Chưa đủ dữ liệu”, không dùng số mẫu. FE không tính BMR, TDEE, phân bổ đa lượng hoặc tự cộng/trừ calo theo mục tiêu. Nhãn BMI người lớn theo ngưỡng backend: 18.5, 25, 30. Luôn ghi rõ đây là ước tính tham khảo.
+
+Ảnh đại diện, quy tắc nguyên liệu ẩn, nguồn protein ưa thích, BMR và phân bổ đa lượng chưa thuộc hợp đồng profile. FE giữ một số lựa chọn UI chưa có backend trong localStorage theo `userId`, nhưng không gửi chúng trong `PUT /api/profile/me` và không mô tả chúng là dữ liệu sức khỏe đã đồng bộ. Thống kê bài viết/bình luận/video phải lấy từ module nội dung tương ứng khi có dữ liệu thật, không nằm trong response profile hiện tại.
+
+Trong backend, `Application.Features.Profiles.IProfileContextReader.GetContextAsync(userId, ct)` cung cấp `ProfileContext` chỉ đọc cho chat, scan, thực đơn và tủ bếp. DTO gồm chế độ ăn, dữ liệu cơ thể, mục tiêu, BMI/TDEE, khu vực, tên dị ứng/thực phẩm tránh và thời điểm cập nhật; không gồm email, số điện thoại hoặc mật khẩu. Module gọi truyền ID người dùng đã xác thực và tự lưu bản sao các trường cần thiết vào snapshot của mình. Việc cập nhật hồ sơ sau đó không làm thay đổi snapshot đã lưu.

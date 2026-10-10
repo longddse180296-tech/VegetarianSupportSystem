@@ -39,21 +39,20 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
       case 'underweight':
         return { label: 'Thiếu cân', color: 'text-amber-600 bg-amber-50 border-amber-200' }
       case 'normal':
-        return { label: 'Chuẩn lý tưởng', color: 'text-[#2e7d32] bg-[#e8f5e9] border-emerald-200' }
+        return { label: 'Cân nặng phù hợp', color: 'text-[#2e7d32] bg-[#e8f5e9] border-emerald-200' }
       case 'overweight':
         return { label: 'Thừa cân', color: 'text-orange-600 bg-orange-50 border-orange-200' }
       case 'obese':
         return { label: 'Béo phì', color: 'text-rose-600 bg-rose-50 border-rose-200' }
       default:
-        return { label: 'Bình thường', color: 'text-[#2e7d32] bg-[#e8f5e9] border-emerald-200' }
+        return { label: 'Chưa đủ dữ liệu', color: 'text-slate-600 bg-slate-50 border-slate-200' }
     }
   }
 
   const bmiInfo = getBMILabel(profile.metrics.bmiCategory)
 
-  // Asian-Pacific BMI: min 15, max 30 for visualization pin
-  const clampedBMI = Math.min(Math.max(profile.metrics.bmi, 15), 30)
-  const pinPercentage = ((clampedBMI - 15) / 15) * 100
+  const clampedBMI = Math.min(Math.max(profile.metrics.bmi, 15), 35)
+  const pinPercentage = ((clampedBMI - 15) / 20) * 100
 
   // Personalized AI Nutrition Advice based on profile metrics & diet
   const getAiAdvice = () => {
@@ -61,9 +60,31 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
     const bmiVal = profile.metrics.bmi
     const calorieNeed = profile.metrics.tdeeKcal
 
-    if (bmiVal < 18.5) {
+    if (!bmiVal) {
       return {
-        summary: `Chỉ số BMI của bạn là ${bmiVal} (Thiếu cân nhẹ). Mục tiêu năng lượng khuyến nghị: ${calorieNeed.toLocaleString()} kcal/ngày.`,
+        summary: 'Hãy khai báo số đo và thông tin cơ thể để xem BMI/TDEE ước tính từ backend.',
+        details: 'Kết quả dinh dưỡng chỉ mang tính tham khảo và không thay thế tư vấn y khoa.',
+        actionLabel: 'Cập nhật hồ sơ', actionPath: '/profile/settings',
+      }
+    }
+    if (!calorieNeed) {
+      return {
+        summary: `BMI ước tính là ${bmiVal}. Chưa đủ dữ liệu để ước tính TDEE.`,
+        details: 'Hãy kiểm tra tuổi, giới tính và mức vận động. Kết quả chỉ mang tính tham khảo.',
+        actionLabel: 'Cập nhật hồ sơ', actionPath: '/profile/settings',
+      }
+    }
+    if (profile.metrics.bmiCategory === 'unknown') {
+      return {
+        summary: `BMI ước tính là ${bmiVal}; TDEE ước tính là ${calorieNeed.toLocaleString()} kcal/ngày.`,
+        details: 'Chưa có phân loại BMI người lớn cho độ tuổi này. Kết quả chỉ mang tính tham khảo.',
+        actionLabel: 'Xem hồ sơ', actionPath: '/profile/settings',
+      }
+    }
+
+    if (profile.metrics.bmiCategory === 'underweight') {
+      return {
+        summary: `BMI ước tính của bạn là ${bmiVal}; TDEE ước tính là ${calorieNeed.toLocaleString()} kcal/ngày.`,
         details: isVegan
           ? 'Nên bổ sung thêm các nguồn chất béo lành mạnh như bơ đậu phộng, hạt chia, dầu ô liu và các món đậu hũ non chiên giòn, sữa hạt óc chó để tăng mật độ calo an toàn.'
           : 'Có thể bổ sung thêm phô mai, sữa chua thanh trùng và các bữa phụ dinh dưỡng từ hạt hạnh nhân để tăng cân lành mạnh.',
@@ -71,9 +92,9 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
         actionPath: '/meal-plans',
       }
     }
-    if (bmiVal >= 25) {
+    if (profile.metrics.bmiCategory === 'overweight' || profile.metrics.bmiCategory === 'obese') {
       return {
-        summary: `Chỉ số BMI của bạn là ${bmiVal} (Cần chú ý kiểm soát). Khuyến nghị mức tiêu thụ: ${calorieNeed.toLocaleString()} kcal/ngày.`,
+        summary: `BMI ước tính của bạn là ${bmiVal}; TDEE ước tính là ${calorieNeed.toLocaleString()} kcal/ngày.`,
         details:
           'Nên ưu tiên các món hấp, luộc, canh rau củ tươi mát, tăng cường nấm hương, đậu lăng và giảm bớt các món chay chiên rán nhiều dầu mỡ ngập.',
         actionLabel: 'Khám phá thực đơn thâm hụt calo',
@@ -81,7 +102,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
       }
     }
     return {
-      summary: `Thể trạng của bạn đang ở mức Chuẩn lý tưởng Á Đông (BMI ${bmiVal}) với nhu cầu năng lượng cân đối ~${calorieNeed.toLocaleString()} kcal/ngày!`,
+      summary: `BMI ước tính là ${bmiVal}; TDEE ước tính khoảng ${calorieNeed.toLocaleString()} kcal/ngày.`,
       details: isVegan
         ? 'Duy trì phối hợp đa dạng các họ đậu (đậu gà, đậu đỏ, đậu đen) cùng ngũ cốc nguyên cám để đảm bảo chuỗi acid amin thiết yếu và bổ sung Vitamin B12 định kỳ.'
         : 'Chế độ ăn của bạn rất hài hòa giữa nguồn đạm thực vật và vi chất. Hãy tiếp tục duy trì lượng nước từ 2 - 2.5 lít/ngày và chế độ luyện tập đều đặn.',
@@ -118,7 +139,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-[#6b7280] mt-0.5">
-                Phân tích dữ liệu theo thể trạng &amp; trường phái {profile.dietaryType}
+                 Tham khảo hồ sơ thể trạng &amp; chế độ {profile.dietaryType || 'chưa chọn'}
               </p>
             </div>
           </div>
@@ -176,13 +197,13 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-[#2e7d32]" />
             <h3 className="text-sm font-bold text-[#1f2937]">
-              Phổ Thể trạng BMI Chuẩn Á Đông (Asian-Pacific)
+               Phổ BMI người lớn theo ngưỡng backend
             </h3>
           </div>
           <span
             className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${bmiInfo.color} inline-flex items-center gap-1`}
           >
-            <span>BMI {profile.metrics.bmi}</span>
+             <span>BMI {profile.metrics.bmi || '—'}</span>
             <span>•</span>
             <span>{bmiInfo.label}</span>
           </span>
@@ -191,35 +212,32 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
         {/* Linear Track (8px height, radius 9999px) with floating 16px circular pin */}
         <div className="relative pt-6 pb-2">
           {/* Floating 16px Circular Pin Indicator with Tooltipped Readout */}
-          <div
+           {profile.metrics.bmi > 0 && profile.metrics.bmiCategory !== 'unknown' && <div
             className="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-all duration-300 z-10"
             style={{ left: `${pinPercentage}%` }}
           >
             <div className="bg-[#1b5e20] text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm whitespace-nowrap mb-1">
-              {profile.metrics.bmi}
-            </div>
+               {profile.metrics.bmi}
+           </div>
             <div className="w-4 h-4 rounded-full bg-[#2e7d32] border-2 border-white ring-2 ring-emerald-300 shadow-sm" />
-          </div>
+          </div>}
 
           {/* 8px Track */}
           <div className="w-full h-2 rounded-full flex overflow-hidden bg-slate-100 shadow-inner">
             {/* Underweight: < 18.5 */}
             <div className="h-full bg-amber-400 flex-[3.5]" title="Thiếu cân (< 18.5)" />
-            {/* Normal: 18.5 - 22.9 */}
-            <div className="h-full bg-[#2e7d32] flex-[4.4]" title="Chuẩn lý tưởng (18.5 - 22.9)" />
-            {/* Overweight: 23.0 - 24.9 */}
-            <div className="h-full bg-orange-400 flex-[2.0]" title="Thừa cân (23.0 - 24.9)" />
-            {/* Obese: >= 25.0 */}
-            <div className="h-full bg-rose-500 flex-[5.1]" title="Béo phì (≥ 25.0)" />
+             <div className="h-full bg-[#2e7d32] flex-[6.5]" title="Cân nặng phù hợp (18.5 - 24.9)" />
+             <div className="h-full bg-orange-400 flex-[5]" title="Thừa cân (25.0 - 29.9)" />
+             <div className="h-full bg-rose-500 flex-[5]" title="Béo phì (≥ 30.0)" />
           </div>
         </div>
 
         {/* Labels under spectrum bar */}
         <div className="grid grid-cols-4 text-[11px] text-[#6b7280] text-center font-medium pt-1">
           <span>Thiếu cân (&lt; 18.5)</span>
-          <span className="text-[#1b5e20] font-bold">Chuẩn lý tưởng (18.5 - 22.9)</span>
-          <span>Thừa cân (23 - 24.9)</span>
-          <span>Béo phì (≥ 25)</span>
+           <span className="text-[#1b5e20] font-bold">Phù hợp (18.5 - 24.9)</span>
+           <span>Thừa cân (25 - 29.9)</span>
+           <span>Béo phì (≥ 30)</span>
         </div>
       </div>
 
@@ -235,7 +253,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </div>
           <div>
             <div className="text-base font-bold text-[#1f2937] leading-snug">
-              {profile.dietaryType}
+               {profile.dietaryType || 'Chưa chọn'}
             </div>
             <p className="text-[11px] text-[#6b7280] mt-1">Đồng bộ toàn bộ công thức</p>
           </div>
@@ -251,7 +269,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </div>
           <div>
             <div className="text-xl font-black text-[#1f2937] tabular-nums tracking-tight">
-              {profile.metrics.bmi}
+               {profile.metrics.bmi || '—'}
             </div>
             <p className="text-[11px] font-medium text-[#2e7d32] mt-0.5">{bmiInfo.label}</p>
           </div>
@@ -267,7 +285,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </div>
           <div>
             <div className="text-xl font-black text-[#1f2937] tabular-nums tracking-tight">
-              {profile.metrics.tdeeKcal.toLocaleString()}
+               {profile.metrics.tdeeKcal ? profile.metrics.tdeeKcal.toLocaleString() : '—'}
               <span className="text-xs font-medium text-[#6b7280] ml-1">kcal/ngày</span>
             </div>
             <p className="text-[11px] text-[#6b7280] mt-0.5">Ước tính theo Mifflin-St Jeor</p>

@@ -1,18 +1,21 @@
 export type DietaryType =
+  | ''
   | 'Vegan'
   | 'Lacto-vegetarian'
   | 'Ovo-vegetarian'
   | 'Lacto-ovo vegetarian'
 
 export type GoalType =
+  | ''
   | 'maintain' // Duy trì cân nặng & Tăng cường sinh lực
   | 'weight_loss' // Giảm cân khoa học
   | 'muscle_gain' // Tăng cơ thuần chay
   | 'general_health' // Sức khỏe tổng quát
 
-export type GenderType = 'male' | 'female'
+export type GenderType = 'male' | 'female' | ''
 
 export type ActivityLevel =
+  | ''
   | 'sedentary' // Ít vận động (nhân viên văn phòng, ít tập thể dục)
   | 'light' // Vận động nhẹ (tập 1-3 ngày/tuần)
   | 'moderate' // Vận động vừa phải (tập 3-5 ngày/tuần)
@@ -26,13 +29,14 @@ export interface BodyMetrics {
   heightCm: number
   weightKg: number
   bmi: number
-  bmiCategory: 'underweight' | 'normal' | 'overweight' | 'obese'
+  bmiCategory: 'underweight' | 'normal' | 'overweight' | 'obese' | 'unknown'
   bmrKcal: number
   tdeeKcal: number
   goal: GoalType
   dailyProteinGrams: number
   dailyCarbsGrams: number
   dailyFatGrams: number
+  birthDate?: string | null
 }
 
 export interface HiddenIngredientRules {
@@ -52,6 +56,8 @@ export interface UserProfile {
   preferredRegion?: string
   dietaryType: DietaryType
   allergies: string[]
+  allergyItems?: { id: string; name: string }[]
+  avoidedFoods?: { id: string; name: string }[]
   hiddenIngredientRules: HiddenIngredientRules
   metrics: BodyMetrics
   preferredProteinSources: string[]

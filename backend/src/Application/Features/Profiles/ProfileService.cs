@@ -4,8 +4,26 @@ using Domain.Rules;
 
 namespace Application.Features.Profiles;
 
-public sealed class ProfileService(IUserProfileRepository profiles)
+public sealed class ProfileService(IUserProfileRepository profiles) : IProfileContextReader
 {
+    public async Task<ProfileContext?> GetContextAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await profiles.FindByIdAsync(userId, cancellationToken);
+        if (user?.Profile is null) return null;
+
+        var profile = user.Profile;
+        var estimate = ProfileNutritionEstimator.Calculate(profile,
+            DateOnly.FromDateTime(DateTime.UtcNow));
+        return new ProfileContext(user.Id, profile.Diet, profile.BirthDate,
+            profile.SexForEnergyEstimate, profile.HeightCm, profile.WeightKg,
+            profile.ActivityLevel, profile.WeightGoal, estimate.Bmi,
+            estimate.AdultBmiCategory, estimate.EstimatedTdeeKcal,
+            profile.RestaurantArea,
+            profile.Allergies.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
+            profile.AvoidedFoods.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
+            profile.UpdatedAtUtc);
+    }
+
     public async Task<ProfileDetails?> GetAsync(string userId, CancellationToken cancellationToken)
     {
         var user = await profiles.FindByIdAsync(userId, cancellationToken);
@@ -59,6 +77,22 @@ public sealed class ProfileService(IUserProfileRepository profiles)
             DateTimeOffset.UtcNow);
         await profiles.SaveChangesAsync(cancellationToken);
         return Map(user);
+    }
+
+    public async Task<ProfileEstimate?> PreviewBodyAsync(
+        string userId, UpdateBodyDetails request, CancellationToken cancellationToken)
+    {
+        var user = await profiles.FindByIdAsync(userId, cancellationToken);
+        if (user?.Profile is null) return null;
+
+        var now = DateTimeOffset.UtcNow;
+        var candidate = UserProfile.Create(userId, now);
+        candidate.SetBodyData(request.BirthDate, request.SexForEnergyEstimate,
+            request.HeightCm, request.WeightKg, request.ActivityLevel, request.WeightGoal, now);
+        var result = ProfileNutritionEstimator.Calculate(candidate,
+            DateOnly.FromDateTime(now.UtcDateTime));
+        return new ProfileEstimate(result.Bmi, result.AdultBmiCategory,
+            result.EstimatedTdeeKcal);
     }
 
     public async Task<ProfileDetails?> SetDietAsync(
