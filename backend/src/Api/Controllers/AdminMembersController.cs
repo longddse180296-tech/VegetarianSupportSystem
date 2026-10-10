@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Api.Authorization;
 using Application.Features.Administration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -50,7 +51,7 @@ public sealed class AdminMembersController(MemberService members) : ControllerBa
 
     private async Task<IActionResult> ChangeStatus(string id, string? reason, bool lockAccount, CancellationToken cancellationToken)
     {
-        var adminId = User.FindFirst("sub")?.Value;
+        var adminId = User.GetUserId();
         if (string.IsNullOrWhiteSpace(adminId)) return Unauthorized();
         try
         {

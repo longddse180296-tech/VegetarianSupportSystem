@@ -1,5 +1,6 @@
 using Application.Abstractions.AI;
 using Application.Features.AiChat;
+using Application.Features.Articles;
 using Application.Features.Administration;
 using Application.Features.Auth;
 using Application.Features.Moderation;
@@ -36,8 +37,10 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IAiChatRepository, AiChatRepository>();
+        services.AddScoped<IArticleRepository, ArticleRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IRevokedAccessTokenRepository, RevokedAccessTokenRepository>();
         services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();

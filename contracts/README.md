@@ -20,6 +20,10 @@ Hợp đồng xem/cập nhật hồ sơ cá nhân, dị ứng và thực phẩm 
 
 Hợp đồng danh sách, chi tiết và khóa/mở khóa thành viên Admin ở [admin-members.md](admin-members.md).
 
+Hợp đồng số liệu thực, hàng đợi và hoạt động gần đây của Admin Dashboard ở [admin-dashboard.md](admin-dashboard.md).
+
+Hợp đồng bài viết public, nháp của tôi, phiên bản và gửi kiểm duyệt ở [articles.md](articles.md).
+
 Quy ước nghiệp vụ và tích hợp của Categories, Ingredients, Recipes được ghi tại [Core Data tuần 1](core-data.md). Không duy trì thêm một bản OpenAPI thủ công cạnh tranh trong thư mục này.
 
 Phân biệt bắt buộc:

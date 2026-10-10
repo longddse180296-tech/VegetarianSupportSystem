@@ -1,4 +1,5 @@
 using Application.Features.AiChat;
+using Application.Features.Articles;
 using Application.Features.Administration;
 using Application.Features.Auth;
 using Application.Features.FoodScanning;
@@ -20,6 +21,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<AiChatService>();
+        services.AddScoped<ArticleService>();
         services.AddScoped<AuthService>();
         services.AddScoped<PasswordResetService>();
         services.AddSingleton(TimeProvider.System);
@@ -29,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<ProfileService>();
         services.AddScoped<IProfileContextReader>(provider => provider.GetRequiredService<ProfileService>());
         services.AddScoped<MemberService>();
+        services.AddScoped<DashboardService>();
         services.AddScoped<CategoryService>();
         services.AddScoped<IngredientService>();
         services.AddScoped<RecipeService>();
