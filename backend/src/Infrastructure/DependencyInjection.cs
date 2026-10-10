@@ -15,6 +15,7 @@ using Application.Features.Restaurants;
 using Application.Features.Pantry;
 using Application.Features.Favorites;
 using Application.Features.MealPlans;
+using Application.Features.Comments;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
 using Infrastructure.Documents;
@@ -38,6 +39,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAiChatRepository, AiChatRepository>();
         services.AddScoped<IArticleRepository, ArticleRepository>();
+        services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();

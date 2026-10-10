@@ -12,6 +12,7 @@ using Application.Features.Restaurants;
 using Application.Features.Pantry;
 using Application.Features.Favorites;
 using Application.Features.MealPlans;
+using Application.Features.Comments;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -22,6 +23,7 @@ public static class DependencyInjection
     {
         services.AddScoped<AiChatService>();
         services.AddScoped<ArticleService>();
+        services.AddScoped<CommentService>();
         services.AddScoped<AuthService>();
         services.AddScoped<PasswordResetService>();
         services.AddSingleton(TimeProvider.System);

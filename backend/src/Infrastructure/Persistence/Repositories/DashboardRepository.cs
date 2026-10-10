@@ -33,11 +33,12 @@ public sealed class DashboardRepository(AppDbContext db) : IDashboardRepository
         var publishedArticles = await db.ModerationSubmissions.AsNoTracking().CountAsync(
             x => x.ContentType == ModeratedContentType.Article && x.IsCurrentPublished,
             cancellationToken);
-        // Comments have no backing table yet; null means the metric is unavailable.
         var publishedVideos = await db.ModerationSubmissions.AsNoTracking().CountAsync(
             x => x.ContentType == ModeratedContentType.Video && x.IsCurrentPublished,
             cancellationToken);
-        var content = new DashboardContent(publishedArticles, publishedVideos, null);
+        var visibleComments = await db.Comments.AsNoTracking().CountAsync(
+            x => x.Status == CommentStatus.Visible, cancellationToken);
+        var content = new DashboardContent(publishedArticles, publishedVideos, visibleComments);
 
         var pendingArticles = await db.ModerationSubmissions.AsNoTracking().CountAsync(
             x => x.ContentType == ModeratedContentType.Article &&

@@ -24,6 +24,8 @@ Hợp đồng số liệu thực, hàng đợi và hoạt động gần đây c�
 
 Hợp đồng bài viết public, nháp của tôi, phiên bản và gửi kiểm duyệt ở [articles.md](articles.md).
 
+Hợp đồng bình luận, phản hồi, quản trị bình luận và helpful/like ở [comments.md](comments.md).
+
 Quy ước nghiệp vụ và tích hợp của Categories, Ingredients, Recipes được ghi tại [Core Data tuần 1](core-data.md). Không duy trì thêm một bản OpenAPI thủ công cạnh tranh trong thư mục này.
 
 Phân biệt bắt buộc:
