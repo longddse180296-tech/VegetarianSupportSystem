@@ -125,12 +125,12 @@ export const MyCommentsPage: React.FC<MyCommentsPageProps> = ({ onNavigate }) =>
       statBadge={{ count: 34, label: 'Bình luận' }}
       onNavigate={onNavigate}
     >
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
         {/* Header Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Lịch sử bình luận</h2>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">Lịch sử bình luận</h2>
+            <p className="text-xs text-slate-500 font-normal leading-normal mt-1">
               Tổng cộng 34 bình luận trên các công thức món, cẩm nang sức khỏe và video chia sẻ.
             </p>
           </div>
@@ -138,7 +138,7 @@ export const MyCommentsPage: React.FC<MyCommentsPageProps> = ({ onNavigate }) =>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'newest' | 'likes')}
-              className="px-3.5 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-semibold cursor-pointer"
             >
               <option value="newest">Sắp xếp: Mới nhất trước</option>
               <option value="likes">Sắp xếp: Lượt thích nhiều nhất</option>
@@ -148,12 +148,12 @@ export const MyCommentsPage: React.FC<MyCommentsPageProps> = ({ onNavigate }) =>
 
         {/* Action feedback */}
         {actionSuccessMsg && (
-          <div className="my-4 p-3 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-medium border border-emerald-100 flex items-center justify-between">
+          <div className="my-4 p-3.5 bg-[#EAF5EE] text-[#1E6531] rounded-xl text-xs font-bold border border-emerald-200/80 flex items-center justify-between">
             <span>✓ {actionSuccessMsg}</span>
             <button
               type="button"
               onClick={() => setActionSuccessMsg(null)}
-              className="text-emerald-600 hover:text-emerald-800"
+              className="text-[#1E6531] hover:text-emerald-900 p-1 cursor-pointer"
             >
               ✕
             </button>
@@ -162,17 +162,17 @@ export const MyCommentsPage: React.FC<MyCommentsPageProps> = ({ onNavigate }) =>
 
         {/* Source Tabs & Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 my-6">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             <button
               type="button"
               onClick={() => {
                 setSelectedSource('all')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer border ${
                 selectedSource === 'all'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Tất cả (34)
@@ -183,10 +183,10 @@ export const MyCommentsPage: React.FC<MyCommentsPageProps> = ({ onNavigate }) =>
                 setSelectedSource('recipe')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer border ${
                 selectedSource === 'recipe'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Trên Công thức (16)
@@ -197,10 +197,10 @@ export const MyCommentsPage: React.FC<MyCommentsPageProps> = ({ onNavigate }) =>
                 setSelectedSource('article')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer border ${
                 selectedSource === 'article'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Trên Bài viết (12)
@@ -211,10 +211,10 @@ export const MyCommentsPage: React.FC<MyCommentsPageProps> = ({ onNavigate }) =>
                 setSelectedSource('video')
                 setCurrentPage(1)
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer border ${
                 selectedSource === 'video'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Trên Video (6)

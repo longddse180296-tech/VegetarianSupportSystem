@@ -12,7 +12,7 @@ let MOCK_ADMIN_ARTICLES: AdminArticleItem[] = [
     readTimeMinutes: 6,
     authorInitials: 'MA',
     authorName: 'Nguyễn Minh Anh',
-    authorColorClass: 'bg-emerald-100 text-emerald-800',
+    authorColorClass: 'bg-emerald-100 text-[#1b5e20]',
     category: 'nutrition',
     categoryLabel: 'Dinh dưỡng',
     publishedAt: '10/10/2026',
@@ -23,15 +23,15 @@ let MOCK_ADMIN_ARTICLES: AdminArticleItem[] = [
   },
   {
     id: 'adm-art-2',
-    title: 'Cách làm sữa hạt điều mè đen thơm béo tại nhà',
+    title: 'Cách làm sữa hạt điều mè đen thơm béo tại nhà không tách nước',
     wordCount: 890,
     readTimeMinutes: 4,
     authorInitials: 'TH',
     authorName: 'Lê Thu Hà',
-    authorColorClass: 'bg-emerald-100 text-emerald-800',
+    authorColorClass: 'bg-emerald-100 text-[#1b5e20]',
     category: 'cooking-tips',
     categoryLabel: 'Mẹo nấu ăn',
-    publishedAt: '02/10/2026',
+    publishedAt: '08/10/2026',
     readCount: 942,
     voteCount: 35,
     status: 'published',
@@ -39,28 +39,28 @@ let MOCK_ADMIN_ARTICLES: AdminArticleItem[] = [
   },
   {
     id: 'adm-art-3',
-    title: 'Thực đơn thuần chay 7 ngày thanh lọc cơ thể hiệu quả',
-    wordCount: 2100,
-    readTimeMinutes: 10,
-    authorInitials: 'GH',
-    authorName: 'Trần Gia Huy',
-    authorColorClass: 'bg-slate-100 text-slate-800',
-    category: 'lifestyle',
-    categoryLabel: 'Lối sống chay',
-    publishedAt: '24/09/2026',
-    readCount: 3250,
-    voteCount: 62,
-    status: 'published',
-    statusLabel: 'Đang hiển thị',
+    title: 'Bí quyết cân bằng Acid Amin và Vitamin B12 cho người ăn chay trường',
+    wordCount: 1750,
+    readTimeMinutes: 8,
+    authorInitials: 'QT',
+    authorName: 'Trần Quốc Tuấn',
+    authorColorClass: 'bg-amber-100 text-amber-800',
+    category: 'nutrition',
+    categoryLabel: 'Dinh dưỡng',
+    publishedAt: 'Hôm nay',
+    readCount: 0,
+    voteCount: 0,
+    status: 'pending',
+    statusLabel: 'Chờ kiểm duyệt',
   },
   {
     id: 'adm-art-4',
-    title: 'Kinh nghiệm chọn nấm tươi ngon và bảo quản đúng cách',
+    title: 'Kinh nghiệm chọn nấm tươi ngon và bảo quản đúng cách không bị thâm',
     wordCount: 1050,
     readTimeMinutes: 5,
     authorInitials: 'PB',
     authorName: 'Phạm Quốc Bảo',
-    authorColorClass: 'bg-emerald-100 text-emerald-800',
+    authorColorClass: 'bg-emerald-100 text-[#1b5e20]',
     category: 'ingredients',
     categoryLabel: 'Nguyên liệu',
     publishedAt: '15/09/2026',
@@ -71,7 +71,23 @@ let MOCK_ADMIN_ARTICLES: AdminArticleItem[] = [
   },
   {
     id: 'adm-art-5',
-    title: 'Những sai lầm phổ biến khi mới bắt đầu ăn thuần chay',
+    title: 'Chia sẻ thực đơn dưỡng sinh Oshawa hồi phục sức khỏe 14 ngày',
+    wordCount: 2200,
+    readTimeMinutes: 11,
+    authorInitials: 'HM',
+    authorName: 'Hoàng Minh',
+    authorColorClass: 'bg-amber-100 text-amber-800',
+    category: 'lifestyle',
+    categoryLabel: 'Lối sống chay',
+    publishedAt: 'Hôm qua',
+    readCount: 0,
+    voteCount: 0,
+    status: 'pending',
+    statusLabel: 'Chờ kiểm duyệt',
+  },
+  {
+    id: 'adm-art-6',
+    title: 'Những sai lầm phổ biến khi mới bắt đầu ăn thuần chay khiến mệt mỏi',
     wordCount: 640,
     readTimeMinutes: 3,
     authorInitials: 'BT',
@@ -83,34 +99,20 @@ let MOCK_ADMIN_ARTICLES: AdminArticleItem[] = [
     readCount: 310,
     voteCount: 8,
     status: 'hidden',
-    statusLabel: 'Đã ẩn / gỡ',
-  },
-  {
-    id: 'adm-art-6',
-    title: 'Gợi ý 5 bữa sáng chay giàu năng lượng cho người bận rộn',
-    wordCount: 1300,
-    readTimeMinutes: 6,
-    authorInitials: 'PT',
-    authorName: 'Đặng Phương Thảo',
-    authorColorClass: 'bg-emerald-100 text-emerald-800',
-    category: 'nutrition',
-    categoryLabel: 'Dinh dưỡng',
-    publishedAt: '05/09/2026',
-    readCount: 1410,
-    voteCount: 41,
-    status: 'published',
-    statusLabel: 'Đang hiển thị',
+    statusLabel: 'Đã tạm ẩn',
   },
 ]
 
 export async function getAdminArticleStats(): Promise<AdminArticleStats> {
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   return {
-    totalCount: 64,
-    publishedCount: 58,
-    hiddenCount: 6,
-    monthlyGrowthText: '+8% tháng này',
-    activeRateText: '90.6% hoạt động',
+    totalCount: MOCK_ADMIN_ARTICLES.length,
+    publishedCount: MOCK_ADMIN_ARTICLES.filter((a) => a.status === 'published').length,
+    pendingCount: MOCK_ADMIN_ARTICLES.filter((a) => a.status === 'pending').length,
+    hiddenCount: MOCK_ADMIN_ARTICLES.filter((a) => a.status === 'hidden').length,
+    monthlyGrowthText: '+18.5% so với tháng trước',
+    activeRateText: '91.2% tỷ lệ duyệt hợp lệ',
   }
 }
 
@@ -121,7 +123,8 @@ export async function getAdminArticles(filter: AdminArticleFilter = {}): Promise
   pageSize: number
   totalPages: number
 }> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
 
   let list = [...MOCK_ADMIN_ARTICLES]
 
@@ -143,6 +146,12 @@ export async function getAdminArticles(filter: AdminArticleFilter = {}): Promise
     )
   }
 
+  if (filter.sortBy === 'reads') {
+    list.sort((a, b) => b.readCount - a.readCount)
+  } else if (filter.sortBy === 'votes') {
+    list.sort((a, b) => b.voteCount - a.voteCount)
+  }
+
   const page = filter.page || 1
   const pageSize = filter.pageSize || 6
   const total = list.length
@@ -159,18 +168,61 @@ export async function getAdminArticles(filter: AdminArticleFilter = {}): Promise
   }
 }
 
-export async function toggleHideArticle(id: string): Promise<AdminArticleItem> {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+export async function approveArticle(id: string): Promise<AdminArticleItem> {
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   const target = MOCK_ADMIN_ARTICLES.find((a) => a.id === id)
   if (!target) throw new Error('Không tìm thấy bài viết.')
 
-  target.status = target.status === 'published' ? 'hidden' : 'published'
-  target.statusLabel = target.status === 'published' ? 'Đang hiển thị' : 'Đã ẩn / gỡ'
+  target.status = 'published'
+  target.statusLabel = 'Đang hiển thị'
+  return { ...target }
+}
+
+export async function rejectArticle(id: string, reason: string): Promise<AdminArticleItem> {
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
+  const target = MOCK_ADMIN_ARTICLES.find((a) => a.id === id)
+  if (!target) throw new Error('Không tìm thấy bài viết.')
+
+  target.status = 'hidden'
+  target.statusLabel = 'Bị từ chối'
+  target.rejectReason = reason
+  return { ...target }
+}
+
+export async function toggleHideArticle(id: string): Promise<AdminArticleItem> {
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
+  const target = MOCK_ADMIN_ARTICLES.find((a) => a.id === id)
+  if (!target) throw new Error('Không tìm thấy bài viết.')
+
+  if (target.status === 'published') {
+    target.status = 'hidden'
+    target.statusLabel = 'Đã tạm ẩn'
+  } else {
+    target.status = 'published'
+    target.statusLabel = 'Đang hiển thị'
+  }
   return { ...target }
 }
 
 export async function deleteAdminArticle(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   MOCK_ADMIN_ARTICLES = MOCK_ADMIN_ARTICLES.filter((a) => a.id !== id)
   return true
+}
+
+export const adminArticlesApi = {
+  list: getAdminArticles,
+  getStats: getAdminArticleStats,
+  approve: approveArticle,
+  reject: rejectArticle,
+  toggleHide: toggleHideArticle,
+  remove: deleteAdminArticle,
 }

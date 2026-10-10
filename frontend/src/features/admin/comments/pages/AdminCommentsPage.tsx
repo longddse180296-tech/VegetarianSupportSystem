@@ -4,19 +4,19 @@ import {
   Eye,
   EyeOff,
   Download,
-  RefreshCw,
   Search,
   FileText,
   PlayCircle,
-  MoreVertical,
-  RotateCcw,
   Trash2,
   AlertTriangle,
   TrendingUp,
+  CheckCircle2,
+  ShieldAlert,
 } from 'lucide-react'
 import { AdminLayout } from '../../../../app/layouts/AdminLayout'
 import { SharedDataTable, type ColumnDef } from '../../../../shared/components/SharedDataTable'
 import { CommentDetailModal } from '../components/CommentDetailModal'
+import { Modal } from '../../../../shared/components/Modal'
 import {
   deleteAdminComment,
   getAdminComments,
@@ -32,9 +32,7 @@ interface AdminCommentsPageProps {
   onNavigate?: (path: string) => void
 }
 
-export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({
-  onNavigate,
-}) => {
+export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState<AdminCommentStats | null>(null)
   const [comments, setComments] = useState<AdminCommentItem[]>([])
   const [total, setTotal] = useState<number>(0)
@@ -45,7 +43,6 @@ export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({
   const [statusTab, setStatusTab] = useState<'all' | 'published' | 'hidden'>('all')
   const [keyword, setKeyword] = useState<string>('')
   const [targetTypeFilter, setTargetTypeFilter] = useState<'all' | 'article' | 'video'>('all')
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest')
 
   // UI state
   const [loading, setLoading] = useState<boolean>(true)
@@ -57,8 +54,10 @@ export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({
   const [selectedComment, setSelectedComment] = useState<AdminCommentItem | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  // Action popover state
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  // Confirmation Modals State (replaces window.confirm)
+  const [hideTarget, setHideTarget] = useState<AdminCommentItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminCommentItem | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -72,7 +71,6 @@ export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({
             status: statusTab,
             targetType: targetTypeFilter,
             keyword,
-            sortBy,
             page: currentPage,
             pageSize: 6,
           }),
@@ -95,38 +93,39 @@ export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({
     return () => {
       isMounted = false
     }
-  }, [statusTab, targetTypeFilter, keyword, sortBy, currentPage, refreshTrigger])
+  }, [statusTab, targetTypeFilter, keyword, currentPage, refreshTrigger])
 
-  // Close menus when clicking outside
-  useEffect(() => {
-    const handleOutsideClick = () => setOpenMenuId(null)
-    window.addEventListener('click', handleOutsideClick)
-    return () => window.removeEventListener('click', handleOutsideClick)
-  }, [])
-
-  const handleToggleHide = async (id: string) => {
+  const handleToggleHide = async () => {
+    if (!hideTarget) return
     try {
-      setOpenMenuId(null)
-      const updated = await toggleHideComment(id)
+      setIsProcessing(true)
+      const updated = await toggleHideComment(hideTarget.id)
       setActionSuccessMsg(
         `Đã ${updated.status === 'published' ? 'khôi phục' : 'tạm ẩn'} bình luận thành công.`
       )
       setTimeout(() => setActionSuccessMsg(null), 3000)
+      setHideTarget(null)
       setRefreshTrigger((prev) => prev + 1)
     } catch {
       setError('Không thể cập nhật trạng thái bình luận.')
+    } finally {
+      setIsProcessing(false)
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!deleteTarget) return
     try {
-      setOpenMenuId(null)
-      await deleteAdminComment(id)
+      setIsProcessing(true)
+      await deleteAdminComment(deleteTarget.id)
       setActionSuccessMsg('Đã xóa vĩnh viễn bình luận thành công.')
       setTimeout(() => setActionSuccessMsg(null), 3000)
+      setDeleteTarget(null)
       setRefreshTrigger((prev) => prev + 1)
     } catch {
       setError('Không thể xóa bình luận.')
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -144,13 +143,12 @@ export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({
   const handleOpenDetailModal = (item: AdminCommentItem) => {
     setSelectedComment(item)
     setIsDetailModalOpen(true)
-    setOpenMenuId(null)
   }
 
   const columns: ColumnDef<AdminCommentItem>[] = [
     {
       key: 'content',
-      header: 'BÌNH LUẬN',
+      header: 'BÌNH LUẬN & NỘI DUNG',
       render: (item) => (
         <div className="max-w-xs space-y-1">
           {item.isViolation && (
@@ -161,165 +159,110 @@ export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({
           )}
           <p
             onClick={() => handleOpenDetailModal(item)}
-            className={`text-xs line-clamp-2 cursor-pointer hover:text-emerald-700 leading-relaxed ${
-              item.isViolation ? 'text-rose-700 italic font-medium' : 'text-gray-900 font-normal'
-            }`}
+            className="text-xs text-[#1f2937] line-clamp-2 leading-relaxed hover:text-[#2e7d32] cursor-pointer"
           >
-            {item.content}
+            "{item.content}"
           </p>
+          <div className="text-[10px] text-slate-400 font-mono">{item.createdAt}</div>
         </div>
       ),
     },
     {
-      key: 'authorName',
-      header: 'NGƯỜI DÙNG',
+      key: 'author',
+      header: 'NGƯỜI BÌNH LUẬN',
       render: (item) => (
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <div
-            className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-              item.authorAvatarBg || 'bg-emerald-100 text-emerald-800'
+            className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
+              item.authorAvatarBg || 'bg-slate-100 text-slate-700'
             }`}
           >
             {item.authorInitials}
           </div>
-          <div className="min-w-0">
-            <span className="font-bold text-gray-900 text-xs block truncate leading-tight">
-              {item.authorName}
-            </span>
-            <span className="text-[11px] text-gray-400 block truncate mt-0.5 leading-tight">
-              {item.authorEmail}
-            </span>
+          <div className="space-y-0.5">
+            <div className="font-bold text-xs text-[#1f2937] leading-none">{item.authorName}</div>
+            <div className="text-[11px] text-[#6b7280] leading-none">{item.authorEmail}</div>
           </div>
         </div>
       ),
     },
     {
-      key: 'targetTitle',
-      header: 'BÀI VIẾT / NỘI DUNG',
+      key: 'target',
+      header: 'ĐÍCH BÌNH LUẬN',
       render: (item) => (
-        <div className="flex items-center gap-2 max-w-xs">
-          {item.targetType === 'article' ? (
-            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-          ) : (
-            <PlayCircle className="w-4 h-4 text-teal-600 shrink-0" />
-          )}
-          <span
-            onClick={() => {
-              if (item.targetType === 'article') {
-                onNavigate?.('/articles/art-1')
-              }
-            }}
-            className="text-xs font-semibold text-gray-800 line-clamp-1 hover:text-emerald-700 cursor-pointer"
-            title={item.targetTitle}
-          >
+        <div className="max-w-xs space-y-0.5">
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-[#6b7280]">
+            {item.targetType === 'article' ? (
+              <>
+                <FileText className="w-3 h-3 text-[#2e7d32]" />
+                <span>Bài viết:</span>
+              </>
+            ) : (
+              <>
+                <PlayCircle className="w-3 h-3 text-amber-600" />
+                <span>Video:</span>
+              </>
+            )}
+          </div>
+          <div className="text-xs font-medium text-[#1f2937] line-clamp-1 leading-snug">
             {item.targetTitle}
-          </span>
+          </div>
         </div>
-      ),
-    },
-    {
-      key: 'createdAt',
-      header: 'NGÀY ĐĂNG',
-      render: (item) => (
-        <span className="text-gray-500 text-xs whitespace-nowrap">
-          {item.createdAt}
-        </span>
       ),
     },
     {
       key: 'status',
       header: 'TRẠNG THÁI',
-      render: (item) => (
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${
-            item.status === 'published'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-              : 'bg-rose-50 text-rose-700 border border-rose-100'
-          }`}
-        >
+      render: (item) => {
+        const isPub = item.status === 'published'
+        return (
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              item.status === 'published' ? 'bg-emerald-500' : 'bg-rose-500'
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+              isPub
+                ? 'bg-[#e8f5e9] text-[#1b5e20] border border-emerald-300'
+                : 'bg-slate-100 text-slate-600 border border-slate-200'
             }`}
-          />
-          {item.statusLabel}
-        </span>
-      ),
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isPub ? 'bg-[#2e7d32]' : 'bg-slate-400'}`} />
+            <span>{item.statusLabel}</span>
+          </span>
+        )
+      },
     },
     {
       key: 'actions',
       header: 'THAO TÁC',
       align: 'right',
       render: (item) => (
-        <div className="flex items-center justify-end gap-1.5 relative">
+        <div className="flex items-center justify-end gap-1.5">
           <button
             type="button"
             onClick={() => handleOpenDetailModal(item)}
-            className="text-xs font-bold text-gray-700 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-colors"
+            title="Xem chi tiết"
+            className="p-1.5 rounded-[8px] text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
           >
-            Xem
+            <Eye className="w-3.5 h-3.5" />
           </button>
-
-          {/* Three vertical dots */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                setOpenMenuId(openMenuId === item.id ? null : item.id)
-              }}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Thao tác"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-
-            {openMenuId === item.id && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 top-full mt-1 w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-30 animate-in fade-in zoom-in-95 text-xs font-semibold"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleOpenDetailModal(item)}
-                  className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 flex items-center gap-2"
-                >
-                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Xem chi tiết</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleToggleHide(item.id)}
-                  className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 flex items-center gap-2"
-                >
-                  {item.status === 'published' ? (
-                    <>
-                      <EyeOff className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Ẩn bình luận</span>
-                    </>
-                  ) : (
-                    <>
-                      <RotateCcw className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Khôi phục hiển thị</span>
-                    </>
-                  )}
-                </button>
-                <div className="h-px bg-gray-100 my-1" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Bạn có chắc muốn xóa bình luận này?')) {
-                      void handleDelete(item.id)
-                    }
-                  }}
-                  className="w-full text-left px-3.5 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Xóa bình luận</span>
-                </button>
-              </div>
+          <button
+            type="button"
+            onClick={() => setHideTarget(item)}
+            title={item.status === 'published' ? 'Tạm ẩn' : 'Khôi phục hiển thị'}
+            className="p-1.5 rounded-[8px] text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+          >
+            {item.status === 'published' ? (
+              <EyeOff className="w-3.5 h-3.5" />
+            ) : (
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#2e7d32]" />
             )}
-          </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteTarget(item)}
+            title="Xóa vĩnh viễn"
+            className="p-1.5 rounded-[8px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       ),
     },
@@ -328,245 +271,277 @@ export const AdminCommentsPage: React.FC<AdminCommentsPageProps> = ({
   return (
     <AdminLayout
       activeMenu="comments"
-      pageTitle="Quản lý Bình luận"
-      pageSubtitle="Xem và quản lý các bình luận được đăng trên hệ thống."
+      pageTitle="Quản lý &amp; Kiểm duyệt Bình luận"
+      pageSubtitle="Theo dõi thảo luận cộng đồng, xử lý báo cáo vi phạm và giữ môi trường chia sẻ văn minh."
       onNavigate={onNavigate}
     >
-      <div className="space-y-6 pb-12">
-        {/* Top Header Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-4 -mt-2">
-          <div className="text-xs text-gray-500 font-medium">
-            Kênh tương tác và phản hồi của cộng đồng ăn chay
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleExportData}
-              className="px-4 py-2 rounded-2xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs flex items-center gap-1.5"
-            >
-              <Download className="w-3.5 h-3.5 text-gray-500" />
-              <span>Xuất dữ liệu</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRefreshTrigger((prev) => prev + 1)}
-              className="px-4 py-2 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] text-white text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Làm mới</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Feedback Alert */}
+      <div className="space-y-6">
+        {/* Action success alert */}
         {actionSuccessMsg && (
-          <div className="p-3.5 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200 text-xs font-medium flex items-center justify-between animate-in fade-in">
-            <span>✓ {actionSuccessMsg}</span>
-            <button
-              type="button"
-              onClick={() => setActionSuccessMsg(null)}
-              className="text-emerald-600 hover:text-emerald-900 font-bold ml-2 text-xs"
-            >
-              Đóng
-            </button>
+          <div className="p-4 rounded-[12px] bg-[#e8f5e9] border border-emerald-300 text-[#1b5e20] text-xs font-semibold flex items-center gap-2 shadow-2xs">
+            <CheckCircle2 className="w-4 h-4 text-[#2e7d32] shrink-0" />
+            <span>{actionSuccessMsg}</span>
           </div>
         )}
 
-        {/* Stats Row (3 Cards matching Figma Image 1) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: Tổng bình luận */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
-                <MessageSquare className="w-6 h-6" />
+        {/* Error alert */}
+        {error && (
+          <div className="p-4 rounded-[12px] bg-rose-50 border border-rose-300 text-rose-800 text-xs font-semibold flex items-center gap-2 shadow-2xs">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* 4 Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Tổng bình luận</span>
+              <div className="w-8 h-8 rounded-[10px] bg-purple-50 text-purple-600 flex items-center justify-center">
+                <MessageSquare className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-100">
-                <TrendingUp className="w-3.5 h-3.5 text-sky-600" />
-                <span>+12% tháng này</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.totalCount ?? 412}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Tổng bình luận trên hệ thống
-              </p>
+            <div>
+              <div className="text-2xl font-black text-[#1f2937] tabular-nums tracking-tight">
+                {stats?.totalCount ?? 0}
+              </div>
+              <p className="text-[11px] text-[#6b7280] mt-0.5">Toàn bộ thảo luận</p>
             </div>
           </div>
 
-          {/* Card 2: Bình luận đang hiển thị */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center">
-                <Eye className="w-6 h-6" />
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Đang hiển thị</span>
+              <div className="w-8 h-8 rounded-[10px] bg-emerald-50 text-[#2e7d32] flex items-center justify-center">
+                <Eye className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EAF5EE] text-[#1E6531] border border-emerald-200/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>96.6% khả dụng</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.publishedCount ?? 398}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Bình luận đang hiển thị
-              </p>
+            <div>
+              <div className="text-2xl font-black text-[#2e7d32] tabular-nums tracking-tight">
+                {stats?.publishedCount ?? 0}
+              </div>
+              <p className="text-[11px] text-[#2e7d32] mt-0.5">Bình luận hợp lệ</p>
             </div>
           </div>
 
-          {/* Card 3: Bình luận đã ẩn / gỡ */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                <EyeOff className="w-6 h-6" />
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Bị ẩn / Vi phạm</span>
+              <div className="w-8 h-8 rounded-[10px] bg-rose-50 text-rose-600 flex items-center justify-center">
+                <ShieldAlert className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                <span>Cần kiểm duyệt</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.hiddenCount ?? 14}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Bình luận đã ẩn / gỡ
-              </p>
+            <div>
+              <div className="text-2xl font-black text-rose-600 tabular-nums tracking-tight">
+                {stats?.hiddenCount ?? 0}
+              </div>
+              <p className="text-[11px] text-rose-600 mt-0.5">Đã gỡ khỏi trang công khai</p>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Tỷ lệ an toàn</span>
+              <div className="w-8 h-8 rounded-[10px] bg-blue-50 text-blue-600 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-blue-600 tabular-nums tracking-tight">
+                96.6%
+              </div>
+              <p className="text-[11px] text-[#6b7280] mt-0.5">Môi trường tích cực</p>
             </div>
           </div>
         </div>
 
-        {/* Search, Tabs and Dropdowns Filter Bar */}
-        <div className="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          {/* Left: Search input */}
-          <div className="relative flex-1 min-w-[280px]">
-            <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo nội dung bình luận hoặc người dùng..."
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value)
+        {/* Filter and Search Bar */}
+        <div className="bg-white rounded-[16px] border border-[#e5e7eb] p-4 shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+            <button
+              type="button"
+              onClick={() => {
+                setStatusTab('all')
                 setCurrentPage(1)
               }}
-              className="w-full pl-11 pr-4 py-2 text-xs bg-transparent rounded-2xl focus:outline-none placeholder:text-gray-400 text-gray-900"
-            />
-          </div>
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                statusTab === 'all'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Tất cả
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusTab('published')
+                setCurrentPage(1)
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                statusTab === 'published'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Đang hiển thị
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusTab('hidden')
+                setCurrentPage(1)
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                statusTab === 'hidden'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Bị ẩn / Vi phạm ({stats?.hiddenCount ?? 0})
+            </button>
 
-          {/* Right: Tabs & Selects */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Status Tabs matching Figma */}
-            <div className="flex items-center p-1 bg-slate-50 rounded-2xl border border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusTab('all')
-                  setCurrentPage(1)
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  statusTab === 'all'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Tất cả (412)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusTab('published')
-                  setCurrentPage(1)
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  statusTab === 'published'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Đang hiển thị (398)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusTab('hidden')
-                  setCurrentPage(1)
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  statusTab === 'hidden'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Đã ẩn / gỡ (14)
-              </button>
-            </div>
+            <span className="text-slate-300 mx-1">|</span>
 
-            {/* Target type filter */}
             <select
               value={targetTypeFilter}
               onChange={(e) => {
                 setTargetTypeFilter(e.target.value as 'all' | 'article' | 'video')
                 setCurrentPage(1)
               }}
-              className="px-3.5 py-2 bg-white rounded-2xl border border-slate-200 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer"
+              className="px-3 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] focus:outline-none"
             >
-              <option value="all">Tất cả nội dung</option>
-              <option value="article">Bài viết</option>
-              <option value="video">Video</option>
+              <option value="all">Mọi nội dung</option>
+              <option value="article">Bình luận bài viết</option>
+              <option value="video">Bình luận video</option>
             </select>
+          </div>
 
-            {/* Sort Select */}
-            <select
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value as 'newest' | 'oldest')
-                setCurrentPage(1)
-              }}
-              className="px-3.5 py-2 bg-white rounded-2xl border border-slate-200 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer"
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="relative min-w-56">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value)
+                  setCurrentPage(1)
+                }}
+                placeholder="Tìm nội dung, người bình luận..."
+                className="w-full pl-9 pr-3 py-2 rounded-[10px] border border-[#e5e7eb] text-xs text-[#1f2937] focus:outline-none focus:border-[#2e7d32]"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExportData}
+              className="h-9 px-3.5 rounded-[10px] bg-white border border-[#e5e7eb] text-[#1f2937] hover:bg-[#f8faf8] text-xs font-semibold transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
             >
-              <option value="newest">Mới nhất</option>
-              <option value="oldest">Cũ nhất</option>
-            </select>
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <span>Xuất dữ liệu</span>
+            </button>
           </div>
         </div>
 
-        {/* Data Table Container using SharedDataTable */}
+        {/* Shared Data Table */}
         <SharedDataTable<AdminCommentItem>
-          title="Danh sách bình luận"
-          totalCountBadge={`${total} bình luận`}
-          updatedAtText="Cập nhật lúc 15:30 hôm nay"
+          title="Danh sách Bình luận &amp; Kiểm duyệt Cộng đồng"
+          totalCountBadge={total}
+          updatedAtText="Đồng bộ thời gian thực"
           columns={columns}
           data={comments}
           keyExtractor={(item) => item.id}
           isLoading={loading}
-          error={error}
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={total}
           pageSize={6}
-          onPageChange={setCurrentPage}
-          emptyMessage="Không tìm thấy bình luận nào phù hợp."
+          onPageChange={(p) => setCurrentPage(p)}
+          emptyMessage="Không có bình luận nào phù hợp."
         />
-      </div>
 
-      {/* Comment Detail / Moderation Modal */}
-      <CommentDetailModal
-        isOpen={isDetailModalOpen}
-        comment={selectedComment}
-        onClose={() => setIsDetailModalOpen(false)}
-        onToggleStatus={handleToggleHide}
-        onDelete={handleDelete}
-        onNavigateToTarget={(targetType, targetId) => {
-          setIsDetailModalOpen(false)
-          if (targetType === 'article') {
-            onNavigate?.(`/articles/${targetId}`)
-          }
-        }}
-      />
+        {/* Comment Detail Modal */}
+        <CommentDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          comment={selectedComment}
+          onToggleStatus={async (id: string) => {
+            await toggleHideComment(id)
+            setIsDetailModalOpen(false)
+            setRefreshTrigger((prev) => prev + 1)
+          }}
+          onDelete={async (id: string) => {
+            await deleteAdminComment(id)
+            setIsDetailModalOpen(false)
+            setRefreshTrigger((prev) => prev + 1)
+          }}
+        />
+
+        {/* Modal Confirm Toggle Hide */}
+        <Modal
+          isOpen={Boolean(hideTarget)}
+          onClose={() => setHideTarget(null)}
+          title={hideTarget?.status === 'published' ? 'Xác nhận Tạm ẩn bình luận' : 'Khôi phục hiển thị bình luận'}
+          maxWidth="sm"
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-[12px] bg-slate-50 border border-slate-200 text-xs text-[#1f2937] leading-relaxed">
+              Bạn có chắc chắn muốn {hideTarget?.status === 'published' ? 'tạm ẩn' : 'khôi phục'} bình luận của{' '}
+              <strong>"{hideTarget?.authorName}"</strong>?
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setHideTarget(null)}
+                className="px-4 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] hover:bg-[#f8faf8] cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={handleToggleHide}
+                className="px-4 py-2 rounded-[10px] bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {isProcessing ? 'Đang lưu...' : 'Xác nhận'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Modal Confirm Delete */}
+        <Modal
+          isOpen={Boolean(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+          title="Xác nhận Xóa vĩnh viễn Bình luận"
+          maxWidth="sm"
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-[12px] bg-rose-50 border border-rose-200 text-xs text-rose-800 leading-relaxed">
+              Bạn có chắc chắn muốn xóa vĩnh viễn bình luận này? Hành động này không thể hoàn tác.
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] hover:bg-[#f8faf8] cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isProcessing}
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {isProcessing ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      </div>
     </AdminLayout>
   )
 }
+
 export default AdminCommentsPage
