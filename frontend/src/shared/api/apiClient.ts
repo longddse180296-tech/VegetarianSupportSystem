@@ -59,7 +59,9 @@ export const getStoredUser = <T = unknown>(): T | null => {
 
 export const setStoredUser = (user: unknown): void => {
   try {
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
+    const serialized = JSON.stringify(user)
+    localStorage.setItem(AUTH_USER_KEY, serialized)
+    localStorage.setItem('auth_user', serialized)
   } catch {
     // Ignore
   }
@@ -69,6 +71,7 @@ export const clearStoredAuth = (): void => {
   try {
     localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(AUTH_USER_KEY)
+    localStorage.removeItem('auth_user')
   } catch {
     // Ignore
   }
