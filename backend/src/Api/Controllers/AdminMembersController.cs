@@ -62,6 +62,7 @@ public sealed class AdminMembersController(MemberService members) : ControllerBa
                 MemberStatusUpdateResult.AlreadyInState => ConflictProblem("Tài khoản đã ở trạng thái này."),
                 MemberStatusUpdateResult.SelfLock => ConflictProblem("Không thể tự khóa tài khoản đang sử dụng."),
                 MemberStatusUpdateResult.LastAdmin => ConflictProblem("Không thể khóa Admin hoạt động cuối cùng."),
+                MemberStatusUpdateResult.ActorInactive => Unauthorized(),
                 _ => StatusCode(500)
             };
         }

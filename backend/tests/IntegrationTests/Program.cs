@@ -95,6 +95,7 @@ try
         app.Services.GetRequiredService<CapturingResetEmailSender>(), Check);
     await SmtpTransportChecks.RunAsync(Check);
     await PasswordResetChecks.RunAsync(db, Check);
+    await MemberApiChecks.RunAsync(client, app.Services, Check);
 
     await app.StopAsync();
     await db.GetService<IMigrator>().MigrateAsync("0");
