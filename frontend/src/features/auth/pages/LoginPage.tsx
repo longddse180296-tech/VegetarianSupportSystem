@@ -18,7 +18,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
       if (loggedInUser?.role === 'Admin') {
         onNavigate('/admin/dashboard')
       } else {
-        onNavigate('/')
+        // Retrieve returnUrl from hash query, search query, or sessionStorage
+        let returnUrl: string | null = null
+        try {
+          const hash = typeof window !== 'undefined' ? window.location.hash : ''
+          const search = typeof window !== 'undefined' ? window.location.search : ''
+          const queryPart = hash.includes('?') ? hash.split('?')[1] : search.replace(/^\?/, '')
+          const params = new URLSearchParams(queryPart)
+          returnUrl = params.get('returnUrl') || sessionStorage.getItem('returnUrl')
+          if (returnUrl) {
+            sessionStorage.removeItem('returnUrl')
+          }
+        } catch {
+          // fallback
+        }
+
+        if (returnUrl && returnUrl !== '/login' && returnUrl !== '/auth/login') {
+          onNavigate(returnUrl)
+        } else {
+          onNavigate('/')
+        }
       }
     }
   }

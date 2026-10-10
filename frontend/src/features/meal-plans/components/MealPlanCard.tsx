@@ -1,19 +1,165 @@
 import React, { useState } from 'react'
-import { RefreshCw, ArrowRight, Star } from 'lucide-react'
-import type { MealItem } from '../types/mealPlans.types'
+import {
+  RefreshCw,
+  ArrowRight,
+  Star,
+  Calendar,
+  Utensils,
+  Flame,
+  Lock,
+} from 'lucide-react'
+import type { MealItem, DietType } from '../types/mealPlans.types'
 
-interface MealPlanCardProps {
-  meal: MealItem
+export interface RecommendedPlanItem {
+  id: string
+  title: string
+  description: string
+  imageUrl: string
+  dietType?: DietType
+  dietLabel?: string
+  mealsCount?: number
+  avgCalories?: number
+  durationDays?: number
+  tags?: string[]
+  rating?: number
+  ratingCount?: number
+}
+
+export interface MealPlanCardProps {
+  meal?: MealItem
+  plan?: RecommendedPlanItem
   onSwap?: (mealId: string, slot: MealItem['slot']) => Promise<void>
   onViewRecipe?: (recipeId?: string) => void
+  onViewDetail?: (planId: string) => void
+  isAuthenticated?: boolean
 }
 
 export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   meal,
+  plan,
   onSwap,
   onViewRecipe,
+  onViewDetail,
+  isAuthenticated = false,
 }) => {
   const [isSwapping, setIsSwapping] = useState(false)
+
+  // ── Render Case A: Recommended Plan Card (Public Discovery) ──────
+  if (plan) {
+    const dietColorMap: Record<string, string> = {
+      vegan: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      lacto: 'bg-blue-100 text-blue-800 border-blue-200',
+      ovo: 'bg-amber-100 text-amber-800 border-amber-200',
+      'lacto-ovo': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    }
+
+    const dietBadgeClass =
+      plan.dietType && dietColorMap[plan.dietType]
+        ? dietColorMap[plan.dietType]
+        : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+
+    return (
+      <div className="group bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-200/60 transition-all duration-200 overflow-hidden flex flex-col">
+        {/* Plan Image */}
+        <div className="relative h-48 overflow-hidden bg-slate-100">
+          <img
+            src={plan.imageUrl}
+            alt={plan.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+
+          {/* Diet badge overlay */}
+          {plan.dietLabel && (
+            <span
+              className={`absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[10px] font-bold border ${dietBadgeClass}`}
+            >
+              {plan.dietLabel}
+            </span>
+          )}
+
+          {/* Rating badge */}
+          {plan.rating && (
+            <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-xs">
+              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+              <span className="text-[10px] font-bold text-slate-800">{plan.rating}</span>
+              {plan.ratingCount && (
+                <span className="text-[10px] text-slate-400">({plan.ratingCount})</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-4 flex-1 flex flex-col gap-3">
+          <div className="space-y-1.5">
+            <h3
+              onClick={() => onViewDetail?.(plan.id)}
+              className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-emerald-800 cursor-pointer transition-colors"
+            >
+              {plan.title}
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+              {plan.description}
+            </p>
+          </div>
+
+          {/* Tags */}
+          {plan.tags && plan.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {plan.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-medium text-slate-600"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Stats row */}
+          <div className="flex items-center gap-4 text-[11px] text-slate-500 mt-auto pt-2 border-t border-slate-100">
+            {plan.durationDays && (
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-emerald-600" />
+                <span className="font-medium">{plan.durationDays} ngày</span>
+              </span>
+            )}
+            {plan.mealsCount && (
+              <span className="flex items-center gap-1">
+                <Utensils className="w-3 h-3 text-emerald-600" />
+                <span className="font-medium">{plan.mealsCount} bữa</span>
+              </span>
+            )}
+            {plan.avgCalories && (
+              <span className="flex items-center gap-1">
+                <Flame className="w-3 h-3 text-orange-500" />
+                <span className="font-medium">~{plan.avgCalories} kcal</span>
+              </span>
+            )}
+          </div>
+
+          {/* Action button */}
+          <button
+            type="button"
+            onClick={() => onViewDetail?.(plan.id)}
+            className="w-full mt-1 px-4 py-2.5 rounded-xl bg-[#1E6531] hover:bg-[#164e25] text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+          >
+            {!isAuthenticated && <Lock className="w-3.5 h-3.5" />}
+            <span>Xem chi tiết thực đơn</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Render Case B: Single Meal Slot Item (Weekly Schedule) ────────
+  if (!meal) {
+    return null
+  }
 
   const handleSwapClick = async () => {
     if (!onSwap || isSwapping) return
@@ -127,4 +273,5 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
     </div>
   )
 }
+
 export default MealPlanCard
