@@ -191,12 +191,12 @@ Cập nhật 08/10/2026 theo yêu cầu chia đều công việc. Mốc rà soá
 ### BE3-02. Kiểm duyệt bài viết/video
 
 - Đã có submission/version, trạng thái AI/Admin, queue, decisions và repository; chưa có pipeline AI hoàn chỉnh để nối toàn luồng.
-- Nối bài viết/video thật vào submission; tự chạy AI sau gửi duyệt, có retry và xử lý thất bại, tránh xử lý nhầm phiên bản cũ.
-- Trả loại cờ, mức ưu tiên, lý do, bằng chứng và phạm vi đã phân tích. Video phải ghi rõ phần âm thanh/khung hình chưa kiểm tra.
+- Nối bài viết/video thật vào submission. Bài viết tự chạy AI sau gửi duyệt, có retry và xử lý thất bại; video chuyển thẳng đến hàng đợi Admin, không chạy AI (quyết định mới 10/10/2026).
+- Với bài viết, trả loại cờ, mức ưu tiên, lý do, bằng chứng và phạm vi đã phân tích. Admin xem trực tiếp media video trước quyết định.
 - Admin duyệt, yêu cầu sửa, từ chối, gỡ; lưu actor/thời gian/lý do/phiên bản. AI không tự quyết định xuất bản.
 - Giữ API hiện có: `/api/moderation/submissions`, `/{id}/retry-ai`; `/api/admin/moderation/submissions/queue`, `/{id}/decisions`.
 - Helper FE `/pending`, `/approve`, `/revision`, `/reject` cần sửa theo contract; không thêm endpoint trùng chỉ để khớp mock.
-- Nghiệm thu: AI lỗi không thành Passed; kết quả Partial hiển thị phạm vi; bản sửa chưa duyệt không thay bản Published; không dùng mock-ai-result trong luồng thật.
+- Nghiệm thu: AI bài viết lỗi không thành Passed; kết quả Partial hiển thị phạm vi; video không phụ thuộc Gemini để vào queue; bản sửa chưa duyệt không thay bản Published; không dùng mock-ai-result trong luồng thật.
 
 ### BE3-03. Chat AI Guest/User
 

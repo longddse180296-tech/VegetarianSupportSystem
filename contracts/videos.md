@@ -13,8 +13,10 @@ JSON dùng camelCase; enum moderation là tên string. Các endpoint ghi cần J
 | PUT | `/api/me/videos/{id}` | Sửa metadata nháp. |
 | POST | `/api/me/videos/{id}/media` | `multipart/form-data`, field `file`, MP4/WEBM tối đa 200 MB. |
 | POST | `/api/me/videos/{id}/thumbnail` | `multipart/form-data`, field `file`, JPG/PNG/WEBP tối đa 10 MB. |
-| POST | `/api/me/videos/{id}/submit` | Tạo moderation submission cho đúng video/owner/phiên bản. |
+| POST | `/api/me/videos/{id}/submit` | Tạo submission cho đúng video/owner/phiên bản; vào hàng đợi Admin ngay, không gọi AI. |
 
 `VideoDetails` gồm `id,title,description,categoryId,uploadStatus,aiFlagStatus,adminReviewStatus,version,aiSummary,aiUncheckedScope,adminReason,mediaUrl,thumbnailUrl,viewCount,favoriteCount,createdAtUtc`. `uploadStatus`: `AwaitingUpload`, `Processing`, `Ready`, `Failed`. `favoriteCount` đếm bản lưu thực trong Favorites; lượt thích thuộc BE 1 và chưa có trong contract này. Upload đồng bộ kiểm tra chữ ký tệp và ghi file vào `Storage:PrivateRoot` (mặc định `.local/media` phía server), không phục vụ static file. Sau lỗi hoặc trạng thái Processing bị ngắt có thể tải lại. Không có transcoding ở MVP này; Ready chỉ xác nhận tệp đã được lưu, không xác nhận codec có phát được trên mọi trình duyệt. `POST /views` đếm một lần trong session server khi trình phát bắt đầu chạy.
+
+Với video, `aiFlagStatus=NotSubmitted`, các trường kết quả AI là `null`, `adminReviewStatus=PendingAdminReview` ngay sau submit. Admin xem trực tiếp media và dùng `POST /api/admin/moderation/submissions/{submissionId}/decisions` để `Approve`, `RequestRevision` hoặc `Reject`, có lý do. Video chưa duyệt không xuất hiện ở API công khai; owner/Admin vẫn xem được media riêng tư. Các video đã gửi theo luồng cũ được chuyển sang hàng đợi Admin bằng migration `VideoAdminOnlyModeration`. Bài viết vẫn giữ luồng AI riêng.
 
 Lỗi: 400 dữ liệu/tệp sai, 401 thiếu token, 403 sai role, 404 không thuộc owner/chưa công khai, 409 đang chờ duyệt hoặc trạng thái không cho phép, 503 storage không khả dụng. Ảnh/video riêng tư không đọc được chỉ bằng media URL. Bản Published cũ vẫn được phục vụ khi bản sửa đang chờ duyệt.

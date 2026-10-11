@@ -10,7 +10,6 @@ public sealed class LocalPrivateMediaStore : IPrivateMediaStore
     {
         root = Path.GetFullPath(configuration["Storage:PrivateRoot"] ??
             Path.Combine(AppContext.BaseDirectory, ".local", "media"));
-        Directory.CreateDirectory(root);
     }
 
     public async Task<string> SaveAsync(Stream source, string extension, long maxBytes, CancellationToken cancellationToken)
@@ -21,6 +20,7 @@ public sealed class LocalPrivateMediaStore : IPrivateMediaStore
         var path = Path.Combine(root, key);
         try
         {
+            Directory.CreateDirectory(root);
             await using var destination = new FileStream(path, FileMode.CreateNew, FileAccess.Write,
                 FileShare.None, 81920, FileOptions.Asynchronous);
             var buffer = new byte[81920];
@@ -37,7 +37,9 @@ public sealed class LocalPrivateMediaStore : IPrivateMediaStore
         }
         catch
         {
-            File.Delete(path);
+            try { File.Delete(path); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
             throw;
         }
     }

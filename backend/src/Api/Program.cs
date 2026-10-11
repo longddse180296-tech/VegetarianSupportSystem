@@ -22,6 +22,9 @@ if (builder.Environment.IsDevelopment())
         "appsettings.Local.json",
         optional: true,
         reloadOnChange: true);
+    // Keep environment variables and command-line arguments above local settings.
+    builder.Configuration.AddEnvironmentVariables();
+    builder.Configuration.AddCommandLine(args);
 }
 
 builder.Services.AddApplication();

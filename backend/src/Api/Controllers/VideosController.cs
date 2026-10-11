@@ -131,7 +131,7 @@ public sealed class VideosController(VideoService videos, ModerationService mode
         }
         catch (ArgumentException ex) { return ValidationError(ex.Message); }
         catch (InvalidOperationException ex) { return Conflict(new ProblemDetails { Detail = ex.Message }); }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             if (!thumbnail) await videos.FailUploadAsync(id, UserId, ct);
             return StatusCode(503, new ProblemDetails { Detail = "Media storage is unavailable. Retry upload." });

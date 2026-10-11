@@ -37,7 +37,8 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
 
     public async Task<IReadOnlyList<Guid>> GetCheckingIdsAsync(int count, CancellationToken cancellationToken) =>
         await dbContext.ModerationSubmissions.AsNoTracking()
-            .Where(x => x.AiFlagStatus == AiFlagStatus.Checking &&
+            .Where(x => x.ContentType == ModeratedContentType.Article &&
+                x.AiFlagStatus == AiFlagStatus.Checking &&
                 !dbContext.ModerationSubmissions.Any(newer =>
                     newer.ContentId == x.ContentId && newer.Version > x.Version))
             .OrderBy(x => x.SubmittedAt).Select(x => x.Id).Take(count)

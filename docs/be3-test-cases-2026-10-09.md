@@ -8,7 +8,7 @@ Ngày: 09/10/2026. Áp dụng cho API backend hiện tại trong `contracts/vide
 2. Đăng ký/đăng nhập hai User A, B qua `/api/auth/register` và `/api/auth/login`; tạo Admin M bằng cơ chế seed của Auth. Lưu JWT riêng. Chuẩn bị trình duyệt Guest G không có JWT và cookie mới. Một số ca cần thêm Guest G2 có cookie riêng.
 3. Đặt diet của A thành `Vegan` bằng `PUT /api/profile/me/diet` với `{"diet":"Vegan"}`. Để B chưa chọn diet cho ca SC-02. Có thể tạo dị ứng test `đậu phộng` bằng `POST /api/profile/me/allergies` với `{"name":"đậu phộng"}` trước SC-12.
 4. Chuẩn bị video MP4/WEBM ngắn có chữ ký tệp hợp lệ và phát được, ảnh thumbnail JPG/PNG/WEBP nhỏ, ảnh món ăn có đậu hũ/rau, nhãn rõ, nhãn mờ/cắt. Chuẩn bị tệp giả `.mp4` chứa text, ảnh giả `.jpg` chứa text, file 10 MB + 1 byte và 200 MB + 1 byte. Không dùng media thực của người dùng.
-5. Với ca AI thành công, cấu hình `Gemini:ApiKey` **trên backend**, `AiChat:UseMockResponses=false`; kiểm tra tài khoản provider còn quota. Ca lỗi AI chạy trên instance không có key hoặc mô phỏng provider trả lỗi. Worker moderation quét định kỳ nên chờ trạng thái rời `Checking` trước khi kết luận, tối đa theo timeout test đã chọn (gợi ý 60 giây). AI không xác định nội dung bằng một câu trả lời cố định; kiểm tra schema, phạm vi và chuyển trạng thái.
+5. Với ca chat/scan AI thành công, cấu hình `Gemini:ApiKey` **trên backend**, `AiChat:UseMockResponses=false`; kiểm tra tài khoản provider còn quota. Ca lỗi AI chạy trên instance không có key hoặc mô phỏng provider trả lỗi. Video không gọi Gemini và vào queue Admin ngay sau submit. Khi backend Article được tích hợp, worker moderation chỉ xử lý bài viết `Checking`.
 6. Nếu cần kiểm tra gợi ý recipe/catalog evidence, DB test phải có recipe/ingredient active thật từ BE 2. Lấy ID bằng API tương ứng thay vì gắn ID giả. Dùng `GET /api/categories?page=1&pageSize=100` để lấy `categoryId` thật; nếu chưa có category, để `categoryId:null`.
 
 **Quy ước:** `200/201/204` là HTTP kỳ vọng; `items`/`totalCount` dùng để kiểm tra phân trang. Đối với tệp quá giới hạn request ở tầng ASP.NET, chấp nhận `400` hoặc `413`, nhưng tuyệt đối không tạo media Published. Khi dùng Swagger/Postman, `multipart/form-data` phải đặt đúng tên field (`file` cho video, `image` cho scan).
@@ -28,7 +28,7 @@ Tạo video (`POST /api/me/videos`):
 Quyết định Admin (`POST /api/admin/moderation/submissions/{submissionId}/decisions`):
 
 ```json
-{"decision":"Approve","reason":"Đã xem video và phạm vi AI kiểm tra"}
+{"decision":"Approve","reason":"Đã xem trực tiếp video"}
 ```
 
 Chat (`POST /api/ai-chat/guest/messages` hoặc `/api/ai-chat/conversations/{id}/messages`):
@@ -102,18 +102,18 @@ Scan OCR cần sửa (`POST /api/food-scans/evaluate`):
 | ID | Thao tác / dữ liệu | Kết quả mong đợi |
 |---|---|---|
 | M-01 | Lấy submission V-04 qua `GET /api/moderation/submissions/{id}` và list của A; B lấy cùng ID; G lấy cùng ID. | A `200`; B `404`; G `401`; version/owner/contentId khớp video. |
-| M-02 | Có Gemini: chờ worker xử lý V-04, xem chi tiết submission. | `aiFlagStatus=Partial`; có `aiCheckedScope` tiêu đề/mô tả và `aiUncheckedScope` nói rõ âm thanh/khung hình; không có bằng chứng bịa từ media. `adminReviewStatus=PendingAdminReview`, chưa Published. |
-| M-03 | Không có Gemini/provider lỗi: gửi video Ready mới, chờ worker; xem queue, thử `retry-ai` sau khi cấu hình lại. | AI `Failed`, không `Passed`, không vào queue; owner retry `200` về `Checking`, worker xử lý lại phiên bản hiện tại. Retry khi chưa Failed trả `409`. |
+| M-02 | Gửi video ở V-04 rồi xem chi tiết submission ngay. | `aiFlagStatus=NotSubmitted`, các trường kết quả AI `null`, `adminReviewStatus=PendingAdminReview`, chưa Published. |
+| M-03 | Không có Gemini key: gửi video Ready mới; xem queue và thử `retry-ai`. | Video vẫn vào queue Admin; `retry-ai` trả `409` vì video không dùng AI. |
 | M-04 | M gọi `GET /api/admin/moderation/submissions/queue`, xem chi tiết và Approve submission đang chờ bằng body mẫu. | Queue chỉ gồm `PendingAdminReview`; quyết định `200`, `adminReviewStatus=Published`; `decisions[]` lưu actor M, thời gian, lý do, version. |
 | M-05 | B hoặc G gọi queue/decision; A (không Admin) gửi Approve. | G `401`, A/B `403`; không đổi trạng thái. |
 | M-06 | M quyết định `RequestRevision` cho bản chờ; A chỉnh video, upload/gửi phiên bản kế; M quyết định `Reject` cho bản chờ khác. | Version mới tăng; mỗi quyết định lưu lý do/actor/time/version; bản bị RevisionRequested/Rejected không xuất hiện public. |
 | M-07 | Với video đã Published, M gửi `Remove` có reason; G lấy detail/media sau đó. | `200`, trạng thái Removed; public detail/media `404`; nhật ký quyết định giữ nguyên. |
-| M-08 | M thử Approve hai lần, Approve bản `Failed`/`Checking`, Remove bản chưa Published, hoặc gửi reason rỗng. | Chuyển trạng thái sai `409`, reason sai `400`; không phát sinh quyết định hợp lệ thứ hai. |
-| M-09 | Khi đã submit phiên bản mới, gọi retry/Approve phiên bản cũ; để worker nhận kết quả AI muộn của phiên bản cũ. | Không ghi đè phiên bản hiện hành hoặc bản Published; thao tác trên bản cũ bị chặn theo trạng thái/version. |
+| M-08 | M thử Approve hai lần, Remove bản chưa Published, hoặc gửi reason rỗng. | Chuyển trạng thái sai `409`, reason sai `400`; không phát sinh quyết định hợp lệ thứ hai. |
+| M-09 | Khi đã submit phiên bản video mới, gọi retry-ai/Approve phiên bản cũ. | Không ghi đè phiên bản hiện hành hoặc bản Published; thao tác trên bản cũ bị chặn theo trạng thái/version. |
 | M-10 | Lọc queue/list theo `contentType`, `aiStatus`, page/pageSize; thử page=0/pageSize=101. | Dữ liệu lọc đúng và có phân trang; dữ liệu phân trang sai `400`. |
 | M-11 | Gửi `POST /api/moderation/submissions` với `contentType=Video` và nội dung tùy ý. | `400`, hướng về `/api/me/videos/{id}/submit`; không tạo video/submission giả. |
 | M-12 | Gửi `POST /api/moderation/submissions` với `contentType=Article` khi backend Article draft/version chưa tích hợp. | **Giới hạn tích hợp hiện tại:** `503`, không tạo submission. Khi BE 1 tích hợp, thay ca này bằng kiểm tra đúng article ID/owner/version và bản sửa chưa duyệt không thay bản Published. |
-| M-13 | Đọc kết quả AI có cờ và xem `aiFlagType`, `aiPriority`, `aiFlagReason`, `aiEvidence`, `aiCheckedScope`, `aiUncheckedScope`; kiểm tra log không dùng kết quả mock trong luồng thật. | Cờ/lý do/bằng chứng gắn với văn bản đã phân tích; kết quả Partial chỉ rõ phần chưa phân tích. Chỉ Admin quyết định xuất bản. Endpoint `mock-ai-result` không được gọi trong quy trình nghiệm thu. |
+| M-13 | Chờ vài chu kỳ worker sau khi gửi video, đọc lại submission và xem Admin queue. | Video vẫn `NotSubmitted` với các trường AI `null`; worker không gọi Gemini cho video; chỉ Admin quyết định xuất bản. |
 
 ## BE3-03 — Chat AI Guest/User
 

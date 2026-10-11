@@ -27,8 +27,10 @@ public sealed class ModerationSubmission
         SubmittedAt = submittedAt;
         CreatedAtUtc = submittedAt;
         UpdatedAtUtc = submittedAt;
-        AiFlagStatus = AiFlagStatus.Checking;
-        AdminReviewStatus = AdminReviewStatus.Submitted;
+        AiFlagStatus = contentType == ModeratedContentType.Video
+            ? AiFlagStatus.NotSubmitted : AiFlagStatus.Checking;
+        AdminReviewStatus = contentType == ModeratedContentType.Video
+            ? AdminReviewStatus.PendingAdminReview : AdminReviewStatus.Submitted;
     }
 
     public Guid Id { get; private set; }
@@ -89,6 +91,9 @@ public sealed class ModerationSubmission
         string? priority = null,
         string? evidence = null)
     {
+        if (ContentType == ModeratedContentType.Video)
+            throw new InvalidOperationException("Video submissions are reviewed by Admin without AI checking.");
+
         if (AiFlagStatus != AiFlagStatus.Checking)
             throw new InvalidOperationException("AI result can only complete a pending check.");
 
@@ -140,6 +145,9 @@ public sealed class ModerationSubmission
 
     public void RetryAiCheck(DateTimeOffset retriedAt)
     {
+        if (ContentType == ModeratedContentType.Video)
+            throw new InvalidOperationException("Video submissions do not use AI checking.");
+
         if (AiFlagStatus != AiFlagStatus.Failed || AdminReviewStatus != AdminReviewStatus.Submitted)
             throw new InvalidOperationException("Only a failed AI check can be retried.");
 
@@ -174,10 +182,13 @@ public sealed class ModerationSubmission
         }
         else
         {
+            var readyForAdmin = ContentType == ModeratedContentType.Video
+                ? AiFlagStatus == AiFlagStatus.NotSubmitted
+                : AiFlagStatus is AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial;
             if (AdminReviewStatus != AdminReviewStatus.PendingAdminReview
-                || AiFlagStatus is not (AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial))
+                || !readyForAdmin)
             {
-                throw new InvalidOperationException("Admin review requires a completed AI check.");
+                throw new InvalidOperationException("Submission is not ready for Admin review.");
             }
 
             AdminReviewStatus = decision switch

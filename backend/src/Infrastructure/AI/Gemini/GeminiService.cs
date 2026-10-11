@@ -140,6 +140,9 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         GeminiModerationRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (request.ContentType != ModeratedContentType.Article)
+            return new GeminiModerationResponse(false, null, null, null, null, "UnsupportedContentType");
+
         if (string.IsNullOrWhiteSpace(apiKey))
             return new GeminiModerationResponse(false, null, null, null, null, "NotConfigured");
 
@@ -147,7 +150,7 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         var prompt = $"""
             Bạn hỗ trợ gắn cờ nội dung cho nền tảng Vegetarian Support. Bạn đưa bằng chứng, không quyết định xuất bản.
             Kiểm tra tiêu đề và văn bản về spam, xúc phạm/không phù hợp, quảng cáo trái quy định, tuyên bố sức khỏe cần kiểm chứng hoặc không liên quan.
-            Không khẳng định đã xem ảnh/video. {(hasMedia ? "Media reference có mặt nhưng chưa được phân tích, vì vậy trạng thái phải là Partial." : "")}
+            Không khẳng định đã xem ảnh. {(hasMedia ? "Media reference có mặt nhưng chưa được phân tích, vì vậy trạng thái phải là Partial." : "")}
             Trả về duy nhất JSON với các thuộc tính status, summary, checkedScope, uncheckedScope, flagReason, flagType, priority, evidence.
             flagType nếu có cờ: Spam, Abuse, Advertising, HealthClaim hoặc OffTopic; priority: Low, Medium, High.
             evidence là trích đoạn NGẮN có thật trong tiêu đề/văn bản; nếu không có bằng chứng thì null. Flagged cần flagReason, flagType, priority và evidence cụ thể. Partial cần uncheckedScope. Không thêm bằng chứng không có trong văn bản.
@@ -188,12 +191,10 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
                   request.Text.Contains(evidence, StringComparison.OrdinalIgnoreCase)))
                 return new GeminiModerationResponse(false, null, null, null, null, "UnsupportedEvidence");
 
-            if (request.ContentType == ModeratedContentType.Video || hasMedia)
+            if (hasMedia)
             {
                 status = AiFlagStatus.Partial;
-                uncheckedScope = request.ContentType == ModeratedContentType.Video
-                    ? "Âm thanh và khung hình video chưa được kiểm tra; Admin cần xem trực tiếp."
-                    : "Ảnh hoặc media đính kèm chưa được kiểm tra; Admin cần xem trực tiếp.";
+                uncheckedScope = "Ảnh hoặc media đính kèm chưa được kiểm tra; Admin cần xem trực tiếp.";
             }
             return new GeminiModerationResponse(
                 true, status, summary, checkedScope, uncheckedScope, null, flagReason,

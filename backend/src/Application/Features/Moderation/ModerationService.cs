@@ -229,11 +229,13 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
             if (latest?.Id != submission.Id)
                 throw new ModerationException(ModerationError.Conflict, "Cannot approve an older version.");
+            var readyForAdmin = submission.ContentType == ModeratedContentType.Video
+                ? submission.AiFlagStatus == AiFlagStatus.NotSubmitted
+                : submission.AiFlagStatus is AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial;
             if (submission.AdminReviewStatus != AdminReviewStatus.PendingAdminReview
-                || submission.AiFlagStatus is not (
-                    AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial))
+                || !readyForAdmin)
             {
-                throw new ModerationException(ModerationError.Conflict, "Admin review requires a completed AI check.");
+                throw new ModerationException(ModerationError.Conflict, "Submission is not ready for Admin review.");
             }
 
             await repository.ExecuteInTransactionAsync(async ct =>
