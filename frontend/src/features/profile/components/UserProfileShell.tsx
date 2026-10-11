@@ -37,8 +37,11 @@ const DEFAULT_AVATAR =
 
 export const UserProfileShell: React.FC<UserProfileShellProps> = ({
   activeTab,
-  breadcrumbs = [{ label: 'Trang chủ', path: '/' }, { label: 'Tài khoản', path: '/profile' }],
-  statBadge = { count: 12, label: 'Bài viết' },
+  breadcrumbs = [
+    { label: 'Trang chủ', path: '/' },
+    { label: 'Tài khoản', path: '/profile' },
+  ],
+  statBadge = { count: 0, label: 'Bài viết' },
   userName,
   userEmail,
   avatarUrl,
@@ -63,40 +66,29 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
       id: 'my-articles',
       label: 'Bài viết của tôi',
       icon: FileText,
-      badge: 12,
+      badge: activeTab === 'my-articles' ? statBadge.count : undefined,
       path: '/profile/my-articles',
     },
     {
       id: 'my-comments',
       label: 'Bình luận của tôi',
       icon: MessageSquare,
-      badge: 34,
+      badge: activeTab === 'my-comments' ? statBadge.count : undefined,
       path: '/profile/my-comments',
     },
     {
       id: 'my-videos',
       label: 'Video của tôi',
       icon: Video,
-      badge: 8,
+      badge: activeTab === 'my-videos' ? statBadge.count : undefined,
       path: '/profile/my-videos',
     },
   ]
 
-  // Fallback to latest saved mock profile if props are not explicitly provided
-  const storedProfile = React.useMemo(() => {
-    try {
-      const raw = localStorage.getItem('vegetarian_mock_user_profile')
-      if (raw) return JSON.parse(raw)
-    } catch {
-      // ignore
-    }
-    return null
-  }, [])
-
-  const displayName = userName || user?.fullName || storedProfile?.fullName || 'Quang Duy'
-  const displayEmail = userEmail || user?.email || storedProfile?.email || 'duy@gmail.com'
-  const displayAvatar = avatarUrl || user?.avatarUrl || storedProfile?.avatarUrl || DEFAULT_AVATAR
-  const displayDiet = dietaryType || storedProfile?.dietaryType || 'Thuần thực vật (Vegan)'
+  const displayName = userName || user?.fullName || 'Thành viên'
+  const displayEmail = userEmail || user?.email || ''
+  const displayAvatar = avatarUrl || user?.avatarUrl || DEFAULT_AVATAR
+  const displayDiet = dietaryType || 'Chưa cung cấp'
 
   return (
     <PublicLayout
@@ -124,16 +116,24 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                     <button
                       type="button"
                       onClick={() => handleNav(b.path!)}
-                      className="hover:text-[#2e7d32] transition-colors"
+                      className="fe1-link hover:text-[#2e7d32] transition-colors"
                     >
                       {b.label}
                     </button>
                   ) : (
-                    <span className={isLast ? 'text-[#2e7d32] font-semibold' : 'text-slate-600'}>
+                    <span
+                      className={
+                        isLast
+                          ? 'text-[#2e7d32] font-semibold'
+                          : 'text-slate-600'
+                      }
+                    >
                       {b.label}
                     </span>
                   )}
-                  {!isLast && <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
+                  {!isLast && (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                  )}
                 </React.Fragment>
               )
             })}
@@ -153,7 +153,8 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                     alt={displayName}
                     className="w-20 h-20 rounded-full object-cover ring-4 ring-[#e8f5e9] border border-emerald-600/20 shadow-sm"
                     onError={(e) => {
-                      ;(e.currentTarget as HTMLImageElement).src = DEFAULT_AVATAR
+                      ;(e.currentTarget as HTMLImageElement).src =
+                        DEFAULT_AVATAR
                     }}
                   />
                   <span
@@ -181,7 +182,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                     <span className="hidden sm:inline text-slate-300">•</span>
                     <span className="inline-flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Tham gia từ tháng 03/2024</span>
+                      <span>Tài khoản của tôi</span>
                     </span>
                     <span className="hidden sm:inline text-slate-300">•</span>
                     <span className="inline-flex items-center gap-1.5 font-medium text-[#2e7d32]">
@@ -223,14 +224,16 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                         key={item.id}
                         type="button"
                         onClick={() => handleNav(item.path)}
-                        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-medium transition-all cursor-pointer ${
+                        className={`fe1-control w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-medium transition-all cursor-pointer ${
                           isActive
                             ? 'bg-[#EAF5EE] text-[#1E6531] border border-emerald-400 font-bold shadow-2xs'
                             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-emerald-700' : 'text-slate-400'}`} />
+                          <Icon
+                            className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-emerald-700' : 'text-slate-400'}`}
+                          />
                           <span>{item.label}</span>
                         </div>
                         {item.badge !== undefined && (
@@ -257,7 +260,8 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                   <span>Dinh dưỡng chuẩn hóa</span>
                 </div>
                 <p className="text-[#6b7280] leading-relaxed text-[11px]">
-                  Chỉ số BMI và chế độ ăn chay của bạn được bảo vệ riêng tư và dùng để tối ưu gợi ý thực đơn, quét món ăn an toàn.
+                  Chỉ số BMI và chế độ ăn chay của bạn được bảo vệ riêng tư và
+                  dùng để tối ưu gợi ý thực đơn, quét món ăn an toàn.
                 </p>
                 <div className="mt-3 pt-2.5 border-t border-emerald-200/50 flex items-center gap-1.5 text-[11px] font-medium text-[#2e7d32]">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#2e7d32]" />

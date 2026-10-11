@@ -1,5 +1,5 @@
 export * from './types/mealPlans.types'
-export * from './api/mealPlansApi'
+export * from './api/mealPlanApi'
 export * from './components/MealPlanCard'
 export * from './components/DietTabs'
 export * from './components/NutritionalBanner'

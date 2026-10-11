@@ -1,4 +1,3 @@
 export * from './types/adminComments.types'
-export * from './api/adminCommentsApi'
-export * from './components/CommentDetailModal'
+export type { CommentRecord } from '../../articles/api/articles.api'
 export * from './pages/AdminCommentsPage'

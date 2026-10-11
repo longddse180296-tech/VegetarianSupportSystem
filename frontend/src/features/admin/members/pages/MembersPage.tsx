@@ -136,14 +136,14 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     setError('')
   }
 
-  if (!token || !admin) return <main className="member-login-page"><form className="member-login" onSubmit={submitLogin}>
+  if (!token || !admin) return <div className="fe1-members"><main className="member-login-page"><form className="member-login" onSubmit={submitLogin}>
     <div className="brand-mark">✦</div><p className="eyebrow">VEGETARIAN SUPPORT · QUẢN TRỊ</p>
     <h1>Đăng nhập Admin</h1><p>Quản lý tài khoản thành viên và lịch sử khóa.</p>
     <label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} required autoComplete="username" /></label>
     <label>Mật khẩu<input type="password" value={password} onChange={event => setPassword(event.target.value)} required autoComplete="current-password" /></label>
     {loginError && <p className="form-error" role="alert">{loginError}</p>}
-    <button className="primary-button" disabled={loginBusy}>{loginBusy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
-  </form></main>
+    <button className="fe1-btn fe1-btn-primary primary-button" disabled={loginBusy}>{loginBusy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
+  </form></main></div>
 
   const maxHistoryPage = Math.max(1, Math.ceil((history?.totalCount ?? 0) / 10))
 
@@ -156,16 +156,16 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     onNavigate={onNavigate}
     onLogout={() => { signOut(); onNavigate?.('/auth/login') }}
   >
-      <div className="admin-content">
+      <div className="fe1-members"><div className="admin-content">
         {selectedId ? <>
-          <div className="page-heading"><div><p className="eyebrow">QUẢN LÝ THÀNH VIÊN</p><h1>Chi tiết thành viên</h1><p>Thông tin tài khoản và lịch sử khóa/mở khóa.</p></div><button className="outline-button" onClick={() => { setSelectedId(null); setMember(null); setHistory(null); setError('') }}>← Quay lại danh sách</button></div>
+          <div className="page-heading"><div><p className="eyebrow">QUẢN LÝ THÀNH VIÊN</p><h1>Chi tiết thành viên</h1><p>Thông tin tài khoản và lịch sử khóa/mở khóa.</p></div><button className="fe1-btn fe1-btn-outline outline-button" onClick={() => { setSelectedId(null); setMember(null); setHistory(null); setError('') }}>← Quay lại danh sách</button></div>
           {member ? <>
-            <section className="detail-hero"><div className="large-avatar">{member.fullName.slice(0, 1).toUpperCase()}</div><div className="detail-heading"><div><h2>{member.fullName}</h2><span className="role-tag">{member.role}</span><span className={`status-pill ${member.isLocked ? 'locked' : 'active'}`}>{member.isLocked ? 'Bị khóa' : 'Hoạt động'}</span></div><p>{member.email}</p></div><button className={member.isLocked ? 'primary-button' : 'danger-button'} disabled={!member.isLocked && member.id === admin.id} onClick={() => { setAction(!member.isLocked); setReason(''); setError('') }}>{member.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button></section>
+            <section className="detail-hero"><div className="large-avatar">{member.fullName.slice(0, 1).toUpperCase()}</div><div className="detail-heading"><div><h2>{member.fullName}</h2><span className="role-tag">{member.role}</span><span className={`status-pill ${member.isLocked ? 'locked' : 'active'}`}>{member.isLocked ? 'Bị khóa' : 'Hoạt động'}</span></div><p>{member.email}</p></div><button className={`fe1-btn ${member.isLocked ? 'fe1-btn-primary primary-button' : 'fe1-btn-danger danger-button'}`} disabled={!member.isLocked && member.id === admin.id} onClick={() => { setAction(!member.isLocked); setReason(''); setError('') }}>{member.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button></section>
             <div className="detail-grid"><div className="detail-card"><span>ID thành viên</span><strong className="mono">{member.id}</strong></div><div className="detail-card"><span>Ngày tham gia</span><strong>{date(member.joinedAtUtc)}</strong></div><div className="detail-card"><span>Trạng thái</span><strong>{member.isLocked ? 'Đang bị khóa' : 'Đang hoạt động'}</strong></div></div>
             {member.isLocked && <div className="lock-note"><strong>Lý do khóa hiện tại</strong><p>{member.currentLockReason}</p><small>Khóa lúc {member.lockedAtUtc ? dateTime(member.lockedAtUtc) : '—'}</small></div>}
             <section className="history-card"><div className="section-heading"><div><h2>Lịch sử khóa/mở khóa</h2><p>Admin thực hiện, thời điểm và lý do của từng thay đổi.</p></div><span className="count-tag">{history?.totalCount ?? 0} lần</span></div>
               {history?.items.length ? <div className="history-list">{history.items.map(item => <div className="history-item" key={item.id}><span className={`history-icon ${item.isLocked ? 'lock' : 'unlock'}`}>{item.isLocked ? '⌁' : '✓'}</span><div><strong>{item.isLocked ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản'}</strong><p>{item.reason}</p><small>{item.adminName} · {dateTime(item.occurredAtUtc)}</small></div></div>)}</div> : <p className="empty-state">Chưa có lịch sử thay đổi trạng thái.</p>}
-              {maxHistoryPage > 1 && <div className="pagination"><button disabled={historyPage <= 1} onClick={() => setHistoryPage(value => value - 1)}>Trước</button><span>Trang {historyPage} / {maxHistoryPage}</span><button disabled={historyPage >= maxHistoryPage} onClick={() => setHistoryPage(value => value + 1)}>Sau</button></div>}
+              {maxHistoryPage > 1 && <div className="pagination"><button className="fe1-control" disabled={historyPage <= 1} onClick={() => setHistoryPage(value => value - 1)}>Trước</button><span>Trang {historyPage} / {maxHistoryPage}</span><button className="fe1-control" disabled={historyPage >= maxHistoryPage} onClick={() => setHistoryPage(value => value + 1)}>Sau</button></div>}
             </section>
           </> : <p className="empty-state">Đang tải thành viên…</p>}
         </> : <>
@@ -186,6 +186,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
         </>}
         {error && <p className="form-error page-error" role="alert">{error}</p>}
       </div>
-    {action !== null && member && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAction(null) }}><form className="status-modal" onSubmit={submitAction} role="dialog" aria-modal="true" aria-labelledby="status-title"><span className={`stat-icon ${action ? 'red' : 'green'}`}>{action ? '⌁' : '✓'}</span><h2 id="status-title">{action ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}</h2><p>{action ? 'Thành viên sẽ không thể đăng nhập hoặc dùng JWT hiện có.' : 'Thành viên sẽ có thể đăng nhập và truy cập lại.'}</p><strong>{member.fullName}</strong><label>Lý do {action ? 'khóa' : 'mở khóa'} <span>*</span><textarea value={reason} maxLength={1000} onChange={event => setReason(event.target.value)} placeholder="Nhập lý do cụ thể…" required /></label><div className="modal-actions"><button type="button" className="outline-button" onClick={() => setAction(null)}>Hủy</button><button className={action ? 'danger-button' : 'primary-button'} disabled={busy || !reason.trim()}>{busy ? 'Đang lưu…' : action ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}</button></div></form></div>}
+    {action !== null && member && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAction(null) }}><form className="status-modal" onSubmit={submitAction} role="dialog" aria-modal="true" aria-labelledby="status-title"><span className={`stat-icon ${action ? 'red' : 'green'}`}>{action ? '⌁' : '✓'}</span><h2 id="status-title">{action ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}</h2><p>{action ? 'Thành viên sẽ không thể đăng nhập hoặc dùng JWT hiện có.' : 'Thành viên sẽ có thể đăng nhập và truy cập lại.'}</p><strong>{member.fullName}</strong><label>Lý do {action ? 'khóa' : 'mở khóa'} <span>*</span><textarea value={reason} maxLength={1000} onChange={event => setReason(event.target.value)} placeholder="Nhập lý do cụ thể…" required /></label><div className="modal-actions"><button type="button" className="fe1-btn fe1-btn-outline outline-button" onClick={() => setAction(null)}>Hủy</button><button className={`fe1-btn ${action ? 'fe1-btn-danger danger-button' : 'fe1-btn-primary primary-button'}`} disabled={busy || !reason.trim()}>{busy ? 'Đang lưu…' : action ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}</button></div></form></div>}
+    </div>
   </AdminLayout>
 }

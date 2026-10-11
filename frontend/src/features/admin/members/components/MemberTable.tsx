@@ -149,7 +149,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             placeholder="Tìm kiếm theo tên hoặc email..."
             className="w-full pl-10 pr-14 py-2.5 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
-          <button type="submit" className="absolute right-3 text-xs font-semibold text-[#1E6531]">Tìm</button>
+          <button type="submit" className="fe1-link absolute right-3 text-xs font-semibold text-[#1E6531]">Tìm</button>
         </form>
 
         {/* Status filters */}
@@ -159,7 +159,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             <button
               type="button"
               onClick={() => handleTabChange('all')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-colors ${
+              className={`fe1-control px-3 py-1.5 rounded-lg font-bold transition-colors ${
                 (filter.status || 'all') === 'all'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -170,7 +170,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             <button
               type="button"
               onClick={() => handleTabChange('active')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-colors ${
+              className={`fe1-control px-3 py-1.5 rounded-lg font-bold transition-colors ${
                 filter.status === 'active'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -181,7 +181,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             <button
               type="button"
               onClick={() => handleTabChange('locked')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-colors ${
+              className={`fe1-control px-3 py-1.5 rounded-lg font-bold transition-colors ${
                 filter.status === 'locked'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -262,7 +262,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                             <button
                               type="button"
                               onClick={() => onSelectMember(m.id)}
-                              className="font-bold text-slate-900 hover:text-[#1E6531] text-left transition-colors"
+                              className="fe1-link font-bold text-slate-900 hover:text-[#1E6531] text-left transition-colors"
                             >
                               {m.fullName}
                             </button>
@@ -299,7 +299,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                           <button
                             type="button"
                             onClick={() => onSelectMember(m.id)}
-                            className="font-medium text-[#1E6531] hover:underline"
+                            className="fe1-link font-medium text-[#1E6531] hover:underline"
                           >
                             Xem chi tiết
                           </button>
@@ -311,7 +311,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                               onClick={() =>
                                 setActiveMenuId(activeMenuId === m.id ? null : m.id)
                               }
-                              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              className="fe1-control p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
@@ -324,7 +324,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                                     setActiveMenuId(null)
                                     onSelectMember(m.id)
                                   }}
-                                  className="w-full flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
+                                  className="fe1-control w-full flex items-center gap-2 px-3.5 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                   <Eye className="w-3.5 h-3.5 text-slate-500" />
                                   <span>Xem chi tiết</span>
@@ -336,7 +336,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                                     setActiveMenuId(null)
                                     onRequestLockToggle(m)
                                   }}
-                                  className={`w-full flex items-center gap-2 px-3.5 py-2 transition-colors border-t border-slate-100 disabled:opacity-40 disabled:cursor-not-allowed ${
+                                  className={`fe1-control w-full flex items-center gap-2 px-3.5 py-2 transition-colors border-t border-slate-100 disabled:opacity-40 disabled:cursor-not-allowed ${
                                     isLocked
                                       ? 'text-[#1E6531] hover:bg-emerald-50'
                                       : 'text-rose-600 hover:bg-rose-50'
@@ -378,7 +378,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
               type="button"
               onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage <= 1 || isLoading}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-600"
+              className="fe1-btn fe1-btn-outline px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-600"
             >
               Trước
             </button>
@@ -390,7 +390,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                   key={pageNum}
                   type="button"
                   onClick={() => handlePageChange(pageNum)}
-                  className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                  className={`fe1-control w-8 h-8 rounded-lg font-bold transition-colors ${
                     isActive
                       ? 'bg-[#1E6531] text-white'
                       : 'border border-slate-200 hover:bg-slate-50 text-slate-700'
@@ -407,7 +407,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                 <button
                   type="button"
                   onClick={() => handlePageChange(totalPages)}
-                  className={`w-8 h-8 rounded-lg font-bold transition-colors ${
+                  className={`fe1-control w-8 h-8 rounded-lg font-bold transition-colors ${
                     currentPage === totalPages
                       ? 'bg-[#1E6531] text-white'
                       : 'border border-slate-200 hover:bg-slate-50 text-slate-700'
@@ -422,7 +422,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
               type="button"
               onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage >= totalPages || isLoading}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-600"
+              className="fe1-btn fe1-btn-outline px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-slate-600"
             >
               Sau
             </button>

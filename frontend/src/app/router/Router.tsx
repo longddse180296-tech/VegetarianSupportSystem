@@ -35,8 +35,15 @@ import {
   MealPlanCreate,
   MealPlanDetail,
 } from '../../features/meal-plans'
-import { VideoListPage, VideoDetailPage, MyVideosPage } from '../../features/videos'
-import { RestaurantListPage, RestaurantDetailPage } from '../../features/restaurants'
+import {
+  VideoListPage,
+  VideoDetailPage,
+  MyVideosPage,
+} from '../../features/videos'
+import {
+  RestaurantListPage,
+  RestaurantDetailPage,
+} from '../../features/restaurants'
 import FoodScanPage from '../../features/food-scan/pages/FoodScanPage'
 import PantryPage from '../../features/pantry/pages/PantryPage'
 
@@ -57,27 +64,8 @@ const withPublic = (
 ) => {
   const isLoggedIn = Boolean(ctx.user)
 
-  let displayUserName = ctx.user?.fullName
-  let displayAvatarUrl = ctx.user?.avatarUrl
-
-  try {
-    const rawProfile = localStorage.getItem('vegetarian_mock_user_profile')
-    if (rawProfile) {
-      const parsed = JSON.parse(rawProfile)
-      if (parsed.fullName) {
-        displayUserName = parsed.fullName
-      }
-      if (parsed.avatarUrl) {
-        displayAvatarUrl = parsed.avatarUrl
-      }
-    }
-  } catch {
-    // fallback
-  }
-
-  if (!displayUserName && isLoggedIn) {
-    displayUserName = 'Quang Duy'
-  }
+  const displayUserName = ctx.user?.fullName
+  const displayAvatarUrl = ctx.user?.avatarUrl
 
   return (
     <PublicLayout
@@ -102,7 +90,12 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   const { onNavigate } = ctx
   const isLoggedIn = Boolean(ctx.user)
 
-  if (authLoading && !ctx.user && getStoredToken()) return <div role="status" className="p-12 text-center text-sm text-slate-500">Đang kiểm tra phiên đăng nhập...</div>
+  if (authLoading && !ctx.user && getStoredToken())
+    return (
+      <div role="status" className="p-12 text-center text-sm text-slate-500">
+        Đang kiểm tra phiên đăng nhập...
+      </div>
+    )
 
   if (path === '/' || path === '' || path === '/home' || path === 'home') {
     return withPublic(
@@ -124,17 +117,32 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       // Let RecipeDetail handle malformed IDs without crashing the router.
     }
     return withPublic(
-      <RecipeDetail key={recipeId} recipeId={recipeId} onNavigate={onNavigate} />,
+      <RecipeDetail
+        key={recipeId}
+        recipeId={recipeId}
+        onNavigate={onNavigate}
+      />,
       'recipes',
       ctx,
     )
   }
 
-  if (path === '/ai-chat' || path === 'aichat' || path === '/aichat' || path === 'ai-chat') {
-    return withPublic(<AiChatPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />, 'ai-chat', ctx)
+  if (
+    path === '/ai-chat' ||
+    path === 'aichat' ||
+    path === '/aichat' ||
+    path === 'ai-chat'
+  ) {
+    return withPublic(
+      <AiChatPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />,
+      'ai-chat',
+      ctx,
+    )
   }
 
-  const articleEditorMatch = path.match(/^\/articles\/(?:editor|edit)\/([^/]+)\/?$/)
+  const articleEditorMatch = path.match(
+    /^\/articles\/(?:editor|edit)\/([^/]+)\/?$/,
+  )
   if (
     path === '/articles/editor' ||
     path === '/articles/create' ||
@@ -158,7 +166,9 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return withPublic(
       <ArticleList
         onSelectArticle={(id) => onNavigate(`/articles/${id}`)}
-        onCreateArticle={() => onNavigate(ctx.user ? '/articles/create' : '/auth/login')}
+        onCreateArticle={() =>
+          onNavigate(ctx.user ? '/articles/create' : '/auth/login')
+        }
         onNavigateHome={() => onNavigate('/')}
         onOpenAiChat={() => onNavigate('/ai-chat')}
       />,
@@ -166,15 +176,22 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       ctx,
     )
   }
-  if (articleMatch && !['editor', 'create', 'new', 'edit'].includes(articleMatch[1])) {
+  if (
+    articleMatch &&
+    !['editor', 'create', 'new', 'edit'].includes(articleMatch[1])
+  ) {
     const articleId = decodeURIComponent(articleMatch[1])
     return withPublic(
       <ArticleDetail
         key={articleId}
         articleId={articleId}
         onBackToList={() => onNavigate('/articles')}
-        onCreateArticle={() => onNavigate(ctx.user ? '/articles/create' : '/auth/login')}
-        onEditArticle={(id) => onNavigate(ctx.user ? `/articles/editor/${id}` : '/auth/login')}
+        onCreateArticle={() =>
+          onNavigate(ctx.user ? '/articles/create' : '/auth/login')
+        }
+        onEditArticle={(id) =>
+          onNavigate(ctx.user ? `/articles/editor/${id}` : '/auth/login')
+        }
         onSelectRelatedArticle={(id) => onNavigate(`/articles/${id}`)}
       />,
       'articles',
@@ -206,13 +223,21 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   if (restaurantMatch) {
     const restaurantId = decodeURIComponent(restaurantMatch[1])
     return withPublic(
-      <RestaurantDetailPage restaurantId={restaurantId} onNavigate={onNavigate} />,
+      <RestaurantDetailPage
+        restaurantId={restaurantId}
+        onNavigate={onNavigate}
+      />,
       'restaurants',
       ctx,
     )
   }
 
-  if (path === '/food-scan' || path === 'foodscan' || path === '/foodscan' || path === 'food-scan') {
+  if (
+    path === '/food-scan' ||
+    path === 'foodscan' ||
+    path === '/foodscan' ||
+    path === 'food-scan'
+  ) {
     return withPublic(
       <FoodScanPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />,
       'foodscan',
@@ -234,7 +259,11 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       }
       return <LoginPage onNavigate={onNavigate} />
     }
-    return withPublic(<MealPlanCreate onNavigate={onNavigate} />, 'meal-plans', ctx)
+    return withPublic(
+      <MealPlanCreate onNavigate={onNavigate} />,
+      'meal-plans',
+      ctx,
+    )
   }
 
   // ─── Meal Plans: Protected Route /meal-plans/setup ──────────────────
@@ -285,11 +314,17 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       }
       return <LoginPage onNavigate={onNavigate} />
     }
-    return withPublic(<MyMealPlanPage onNavigate={onNavigate} />, 'meal-plans', ctx)
+    return withPublic(
+      <MyMealPlanPage onNavigate={onNavigate} />,
+      'meal-plans',
+      ctx,
+    )
   }
 
   // ─── Meal Plans: Protected Route /meal-plans/:id & /meal-plans/detail/:id
-  const mealPlanDetailMatch = path.match(/^\/meal-plans\/(?:detail\/)?([^/?#]+)$/)
+  const mealPlanDetailMatch = path.match(
+    /^\/meal-plans\/(?:detail\/)?([^/?#]+)$/,
+  )
   if (mealPlanDetailMatch) {
     const rawId = decodeURIComponent(mealPlanDetailMatch[1])
     const reservedSlugs = [
@@ -334,9 +369,12 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     path === 'meal-plans' ||
     path.startsWith('/meal-plans')
   ) {
-    return withPublic(<MealPlansPublic onNavigate={onNavigate} />, 'meal-plans', ctx)
+    return withPublic(
+      <MealPlansPublic onNavigate={onNavigate} />,
+      'meal-plans',
+      ctx,
+    )
   }
-
 
   if (path === '/profile/my-articles' || path === '/my-articles') {
     if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
@@ -358,24 +396,49 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return <ProfilePage onNavigate={onNavigate} initialViewMode="settings" />
   }
 
-  if (path === '/profile' || path === 'profile' || path === '/profile/overview' || path === '/account') {
+  if (
+    path === '/profile' ||
+    path === 'profile' ||
+    path === '/profile/overview' ||
+    path === '/account'
+  ) {
     if (!ctx.user) {
       return <LoginPage onNavigate={onNavigate} />
     }
     return <ProfilePage onNavigate={onNavigate} initialViewMode="overview" />
   }
 
-  if (path.startsWith('/auth/reset-password') || path.startsWith('/reset-password')) {
+  if (
+    path.startsWith('/auth/reset-password') ||
+    path.startsWith('/reset-password')
+  ) {
     return <ResetPasswordPage onNavigate={onNavigate} />
   }
 
   if (!ctx.user) {
-    if (path === '/auth/login' || path === '/login') return <LoginPage onNavigate={onNavigate} />
-    if (path === '/auth/register' || path === '/register') return <RegisterPage onNavigate={onNavigate} />
-    if (path === '/auth/forgot-password' || path === '/forgot-password') return <ForgotPasswordPage onNavigate={onNavigate} />
+    if (path === '/auth/login' || path === '/login')
+      return <LoginPage onNavigate={onNavigate} />
+    if (path === '/auth/register' || path === '/register')
+      return <RegisterPage onNavigate={onNavigate} />
+    if (path === '/auth/forgot-password' || path === '/forgot-password')
+      return <ForgotPasswordPage onNavigate={onNavigate} />
     return <LoginPage onNavigate={onNavigate} />
   }
 
+  if (path.startsWith('/admin') && ctx.user.role !== 'Admin') {
+    return (
+      <main className="max-w-lg mx-auto rounded-2xl border bg-white p-8 my-12">
+        <h1 className="font-bold text-xl">Không có quyền quản trị</h1>
+        <p className="mt-3">Chức năng này yêu cầu tài khoản Admin.</p>
+        <button
+          className="mt-4 text-emerald-800"
+          onClick={() => onNavigate('/profile')}
+        >
+          Về hồ sơ
+        </button>
+      </main>
+    )
+  }
   if (
     path === '/admin' ||
     path === 'admin' ||

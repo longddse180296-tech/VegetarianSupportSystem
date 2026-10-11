@@ -1,5 +1,13 @@
 import React, { useState } from 'react'
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Info, AlertCircle } from 'lucide-react'
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react'
 import { ApiError } from '../../../shared/api/apiClient'
 import type { LoginCredentials } from '../types'
 
@@ -21,7 +29,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [rememberMe, setRememberMe] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string
+    password?: string
+  }>({})
 
   const validate = (): boolean => {
     const errors: { email?: string; password?: string } = {}
@@ -54,7 +65,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 401) {
-          setErrorMessage(err.title || 'Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.')
+          setErrorMessage(
+            err.title ||
+              'Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.',
+          )
         } else if (err.status === 400 && err.errors) {
           const errorsMap: { email?: string; password?: string } = {}
           for (const [key, msgs] of Object.entries(err.errors)) {
@@ -63,9 +77,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             if (lowerKey.includes('password')) errorsMap.password = msgs[0]
           }
           setFieldErrors(errorsMap)
-          setErrorMessage(err.message || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.')
+          setErrorMessage(
+            err.message || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.',
+          )
         } else {
-          setErrorMessage(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.')
+          setErrorMessage(
+            err.message || 'Đăng nhập thất bại. Vui lòng thử lại.',
+          )
         }
       } else if (err instanceof Error) {
         setErrorMessage(err.message)
@@ -79,8 +97,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-sm flex flex-col gap-6">
       {/* Card Header */}
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Chào mừng bạn trở lại</h2>
-        <p className="text-sm text-slate-500">Đăng nhập để tiếp tục sử dụng Vegetarian Support.</p>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+          Chào mừng bạn trở lại
+        </h2>
+        <p className="text-sm text-slate-500">
+          Đăng nhập để tiếp tục sử dụng Vegetarian Support.
+        </p>
       </div>
 
       {/* Global Error Banner */}
@@ -95,7 +117,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* Email Field */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="login-email" className="text-xs font-semibold text-slate-700">
+          <label
+            htmlFor="login-email"
+            className="text-xs font-semibold text-slate-700"
+          >
             Email
           </label>
           <div className="relative flex items-center">
@@ -106,7 +131,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
-                if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: undefined })
+                if (fieldErrors.email)
+                  setFieldErrors({ ...fieldErrors, email: undefined })
               }}
               placeholder="nguyen.an@example.com"
               disabled={isLoading}
@@ -118,20 +144,25 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             />
           </div>
           {fieldErrors.email && (
-            <span className="text-xs text-rose-600 font-medium">{fieldErrors.email}</span>
+            <span className="text-xs text-rose-600 font-medium">
+              {fieldErrors.email}
+            </span>
           )}
         </div>
 
         {/* Password Field */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <label htmlFor="login-password" className="text-xs font-semibold text-slate-700">
+            <label
+              htmlFor="login-password"
+              className="text-xs font-semibold text-slate-700"
+            >
               Mật khẩu
             </label>
             <button
               type="button"
               onClick={onNavigateToForgotPassword}
-              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded"
+              className="fe1-link text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded"
             >
               Quên mật khẩu?
             </button>
@@ -144,7 +175,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value)
-                if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined })
+                if (fieldErrors.password)
+                  setFieldErrors({ ...fieldErrors, password: undefined })
               }}
               placeholder="••••••••••••"
               disabled={isLoading}
@@ -157,14 +189,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 focus:outline-none"
+              className="fe1-link absolute right-3 p-1 text-slate-400 hover:text-slate-600 focus:outline-none"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
             </button>
           </div>
           {fieldErrors.password && (
-            <span className="text-xs text-rose-600 font-medium">{fieldErrors.password}</span>
+            <span className="text-xs text-rose-600 font-medium">
+              {fieldErrors.password}
+            </span>
           )}
         </div>
 
@@ -177,7 +215,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             onChange={(e) => setRememberMe(e.target.checked)}
             className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
           />
-          <label htmlFor="login-remember" className="text-xs text-slate-600 cursor-pointer select-none">
+          <label
+            htmlFor="login-remember"
+            className="text-xs text-slate-600 cursor-pointer select-none"
+          >
             Ghi nhớ đăng nhập
           </label>
         </div>
@@ -186,7 +227,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         <button
           type="submit"
           disabled={isLoading}
-          className="mt-2 w-full py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white font-medium text-sm flex items-center justify-center gap-2 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="fe1-btn fe1-btn-primary mt-2 w-full py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white font-medium text-sm flex items-center justify-center gap-2 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>
@@ -208,26 +249,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         <button
           type="button"
           onClick={onNavigateToRegister}
-          className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded"
+          className="fe1-link font-bold text-emerald-700 hover:text-emerald-800 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded"
         >
           Đăng ký ngay
         </button>
-      </div>
-
-      {/* System Error Guidelines Box */}
-      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-600 flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5 font-semibold text-slate-700">
-          <Info className="w-3.5 h-3.5 text-slate-500" />
-          <span>Quy chuẩn thông báo lỗi hệ thống:</span>
-        </div>
-        <ul className="flex flex-col gap-1 pl-4 text-slate-500 text-[11px]">
-          <li>
-            • Email trống / sai định dạng: <span className="text-rose-600 font-medium">&ldquo;Email không hợp lệ.&rdquo;</span>
-          </li>
-          <li>
-            • Sai tài khoản / khóa: <span className="text-rose-600 font-medium">&ldquo;Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.&rdquo;</span>
-          </li>
-        </ul>
       </div>
     </div>
   )

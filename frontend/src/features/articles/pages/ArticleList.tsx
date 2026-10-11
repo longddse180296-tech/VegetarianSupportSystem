@@ -1,442 +1,132 @@
-import React, { useEffect, useState, useMemo } from 'react'
-import { Button, Input, EmptyState } from '../../../shared/components'
-import AlertError from '../../../shared/components/AlertError'
+import { useState } from 'react'
+import { Leaf, Plus, Search } from 'lucide-react'
+import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
+import { useApiData } from '../../admin/hooks/useApiData'
+import { primaryClass, fieldClass, formatDate } from '../../admin/utils/apiUi'
 import {
-  CATEGORIES,
-  TRENDING_TAGS,
-  getArticles,
-  getFeaturedArticle,
+  articleCategories,
+  type ContentPage,
+  type PublicArticleSummary,
 } from '../api/articles.api'
-import type {
-  ArticleCategory,
-  ArticleSummary,
-  PaginatedResult,
-} from '../types/article.types'
-import { ArticleCard } from '../components/ArticleCard'
-import { ArticleSidebar } from '../components/ArticleSidebar'
-import {
-  ArticleCardSkeleton,
-  FeaturedArticleSkeleton,
-} from '../components/ArticleSkeleton'
-
-interface ArticleListProps {
-  onSelectArticle: (articleId: string) => void
+interface Props {
+  onSelectArticle: (id: string) => void
   onCreateArticle?: () => void
   onNavigateHome?: () => void
   onOpenAiChat?: () => void
 }
-
-export const ArticleList: React.FC<ArticleListProps> = ({
-  onSelectArticle,
-  onCreateArticle,
-  onNavigateHome,
-  onOpenAiChat,
-}) => {
-  const [selectedCategory, setSelectedCategory] = useState<ArticleCategory>('all')
-  const [searchKeyword, setSearchKeyword] = useState<string>('')
-  const [activeKeyword, setActiveKeyword] = useState<string>('')
-  const [selectedTag, setSelectedTag] = useState<string>('')
-  const [currentPage, setCurrentPage] = useState<number>(1)
-  const [sortBy, setSortBy] = useState<'newest' | 'popular'>('newest')
-
-  const [featuredArticle, setFeaturedArticle] = useState<ArticleSummary | null>(null)
-  const [articlesData, setArticlesData] = useState<PaginatedResult<ArticleSummary> | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
-  const [loadingFeatured, setLoadingFeatured] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // Fetch Featured Article
-  useEffect(() => {
-    let isMounted = true
-    const loadFeatured = async () => {
-      try {
-        setLoadingFeatured(true)
-        const res = await getFeaturedArticle()
-        if (isMounted) setFeaturedArticle(res)
-      } catch {
-        // Non-blocking error for featured article
-      } finally {
-        if (isMounted) setLoadingFeatured(false)
-      }
-    }
-    loadFeatured()
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  // Fetch Articles List
-  useEffect(() => {
-    let isMounted = true
-    const loadArticles = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const res = await getArticles({
-          category: selectedCategory,
-          keyword: activeKeyword,
-          tag: selectedTag,
-          page: currentPage,
-          pageSize: 6,
-          sortBy,
-        })
-        if (isMounted) {
-          setArticlesData(res)
-        }
-      } catch (err: unknown) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Không thể tải danh sách bài viết.')
-        }
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    }
-    loadArticles()
-    return () => {
-      isMounted = false
-    }
-  }, [selectedCategory, activeKeyword, selectedTag, currentPage, sortBy])
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setCurrentPage(1)
-    setActiveKeyword(searchKeyword)
-  }
-
-  const handleCategoryChange = (cat: ArticleCategory) => {
-    setSelectedCategory(cat)
-    setCurrentPage(1)
-  }
-
-  const handleResetFilters = () => {
-    setSelectedCategory('all')
-    setSearchKeyword('')
-    setActiveKeyword('')
-    setSelectedTag('')
-    setCurrentPage(1)
-  }
-
-  const paginationPages = useMemo(() => {
-    if (!articlesData) return []
-    const total = articlesData.totalPages
-    const current = articlesData.page
-    const pages: (number | string)[] = []
-
-    for (let i = 1; i <= total; i++) {
-      if (i === 1 || i === total || (i >= current - 1 && i <= current + 1)) {
-        pages.push(i)
-      } else if (pages[pages.length - 1] !== '...') {
-        pages.push('...')
-      }
-    }
-    return pages
-  }, [articlesData])
-
+export const ArticleList = ({ onSelectArticle, onCreateArticle }: Props) => {
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('')
+  const [page, setPage] = useState(1)
+  const result = useApiData<ContentPage<PublicArticleSummary>>(
+    `/api/articles?page=${page}&pageSize=9&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`,
+  )
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
-      {/* Container */}
-      <div className="mx-auto max-w-6xl px-4 py-8 space-y-8 animate-in fade-in duration-200">
-        {/* Top Breadcrumb & Badge */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <button
-              type="button"
-              onClick={onNavigateHome}
-              className="hover:text-emerald-700 transition-colors"
-            >
-              Trang chủ
-            </button>
-            <span>&gt;</span>
-            <span className="font-semibold text-slate-800">Bài viết</span>
-          </div>
-
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs self-start sm:self-auto">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-            <span>Kho tri thức dinh dưỡng thuần thực vật</span>
-          </div>
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+      <div className="rounded-3xl bg-[#EAF5EE] p-6 sm:p-9 flex flex-wrap items-center justify-between gap-5">
+        <div>
+          <p className="text-sm text-emerald-800 flex items-center gap-2">
+            <Leaf size={17} />
+            Kiến thức & cộng đồng
+          </p>
+          <h1 className="text-3xl font-extrabold text-[#184d28] mt-2">
+            Bài viết về lối sống chay
+          </h1>
+          <p className="mt-3 text-sm text-slate-600">
+            Khám phá kiến thức và trải nghiệm đã được kiểm duyệt.
+          </p>
         </div>
-
-        {/* Main Page Title and Subtitle with Link to Create Article */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-              Bài viết về lối sống chay
-            </h1>
-            <p className="text-xs md:text-sm text-slate-500 max-w-2xl leading-relaxed">
-              Khám phá kiến thức, kinh nghiệm và những chia sẻ hữu ích về dinh dưỡng, công thức và lối sống ăn chay khoa học, bền vững mỗi ngày.
-            </p>
-          </div>
-
-          {onCreateArticle && (
-            <button
-              type="button"
-              onClick={onCreateArticle}
-              className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-emerald-700 active:scale-95 transition-all shrink-0"
-            >
-              <span className="font-bold text-emerald-700">+</span>
-              <span>Viết bài mới</span>
-              <span className="text-slate-400">&rarr;</span>
-            </button>
-          )}
-        </div>
-
-        {/* Search Bar Form */}
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-3 mb-6">
-          <Input
-            type="text"
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            placeholder="Tìm kiếm bài viết, dưỡng chất (sắt, b12), kinh nghiệm..."
-            leftIcon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            }
-            fullWidth
-          />
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            className="shrink-0 h-11 px-6 rounded-2xl"
-          >
-            Tìm kiếm
-          </Button>
-        </form>
-
-        {/* Category Pills Filter */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 pt-1 mb-8 scrollbar-none">
-          {CATEGORIES.map((cat) => {
-            const isSelected = selectedCategory === cat.id
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => handleCategoryChange(cat.id as ArticleCategory)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                  isSelected
-                    ? 'bg-emerald-700 text-white shadow-sm'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                }`}
-              >
-                {cat.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Featured Article Section (Only shown on initial page without strict search) */}
-        {!activeKeyword && !selectedTag && selectedCategory === 'all' && (
-          <section className="mb-12">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-emerald-700 font-bold text-lg">✦</span>
-              <h2 className="text-lg font-bold text-gray-900">Bài viết nổi bật</h2>
-              <span className="text-xs text-gray-500 ml-auto">Biên soạn bởi chuyên gia đầu ngành</span>
-            </div>
-
-            {loadingFeatured ? (
-              <FeaturedArticleSkeleton />
-            ) : featuredArticle ? (
-              <div
-                onClick={() => onSelectArticle(featuredArticle.id)}
-                className="group grid grid-cols-1 md:grid-cols-12 gap-6 bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all cursor-pointer items-center"
-              >
-                <div className="md:col-span-5 relative h-52 sm:h-56 md:h-60 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                  <img
-                    src={featuredArticle.thumbnailUrl}
-                    alt={featuredArticle.title}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100 shadow-2xs">
-                      <span>⭐</span>
-                      Được khuyên đọc
-                    </span>
-                  </div>
-                </div>
-
-                <div className="md:col-span-7 flex flex-col justify-between py-1 h-full min-h-[200px]">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2.5 text-xs">
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">
-                        {featuredArticle.categoryLabel}
-                      </span>
-                      <span className="text-gray-500">⏱️ {featuredArticle.readTimeMinutes} phút đọc</span>
-                    </div>
-
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-emerald-700 transition-colors leading-snug mb-2 line-clamp-2">
-                      {featuredArticle.title}
-                    </h3>
-
-                    <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 sm:line-clamp-3 leading-relaxed mb-4">
-                      {featuredArticle.excerpt}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-auto">
-                    <div className="flex items-center gap-2.5">
-                      <img
-                        src={featuredArticle.author.avatar}
-                        alt={featuredArticle.author.name}
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-emerald-100"
-                      />
-                      <div className="flex flex-col text-xs">
-                        <span className="font-bold text-gray-900">{featuredArticle.author.name}</span>
-                        <span className="text-gray-500 text-[11px]">{featuredArticle.author.roleTitle} • {featuredArticle.publishedAt}</span>
-                      </div>
-                    </div>
-
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-700 text-white text-xs font-semibold group-hover:bg-emerald-800 transition-colors shrink-0">
-                      Đọc bài viết
-                      <span>→</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </section>
-        )}
-
-        {/* Main Content Layout (Grid + Sidebar) */}
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <span className="text-emerald-700 text-lg">📑</span>
-              <h2 className="text-lg font-bold text-gray-900">
-                {activeKeyword
-                  ? `Kết quả tìm kiếm cho "${activeKeyword}"`
-                  : selectedTag
-                  ? `Bài viết gắn thẻ ${selectedTag}`
-                  : 'Bài viết mới nhất'}
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>Sắp xếp:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'newest' | 'popular')}
-                className="bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              >
-                <option value="newest">Mới nhất</option>
-                <option value="popular">Xem nhiều nhất</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column: Articles Grid (2 cols on md) */}
-            <div className="lg:col-span-2 flex flex-col">
-              {/* Error State */}
-              {error && (
-                <div className="mb-6">
-                  <AlertError
-                    title="Đã xảy ra lỗi khi tải dữ liệu"
-                    message={error}
-                    onRetry={handleResetFilters}
-                  />
-                </div>
-              )}
-
-              {/* Loading Skeletons */}
-              {loading && !error && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <ArticleCardSkeleton key={i} />
-                  ))}
-                </div>
-              )}
-
-              {/* Empty State */}
-              {!loading && !error && articlesData && articlesData.items.length === 0 && (
-                <EmptyState
-                  title="Không tìm thấy bài viết phù hợp"
-                  description="Không có bài viết nào khớp với từ khóa hoặc danh mục đã chọn. Hãy thử tìm bằng từ khóa khác hoặc đặt lại bộ lọc."
-                  actionLabel="Đặt lại bộ lọc"
-                  onAction={handleResetFilters}
-                />
-              )}
-
-              {/* Articles Grid */}
-              {!loading && !error && articlesData && articlesData.items.length > 0 && (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-                    {articlesData.items.map((art) => (
-                      <ArticleCard
-                        key={art.id}
-                        article={art}
-                        onSelect={onSelectArticle}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {articlesData.totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-auto pt-6 border-t border-gray-100">
-                      <button
-                        type="button"
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        ‹
-                      </button>
-
-                      {paginationPages.map((page, idx) => {
-                        if (typeof page === 'string') {
-                          return (
-                            <span key={`dots-${idx}`} className="w-9 h-9 flex items-center justify-center text-xs text-gray-400">
-                              ...
-                            </span>
-                          )
-                        }
-                        const isActive = page === currentPage
-                        return (
-                          <button
-                            key={page}
-                            type="button"
-                            onClick={() => setCurrentPage(page)}
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-semibold transition-colors ${
-                              isActive
-                                ? 'bg-emerald-700 text-white shadow-sm'
-                                : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        )
-                      })}
-
-                      <button
-                        type="button"
-                        disabled={currentPage === articlesData.totalPages}
-                        onClick={() => setCurrentPage((p) => Math.min(articlesData.totalPages, p + 1))}
-                        className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        ›
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Right Column: Sidebar Widgets */}
-            <div className="lg:col-span-1">
-              <ArticleSidebar
-                trendingTags={TRENDING_TAGS}
-                selectedTag={selectedTag}
-                onSelectTag={(t) => {
-                  setSelectedTag(t)
-                  setCurrentPage(1)
-                }}
-                onOpenAiChat={onOpenAiChat}
-                onCreateArticle={onCreateArticle}
-              />
-            </div>
-          </div>
-        </section>
+        <button className={primaryClass} onClick={onCreateArticle}>
+          <Plus className="inline w-4 h-4 mr-2" />
+          Viết bài
+        </button>
       </div>
+      <div className="flex flex-wrap gap-3">
+        <label className="flex items-center gap-2 flex-1">
+          <Search size={18} />
+          <input
+            aria-label="Tìm bài viết"
+            className={fieldClass}
+            maxLength={120}
+            placeholder="Tìm tiêu đề hoặc nội dung..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
+          />
+        </label>
+        <select
+          aria-label="Danh mục bài viết"
+          className="rounded-xl border p-3 text-sm"
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value)
+            setPage(1)
+          }}
+        >
+          <option value="">Tất cả danh mục</option>
+          {articleCategories.map((item) => (
+            <option key={item}>{item}</option>
+          ))}
+        </select>
+      </div>
+      <Feedback error={result.error} />
+      {result.error && (
+        <button className={primaryClass} onClick={result.reload}>
+          Thử lại
+        </button>
+      )}
+      {result.loading ? (
+        <p>Đang tải bài viết...</p>
+      ) : result.data?.items.length ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {result.data.items.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => onSelectArticle(item.id)}
+              className="fe1-control overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-xs hover:border-emerald-300 transition-colors"
+            >
+              {item.coverImageUrl ? (
+                <img
+                  src={item.coverImageUrl}
+                  alt=""
+                  className="h-44 w-full object-cover"
+                />
+              ) : (
+                <div className="h-32 bg-emerald-50 flex items-center justify-center text-emerald-700">
+                  <Leaf size={36} />
+                </div>
+              )}
+              <div className="p-5 space-y-3">
+                <span className="text-xs font-bold text-emerald-800">
+                  {item.category}
+                </span>
+                <h2 className="text-lg font-bold text-slate-900">
+                  {item.title}
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Xuất bản {formatDate(item.publishedAt)} · Phiên bản{' '}
+                  {item.version}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        !result.error && (
+          <p className="rounded-2xl border bg-white p-8 text-slate-500">
+            Chưa có bài viết phù hợp.
+          </p>
+        )
+      )}
+      <Pager
+        page={page}
+        pageSize={9}
+        total={result.data?.totalCount || 0}
+        onChange={setPage}
+      />
     </div>
   )
 }
+export default ArticleList
