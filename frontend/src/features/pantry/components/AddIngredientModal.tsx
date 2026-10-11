@@ -8,7 +8,7 @@ import {
   type SelectOption,
 } from '../../../shared/components'
 import type { AddIngredientFormState, PantryCategory } from '../types/pantry.types'
-import { DEFAULT_UNITS, PANTRY_CATEGORY_LABELS } from '../types/pantry.types'
+import { DEFAULT_UNITS } from '../types/pantry.types'
 
 interface AddIngredientModalProps {
   isOpen: boolean
@@ -23,13 +23,6 @@ const INITIAL_FORM: AddIngredientFormState = {
   unit: 'g',
   category: '',
 }
-
-const CATEGORY_OPTIONS: SelectOption[] = (
-  Object.keys(PANTRY_CATEGORY_LABELS) as PantryCategory[]
-).map((key) => ({
-  value: key,
-  label: PANTRY_CATEGORY_LABELS[key],
-}))
 
 const UNIT_OPTIONS: SelectOption[] = DEFAULT_UNITS.map((u) => ({ value: u, label: u }))
 
@@ -96,7 +89,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({
         <>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             onClick={onClose}
             disabled={submitting}
           >
@@ -109,7 +102,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({
             onClick={handleSubmit}
             leftIcon={<Plus size={14} />}
           >
-            Lưu nguyên liệu
+            Lưu
           </Button>
         </>
       }
@@ -118,8 +111,9 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({
         <div className="sm:col-span-2">
           <Input
             label="Tên nguyên liệu"
+            name="tên nguyên liệu"
             required
-            placeholder="Ví dụ: Đậu phụ tươi, Cà chua bi hữu cơ..."
+            placeholder="VD: Đậu phụ non"
             value={form.name}
             onChange={(e) => updateField('name', e.target.value)}
             error={errors.name}
@@ -129,11 +123,12 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({
         </div>
         <div>
           <Input
-            label="Số lượng"
+            label="Số lượng (gam)"
+            name="số lượng gam"
             type="number"
             inputMode="decimal"
             min={0}
-            placeholder="Ví dụ: 400"
+            placeholder="VD: 300"
             value={form.quantity}
             onChange={(e) => updateField('quantity', e.target.value)}
             error={errors.quantity}
@@ -152,14 +147,21 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({
         </div>
         <div className="sm:col-span-2">
           <Select
-            label="Danh mục nguyên liệu"
+            label="Danh mục"
             required
             value={form.category}
             onChange={(e) =>
               updateField('category', e.target.value as PantryCategory | '')
             }
             error={errors.category}
-            options={[{ value: '', label: '— Chọn danh mục —' }, ...CATEGORY_OPTIONS]}
+            options={[
+              { value: 'rau', label: 'Rau củ' },
+              { value: 'trai-cay', label: 'Trái cây' },
+              { value: 'ngu-coc', label: 'Ngũ cốc' },
+              { value: 'dau-pham', label: 'Đậu phụ & sản phẩm từ đậu nành' },
+              { value: 'gia-vi', label: 'Gia vị' },
+              { value: 'khac', label: 'Khác' },
+            ]}
           />
         </div>
       </div>

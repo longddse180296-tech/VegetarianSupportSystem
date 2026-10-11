@@ -1,316 +1,215 @@
+import { apiClient } from '../../../shared/api/apiClient'
 import type {
-  UserProfile,
-  ProfileStats,
-  RecentPost,
-  GenderType,
-  ActivityLevel,
-  GoalType,
-  BodyMetrics,
+  ActivityLevel, BodyMetrics, DietaryType, GoalType,
+  HiddenIngredientRules, ProfileStats, RecentPost, UserProfile,
 } from '../types'
 
-const PROFILE_STORAGE_KEY = 'vegetarian_mock_user_profile'
-
-/**
- * Asian BMI Standard classification
- */
-export const calculateBMI = (heightCm: number, weightKg: number) => {
-  if (!heightCm || !weightKg || heightCm <= 0) return { bmi: 22.5, category: 'normal' as const }
-  const heightM = heightCm / 100
-  const bmiRaw = weightKg / (heightM * heightM)
-  const bmi = Math.round(bmiRaw * 10) / 10
-
-  let category: 'underweight' | 'normal' | 'overweight' | 'obese' = 'normal'
-  if (bmi < 18.5) category = 'underweight'
-  else if (bmi < 23) category = 'normal'
-  else if (bmi < 25) category = 'overweight'
-  else category = 'obese'
-
-  return { bmi, category }
+interface BackendItem { id: string; name: string }
+interface BackendProfile {
+  userId: string
+  fullName: string
+  email: string
+  phoneNumber: string | null
+  memberSinceUtc: string
+  diet: 'Vegan' | 'Lacto' | 'Ovo' | 'LactoOvo' | null
+  birthDate: string | null
+  sexForEnergyEstimate: 'Female' | 'Male' | null
+  heightCm: number | null
+  weightKg: number | null
+  bmi: number | null
+  adultBmiCategory: 'Underweight' | 'HealthyWeight' | 'Overweight' | 'Obesity' | null
+  estimatedTdeeKcal: number | null
+  activityLevel: 'Sedentary' | 'LightlyActive' | 'ModeratelyActive' | 'VeryActive' | 'ExtraActive' | null
+  weightGoal: 'Lose' | 'Maintain' | 'Gain' | null
+  restaurantArea: string | null
+  allergies: BackendItem[]
+  avoidedFoods: BackendItem[]
+  updatedAtUtc: string
 }
 
-/**
- * BMR using Mifflin-St Jeor formula
- */
-export const calculateBMR = (
-  gender: GenderType,
-  weightKg: number,
-  heightCm: number,
-  age: number,
-): number => {
-  if (!weightKg || !heightCm || !age) return 1450
-  if (gender === 'male') {
-    return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + 5)
-  }
-  return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age - 161)
+interface BackendEstimate {
+  bmi: number | null
+  adultBmiCategory: BackendProfile['adultBmiCategory']
+  estimatedTdeeKcal: number | null
 }
 
-/**
- * Activity level multiplier map
- */
-export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
-  sedentary: 1.2,
-  light: 1.375,
-  moderate: 1.55,
-  active: 1.725,
-  very_active: 1.9,
+const dietToBackend: Record<Exclude<DietaryType, ''>, NonNullable<BackendProfile['diet']>> = {
+  Vegan: 'Vegan', 'Lacto-vegetarian': 'Lacto',
+  'Ovo-vegetarian': 'Ovo', 'Lacto-ovo vegetarian': 'LactoOvo',
 }
-
-/**
- * Full calculation of BMI, BMR, TDEE, and Macronutrients
- */
-export const calculateAllMetrics = (
-  age: number,
-  gender: GenderType,
-  heightCm: number,
-  weightKg: number,
-  activityLevel: ActivityLevel,
-  goal: GoalType,
-): BodyMetrics => {
-  const { bmi, category } = calculateBMI(heightCm, weightKg)
-  const bmrKcal = calculateBMR(gender, weightKg, heightCm, age)
-  const multiplier = ACTIVITY_MULTIPLIERS[activityLevel] || 1.55
-  let baseTdee = Math.round(bmrKcal * multiplier)
-
-  // Adjust for fitness/dietary goal
-  if (goal === 'weight_loss') {
-    baseTdee = Math.max(1200, baseTdee - 400) // Calorie deficit
-  } else if (goal === 'muscle_gain') {
-    baseTdee = baseTdee + 350 // Calorie surplus
-  }
-
-  // Calculate macronutrients tailored for vegetarian nutrition
-  let proteinMultiplier = 1.3
-  if (goal === 'muscle_gain') proteinMultiplier = 1.9
-  else if (goal === 'weight_loss') proteinMultiplier = 1.6
-
-  const dailyProteinGrams = Math.round(weightKg * proteinMultiplier)
-  const dailyFatGrams = Math.round((baseTdee * 0.25) / 9) // 25% calories from healthy plant fats
-  const remainingCalories = baseTdee - dailyProteinGrams * 4 - dailyFatGrams * 9
-  const dailyCarbsGrams = Math.max(80, Math.round(remainingCalories / 4))
-
-  return {
-    age,
-    gender,
-    activityLevel,
-    heightCm,
-    weightKg,
-    bmi,
-    bmiCategory: category,
-    bmrKcal,
-    tdeeKcal: baseTdee,
-    goal,
-    dailyProteinGrams,
-    dailyCarbsGrams,
-    dailyFatGrams,
-  }
+const dietFromBackend: Record<NonNullable<BackendProfile['diet']>, DietaryType> = {
+  Vegan: 'Vegan', Lacto: 'Lacto-vegetarian', Ovo: 'Ovo-vegetarian',
+  LactoOvo: 'Lacto-ovo vegetarian',
+}
+const activityToBackend: Record<Exclude<ActivityLevel, ''>, NonNullable<BackendProfile['activityLevel']>> = {
+  sedentary: 'Sedentary', light: 'LightlyActive', moderate: 'ModeratelyActive',
+  active: 'VeryActive', very_active: 'ExtraActive',
+}
+const activityFromBackend: Record<NonNullable<BackendProfile['activityLevel']>, ActivityLevel> = {
+  Sedentary: 'sedentary', LightlyActive: 'light', ModeratelyActive: 'moderate',
+  VeryActive: 'active', ExtraActive: 'very_active',
+}
+const goalToBackend: Record<Exclude<GoalType, ''>, BackendProfile['weightGoal']> = {
+  maintain: 'Maintain', weight_loss: 'Lose', muscle_gain: 'Gain', general_health: null,
+}
+const goalFromBackend: Record<NonNullable<BackendProfile['weightGoal']>, GoalType> = {
+  Maintain: 'maintain', Lose: 'weight_loss', Gain: 'muscle_gain',
+}
+const categoryFromBackend: Record<NonNullable<BackendProfile['adultBmiCategory']>, BodyMetrics['bmiCategory']> = {
+  Underweight: 'underweight', HealthyWeight: 'normal', Overweight: 'overweight', Obesity: 'obese',
 }
 
 const DEFAULT_AVATAR =
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
+const EMPTY_RULES: HiddenIngredientRules = {
+  boneBroth: false, fishSauce: false, oysterSauce: false,
+  animalFat: false, gelatinHoney: false,
+}
 
-const getAuthUserInfo = () => {
+function ageOn(birthDate: string | null): number {
+  if (!birthDate) return 0
+  const today = new Date()
+  const [year, month, day] = birthDate.split('-').map(Number)
+  let age = today.getUTCFullYear() - year
+  if (today.getUTCMonth() + 1 < month ||
+      (today.getUTCMonth() + 1 === month && today.getUTCDate() < day)) age--
+  return Math.max(0, age)
+}
+
+export function birthDateForAge(age: number): string | null {
+  if (!Number.isInteger(age) || age <= 0) return null
+  const today = new Date()
+  const year = today.getUTCFullYear() - age
+  const month = String(today.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(today.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function readUiExtras(userId: string): Pick<UserProfile, 'avatarUrl' | 'hiddenIngredientRules' | 'preferredProteinSources'> {
   try {
-    const rawUser = localStorage.getItem('vegetarian_auth_user') || localStorage.getItem('auth_user')
-    if (rawUser) {
-      const u = JSON.parse(rawUser)
-      return {
-        fullName: u.fullName || 'Quang Duy',
-        email: u.email || 'duy@gmail.com',
-        avatarUrl: u.avatarUrl || DEFAULT_AVATAR,
-      }
+    const value = localStorage.getItem(`vegetarian_profile_ui_${userId}`)
+    if (value) {
+      const parsed = JSON.parse(value) as Partial<UserProfile>
+      return { avatarUrl: parsed.avatarUrl || DEFAULT_AVATAR,
+        hiddenIngredientRules: parsed.hiddenIngredientRules || EMPTY_RULES,
+        preferredProteinSources: parsed.preferredProteinSources || [] }
     }
-  } catch {
-    // ignore
+  } catch { /* Optional UI preferences are unavailable. */ }
+  return { avatarUrl: DEFAULT_AVATAR, hiddenIngredientRules: EMPTY_RULES, preferredProteinSources: [] }
+}
+
+function mapProfile(data: BackendProfile): UserProfile {
+  const metrics: BodyMetrics = {
+    age: ageOn(data.birthDate),
+    birthDate: data.birthDate,
+    gender: data.sexForEnergyEstimate === 'Male' ? 'male' : data.sexForEnergyEstimate === 'Female' ? 'female' : '',
+    activityLevel: data.activityLevel ? activityFromBackend[data.activityLevel] : '',
+    heightCm: data.heightCm ?? 0,
+    weightKg: data.weightKg ?? 0,
+    bmi: data.bmi ?? 0,
+    bmiCategory: data.adultBmiCategory ? categoryFromBackend[data.adultBmiCategory] : 'unknown',
+    bmrKcal: 0,
+    tdeeKcal: data.estimatedTdeeKcal ?? 0,
+    goal: data.weightGoal ? goalFromBackend[data.weightGoal] : '',
+    dailyProteinGrams: 0,
+    dailyCarbsGrams: 0,
+    dailyFatGrams: 0,
   }
   return {
-    fullName: 'Quang Duy',
-    email: 'duy@gmail.com',
-    avatarUrl: DEFAULT_AVATAR,
+    id: data.userId, fullName: data.fullName, email: data.email,
+    phoneNumber: data.phoneNumber ?? undefined,
+    preferredRegion: data.restaurantArea ?? undefined,
+    dietaryType: data.diet ? dietFromBackend[data.diet] : '',
+    allergies: data.allergies.map(item => item.name), allergyItems: data.allergies,
+    avoidedFoods: data.avoidedFoods, metrics,
+    createdAt: data.memberSinceUtc, updatedAt: data.updatedAtUtc,
+    ...readUiExtras(data.userId),
   }
 }
 
-const getDefaultProfile = (): UserProfile => {
-  const { fullName, email, avatarUrl } = getAuthUserInfo()
-  const metrics = calculateAllMetrics(26, 'male', 170, 65, 'moderate', 'maintain')
-
+function bodyRequest(metrics: BodyMetrics) {
+  const sexForEnergyEstimate: BackendProfile['sexForEnergyEstimate'] =
+    metrics.gender === 'male' ? 'Male' : metrics.gender === 'female' ? 'Female' : null
   return {
-    id: 'usr_duy',
-    fullName,
-    email,
-    avatarUrl,
-    phoneNumber: '0912 345 678',
-    preferredRegion: 'Hà Nội (Khu vực trung tâm / Ba Đình)',
-    dietaryType: 'Vegan',
-    allergies: ['Đậu phộng (Peanuts)', 'Gluten (Lúa mì)', 'Hạt điều (Cashew)'],
-    hiddenIngredientRules: {
-      boneBroth: true,
-      fishSauce: true,
-      oysterSauce: true,
-      animalFat: true,
-      gelatinHoney: true,
-    },
-    metrics,
-    preferredProteinSources: [
-      'Đậu phụ',
-      'Đậu nành non (Edamame)',
-      'Đậu lăng đỏ & xanh',
-      'Tempeh lên men',
-      'Nấm đùi gà & Nấm khô',
-      'Hạt diêm mạch (Quinoa)',
-    ],
-    createdAt: '2024-03-15T08:00:00Z',
-    updatedAt: new Date().toISOString(),
+    birthDate: metrics.birthDate || null,
+    sexForEnergyEstimate,
+    heightCm: metrics.heightCm > 0 ? metrics.heightCm : null,
+    weightKg: metrics.weightKg > 0 ? metrics.weightKg : null,
+    activityLevel: metrics.activityLevel ? activityToBackend[metrics.activityLevel] : null,
+    weightGoal: metrics.goal ? goalToBackend[metrics.goal] : null,
   }
 }
-
-const getStoredProfile = (): UserProfile => {
-  const authUser = getAuthUserInfo()
-  const stored = localStorage.getItem(PROFILE_STORAGE_KEY)
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored) as UserProfile
-
-      // Ensure fullName, email, and avatar match current authUser if authUser exists
-      if (authUser.fullName && (!parsed.fullName || parsed.fullName.includes('Minh Anh'))) {
-        parsed.fullName = authUser.fullName
-      }
-      if (authUser.email && (!parsed.email || parsed.email.includes('minhanh'))) {
-        parsed.email = authUser.email
-      }
-      if (!parsed.avatarUrl) {
-        parsed.avatarUrl = authUser.avatarUrl || DEFAULT_AVATAR
-      }
-
-      // Ensure fields exist for backward compatibility
-      if (!parsed.metrics.age || !parsed.metrics.gender) {
-        const fullMetrics = calculateAllMetrics(
-          parsed.metrics.age || 26,
-          parsed.metrics.gender || 'male',
-          parsed.metrics.heightCm || 170,
-          parsed.metrics.weightKg || 65,
-          parsed.metrics.activityLevel || 'moderate',
-          parsed.metrics.goal || 'maintain',
-        )
-        parsed.metrics = fullMetrics
-      }
-      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(parsed))
-      return parsed
-    } catch {
-      // fallback
-    }
-  }
-  const defaultProfile = getDefaultProfile()
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(defaultProfile))
-  return defaultProfile
-}
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export const profileApi = {
-  /**
-   * Fetch current user profile with simulated delay
-   */
   async getProfile(): Promise<UserProfile> {
-    await delay(600)
-    return getStoredProfile()
+    const data = await apiClient.get<BackendProfile>('/api/profile/me')
+    try { localStorage.removeItem('vegetarian_mock_user_profile') } catch { /* Legacy mock data is optional. */ }
+    return mapProfile(data)
   },
 
-  /**
-   * Update profile data with recalculations and auth_user sync
-   */
-  async updateProfile(updates: Partial<UserProfile>): Promise<UserProfile> {
-    await delay(700)
-    const current = getStoredProfile()
-
-    let metrics = { ...current.metrics }
-    if (updates.metrics) {
-      metrics = calculateAllMetrics(
-        updates.metrics.age ?? current.metrics.age,
-        updates.metrics.gender ?? current.metrics.gender,
-        updates.metrics.heightCm ?? current.metrics.heightCm,
-        updates.metrics.weightKg ?? current.metrics.weightKg,
-        updates.metrics.activityLevel ?? current.metrics.activityLevel,
-        updates.metrics.goal ?? current.metrics.goal,
-      )
-    }
-
-    const updated: UserProfile = {
-      ...current,
-      ...updates,
-      metrics,
-      updatedAt: new Date().toISOString(),
-    }
-
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updated))
-
-    // Synchronize full name and avatar with both auth keys in localStorage and dispatch event
-    try {
-      const authUpdates: { fullName?: string; avatarUrl?: string } = {}
-      if (updates.fullName) authUpdates.fullName = updates.fullName
-      if (updates.avatarUrl !== undefined) authUpdates.avatarUrl = updates.avatarUrl
-
-      const storedVegAuth = localStorage.getItem('vegetarian_auth_user')
-      if (storedVegAuth) {
-        const userObj = JSON.parse(storedVegAuth)
-        if (updates.fullName) userObj.fullName = updates.fullName
-        if (updates.avatarUrl !== undefined) userObj.avatarUrl = updates.avatarUrl
-        localStorage.setItem('vegetarian_auth_user', JSON.stringify(userObj))
-      }
-
-      const storedUser = localStorage.getItem('auth_user')
-      if (storedUser) {
-        const userObj = JSON.parse(storedUser)
-        if (updates.fullName) userObj.fullName = updates.fullName
-        if (updates.avatarUrl !== undefined) userObj.avatarUrl = updates.avatarUrl
-        localStorage.setItem('auth_user', JSON.stringify(userObj))
-      }
-
-      window.dispatchEvent(
-        new CustomEvent('vegetarian_user_updated', {
-          detail: authUpdates,
-        })
-      )
-    } catch {
-      // ignore
-    }
-
-    return updated
-  },
-
-  /**
-   * Get user statistics (12 posts, 34 comments, 8 videos)
-   */
-  async getProfileStats(): Promise<ProfileStats> {
-    await delay(800)
+  async previewMetrics(metrics: BodyMetrics, signal?: AbortSignal): Promise<Pick<BodyMetrics, 'bmi' | 'bmiCategory' | 'tdeeKcal'>> {
+    const data = await apiClient.post<BackendEstimate>('/api/profile/me/body/estimate', bodyRequest(metrics), { signal })
     return {
-      postCount: 12,
-      commentCount: 34,
-      videoCount: 8,
+      bmi: data.bmi ?? 0,
+      bmiCategory: data.adultBmiCategory ? categoryFromBackend[data.adultBmiCategory] : 'unknown',
+      tdeeKcal: data.estimatedTdeeKcal ?? 0,
     }
   },
 
-  /**
-   * Get user's recent posts matching Figma Image 1
-   */
+  async updateProfile(updates: Partial<UserProfile>): Promise<UserProfile> {
+    const current = await apiClient.get<BackendProfile>('/api/profile/me')
+    const currentUi = mapProfile(current)
+    const metrics = updates.metrics ?? currentUi.metrics
+    const diet = updates.dietaryType ?? currentUi.dietaryType
+    const request = {
+      fullName: updates.fullName ?? current.fullName,
+      phoneNumber: updates.phoneNumber ?? current.phoneNumber,
+      restaurantArea: updates.preferredRegion ?? current.restaurantArea,
+      diet: diet ? dietToBackend[diet] : null,
+      ...bodyRequest(metrics),
+    }
+    await apiClient.put<BackendProfile>('/api/profile/me', request)
+
+    if (updates.allergies) {
+      const wanted = updates.allergies.map(name => name.trim()).filter(Boolean)
+      const wantedNames = new Set(wanted.map(name => name.toLocaleUpperCase()))
+      for (const item of current.allergies) {
+        if (!wantedNames.has(item.name.toLocaleUpperCase())) {
+          await apiClient.delete(`/api/profile/me/allergies/${item.id}`)
+        }
+      }
+      const existingNames = new Set(current.allergies.map(item => item.name.toLocaleUpperCase()))
+      for (const name of wanted) {
+        if (!existingNames.has(name.toLocaleUpperCase())) {
+          await apiClient.post('/api/profile/me/allergies', { name })
+        }
+      }
+    }
+
+    try {
+      localStorage.setItem(`vegetarian_profile_ui_${current.userId}`, JSON.stringify({
+        avatarUrl: updates.avatarUrl ?? currentUi.avatarUrl,
+        hiddenIngredientRules: updates.hiddenIngredientRules ?? currentUi.hiddenIngredientRules,
+        preferredProteinSources: updates.preferredProteinSources ?? currentUi.preferredProteinSources,
+      }))
+      localStorage.removeItem('vegetarian_mock_user_profile')
+    } catch { /* The backend profile was still saved. */ }
+
+    const refreshed = await this.getProfile()
+    window.dispatchEvent(new CustomEvent('vegetarian_user_updated', {
+      detail: { fullName: refreshed.fullName, avatarUrl: refreshed.avatarUrl },
+    }))
+    return refreshed
+  },
+
+  async getProfileStats(): Promise<ProfileStats> {
+    return { postCount: 12, commentCount: 34, videoCount: 8 }
+  },
+
   async getRecentPosts(): Promise<RecentPost[]> {
-    await delay(900)
     return [
-      {
-        id: 'post_01',
-        category: 'Dinh dưỡng',
-        title: 'Kinh nghiệm bổ sung Protein thực vật cho người mới bắt đầu',
-        publishedDate: '14/10/2024',
-        likeCount: 42,
-        commentCount: 18,
-      },
-      {
-        id: 'post_02',
-        category: 'Lối sống',
-        title: 'Cách chuẩn bị Meal Prep chay tiện lợi cho cả tuần bận rộn',
-        publishedDate: '28/09/2024',
-        likeCount: 35,
-        commentCount: 12,
-      },
+      { id: 'post_01', category: 'Dinh dưỡng', title: 'Kinh nghiệm bổ sung Protein thực vật cho người mới bắt đầu', publishedDate: '14/10/2024', likeCount: 42, commentCount: 18 },
+      { id: 'post_02', category: 'Lối sống', title: 'Cách chuẩn bị Meal Prep chay tiện lợi cho cả tuần bận rộn', publishedDate: '28/09/2024', likeCount: 35, commentCount: 12 },
     ]
   },
 }

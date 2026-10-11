@@ -27,10 +27,10 @@ export const ChatMessageView: React.FC<ChatMessageViewProps> = ({
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] sm:max-w-[78%]">
+        <div className="max-w-[85%] ml-auto sm:max-w-[85%]">
           <div className="flex items-start justify-end gap-2">
             <div className="flex-1" />
-            <div className="rounded-[16px] rounded-tr-[6px] bg-[#2e7d32] px-4 py-3 text-[14px] leading-6 text-white shadow-sm">
+            <div className="bg-[#2E7D32] text-white rounded-[16px] rounded-tr-none px-4 py-3 text-[14px] leading-6 shadow-sm max-w-[85%] ml-auto">
               <p className="whitespace-pre-wrap break-words">{message.content}</p>
               {isStreaming && (
                 <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-white/70 align-[-2px]" />
@@ -51,12 +51,12 @@ export const ChatMessageView: React.FC<ChatMessageViewProps> = ({
   // Assistant bubble (AI)
   return (
     <div className="flex justify-start">
-      <div className="max-w-[92%] sm:max-w-[85%]">
+      <div className="max-w-[85%] sm:max-w-[85%]">
         <div className="flex items-start gap-2">
           <span className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#2e7d32] shadow-sm ring-1 ring-[#c8e6c9]">
             <Bot size={15} />
           </span>
-          <div className="rounded-[16px] rounded-tl-[6px] bg-[#e8f5e9] px-4 py-3 text-[14px] leading-6 text-[#1f2937] shadow-sm ring-1 ring-[#c8e6c9]">
+          <div className="bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none px-4 py-3 text-[14px] leading-6 shadow-sm ring-1 ring-[#c8e6c9] max-w-[85%]">
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
             {isStreaming && (
               <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-[#2e7d32]/60 align-[-2px]" />

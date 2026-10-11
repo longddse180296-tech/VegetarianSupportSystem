@@ -1,12 +1,167 @@
 import type {
+  DishChip,
+  MapPinMarker,
+  RelatedContentCard,
   Restaurant,
+  RestaurantDish,
   RestaurantFilter,
   RestaurantListResponse,
   RestaurantSortOption,
+  ReviewComment,
+  WeekHour,
 } from '../types/restaurant.types'
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
 
 const delay = (ms = 500) => new Promise<void>((r) => setTimeout(r, ms))
+
+/* ---------- Restaurant Detail: Week hours ---------- */
+const MOCK_WEEK_HOURS: WeekHour[] = [
+  { day: 'Thứ Hai', label: 'Thứ Hai', time: '08:00 - 22:00' },
+  { day: 'Thứ Ba', label: 'Thứ Ba', time: '08:00 - 22:00' },
+  { day: 'Thứ Tư', label: 'Thứ Tư', time: '08:00 - 22:00' },
+  { day: 'Thứ Năm', label: 'Thứ Năm', time: '08:00 - 22:00' },
+  { day: 'Thứ Sáu', label: 'Thứ Sáu', time: '08:00 - 22:00', isToday: true },
+  { day: 'Thứ Bảy', label: 'Thứ Bảy', time: '08:00 - 23:00' },
+  { day: 'Chủ Nhật', label: 'Chủ Nhật', time: '08:00 - 23:00' },
+]
+
+/* ---------- Restaurant Detail: Review comments ---------- */
+const MOCK_REVIEW_COMMENTS: ReviewComment[] = [
+  {
+    id: 'c1',
+    userName: 'Nguyễn Thảo Nhi',
+    avatarSeed: 'happy young vietnamese woman avatar portrait smiling',
+    rating: 5,
+    content:
+      'Đậu hũ sốt nấm ở đây đậm vị quá, nước dùng cà ri dừa béo không ngán. Không gian yên tĩnh, nhạc nhẹ, rất hợp đi với bạn bè hoặc người thân vào cuối tuần.',
+    timeAgo: '3 ngày trước',
+  },
+  {
+    id: 'c2',
+    userName: 'Trần Minh Đức',
+    avatarSeed: 'professional young vietnamese man avatar portrait glasses',
+    rating: 4,
+    content:
+      'Đi văn phòng gần đó ghé ăn trưa, giá ổn, phần ăn đủ no. Nhân viên phục vụ lịch sự, quán sạch sẽ. Chỉ trừ chỗ đậu xe hơi hơi nhỏ nên đi xe máy tiện hơn.',
+    timeAgo: '1 tuần trước',
+  },
+  {
+    id: 'c3',
+    userName: 'Lê Hoàng Anh',
+    avatarSeed: 'elderly vietnamese grandmother avatar portrait kind smiling',
+    rating: 5,
+    content:
+      'Món gỏi cuốn tươi lắm, nhà hàng dùng rau hữu cơ nên ăn rất yên tâm. Chủ quán rất nhiệt tình giới thiệu từng món và cách làm dinh dưỡng. Gia đình tôi sẽ quay lại!',
+    timeAgo: '2 tuần trước',
+  },
+]
+
+/* ---------- Restaurant Detail: Related content cards ---------- */
+const MOCK_RELATED_CONTENT: RelatedContentCard[] = [
+  {
+    id: 'r1',
+    tag: 'Công thức nấu',
+    tagStyle: 'bg-[#E8F5E9] text-[#2E7D32] border-[#C4E5D0]',
+    title: 'Công thức: Đậu hũ sốt nấm',
+    desc: 'Tự nấu đậu hũ sốt nấm chay đậm đà, trọn vị thanh đạm ngay tại căn bếp nhỏ của bạn.',
+    meta: '⏱ 25 phút · 🔥 210 kcal',
+    imgSeed: 'vegan tofu mushroom recipe dish homemade cozy kitchen',
+  },
+  {
+    id: 'r2',
+    tag: 'Bài viết dinh dưỡng',
+    tagStyle: 'bg-[#FFF8F3] text-[#9C5B22] border-[#F1E0C6]',
+    title: 'Cẩm nang: 7 lợi ích của chế độ ăn chay đối với sức khỏe',
+    desc: 'Phân tích khoa học về tác động tích cực của thực dưỡng đối với tim mạch và hệ tiêu hóa.',
+    meta: '📖 BS. Hoàng Nam · 6 phút đọc',
+    imgSeed: 'nutritionist healthy vegan plate vegetables research article',
+  },
+  {
+    id: 'r3',
+    tag: 'Video hướng dẫn',
+    tagStyle: 'bg-[#EEF4FF] text-[#23509A] border-[#C7D6F3]',
+    title: 'Video: Bí quyết làm nấm chay thanh ngọt tại nhà',
+    desc: 'Hướng dẫn chi tiết cách làm nấm chay ngọt thanh 30 phút, không cần đậm đà, bớt ngọt và nướng 100%.',
+    meta: '⏱ 12:30 · 👁 15 355 lượt',
+    imgSeed: 'vegan cooking video tutorial mushroom dish home kitchen thumbnail',
+  },
+]
+
+/* ---------- Dish chips (món tìm kiếm nhanh) ---------- */
+const DISH_CHIPS: DishChip[] = [
+  { label: 'Phở chay', count: 8, emoji: '🍜' },
+  { label: 'Bún riêu chay', count: 12, emoji: '🍲' },
+  { label: 'Cơm tấm sườn chay', count: 15, emoji: '🍚' },
+  { label: 'Lẩu nấm chay', count: 9, emoji: '🍲' },
+  { label: 'Salad bộ đủ gà', count: 14, emoji: '🥗' },
+  { label: 'Há cảo chay', count: 6, emoji: '🥟' },
+]
+
+/* ---------- Map pins coordinates (mock) ---------- */
+const MAP_PINS: MapPinMarker[] = [
+  { top: '16%', left: '24%', id: 'r_hanoi_01', label: 'An Nhiền' },
+  { top: '30%', left: '72%', id: 'r_hanoi_05', label: 'Sống & Mơ' },
+  { top: '54%', left: '38%', id: 'r_hcm_01', color: '#459360', label: 'Sen Vàng' },
+  { top: '74%', left: '62%', id: 'r_danang_02', color: '#459360', label: 'An Lạc' },
+]
+
+/* ---------- Menu món ăn (mock) ---------- */
+const DISH_CARDS: RestaurantDish[] = [
+  {
+    id: 'd1',
+    tag: 'Món được giới thiệu',
+    tagColor: 'bg-[#2E7D32] text-white',
+    name: 'Đậu hũ sốt nấm',
+    desc: 'Đậu hũ chiên vàng sốt nấm hương và cà ri dừa thanh vị, có điểm làm thành vi.',
+    imgSeed: 'vietnamese crispy tofu mushroom curry sauce vegan dish',
+    priceVND: 65000,
+  },
+  {
+    id: 'd2',
+    tag: 'Thực dưỡng',
+    tagColor: 'bg-[#558B2F] text-white',
+    name: 'Đậu hũ áp chảo sốt tiêu đen',
+    desc: 'Đậu hũ nếm mềm áp chảo sốt tiêu đen đặc trưng Đà Lạt.',
+    imgSeed: 'tofu stir fry black pepper sauce garlic vegan vietnamese',
+    priceVND: 75000,
+  },
+  {
+    id: 'd3',
+    tag: 'Món đặc sản miền Nam',
+    tagColor: 'bg-[#0D47A1] text-white',
+    name: 'Gỏi cuốn đậu hũ nấm tươi',
+    desc: 'Cuốn tươi mềm, nhân đậu hũ chiên và đậu hũ nấm hương thơm ngang.',
+    imgSeed: 'fresh vegan salad rolls rice paper mushroom herbs vietnamese',
+    priceVND: 55000,
+  },
+  {
+    id: 'd4',
+    tag: 'Món nhậu thanh đạm',
+    tagColor: 'bg-[#6A1B9A] text-white',
+    name: 'Nấm bào ngư chiên bơ tỏi',
+    desc: 'Nấm bào ngư tươi chiên giòn, phủ lớp bơ tỏi thơm lừng và tiêu xanh.',
+    imgSeed: 'vegan abalone mushroom butter garlic fry crispy vietnamese',
+    priceVND: 95000,
+  },
+  {
+    id: 'd5',
+    tag: 'Món đặc sắc',
+    tagColor: 'bg-[#BF360C] text-white',
+    name: 'Cà ri đậu chickpea cải bó xôi',
+    desc: 'Cà ri vàng dừa béo, đậu gà nở mềm và cải bó xôi tươi, ăn kèm bánh mì nướng.',
+    imgSeed: 'chickpea spinach curry coconut milk vegan golden soup bread',
+    priceVND: 85000,
+  },
+  {
+    id: 'd6',
+    tag: 'Tráng miệng',
+    tagColor: 'bg-[#006064] text-white',
+    name: 'Chè đậu đỏ sen nướng dừa',
+    desc: 'Chè thanh mát, đậu đỏ hầm mềm, hạt sen thơm và cơm dừa nướng giòn.',
+    imgSeed: 'vegan red bean lotus seed sweet soup coconut toasted vietnamese dessert',
+    priceVND: 35000,
+  },
+]
 
 const IMG = (seed: string) =>
   `https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
@@ -16,28 +171,43 @@ const IMG = (seed: string) =>
 // ---------- Seed data (NO hardcode in Components) ----------
 const IN_MEMORY_RESTAURANTS: Restaurant[] = [
   {
-    id: 'r_hanoi_01',
-    name: 'Quán Chay An Lạc (Trần Nhật Duật)',
-    address: 'Số 12, ngõ 68, Trần Nhật Duật, phường Tân Ước, quận Cầu Giấy',
+    id: 'an-nhien',
+    name: 'An Nhiên Vegetarian Restaurant',
+    address: 'Số 18 Ngõ 71 Linh Lang, Cống Vị, Ba Đình, Hà Nội',
     city: 'Hà Nội',
-    district: 'Cầu Giấy',
+    district: 'Ba Đình',
     distanceKm: 1.2,
-    openingHours: '06:30 - 21:30',
+    openingHours: '08:00 - 22:00',
     closingDay: 'Mở cửa cả tuần',
-    phoneNumber: '024 6688 1234',
-    email: 'anlac.bepchay@gmail.com',
-    website: 'https://anlac-chay.vn',
-    priceRangeVND: { min: 45000, max: 120000 },
+    phoneNumber: '028 3822 6789',
+    email: 'contact@annhienvegetarian.vn',
+    website: 'https://annhienvegetarian.vn',
+    priceRangeVND: { min: 100000, max: 250000 },
+    priceRange: '100.000đ - 250.000đ / người',
     dietTypes: ['vegan', 'ovo-lacto'],
-    rating: 4.8,
-    reviewCount: 2840,
-    imageUrl: IMG('cozy vegan vietnamese restaurant ha noi bamboo interior hot pot'),
-    tags: ['phở chay', 'bún chả', 'bánh mì', 'giờ vàng'],
-    highlights: [
-      'Menu 100% thuần thực vật không mùi nồng',
-      'Phở chay nước dùng hầm từ củ cải & nấm',
-      'Có khu vực gia đình & chỗ để xe máy rộng',
+    rating: 5.0,
+    reviewCount: 320,
+    imageUrl:
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80',
+    galleryImages: [
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=600&q=80',
     ],
+    tags: ['Không gian vườn xanh', 'Thực đơn thực dưỡng', 'Chỗ đỗ ô tô'],
+    highlights: [
+      'Không gian vườn xanh · Thực đơn thực dưỡng · Chỗ đỗ ô tô',
+      '100% Rau củ hữu cơ',
+      '0% Phẩm màu hóa học',
+    ],
+    amenities: [
+      'Thuần chay 100%',
+      'Món Việt thanh tự',
+      'Không gian xanh yên tĩnh',
+      'Có chỗ đỗ ô tô',
+      'Điều hòa, Wifi, đỗ ô tô',
+    ],
+    description:
+      'An Nhiên Vegetarian phục vụ các món chay Việt Nam theo phong cách hiện đại, sử dụng nguồn nguyên liệu rau củ hữu cơ tươi ngon mỗi ngày và gia vị thuần tự nhiên. Không gian được bài trí mộc mạc với gỗ ấm và nhiều cây xanh, mang đến trải nghiệm ẩm thực an lành, cân bằng dưỡng chất và xua tan căng thẳng thường nhật.',
     hasDelivery: true,
     hasParking: true,
     hasTakeAway: true,
@@ -45,86 +215,112 @@ const IN_MEMORY_RESTAURANTS: Restaurant[] = [
     createdAt: '2026-03-14',
   },
   {
-    id: 'r_hanoi_02',
-    name: 'Bếp Thuần Chay Sen Vàng (Đống Đa)',
-    address: 'Số 45A, đường Thái Hà, phường Trung Liệt, quận Đống Đa',
+    id: 'the-fernery',
+    name: 'The Fernery Garden & Cafe Chay',
+    address: '24 Đường Quảng Khánh, Quảng An, Tây Hồ, Hà Nội',
     city: 'Hà Nội',
-    district: 'Đống Đa',
-    distanceKm: 3.7,
-    openingHours: '07:00 - 22:00',
-    closingDay: 'Thứ 2 hàng tháng',
-    phoneNumber: '0912 100 220',
-    priceRangeVND: { min: 30000, max: 95000 },
-    dietTypes: ['vegan', 'raw'],
-    rating: 4.6,
-    reviewCount: 1782,
-    imageUrl: IMG('minimalist vegan restaurant hanoi lotus salad raw platter wooden decor'),
-    tags: ['raw food', 'salad', 'bánh cuốn chay', 'nước ép'],
-    highlights: [
-      'Có menu đồ ăn sống (raw) rất phong phú',
-      'Nước ép lạnh 10 loại rau củ khác nhau mỗi ngày',
-      'Dùng 100% dầu đậu nành hữu cơ',
+    district: 'Tây Hồ',
+    distanceKm: 2.4,
+    openingHours: '07:30 - 22:00',
+    closingDay: 'Mở cửa cả tuần',
+    phoneNumber: '024 3719 8899',
+    priceRangeVND: { min: 45000, max: 150000 },
+    priceRange: '45.000đ - 150.000đ',
+    dietTypes: ['ovo-lacto', 'lacto'],
+    rating: 4.8,
+    reviewCount: 420,
+    imageUrl:
+      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80',
+    galleryImages: [
+      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80',
     ],
+    tags: ['Không gian ngoài trời', 'Bánh ngọt thuần chay', 'View hồ Tây'],
+    highlights: [
+      'Không gian ngoài trời · Bánh ngọt thuần chay · View hồ Tây',
+      'Cà phê kem béo từ sữa yến mạch',
+      'View hoàng hôn hồ Tây cực đẹp',
+    ],
+    amenities: ['Không gian ngoài trời', 'Wifi tốc độ cao', 'View hồ Tây'],
+    description:
+      'Không gian sân vườn xanh mát cạnh Hồ Tây với bánh ngọt thuần chay, cà phê hạt thượng hạng và các món brunch nhẹ nhàng cho ngày cuối tuần thư thái.',
+    hasDelivery: true,
+    hasParking: true,
+    hasTakeAway: true,
+    acceptsBooking: true,
+    createdAt: '2026-04-10',
+  },
+  {
+    id: 'an-lac',
+    name: 'Bếp Chay An Lạc - Ẩm Thực Thực Dưỡng',
+    address: '109 Phố Mai Hắc Đế, Bùi Thị Xuân, Hai Bà Trưng, Hà Nội',
+    city: 'Hà Nội',
+    district: 'Hai Bà Trưng',
+    distanceKm: 3.1,
+    openingHours: '08:00 - 21:30',
+    closingDay: 'Mở cửa cả tuần',
+    phoneNumber: '024 6688 1234',
+    priceRangeVND: { min: 50000, max: 120000 },
+    priceRange: '50.000đ - 120.000đ',
+    dietTypes: ['vegan'],
+    rating: 4.9,
+    reviewCount: 560,
+    imageUrl:
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+    galleryImages: [
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
+    ],
+    tags: ['Cơm văn phòng chay', 'Không bột ngọt', 'Nam thực vật sạch'],
+    highlights: [
+      'Cơm văn phòng chay · Không bột ngọt · Nam thực vật sạch',
+      'Thực đơn đổi món hàng ngày',
+      'Nước dùng ninh từ củ sen và nấm đông cô',
+    ],
+    amenities: ['Cơm trưa dinh dưỡng', 'Không bột ngọt', 'Giao tận nơi'],
+    description:
+      'Chuyên các món ăn chay thực dưỡng thanh nhẹ, nguyên liệu rau củ sạch tươi hái tại vườn, tuyệt đối không dùng bột ngọt và chất bảo quản.',
     hasDelivery: true,
     hasParking: false,
     hasTakeAway: true,
-    acceptsBooking: false,
-    createdAt: '2026-05-01',
+    acceptsBooking: true,
+    createdAt: '2026-02-18',
   },
   {
-    id: 'r_hanoi_03',
-    name: 'Nhà Hàng Chay Hương Sen Tây Hồ',
-    address: 'Số 8, phố Nguyễn Duy Trinh, phường Thụy Khuê, Tây Hồ',
+    id: 'sen-vang',
+    name: 'Nhà Hàng Chay Sen Vàng',
+    address: '52 Nguyễn Du, Phường Hàng Bài, Hoàn Kiếm, Hà Nội',
     city: 'Hà Nội',
-    district: 'Tây Hồ',
-    distanceKm: 5.4,
-    openingHours: '09:00 - 23:00',
-    closingDay: 'Không nghỉ',
-    phoneNumber: '024 3829 1119',
-    priceRangeVND: { min: 120000, max: 280000 },
-    dietTypes: ['vegan', 'ovo-lacto', 'vegetarian-friendly'],
-    rating: 4.5,
-    reviewCount: 3420,
-    imageUrl: IMG('luxury riverside vietnamese vegetarian restaurant west lake lotus feast'),
-    tags: ['lễ hội', 'tiệc cưới', 'mâm cỗ giỗ tổ', 'view hồ'],
-    highlights: [
-      'Mâm cỗ giỗ tổ 5-7 món chay truyền thống',
-      'Tiệc cưới chay trọn gói 150 khách',
-      'View hồ Tây 2 mặt tiền',
+    district: 'Hoàn Kiếm',
+    distanceKm: 3.8,
+    openingHours: '11:00 - 22:00',
+    closingDay: 'Mở cửa cả tuần',
+    phoneNumber: '024 3943 5678',
+    priceRangeVND: { min: 80000, max: 250000 },
+    priceRange: '80.000đ - 250.000đ',
+    dietTypes: ['lacto', 'ovo-lacto'],
+    rating: 4.7,
+    reviewCount: 388,
+    imageUrl:
+      'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=800&q=80',
+    galleryImages: [
+      'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80',
     ],
+    tags: ['Không gian thiền tịnh', 'Tiệc chay gia đình', 'Trà hoa mộc'],
+    highlights: [
+      'Không gian thiền tịnh · Tiệc chay gia đình · Trà hoa mộc',
+      'Phòng tiệc riêng thanh tịnh',
+      'Trà sen và trà hoa mộc ướp thủ công',
+    ],
+    amenities: ['Phòng VIP tiệc gia đình', 'Trà thiền', 'Đỗ xe ô tô'],
+    description:
+      'Nhà hàng chay ấm cúng mang phong cách thiền Việt Nam, phục vụ các mâm cỗ chay gia đình thịnh soạn và các buổi trà đàm thanh tịnh.',
     hasDelivery: false,
     hasParking: true,
     hasTakeAway: true,
     acceptsBooking: true,
-    createdAt: '2026-01-20',
-  },
-  {
-    id: 'r_hcm_01',
-    name: 'Chay Sài Gòn Ẩm Thực (Quận 1)',
-    address: 'Số 23, đường Nguyễn Huệ, phường Bến Nghé, quận 1, TP.HCM',
-    city: 'TP.HCM',
-    district: 'Quận 1',
-    distanceKm: 0.8,
-    openingHours: '08:00 - 22:30',
-    closingDay: 'Mở cửa cả tuần',
-    phoneNumber: '028 7777 0023',
-    website: 'https://chaysaigon.vn',
-    priceRangeVND: { min: 60000, max: 180000 },
-    dietTypes: ['vegan'],
-    rating: 4.9,
-    reviewCount: 5110,
-    imageUrl: IMG('modern vegan restaurant saigon district 1 open kitchen banh xeo platter'),
-    tags: ['bánh xèo', 'bún bò', 'com tam', 'trung tâm'],
-    highlights: [
-      'Đầu bếp 15 năm kinh nghiệm nấu chay miền Nam',
-      'Nhà hàng trung tâm, dễ đi bộ từ Nguyễn Huệ',
-      'Giao hàng GrabFood/ShopeeFood toàn quận 1,3,4',
-    ],
-    hasDelivery: true,
-    hasParking: true,
-    hasTakeAway: true,
-    acceptsBooking: true,
-    createdAt: '2026-07-02',
+    createdAt: '2026-01-05',
   },
   {
     id: 'r_hcm_02',
@@ -426,6 +622,10 @@ function applyFilter(list: Restaurant[], f: RestaurantFilter): Restaurant[] {
     out = out.filter((r) => (r.dietTypes as string[]).includes(f.diet))
   if (f.ratingMin > 0) out = out.filter((r) => r.rating >= f.ratingMin)
   if (f.deliveryOnly) out = out.filter((r) => r.hasDelivery)
+  // Lọc theo khoảng cách tối đa (pill Tất cả / <1 / <3 / <5 / <10): 0 = Tất cả (bỏ qua)
+  if (typeof f.distanceMaxKm === 'number' && f.distanceMaxKm > 0) {
+    out = out.filter((r) => Number.isFinite(r.distanceKm) && r.distanceKm <= f.distanceMaxKm)
+  }
   return sortRestaurants(out, f.sort)
 }
 
@@ -460,9 +660,12 @@ export async function getRestaurants(
 }
 
 export async function getRestaurantDetail(id: string): Promise<Restaurant | null> {
-  await delay()
+  await delay(500)
+  if (!id || id === 'an-nhien' || id === 'r_annhien') {
+    return IN_MEMORY_RESTAURANTS.find((r) => r.id === 'an-nhien') ?? IN_MEMORY_RESTAURANTS[0] ?? null
+  }
   const found = IN_MEMORY_RESTAURANTS.find((r) => r.id === id)
-  return found ?? null
+  return found ?? IN_MEMORY_RESTAURANTS[0] ?? null
 }
 
 // Alias (filterRestaurants) as requested in Task 6 spec
@@ -470,6 +673,39 @@ export async function filterRestaurants(
   inputFilter: Partial<RestaurantFilter> = {},
 ): Promise<RestaurantListResponse> {
   return getRestaurants(inputFilter)
+}
+
+/* ---------- Public API helpers (chips / pins / menu) ---------- */
+export async function getDishChips(): Promise<DishChip[]> {
+  await delay(500)
+  return DISH_CHIPS
+}
+
+export async function getMapPins(): Promise<MapPinMarker[]> {
+  await delay(500)
+  return MAP_PINS
+}
+
+export async function getRestaurantMenu(
+  _id: string,
+): Promise<RestaurantDish[]> {
+  await delay(500)
+  return DISH_CARDS
+}
+
+export async function getWeekHours(_id: string): Promise<WeekHour[]> {
+  await delay(500)
+  return MOCK_WEEK_HOURS
+}
+
+export async function getReviewComments(_id: string): Promise<ReviewComment[]> {
+  await delay(500)
+  return MOCK_REVIEW_COMMENTS
+}
+
+export async function getRelatedContent(_id: string): Promise<RelatedContentCard[]> {
+  await delay(500)
+  return MOCK_RELATED_CONTENT
 }
 
 export { IN_MEMORY_RESTAURANTS as __DEBUG_IN_MEMORY_RESTAURANTS__ }

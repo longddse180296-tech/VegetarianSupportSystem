@@ -153,7 +153,6 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     pageSubtitle="Tìm kiếm tài khoản, xem chi tiết và quản lý trạng thái truy cập."
     adminName={admin.fullName}
     adminEmail={user?.email ?? ''}
-    availableNavIds={['dashboard', 'members']}
     onNavigate={onNavigate}
     onLogout={() => { signOut(); onNavigate?.('/auth/login') }}
   >

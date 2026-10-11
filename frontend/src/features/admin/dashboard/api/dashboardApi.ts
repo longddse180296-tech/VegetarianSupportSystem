@@ -148,7 +148,7 @@ const MOCK_DASHBOARD_DATA: DashboardOverviewData = {
  * Pre-architected for real backend API: GET /api/admin/dashboard
  */
 export async function getDashboardOverview(): Promise<DashboardOverviewData> {
-  // Simulate network latency (600ms)
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  // Simulate network latency (1.5s per directive)
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   return MOCK_DASHBOARD_DATA
 }

@@ -1,4 +1,4 @@
-export type CategoryClassification = 'ingredient' | 'recipe'
+export type CategoryClassification = 'food_type' | 'recipe' | 'ingredient'
 
 export interface AdminCategoryItem {
   id: string
@@ -16,13 +16,14 @@ export interface AdminCategoryItem {
 
 export interface AdminCategoryStats {
   activeCount: number
-  ingredientCategoryCount: number
+  foodTypeCategoryCount: number
   recipeCategoryCount: number
+  ingredientCategoryCount: number
 }
 
 export interface AdminCategoryFilter {
   keyword?: string
-  classification?: 'all' | 'ingredient' | 'recipe'
+  classification?: 'all' | 'food_type' | 'recipe' | 'ingredient'
   status?: 'all' | 'active' | 'inactive'
   sortBy?: 'newest' | 'name'
   page?: number

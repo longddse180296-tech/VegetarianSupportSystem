@@ -1,14 +1,16 @@
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Json.Serialization;
 using Application.Features.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(AuthService authService) : ControllerBase
+public sealed class AuthController(AuthService authService, PasswordResetService passwordResetService) : ControllerBase
 {
     [HttpPost("register")]
     [AllowAnonymous]
@@ -76,9 +78,68 @@ public sealed class AuthController(AuthService authService) : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("password-reset-request")]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        if (!passwordResetService.IsAvailable)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+            {
+                Status = StatusCodes.Status503ServiceUnavailable,
+                Title = "Chức năng đặt lại mật khẩu hiện chưa được cấu hình."
+            });
+
+        await passwordResetService.RequestAsync(request.Email, cancellationToken);
+        return Accepted(new { message = "Nếu email có tài khoản hợp lệ, hướng dẫn đặt lại mật khẩu sẽ được gửi." });
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("password-reset-submit")]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var reset = await passwordResetService.ResetAsync(request.Token, request.NewPassword,
+                request.ConfirmPassword, cancellationToken);
+            return reset ? NoContent() : BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError(ex.ParamName ?? "request", ex.Message);
+            return ValidationProblem(ModelState);
+        }
+    }
+
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record RegisterRequest(string? FullName, string? Email, string? Password, string? ConfirmPassword);
-    public sealed record LoginRequest(string? Email, string? Password);
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed class LoginRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập email.")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
+        [MaxLength(254, ErrorMessage = "Email không được vượt quá 254 ký tự.")]
+        public string? Email { get; init; }
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu.")]
+        public string? Password { get; init; }
+    }
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed class ForgotPasswordRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập email.")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
+        [MaxLength(254, ErrorMessage = "Email không được vượt quá 254 ký tự.")]
+        public string? Email { get; init; }
+    }
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record ResetPasswordRequest(string? Token, string? NewPassword, string? ConfirmPassword);
 
     public sealed record AuthResponse(
         string AccessToken, string TokenType, DateTimeOffset ExpiresAtUtc,

@@ -56,6 +56,27 @@ public sealed class ProfileServiceTests
     }
 
     [Fact]
+    public async Task ContextReaderReturnsOnlyRequestedUsersProfileAndDetachedLists()
+    {
+        var owner = User.Register("Owner", "owner@example.com", "hash", Now);
+        owner.Profile!.SetDiet(VegetarianDiet.Vegan, Now);
+        owner.Profile.AddAllergy("Peanut", Now);
+        var other = User.Register("Other", "other@example.com", "hash", Now);
+        other.Profile!.AddAllergy("Soy", Now);
+        var service = new ProfileService(new FakeRepository(owner, other));
+
+        var context = await service.GetContextAsync(owner.Id, CancellationToken.None);
+        owner.Profile.AddAllergy("Sesame", Now);
+
+        Assert.NotNull(context);
+        Assert.Equal(owner.Id, context.UserId);
+        Assert.Equal(VegetarianDiet.Vegan, context.Diet);
+        Assert.Equal(["Peanut"], context.Allergies);
+        Assert.DoesNotContain("Soy", context.Allergies);
+        Assert.Null(await service.GetContextAsync("unknown", CancellationToken.None));
+    }
+
+    [Fact]
     public async Task ChoosingDietKeepsBodyDataAndAllergies()
     {
         var user = User.Register("User", "user@example.com", "hash", Now);
@@ -112,6 +133,32 @@ public sealed class ProfileServiceTests
         Assert.Equal(VegetarianDiet.Vegan, result.Diet);
         Assert.Equal("0912 345 678", result.PhoneNumber);
         Assert.Equal(1, repository.SaveCount);
+    }
+
+    [Fact]
+    public async Task PreviewUsesSavedEstimateRulesWithoutChangingProfile()
+    {
+        var user = User.Register("User", "user@example.com", "hash", Now);
+        user.Profile!.SetBodyData(new DateOnly(2000, 1, 1), SexForEnergyEstimate.Female,
+            160m, 50m, ActivityLevel.Sedentary, WeightGoal.Maintain, Now);
+        var repository = new FakeRepository(user);
+        var service = new ProfileService(repository);
+        var request = new UpdateBodyDetails(new DateOnly(2000, 1, 1),
+            SexForEnergyEstimate.Female, 170m, 65m,
+            ActivityLevel.ModeratelyActive, WeightGoal.Lose);
+
+        var preview = await service.PreviewBodyAsync(user.Id, request, CancellationToken.None);
+
+        Assert.NotNull(preview);
+        Assert.Equal(22.5m, preview.Bmi);
+        Assert.Equal(160m, user.Profile.HeightCm);
+        Assert.Equal(0, repository.SaveCount);
+
+        var saved = await service.UpdateBodyAsync(user.Id, request, CancellationToken.None);
+        Assert.NotNull(saved);
+        Assert.Equal(saved.Bmi, preview.Bmi);
+        Assert.Equal(saved.AdultBmiCategory, preview.AdultBmiCategory);
+        Assert.Equal(saved.EstimatedTdeeKcal, preview.EstimatedTdeeKcal);
     }
 
     [Fact]

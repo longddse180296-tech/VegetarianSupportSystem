@@ -31,7 +31,9 @@ import {
   RecommendedMealPlanPage,
   PersonalizationSetupPage,
   MyMealPlanPage,
-  MealPlanDetailPage,
+  MealPlansPublic,
+  MealPlanCreate,
+  MealPlanDetail,
 } from '../../features/meal-plans'
 import { VideoListPage, VideoDetailPage, MyVideosPage } from '../../features/videos'
 import { RestaurantListPage, RestaurantDetailPage } from '../../features/restaurants'
@@ -219,20 +221,102 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return withPublic(<PantryPage onNavigate={onNavigate} />, 'pantry', ctx)
   }
 
+  // ─── Meal Plans: Protected Route /meal-plans/create ─────────────────
+  if (path === '/meal-plans/create') {
+    if (!ctx.user) {
+      try {
+        sessionStorage.setItem('returnUrl', '/meal-plans/create')
+      } catch {
+        // ignore storage error
+      }
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    return withPublic(<MealPlanCreate onNavigate={onNavigate} />, 'meal-plans', ctx)
+  }
+
+  // ─── Meal Plans: Protected Route /meal-plans/setup ──────────────────
   if (path === '/meal-plans/setup') {
+    if (!ctx.user) {
+      try {
+        sessionStorage.setItem('returnUrl', '/meal-plans/setup')
+      } catch {
+        // ignore storage error
+      }
+      return <LoginPage onNavigate={onNavigate} />
+    }
     return withPublic(
       <PersonalizationSetupPage onNavigate={onNavigate} />,
       'meal-plans',
       ctx,
     )
   }
+
+  // ─── Meal Plans: Protected Route /meal-plans/recommended ────────────
   if (path === '/meal-plans/recommended') {
+    if (!ctx.user) {
+      try {
+        sessionStorage.setItem('returnUrl', '/meal-plans/recommended')
+      } catch {
+        // ignore storage error
+      }
+      return <LoginPage onNavigate={onNavigate} />
+    }
     return withPublic(
       <RecommendedMealPlanPage onNavigate={onNavigate} />,
       'meal-plans',
       ctx,
     )
   }
+
+  // ─── Meal Plans: Protected Routes /meal-plans/my-plan ───────────────
+  if (
+    path === '/meal-plans/my-plan' ||
+    path === '/meal-plans/weekly' ||
+    path === '/meal-plans/calendar'
+  ) {
+    if (!ctx.user) {
+      try {
+        sessionStorage.setItem('returnUrl', path)
+      } catch {
+        // ignore storage error
+      }
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    return withPublic(<MyMealPlanPage onNavigate={onNavigate} />, 'meal-plans', ctx)
+  }
+
+  // ─── Meal Plans: Protected Route /meal-plans/:id & /meal-plans/detail/:id
+  const mealPlanDetailMatch = path.match(/^\/meal-plans\/(?:detail\/)?([^/?#]+)$/)
+  if (mealPlanDetailMatch) {
+    const rawId = decodeURIComponent(mealPlanDetailMatch[1])
+    const reservedSlugs = [
+      'create',
+      'setup',
+      'discover',
+      'sample',
+      'recommended',
+      'my-plan',
+      'weekly',
+      'calendar',
+    ]
+    if (!reservedSlugs.includes(rawId)) {
+      if (!ctx.user) {
+        try {
+          sessionStorage.setItem('returnUrl', path)
+        } catch {
+          // ignore storage error
+        }
+        return <LoginPage onNavigate={onNavigate} />
+      }
+      return withPublic(
+        <MealPlanDetail onNavigate={onNavigate} planId={rawId} />,
+        'meal-plans',
+        ctx,
+      )
+    }
+  }
+
+  // ─── Meal Plans: Public Routes ────────────────────────────────────────
   if (path === '/meal-plans/discover' || path === '/meal-plans/sample') {
     return withPublic(
       <GeneralMealPlanPage onNavigate={onNavigate} />,
@@ -240,26 +324,14 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       ctx,
     )
   }
-  const mealPlanDetailMatch = path.match(/^\/meal-plans\/detail\/?(.+)?$/)
-  if (mealPlanDetailMatch) {
-    return withPublic(
-      <MealPlanDetailPage
-        onNavigate={onNavigate}
-        planId={mealPlanDetailMatch[1] || undefined}
-      />,
-      'meal-plans',
-      ctx,
-    )
-  }
+
+  // ─── Meal Plans: Default Public Discovery Page ───────────────────────
   if (
     path === '/meal-plans' ||
     path === 'meal-plans' ||
-    path === '/meal-plans/my-plan' ||
-    path === '/meal-plans/weekly' ||
-    path === '/meal-plans/calendar' ||
     path.startsWith('/meal-plans')
   ) {
-    return withPublic(<MyMealPlanPage onNavigate={onNavigate} />, 'meal-plans', ctx)
+    return withPublic(<MealPlansPublic onNavigate={onNavigate} />, 'meal-plans', ctx)
   }
 
 

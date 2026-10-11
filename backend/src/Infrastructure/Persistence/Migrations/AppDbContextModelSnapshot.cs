@@ -74,6 +74,108 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("AiChatMessages", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.Article", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DraftCategory")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("DraftContent")
+                        .IsRequired()
+                        .HasMaxLength(50000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DraftCoverImageUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("DraftTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("ModerationContentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModerationContentId")
+                        .IsUnique()
+                        .HasFilter("[ModerationContentId] IS NOT NULL");
+
+                    b.HasIndex("OwnerUserId", "UpdatedAt");
+
+                    b.ToTable("Articles", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ArticleVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(50000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CoverImageUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("SubmittedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmissionId")
+                        .IsUnique();
+
+                    b.HasIndex("ArticleId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("ArticleVersions", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -104,6 +206,104 @@ namespace Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Categories", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.Comment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("ModeratedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ModeratedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ModerationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("AuthorId", "CreatedAt");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("TargetType", "TargetId", "CreatedAt");
+
+                    b.ToTable("Comments", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ContentReaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetType", "TargetId");
+
+                    b.HasIndex("UserId", "TargetType", "TargetId")
+                        .IsUnique();
+
+                    b.ToTable("ContentReactions", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Favorite", b =>
@@ -675,6 +875,35 @@ namespace Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Domain.Entities.PasswordResetToken", b =>
+                {
+                    b.Property<string>("TokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset?>("ConsumedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("TokenHash");
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("UserId", "CreatedAtUtc");
+
+                    b.ToTable("PasswordResetTokens", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Recipe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -987,6 +1216,11 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
 
+                    b.Property<int>("TokenVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<DateTimeOffset>("UpdatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -1188,6 +1422,31 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Entities.ArticleVersion", b =>
+                {
+                    b.HasOne("Domain.Entities.Article", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ModerationSubmission", "Submission")
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Submission");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Comment", b =>
+                {
+                    b.HasOne("Domain.Entities.Comment", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("Domain.Entities.MealPlanMeal", b =>
                 {
                     b.HasOne("Domain.Entities.MealPlan", "MealPlan")
@@ -1253,6 +1512,15 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("Domain.Entities.PasswordResetToken", b =>
+                {
+                    b.HasOne("Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Domain.Entities.Recipe", b =>
@@ -1351,6 +1619,11 @@ namespace Infrastructure.Persistence.Migrations
                         .HasForeignKey("Domain.Entities.UserProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.Article", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Domain.Entities.Category", b =>

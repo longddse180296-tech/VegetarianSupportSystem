@@ -44,17 +44,19 @@ export const SORT_LABELS: Record<RecipeSortOption, string> = {
 
 // ---------- Sub-types ----------
 export interface RecipeIngredient {
-  id: string
+  id?: string
   name: string
-  amount: number
+  amount: number | string
   unit: string
   note?: string
 }
 
 export interface RecipeStep {
-  stepNo: number
+  stepNo?: number
+  stepNumber?: number
   title?: string
-  description: string
+  description?: string
+  instruction?: string
   tip?: string
   durationMinutes?: number
 }
@@ -64,7 +66,36 @@ export interface RecipeNutrition {
   proteinG: number
   carbsG: number
   fatG: number
-  fiberG: number
+  fiberG?: number
+}
+
+export interface RelatedBlogCard {
+  id: string
+  title: string
+  author: string
+  readTime: string
+  imageUrl: string
+  desc?: string
+  excerpt?: string
+  tag?: string
+  tagCls?: string
+}
+
+export interface RelatedVideoCard {
+  id: string
+  title: string
+  channel: string
+  duration: string
+  imageUrl: string
+  videoUrl?: string
+}
+
+export interface RelatedRestaurantCard {
+  id: string
+  name: string
+  address: string
+  distanceKm: number
+  imageUrl: string
 }
 
 // ---------- Filter state ----------
@@ -89,6 +120,18 @@ export interface Recipe {
   id: string
   title: string
   description: string
+  category?: string
+  dietType?: string
+  prepTime?: number | string
+  cookTime?: number | string
+  totalTime?: number | string
+  servings?: number
+  calories?: number
+  protein?: number
+  carbs?: number
+  fat?: number
+  plantRatio?: number | string
+  imageUrl?: string
   coverImage: string
   cookTimeMinutes: number
   prepTimeMinutes?: number
@@ -105,6 +148,9 @@ export interface Recipe {
   steps: RecipeStep[]
   nutrition: RecipeNutrition
   publishedAt: string
+  relatedBlogs?: RelatedBlogCard[]
+  relatedVideos?: RelatedVideoCard[]
+  relatedRestaurants?: RelatedRestaurantCard[]
 }
 
 export interface RecipeListResponse {

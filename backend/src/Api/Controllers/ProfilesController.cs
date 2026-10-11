@@ -87,6 +87,24 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         }
     }
 
+    [HttpPost("body/estimate")]
+    public async Task<ActionResult<ProfileEstimate>> PreviewBody(
+        [FromBody] UpdateBodyRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await profiles.PreviewBodyAsync(CurrentUserId,
+                new UpdateBodyDetails(request.BirthDate, request.SexForEnergyEstimate,
+                    request.HeightCm, request.WeightKg, request.ActivityLevel, request.WeightGoal),
+                cancellationToken);
+            return result is null ? NotFound() : Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return Invalid(ex);
+        }
+    }
+
     [HttpPost("allergies")]
     public async Task<ActionResult<ProfileItem>> AddAllergy(
         [FromBody] ProfileItemRequest request, CancellationToken cancellationToken)

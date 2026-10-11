@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
 import type { AdminCategoryItem, CategoryFormData } from '../types/adminCategories.types'
 
 const categorySchema = z.object({
   name: z.string().min(2, 'Tên danh mục phải có ít nhất 2 ký tự').max(60, 'Tối đa 60 ký tự'),
   slug: z.string().min(2, 'Slug phải có ít nhất 2 ký tự').max(80, 'Tối đa 80 ký tự'),
-  classification: z.enum(['ingredient', 'recipe']),
+  classification: z.enum(['food_type', 'recipe', 'ingredient']),
   description: z.string().min(5, 'Mô tả ngắn phải từ 5 ký tự').max(200, 'Tối đa 200 ký tự'),
   isActive: z.boolean(),
 })
@@ -42,7 +42,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     defaultValues: {
       name: '',
       slug: '',
-      classification: 'ingredient',
+      classification: 'food_type',
       description: '',
       isActive: true,
     },
@@ -50,7 +50,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
 
   const watchedName = useWatch({ control, name: 'name' })
 
-  // Auto-generate slug when name changes (if not manual)
+  // Auto-generate slug when name changes (if not editing existing)
   useEffect(() => {
     if (!categoryToEdit && watchedName) {
       const generatedSlug = watchedName
@@ -78,7 +78,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       reset({
         name: '',
         slug: '',
-        classification: 'ingredient',
+        classification: 'food_type',
         description: '',
         isActive: true,
       })
@@ -97,93 +97,113 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 border border-gray-100 shadow-xl relative space-y-5">
+      <div className="bg-white rounded-[20px] max-w-lg w-full p-6 sm:p-7 border border-[#e5e7eb] shadow-xl relative space-y-5">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+          className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-[10px] transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div>
-          <h3 className="text-lg font-bold text-gray-900">
-            {isEditing ? 'Chỉnh sửa Danh mục' : 'Tạo Danh mục mới'}
+          <h3 className="text-lg font-bold text-[#1f2937]">
+            {isEditing ? 'Chỉnh sửa Danh mục Master Data' : 'Tạo Danh mục Master Data mới'}
           </h3>
-          <p className="text-xs text-gray-500 mt-1">
-            Thiết lập thông tin phân loại cho hệ thống nguyên liệu và công thức nấu chay.
+          <p className="text-xs text-[#6b7280] mt-1">
+            Thiết lập dữ liệu phân loại cho Loại ẩm thực chay (Food Types), Công thức (Recipes) và Nguyên liệu (Ingredients).
           </p>
         </div>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-gray-700 block mb-1">
-              Tên danh mục <span className="text-red-500">*</span>
+            <label className="text-xs font-semibold text-[#1f2937] block mb-1">
+              Tên danh mục <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               {...register('name')}
-              placeholder="Ví dụ: Rau củ, Món chính..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              placeholder="Ví dụ: Thuần thực vật, Món chính, Rau củ..."
+              className="w-full px-3.5 py-2.5 rounded-[10px] border border-[#e5e7eb] text-xs text-[#1f2937] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9]"
             />
             {errors.name && (
-              <p className="text-[11px] text-red-500 mt-1">{errors.name.message}</p>
+              <p className="text-[11px] text-rose-500 mt-1">{errors.name.message}</p>
             )}
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-700 block mb-1">
-              Đường dẫn (Slug) <span className="text-red-500">*</span>
+            <label className="text-xs font-semibold text-[#1f2937] block mb-1">
+              Đường dẫn (Slug) <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               {...register('slug')}
-              placeholder="rau-cu, mon-chinh..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs font-mono text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              placeholder="thuan-thuc-vat, mon-chinh, rau-cu..."
+              className="w-full px-3.5 py-2.5 rounded-[10px] border border-[#e5e7eb] text-xs font-mono text-[#1f2937] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9]"
             />
             {errors.slug && (
-              <p className="text-[11px] text-red-500 mt-1">{errors.slug.message}</p>
+              <p className="text-[11px] text-rose-500 mt-1">{errors.slug.message}</p>
             )}
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-700 block mb-1">
-              Phân loại hệ thống <span className="text-red-500">*</span>
+            <label className="text-xs font-semibold text-[#1f2937] block mb-1.5">
+              Phân loại Master Data <span className="text-rose-500">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 text-xs">
-                <input
-                  type="radio"
-                  value="ingredient"
-                  {...register('classification')}
-                  className="text-emerald-600 focus:ring-emerald-500"
-                />
-                <span className="font-medium text-gray-800">Loại thực phẩm</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <label className="flex flex-col gap-1 p-3 rounded-[12px] border border-[#e5e7eb] cursor-pointer hover:bg-[#f8faf8] text-xs transition-colors">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    value="food_type"
+                    {...register('classification')}
+                    className="text-[#2e7d32] focus:ring-[#2e7d32]"
+                  />
+                  <span className="font-bold text-[#1f2937]">Chế độ ăn chay</span>
+                </div>
+                <span className="text-[10px] text-[#6b7280] pl-5">4 loại chuẩn</span>
               </label>
-              <label className="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 text-xs">
-                <input
-                  type="radio"
-                  value="recipe"
-                  {...register('classification')}
-                  className="text-emerald-600 focus:ring-emerald-500"
-                />
-                <span className="font-medium text-gray-800">Công thức</span>
+
+              <label className="flex flex-col gap-1 p-3 rounded-[12px] border border-[#e5e7eb] cursor-pointer hover:bg-[#f8faf8] text-xs transition-colors">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    value="recipe"
+                    {...register('classification')}
+                    className="text-[#2e7d32] focus:ring-[#2e7d32]"
+                  />
+                  <span className="font-bold text-[#1f2937]">Công thức</span>
+                </div>
+                <span className="text-[10px] text-[#6b7280] pl-5">Recipes</span>
+              </label>
+
+              <label className="flex flex-col gap-1 p-3 rounded-[12px] border border-[#e5e7eb] cursor-pointer hover:bg-[#f8faf8] text-xs transition-colors">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    value="ingredient"
+                    {...register('classification')}
+                    className="text-[#2e7d32] focus:ring-[#2e7d32]"
+                  />
+                  <span className="font-bold text-[#1f2937]">Nguyên liệu</span>
+                </div>
+                <span className="text-[10px] text-[#6b7280] pl-5">Ingredients</span>
               </label>
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-700 block mb-1">
-              Mô tả ngắn <span className="text-red-500">*</span>
+            <label className="text-xs font-semibold text-[#1f2937] block mb-1">
+              Mô tả ngắn <span className="text-rose-500">*</span>
             </label>
             <textarea
               rows={3}
               {...register('description')}
               placeholder="Mô tả tóm tắt ý nghĩa và nhóm nội dung của danh mục..."
-              className="w-full p-3 rounded-xl border border-gray-200 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
+              className="w-full p-3 rounded-[10px] border border-[#e5e7eb] text-xs text-[#1f2937] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9] resize-none"
             />
             {errors.description && (
-              <p className="text-[11px] text-red-500 mt-1">{errors.description.message}</p>
+              <p className="text-[11px] text-rose-500 mt-1">{errors.description.message}</p>
             )}
           </div>
 
@@ -192,25 +212,25 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
               type="checkbox"
               id="isActive"
               {...register('isActive')}
-              className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+              className="w-4 h-4 rounded text-[#2e7d32] focus:ring-[#2e7d32]"
             />
-            <label htmlFor="isActive" className="text-xs text-gray-700 font-medium cursor-pointer">
-              Kích hoạt sử dụng ngay trên hệ thống
+            <label htmlFor="isActive" className="text-xs text-[#1f2937] font-medium cursor-pointer">
+              Kích hoạt sử dụng ngay trên toàn hệ thống
             </label>
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#e5e7eb]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] hover:bg-[#f8faf8] transition-colors cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold transition-colors shadow-xs"
+              className="px-5 py-2 rounded-[10px] bg-[#2e7d32] hover:bg-[#1b5e20] disabled:opacity-50 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer"
             >
               {isSubmitting ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Tạo danh mục'}
             </button>
@@ -220,3 +240,5 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     </div>
   )
 }
+
+export default CategoryModal

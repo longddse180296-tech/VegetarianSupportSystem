@@ -56,6 +56,22 @@ public sealed class MemberRepository(AppDbContext db) : IMemberRepository
         string id, string adminId, bool lockAccount, string reason, DateTimeOffset now, CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        // Serialize member status changes before reading either the actor or the active Admin count.
+        // The lock belongs to this transaction, so the account update and audit row commit together.
+        await db.Database.ExecuteSqlRawAsync("""
+            DECLARE @result int;
+            EXEC @result = sp_getapplock
+                @Resource = 'AdminMemberStatus',
+                @LockMode = 'Exclusive',
+                @LockOwner = 'Transaction',
+                @LockTimeout = 30000;
+            IF @result < 0 THROW 51000, 'Could not acquire the member status lock.', 1;
+            """, cancellationToken);
+
+        var actorIsActiveAdmin = await db.Users.AsNoTracking()
+            .AnyAsync(x => x.Id == adminId && x.Role == UserRole.Admin && !x.IsLocked, cancellationToken);
+        if (!actorIsActiveAdmin) return MemberStatusUpdateResult.ActorInactive;
+
         var user = await db.Users.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (user is null) return MemberStatusUpdateResult.NotFound;
         if (user.IsLocked == lockAccount) return MemberStatusUpdateResult.AlreadyInState;

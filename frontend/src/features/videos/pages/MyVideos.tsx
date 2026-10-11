@@ -217,12 +217,12 @@ export default function MyVideosPage({ onNavigate }: MyVideosPageProps) {
       statBadge={{ count: videosData.totalCount, label: 'Video' }}
       onNavigate={onNavigate}
     >
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
         {/* Header Title & CTA Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Video của tôi</h2>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">Video của tôi</h2>
+            <p className="text-xs text-slate-500 font-normal leading-normal mt-1">
               Quản lý các video hướng dẫn nấu ăn, mẹo chế biến và kiến thức ẩm thực thuần chay của bạn.
             </p>
           </div>
@@ -230,7 +230,7 @@ export default function MyVideosPage({ onNavigate }: MyVideosPageProps) {
             variant="primary"
             size="md"
             onClick={() => setIsCreateOpen(true)}
-            className="rounded-2xl shadow-sm px-5"
+            className="rounded-xl shadow-xs px-4"
             leftIcon={<span className="text-base font-bold leading-none">+</span>}
           >
             Tải video mới
@@ -239,12 +239,12 @@ export default function MyVideosPage({ onNavigate }: MyVideosPageProps) {
 
         {/* Action Success Notification */}
         {actionSuccessMsg && (
-          <div className="my-4 p-3.5 bg-emerald-50 text-emerald-800 rounded-2xl text-xs font-semibold border border-emerald-200 flex items-center justify-between">
+          <div className="my-4 p-3.5 bg-[#EAF5EE] text-[#1E6531] rounded-xl text-xs font-bold border border-emerald-200/80 flex items-center justify-between">
             <span>✓ {actionSuccessMsg}</span>
             <button
               type="button"
               onClick={() => setActionSuccessMsg(null)}
-              className="text-emerald-600 hover:text-emerald-800 p-1"
+              className="text-[#1E6531] hover:text-emerald-900 p-1 cursor-pointer"
             >
               ✕
             </button>
@@ -253,17 +253,17 @@ export default function MyVideosPage({ onNavigate }: MyVideosPageProps) {
 
         {/* Tabs Filter */}
         <div className="flex flex-wrap items-center justify-between gap-4 my-6">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             <button
               type="button"
               onClick={() => {
                 setActiveTab('all');
                 setCurrentPage(1);
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
                 activeTab === 'all'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Tất cả
@@ -274,10 +274,10 @@ export default function MyVideosPage({ onNavigate }: MyVideosPageProps) {
                 setActiveTab('published');
                 setCurrentPage(1);
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
                 activeTab === 'published'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Đã xuất bản
@@ -288,10 +288,10 @@ export default function MyVideosPage({ onNavigate }: MyVideosPageProps) {
                 setActiveTab('pending');
                 setCurrentPage(1);
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
                 activeTab === 'pending'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Chờ duyệt
@@ -302,17 +302,17 @@ export default function MyVideosPage({ onNavigate }: MyVideosPageProps) {
                 setActiveTab('draft');
                 setCurrentPage(1);
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
                 activeTab === 'draft'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
               }`}
             >
               Bản nháp
             </button>
           </div>
 
-          <div className="text-xs text-gray-500 font-medium">
+          <div className="text-xs text-slate-500 font-medium">
             Hiển thị {videosData.items.length > 0 ? (currentPage - 1) * 4 + 1 : 0}-
             {Math.min(currentPage * 4, videosData.totalCount)} trên tổng số{' '}
             {videosData.totalCount} video

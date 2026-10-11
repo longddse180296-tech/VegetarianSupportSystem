@@ -6,6 +6,46 @@ import type {
   RecipeMatch,
 } from '../types/pantry.types'
 
+/* ============ CATEGORY ORDER & STATIC HELPER DATA (moved from PantryPage) ============ */
+
+export const CATEGORY_ORDER: Array<{ key: PantryCategory | 'all'; emoji: string; label: string }> = [
+  { key: 'all', emoji: '🥗', label: 'Tất cả' },
+  { key: 'rau-cu-qua', emoji: '🥬', label: 'Rau củ' },
+  { key: 'dau-mem-san-xuat', emoji: '🫘', label: 'Đậu & đậu phụ' },
+  { key: 'hat-ngu-coc', emoji: '🌾', label: 'Hạt & ngũ cốc' },
+  { key: 'gia-vi', emoji: '🧂', label: 'Gia vị' },
+  { key: 'nam', emoji: '🍄', label: 'Nấm' },
+  { key: 'trai-cay', emoji: '🍎', label: 'Trái cây' },
+  { key: 'sua-hat', emoji: '🥛', label: 'Sữa hạt' },
+  { key: 'thuc-pham-che-bien', emoji: '🍱', label: 'TP chế biến' },
+  { key: 'khac', emoji: '📦', label: 'Khác' },
+]
+
+export const QUICK_ADD_CHIPS: Array<{ name: string; emoji: string; cls: string }> = [
+  { name: 'Đậu hũ', emoji: '🫘', cls: 'bg-[#FEF3C7] text-[#92400E]' },
+  { name: 'Nấm rơm', emoji: '🍄', cls: 'bg-[#FEF3C7] text-[#92400E]' },
+  { name: 'Cà chua', emoji: '🍅', cls: 'bg-[#FEF3C7] text-[#92400E]' },
+  { name: 'Bí đỏ', emoji: '🎃', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
+  { name: 'Đậu cô ve', emoji: '🌰', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
+  { name: 'Hạt sen', emoji: '🌰', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
+  { name: 'Dầu hào', emoji: '🍱', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
+  { name: 'Trứng gà', emoji: '🥚', cls: 'bg-[#FEF3C7] text-[#92400E]' },
+]
+
+export async function getPantryCategories(): Promise<
+  Array<{ key: PantryCategory | 'all'; emoji: string; label: string }>
+> {
+  await new Promise((r) => setTimeout(r, 500))
+  return CATEGORY_ORDER
+}
+
+export async function getQuickAddChips(): Promise<
+  Array<{ name: string; emoji: string; cls: string }>
+> {
+  await new Promise((r) => setTimeout(r, 500))
+  return QUICK_ADD_CHIPS
+}
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 function makeId(prefix = 'p'): string {

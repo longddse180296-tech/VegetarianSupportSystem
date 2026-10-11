@@ -6,92 +6,164 @@ import type {
 } from '../types/adminCategories.types'
 
 let MOCK_ADMIN_CATEGORIES: AdminCategoryItem[] = [
+  // 1. Food Types (4 Chế độ ăn chay chuẩn hệ thống)
   {
-    id: 'cat-1',
-    name: 'Rau củ',
-    slug: 'rau-cu',
-    iconName: 'leaf',
-    classification: 'ingredient',
-    classificationLabel: 'Loại thực phẩm',
-    description: 'Nhóm các nguyên liệu từ rau xanh, củ quả tươi tự nhiên',
-    linkedCountText: '28 nguyên liệu',
+    id: 'cat-ft-1',
+    name: 'Thuần chay (Vegan)',
+    slug: 'thuan-chay-vegan',
+    iconName: 'sprout',
+    classification: 'food_type',
+    classificationLabel: 'Loại ẩm thực chay',
+    description: '100% nguồn gốc thực vật; tuyệt đối không dùng thịt cá, trứng, sữa, mật ong hay phụ gia nguồn gốc động vật.',
+    linkedCountText: '142 món ăn',
+    createdAt: '10/08/2026',
+    isActive: true,
+    statusLabel: 'Đang sử dụng',
+  },
+  {
+    id: 'cat-ft-2',
+    name: 'Chay có sữa (Lacto-vegetarian)',
+    slug: 'chay-co-sua-lacto-vegetarian',
+    iconName: 'milk',
+    classification: 'food_type',
+    classificationLabel: 'Loại ẩm thực chay',
+    description: 'Bao gồm thực vật và các chế phẩm từ sữa (sữa tươi, phô mai, bơ, sữa chua); không ăn trứng và thịt cá.',
+    linkedCountText: '86 món ăn',
     createdAt: '12/08/2026',
     isActive: true,
     statusLabel: 'Đang sử dụng',
   },
   {
-    id: 'cat-2',
-    name: 'Món chính',
-    slug: 'mon-chinh',
+    id: 'cat-ft-3',
+    name: 'Chay có trứng (Ovo-vegetarian)',
+    slug: 'chay-co-trung-ovo-vegetarian',
+    iconName: 'egg',
+    classification: 'food_type',
+    classificationLabel: 'Loại ẩm thực chay',
+    description: 'Bao gồm thực vật và trứng gia cầm sạch; không dùng sữa, chế phẩm bơ sữa động vật và thịt cá.',
+    linkedCountText: '64 món ăn',
+    createdAt: '14/08/2026',
+    isActive: true,
+    statusLabel: 'Đang sử dụng',
+  },
+  {
+    id: 'cat-ft-4',
+    name: 'Chay trứng sữa (Lacto-ovo vegetarian)',
+    slug: 'chay-trung-sua-lacto-ovo-vegetarian',
+    iconName: 'utensils',
+    classification: 'food_type',
+    classificationLabel: 'Loại ẩm thực chay',
+    description: 'Chế độ ăn chay phổ biến nhất, kết hợp thực vật cùng cả trứng và sữa; tuyệt đối không ăn thịt cá.',
+    linkedCountText: '115 món ăn',
+    createdAt: '16/08/2026',
+    isActive: true,
+    statusLabel: 'Đang sử dụng',
+  },
+
+  // 2. Recipes (Công thức món ăn)
+  {
+    id: 'cat-rc-1',
+    name: 'Món chính đậm đà',
+    slug: 'mon-chinh-dam-da',
     iconName: 'utensils',
     classification: 'recipe',
-    classificationLabel: 'Công thức',
-    description: 'Các món chay giàu dinh dưỡng cho bữa trưa và tối',
-    linkedCountText: '35 công thức',
+    classificationLabel: 'Công thức nấu ăn',
+    description: 'Các món chay giàu đạm và dinh dưỡng phục vụ bữa trưa và tối',
+    linkedCountText: '54 công thức',
     createdAt: '15/08/2026',
     isActive: true,
     statusLabel: 'Đang sử dụng',
   },
   {
-    id: 'cat-3',
-    name: 'Đậu & Hạt dinh dưỡng',
-    slug: 'dau-hat-dinh-duong',
-    iconName: 'grid',
-    classification: 'ingredient',
-    classificationLabel: 'Loại thực phẩm',
-    description: 'Nguồn protein thực vật: đậu nành, đậu gà, hạt điều, óc chó',
-    linkedCountText: '19 nguyên liệu',
-    createdAt: '18/08/2026',
-    isActive: true,
-    statusLabel: 'Đang sử dụng',
-  },
-  {
-    id: 'cat-4',
-    name: 'Món nước',
-    slug: 'mon-nuoc',
+    id: 'cat-rc-2',
+    name: 'Món nước, Canh & Súp',
+    slug: 'mon-nuoc-canh-sup',
     iconName: 'soup',
     classification: 'recipe',
-    classificationLabel: 'Công thức',
-    description: 'Canh chua, phở chay, bún nấm và các món súp thanh đạm',
-    linkedCountText: '16 công thức',
+    classificationLabel: 'Công thức nấu ăn',
+    description: 'Phở chay, bún nấm riêu chay, canh chua thanh nhiệt và súp rau củ',
+    linkedCountText: '32 công thức',
     createdAt: '20/08/2026',
     isActive: true,
     statusLabel: 'Đang sử dụng',
   },
   {
-    id: 'cat-5',
-    name: 'Nấm tươi & Nấm khô',
-    slug: 'nam-tuoi-nam-kho',
-    iconName: 'tree',
+    id: 'cat-rc-3',
+    name: 'Món khai vị & Salad',
+    slug: 'mon-khai-vi-salad',
+    iconName: 'salad',
+    classification: 'recipe',
+    classificationLabel: 'Công thức nấu ăn',
+    description: 'Gỏi cuốn nấm, nộm rong nho, salad hoa quả sốt chanh leo',
+    linkedCountText: '26 công thức',
+    createdAt: '22/08/2026',
+    isActive: true,
+    statusLabel: 'Đang sử dụng',
+  },
+
+  // 3. Ingredients (Nguyên liệu thực phẩm)
+  {
+    id: 'cat-ig-1',
+    name: 'Rau củ hữu cơ',
+    slug: 'rau-cu-huu-co',
+    iconName: 'leaf',
     classification: 'ingredient',
-    classificationLabel: 'Loại thực phẩm',
-    description: 'Đa dạng các loại nấm đùi gà, bào ngư, đông cô, nấm hương',
-    linkedCountText: '14 nguyên liệu',
+    classificationLabel: 'Nguyên liệu chay',
+    description: 'Nhóm các loại rau xanh, củ quả tươi sạch giàu vitamin và chất xơ',
+    linkedCountText: '48 nguyên liệu',
     createdAt: '25/08/2026',
     isActive: true,
     statusLabel: 'Đang sử dụng',
   },
   {
-    id: 'cat-6',
-    name: 'Món khai vị & Salad',
-    slug: 'mon-khai-vi-salad',
-    iconName: 'salad',
-    classification: 'recipe',
-    classificationLabel: 'Công thức',
-    description: 'Gỏi cuốn chay, salad hoa quả, nộm rong nho thanh mát',
-    linkedCountText: '12 công thức',
+    id: 'cat-ig-2',
+    name: 'Đậu & Hạt giàu Protein',
+    slug: 'dau-hat-protein',
+    iconName: 'grid',
+    classification: 'ingredient',
+    classificationLabel: 'Nguyên liệu chay',
+    description: 'Đậu nành non, đậu gà, hạt diêm mạch quinoa, hạnh nhân, hạt chia',
+    linkedCountText: '35 nguyên liệu',
+    createdAt: '28/08/2026',
+    isActive: true,
+    statusLabel: 'Đang sử dụng',
+  },
+  {
+    id: 'cat-ig-3',
+    name: 'Nấm tươi & Nấm khô',
+    slug: 'nam-tuoi-kho',
+    iconName: 'tree',
+    classification: 'ingredient',
+    classificationLabel: 'Nguyên liệu chay',
+    description: 'Nấm đùi gà, nấm bào ngư, nấm hương, nấm mối đen giàu khoáng chất',
+    linkedCountText: '22 nguyên liệu',
     createdAt: '01/09/2026',
+    isActive: true,
+    statusLabel: 'Đang sử dụng',
+  },
+  {
+    id: 'cat-ig-4',
+    name: 'Gia vị thảo mộc & Sốt chay',
+    slug: 'gia-vi-thao-moc-sot',
+    iconName: 'sparkles',
+    classification: 'ingredient',
+    classificationLabel: 'Nguyên liệu chay',
+    description: 'Hạt nêm nấm hữu cơ, nước tương lên men tự nhiên, dầu mè nguyên chất',
+    linkedCountText: '18 nguyên liệu',
+    createdAt: '05/09/2026',
     isActive: false,
     statusLabel: 'Ngừng sử dụng',
   },
 ]
 
 export async function getAdminCategoryStats(): Promise<AdminCategoryStats> {
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
   return {
-    activeCount: 12,
-    ingredientCategoryCount: 6,
-    recipeCategoryCount: 6,
+    activeCount: MOCK_ADMIN_CATEGORIES.filter((c) => c.isActive).length,
+    foodTypeCategoryCount: MOCK_ADMIN_CATEGORIES.filter((c) => c.classification === 'food_type').length,
+    recipeCategoryCount: MOCK_ADMIN_CATEGORIES.filter((c) => c.classification === 'recipe').length,
+    ingredientCategoryCount: MOCK_ADMIN_CATEGORIES.filter((c) => c.classification === 'ingredient').length,
   }
 }
 
@@ -102,7 +174,8 @@ export async function getAdminCategories(filter: AdminCategoryFilter = {}): Prom
   pageSize: number
   totalPages: number
 }> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
 
   let list = [...MOCK_ADMIN_CATEGORIES]
 
@@ -142,14 +215,22 @@ export async function getAdminCategories(filter: AdminCategoryFilter = {}): Prom
 }
 
 export async function createAdminCategory(data: CategoryFormData): Promise<AdminCategoryItem> {
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
+  const labelMap = {
+    food_type: 'Loại ẩm thực chay',
+    recipe: 'Công thức nấu ăn',
+    ingredient: 'Nguyên liệu chay',
+  }
+
   const newCat: AdminCategoryItem = {
     id: `cat-${Date.now()}`,
     name: data.name,
     slug: data.slug || data.name.toLowerCase().replace(/\s+/g, '-'),
-    iconName: data.classification === 'ingredient' ? 'leaf' : 'utensils',
+    iconName: data.classification === 'food_type' ? 'sprout' : data.classification === 'ingredient' ? 'leaf' : 'utensils',
     classification: data.classification,
-    classificationLabel: data.classification === 'ingredient' ? 'Loại thực phẩm' : 'Công thức',
+    classificationLabel: labelMap[data.classification],
     description: data.description,
     linkedCountText: '0 liên kết',
     createdAt: 'Hôm nay',
@@ -164,16 +245,24 @@ export async function updateAdminCategory(
   id: string,
   data: CategoryFormData
 ): Promise<AdminCategoryItem> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   const idx = MOCK_ADMIN_CATEGORIES.findIndex((c) => c.id === id)
   if (idx === -1) throw new Error('Không tìm thấy danh mục.')
+
+  const labelMap = {
+    food_type: 'Loại ẩm thực chay',
+    recipe: 'Công thức nấu ăn',
+    ingredient: 'Nguyên liệu chay',
+  }
 
   const updated: AdminCategoryItem = {
     ...MOCK_ADMIN_CATEGORIES[idx],
     name: data.name,
     slug: data.slug,
     classification: data.classification,
-    classificationLabel: data.classification === 'ingredient' ? 'Loại thực phẩm' : 'Công thức',
+    classificationLabel: labelMap[data.classification],
     description: data.description,
     isActive: data.isActive,
     statusLabel: data.isActive ? 'Đang sử dụng' : 'Ngừng sử dụng',
@@ -183,7 +272,9 @@ export async function updateAdminCategory(
 }
 
 export async function toggleAdminCategoryStatus(id: string): Promise<AdminCategoryItem> {
-  await new Promise((resolve) => setTimeout(resolve, 400))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   const target = MOCK_ADMIN_CATEGORIES.find((c) => c.id === id)
   if (!target) throw new Error('Không tìm thấy danh mục.')
 
@@ -193,7 +284,9 @@ export async function toggleAdminCategoryStatus(id: string): Promise<AdminCatego
 }
 
 export async function deleteAdminCategory(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  // Simulate 1.5s network latency per directive
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
   MOCK_ADMIN_CATEGORIES = MOCK_ADMIN_CATEGORIES.filter((c) => c.id !== id)
   return true
 }

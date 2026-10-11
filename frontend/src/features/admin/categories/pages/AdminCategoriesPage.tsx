@@ -1,23 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import {
-  Folder,
   Sprout,
   BookOpen,
-  Download,
   Plus,
   Search,
   CheckCircle2,
-  MoreVertical,
   Trash2,
   Power,
   UtensilsCrossed,
   Leaf,
   Layers,
-  Sparkles,
+  Pencil,
+  AlertTriangle,
 } from 'lucide-react'
 import { AdminLayout } from '../../../../app/layouts/AdminLayout'
 import { SharedDataTable, type ColumnDef } from '../../../../shared/components/SharedDataTable'
 import { CategoryModal } from '../components/CategoryModal'
+import { Modal } from '../../../../shared/components/Modal'
 import {
   createAdminCategory,
   deleteAdminCategory,
@@ -36,17 +35,15 @@ interface AdminCategoriesPageProps {
   onNavigate?: (path: string) => void
 }
 
-export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({
-  onNavigate,
-}) => {
+export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState<AdminCategoryStats | null>(null)
   const [categories, setCategories] = useState<AdminCategoryItem[]>([])
   const [total, setTotal] = useState<number>(0)
   const [totalPages, setTotalPages] = useState<number>(1)
   const [currentPage, setCurrentPage] = useState<number>(1)
 
-  // Filters
-  const [activeTab, setActiveTab] = useState<'all' | 'ingredient' | 'recipe'>('all')
+  // Filters: 4 tabs supporting master data
+  const [activeTab, setActiveTab] = useState<'all' | 'food_type' | 'recipe' | 'ingredient'>('all')
   const [keyword, setKeyword] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [sortBy, setSortBy] = useState<'newest' | 'name'>('newest')
@@ -57,12 +54,13 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // Action popover state: stores category id currently having open menu
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<AdminCategoryItem | null>(null)
+
+  // Delete Confirmation Modal State (replaces window.confirm per directive)
+  const [deleteTarget, setDeleteTarget] = useState<AdminCategoryItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Fetch data
   useEffect(() => {
@@ -102,83 +100,49 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({
     }
   }, [activeTab, keyword, statusFilter, sortBy, currentPage, refreshTrigger])
 
-  // Close open popovers when clicking outside
-  useEffect(() => {
-    const handleOutsideClick = () => setOpenMenuId(null)
-    window.addEventListener('click', handleOutsideClick)
-    return () => window.removeEventListener('click', handleOutsideClick)
-  }, [])
-
-  const handleOpenCreateModal = () => {
-    setEditingCategory(null)
-    setIsModalOpen(true)
-  }
-
-  const handleOpenEditModal = (cat: AdminCategoryItem) => {
-    setEditingCategory(cat)
-    setIsModalOpen(true)
-    setOpenMenuId(null)
-  }
-
-  const handleModalSubmit = async (data: CategoryFormData) => {
-    if (editingCategory) {
-      await updateAdminCategory(editingCategory.id, data)
-      setActionSuccessMsg(`Đã cập nhật danh mục "${data.name}" thành công!`)
-    } else {
-      await createAdminCategory(data)
-      setActionSuccessMsg(`Đã tạo danh mục mới "${data.name}" thành công!`)
-    }
-    setTimeout(() => setActionSuccessMsg(null), 3000)
-    setRefreshTrigger((prev) => prev + 1)
-  }
-
-  const handleToggleStatus = async (id: string, name: string, currentStatus: boolean) => {
+  const handleCreateOrUpdate = async (data: CategoryFormData) => {
     try {
-      setOpenMenuId(null)
-      await toggleAdminCategoryStatus(id)
+      if (editingCategory) {
+        await updateAdminCategory(editingCategory.id, data)
+        setActionSuccessMsg(`Đã cập nhật danh mục "${data.name}" thành công!`)
+      } else {
+        await createAdminCategory(data)
+        setActionSuccessMsg(`Đã tạo danh mục "${data.name}" thành công!`)
+      }
+      setTimeout(() => setActionSuccessMsg(null), 3000)
+      setRefreshTrigger((prev) => prev + 1)
+    } catch {
+      setError('Thao tác không thành công. Vui lòng thử lại.')
+    }
+  }
+
+  const handleToggleStatus = async (item: AdminCategoryItem) => {
+    try {
+      const res = await toggleAdminCategoryStatus(item.id)
       setActionSuccessMsg(
-        `Đã ${currentStatus ? 'ngừng sử dụng' : 'kích hoạt lại'} danh mục "${name}".`
+        `Đã chuyển trạng thái "${item.name}" sang ${res.isActive ? 'Đang sử dụng' : 'Ngừng sử dụng'}.`
       )
       setTimeout(() => setActionSuccessMsg(null), 3000)
       setRefreshTrigger((prev) => prev + 1)
     } catch {
-      setError('Không thể thay đổi trạng thái danh mục.')
+      setError('Không thể cập nhật trạng thái.')
     }
   }
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa danh mục "${name}"? Thao tác này không thể hoàn tác.`)) {
-      return
-    }
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
     try {
-      setOpenMenuId(null)
-      await deleteAdminCategory(id)
-      setActionSuccessMsg(`Đã xóa danh mục "${name}" thành công.`)
+      setIsDeleting(true)
+      await deleteAdminCategory(deleteTarget.id)
+      setActionSuccessMsg(`Đã xóa vĩnh viễn danh mục "${deleteTarget.name}".`)
       setTimeout(() => setActionSuccessMsg(null), 3000)
+      setDeleteTarget(null)
       setRefreshTrigger((prev) => prev + 1)
     } catch {
-      setError('Không thể xóa danh mục.')
+      setError('Lỗi khi xóa danh mục.')
+    } finally {
+      setIsDeleting(false)
     }
-  }
-
-  const handleExportData = () => {
-    const jsonStr = JSON.stringify(categories, null, 2)
-    const blob = new Blob([jsonStr], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `categories_export_${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const getCategoryIcon = (iconName: string, classification: string) => {
-    if (classification === 'ingredient') {
-      if (iconName === 'leaf') return <Leaf className="w-5 h-5 text-emerald-600" />
-      if (iconName === 'grid') return <Layers className="w-5 h-5 text-teal-600" />
-      return <Sprout className="w-5 h-5 text-emerald-600" />
-    }
-    return <UtensilsCrossed className="w-5 h-5 text-emerald-600" />
   }
 
   const columns: ColumnDef<AdminCategoryItem>[] = [
@@ -187,64 +151,57 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({
       header: 'TÊN DANH MỤC',
       render: (item) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50/80 border border-emerald-100 flex items-center justify-center shrink-0">
-            {getCategoryIcon(item.iconName, item.classification)}
+          <div className="w-8 h-8 rounded-[10px] bg-[#e8f5e9] text-[#2e7d32] flex items-center justify-center font-bold text-xs shrink-0">
+            {item.classification === 'food_type' ? (
+              <Sprout className="w-4 h-4" />
+            ) : item.classification === 'ingredient' ? (
+              <Leaf className="w-4 h-4" />
+            ) : (
+              <UtensilsCrossed className="w-4 h-4" />
+            )}
           </div>
           <div>
-            <span className="font-bold text-gray-900 block text-xs leading-snug">
-              {item.name}
-            </span>
-            <span className="text-[11px] text-gray-400 font-mono block mt-0.5">
-              Slug: {item.slug}
-            </span>
+            <div className="font-bold text-xs text-[#1f2937] leading-snug">{item.name}</div>
+            <div className="text-[11px] text-[#6b7280] font-mono leading-none mt-0.5">
+              slug: /{item.slug}
+            </div>
           </div>
         </div>
       ),
     },
     {
       key: 'classification',
-      header: 'PHÂN LOẠI',
-      render: (item) => (
-        <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${
-            item.classification === 'ingredient'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-              : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-          }`}
-        >
-          {item.classification === 'ingredient' ? (
-            <Sprout className="w-3.5 h-3.5" />
-          ) : (
-            <UtensilsCrossed className="w-3.5 h-3.5" />
-          )}
-          <span>{item.classificationLabel}</span>
-        </span>
-      ),
+      header: 'PHÂN LOẠI MASTER DATA',
+      render: (item) => {
+        const badgeMap = {
+          food_type: 'bg-emerald-50 text-[#1b5e20] border-emerald-200',
+          recipe: 'bg-blue-50 text-blue-700 border-blue-200',
+          ingredient: 'bg-amber-50 text-amber-800 border-amber-200',
+        }
+        return (
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeMap[item.classification]}`}
+          >
+            {item.classificationLabel}
+          </span>
+        )
+      },
     },
     {
       key: 'description',
-      header: 'MÔ TẢ',
+      header: 'MÔ TẢ CHI TIẾT',
       render: (item) => (
-        <p className="text-xs text-gray-600 max-w-xs line-clamp-2 leading-relaxed">
+        <div className="max-w-xs text-xs text-[#6b7280] line-clamp-2 leading-relaxed">
           {item.description}
-        </p>
+        </div>
       ),
     },
     {
-      key: 'linkedCountText',
-      header: 'SỐ NỘI DUNG LIÊN KẾT',
+      key: 'linkedCount',
+      header: 'MỤC LIÊN KẾT',
       render: (item) => (
-        <span className="font-semibold text-gray-800 text-xs whitespace-nowrap">
+        <span className="text-xs font-semibold text-[#1f2937] tabular-nums">
           {item.linkedCountText}
-        </span>
-      ),
-    },
-    {
-      key: 'createdAt',
-      header: 'NGÀY TẠO',
-      render: (item) => (
-        <span className="text-gray-500 text-xs whitespace-nowrap">
-          {item.createdAt}
         </span>
       ),
     },
@@ -253,18 +210,18 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({
       header: 'TRẠNG THÁI',
       render: (item) => (
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
             item.isActive
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+              ? 'bg-[#e8f5e9] text-[#2e7d32] border border-emerald-300'
               : 'bg-slate-100 text-slate-600 border border-slate-200'
           }`}
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              item.isActive ? 'bg-emerald-500' : 'bg-slate-400'
+              item.isActive ? 'bg-[#2e7d32]' : 'bg-slate-400'
             }`}
           />
-          {item.statusLabel}
+          <span>{item.statusLabel}</span>
         </span>
       ),
     },
@@ -273,62 +230,34 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({
       header: 'THAO TÁC',
       align: 'right',
       render: (item) => (
-        <div className="flex items-center justify-end gap-2 relative">
+        <div className="flex items-center justify-end gap-1.5">
           <button
             type="button"
-            onClick={() => handleOpenEditModal(item)}
-            className="text-xs font-bold text-gray-700 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-colors"
+            onClick={() => {
+              setEditingCategory(item)
+              setIsModalOpen(true)
+            }}
+            title="Chỉnh sửa"
+            className="p-1.5 rounded-[8px] text-slate-400 hover:text-[#2e7d32] hover:bg-[#e8f5e9] transition-colors cursor-pointer"
           >
-            Chỉnh sửa
+            <Pencil className="w-3.5 h-3.5" />
           </button>
-
-          {/* Three dots dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                setOpenMenuId(openMenuId === item.id ? null : item.id)
-              }}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Thao tác khác"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-
-            {openMenuId === item.id && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 top-full mt-1 w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-30 animate-in fade-in zoom-in-95 text-xs font-semibold"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleOpenEditModal(item)}
-                  className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 flex items-center gap-2"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Sửa thông tin</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleToggleStatus(item.id, item.name, item.isActive)}
-                  className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 flex items-center gap-2"
-                >
-                  <Power className="w-3.5 h-3.5 text-amber-600" />
-                  <span>{item.isActive ? 'Ngừng kích hoạt' : 'Kích hoạt lại'}</span>
-                </button>
-                <div className="h-px bg-gray-100 my-1" />
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(item.id, item.name)}
-                  className="w-full text-left px-3.5 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Xóa danh mục</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => handleToggleStatus(item)}
+            title={item.isActive ? 'Ngừng kích hoạt' : 'Kích hoạt'}
+            className="p-1.5 rounded-[8px] text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+          >
+            <Power className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteTarget(item)}
+            title="Xóa danh mục"
+            className="p-1.5 rounded-[8px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       ),
     },
@@ -337,238 +266,270 @@ export const AdminCategoriesPage: React.FC<AdminCategoriesPageProps> = ({
   return (
     <AdminLayout
       activeMenu="categories"
-      pageTitle="Quản lý Danh mục"
-      pageSubtitle="Tạo và quản lý danh mục dùng để phân loại loại thực phẩm và công thức."
+      pageTitle="Quản lý Danh mục Master Data"
+      pageSubtitle="Phân loại chuẩn hóa toàn hệ thống: Loại món ăn (Food Types), Công thức (Recipes) và Nguyên liệu (Ingredients)."
       onNavigate={onNavigate}
     >
-      <div className="space-y-6 pb-12">
-        {/* Top Header Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-4 -mt-2">
-          <div className="text-xs text-gray-500 font-medium">
-            Hệ thống phân cấp cơ sở dữ liệu dinh dưỡng chay
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleExportData}
-              className="px-4 py-2 rounded-2xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs flex items-center gap-1.5"
-            >
-              <Download className="w-3.5 h-3.5 text-gray-500" />
-              <span>Xuất dữ liệu</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenCreateModal}
-              className="px-4 py-2 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] text-white text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tạo danh mục</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Feedback Alert */}
+      <div className="space-y-6">
+        {/* Action success alert */}
         {actionSuccessMsg && (
-          <div className="p-3.5 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200 text-xs font-medium flex items-center justify-between animate-in fade-in">
-            <span>✓ {actionSuccessMsg}</span>
-            <button
-              type="button"
-              onClick={() => setActionSuccessMsg(null)}
-              className="text-emerald-600 hover:text-emerald-900 font-bold ml-2 text-xs"
-            >
-              Đóng
-            </button>
+          <div className="p-4 rounded-[12px] bg-[#e8f5e9] border border-emerald-300 text-[#1b5e20] text-xs font-semibold flex items-center gap-2 shadow-2xs">
+            <CheckCircle2 className="w-4 h-4 text-[#2e7d32] shrink-0" />
+            <span>{actionSuccessMsg}</span>
           </div>
         )}
 
-        {/* Stats Row (3 Cards matching Figma Image 2) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: Tổng danh mục đang kích hoạt */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
-                <Folder className="w-6 h-6" />
+        {/* Error alert */}
+        {error && (
+          <div className="p-4 rounded-[12px] bg-rose-50 border border-rose-300 text-rose-800 text-xs font-semibold flex items-center gap-2 shadow-2xs">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* 4 Master Data Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Active */}
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Đang hoạt động</span>
+              <div className="w-8 h-8 rounded-[10px] bg-emerald-50 text-[#2e7d32] flex items-center justify-center">
+                <Layers className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EAF5EE] text-[#1E6531] border border-emerald-200/60">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Hoạt động ổn định</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.activeCount ?? 12}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Danh mục đang kích hoạt trên hệ thống
-              </p>
+            <div>
+              <div className="text-2xl font-black text-[#1f2937] tabular-nums tracking-tight">
+                {stats?.activeCount ?? 0}
+              </div>
+              <p className="text-[11px] text-[#2e7d32] mt-0.5 font-medium">Sẵn sàng phân loại</p>
             </div>
           </div>
 
-          {/* Card 2: Phân loại nguyên liệu & dinh dưỡng */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center">
-                <Sprout className="w-6 h-6" />
+          {/* Card 2: Food Types */}
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Chế độ ăn chay</span>
+              <div className="w-8 h-8 rounded-[10px] bg-emerald-50 text-[#2e7d32] flex items-center justify-center">
+                <Sprout className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#EAF5EE] text-[#1E6531]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>50% hệ thống</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.ingredientCategoryCount ?? 6}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Phân loại nguyên liệu & dinh dưỡng
-              </p>
+            <div>
+              <div className="text-2xl font-black text-[#1f2937] tabular-nums tracking-tight">
+                {stats?.foodTypeCategoryCount ?? 0}
+              </div>
+              <p className="text-[11px] text-[#6b7280] mt-0.5">4 chế độ chuẩn hệ thống</p>
             </div>
           </div>
 
-          {/* Card 3: Phân loại bữa ăn & món nấu */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center">
-                <BookOpen className="w-6 h-6" />
+          {/* Card 3: Recipe Categories */}
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Công thức nấu ăn</span>
+              <div className="w-8 h-8 rounded-[10px] bg-blue-50 text-blue-600 flex items-center justify-center">
+                <BookOpen className="w-4 h-4" />
               </div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#EAF5EE] text-[#1E6531]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>50% hệ thống</span>
-              </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-extrabold text-slate-900 tracking-tight font-sans">
-                {stats?.recipeCategoryCount ?? 6}
-              </h3>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Phân loại bữa ăn & món nấu
-              </p>
+            <div>
+              <div className="text-2xl font-black text-[#1f2937] tabular-nums tracking-tight">
+                {stats?.recipeCategoryCount ?? 0}
+              </div>
+              <p className="text-[11px] text-[#6b7280] mt-0.5">Recipes Master</p>
+            </div>
+          </div>
+
+          {/* Card 4: Ingredient Categories */}
+          <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#6b7280]">Nguyên liệu chay</span>
+              <div className="w-8 h-8 rounded-[10px] bg-amber-50 text-amber-700 flex items-center justify-center">
+                <Leaf className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-[#1f2937] tabular-nums tracking-tight">
+                {stats?.ingredientCategoryCount ?? 0}
+              </div>
+              <p className="text-[11px] text-[#6b7280] mt-0.5">Ingredients Master</p>
             </div>
           </div>
         </div>
 
-        {/* Search, Tabs and Dropdowns Filter Bar */}
-        <div className="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          {/* Left: Search input */}
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm danh mục..."
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value)
+        {/* Filters & Actions Bar */}
+        <div className="bg-white rounded-[16px] border border-[#e5e7eb] p-4 shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Master Data Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('all')
                 setCurrentPage(1)
               }}
-              className="w-full pl-11 pr-4 py-2 text-xs bg-transparent rounded-2xl focus:outline-none placeholder:text-gray-400 text-gray-900"
-            />
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+                activeTab === 'all'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Tất cả
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('food_type')
+                setCurrentPage(1)
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+                activeTab === 'food_type'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Chế độ ăn chay (4 loại)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('recipe')
+                setCurrentPage(1)
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+                activeTab === 'recipe'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Công thức nấu ăn
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('ingredient')
+                setCurrentPage(1)
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+                activeTab === 'ingredient'
+                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
+                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
+              }`}
+            >
+              Nguyên liệu chay
+            </button>
           </div>
 
-          {/* Right: Tabs & Selects */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Classification Tabs matching Figma */}
-            <div className="flex items-center p-1 bg-slate-50 rounded-2xl border border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('all')
-                  setCurrentPage(1)
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'all'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Tất cả ({total || 12})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('ingredient')
-                  setCurrentPage(1)
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'ingredient'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Loại thực phẩm (6)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('recipe')
-                  setCurrentPage(1)
-                }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'recipe'
-                    ? 'bg-[#1E6531] text-white shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Công thức (6)
-              </button>
-            </div>
-
-            {/* Status Select */}
+          {/* Search & Actions */}
+          <div className="flex items-center gap-2.5 flex-wrap">
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')
                 setCurrentPage(1)
               }}
-              className="px-3.5 py-2 bg-white rounded-2xl border border-slate-200 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer"
+              className="px-3 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] focus:outline-none"
             >
-              <option value="all">Tất cả trạng thái</option>
+              <option value="all">Mọi trạng thái</option>
               <option value="active">Đang sử dụng</option>
               <option value="inactive">Ngừng sử dụng</option>
             </select>
 
-            {/* Sort Select */}
             <select
               value={sortBy}
               onChange={(e) => {
                 setSortBy(e.target.value as 'newest' | 'name')
                 setCurrentPage(1)
               }}
-              className="px-3.5 py-2 bg-white rounded-2xl border border-slate-200 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer"
+              className="px-3 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] focus:outline-none"
             >
               <option value="newest">Mới nhất</option>
-              <option value="name">Theo tên A - Z</option>
+              <option value="name">Theo tên A-Z</option>
             </select>
+
+            <div className="relative min-w-52">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value)
+                  setCurrentPage(1)
+                }}
+                placeholder="Tìm danh mục, slug..."
+                className="w-full pl-9 pr-3 py-2 rounded-[10px] border border-[#e5e7eb] text-xs text-[#1f2937] focus:outline-none focus:border-[#2e7d32]"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEditingCategory(null)
+                setIsModalOpen(true)
+              }}
+              className="h-9 px-4 rounded-[10px] bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-bold transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Thêm danh mục</span>
+            </button>
           </div>
         </div>
 
-        {/* Data Table Container matching Figma */}
+        {/* Shared Data Table */}
         <SharedDataTable<AdminCategoryItem>
-          title="Danh sách danh mục"
-          totalCountBadge={`${total} danh mục`}
-          updatedAtText="Cập nhật lúc 15:30 hôm nay"
+          title="Danh sách Phân loại Master Data"
+          totalCountBadge={total}
+          updatedAtText="Đồng bộ thời gian thực"
           columns={columns}
           data={categories}
           keyExtractor={(item) => item.id}
           isLoading={loading}
-          error={error}
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={total}
           pageSize={6}
-          onPageChange={setCurrentPage}
-          emptyMessage="Không tìm thấy danh mục nào phù hợp với bộ lọc."
+          onPageChange={(p) => setCurrentPage(p)}
+          emptyMessage="Không tìm thấy danh mục nào phù hợp."
         />
-      </div>
 
-      {/* Category Create/Edit Modal */}
-      <CategoryModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        categoryToEdit={editingCategory}
-        onSubmit={handleModalSubmit}
-      />
+        {/* Category Modal (Create / Edit) */}
+        <CategoryModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          categoryToEdit={editingCategory}
+          onSubmit={handleCreateOrUpdate}
+        />
+
+        {/* Confirmation Modal for Delete (Replaces window.confirm) */}
+        <Modal
+          isOpen={Boolean(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+          title="Xác nhận xóa danh mục"
+          maxWidth="sm"
+        >
+          <div className="space-y-4">
+            <div className="p-3 rounded-[12px] bg-rose-50 border border-rose-200 text-xs text-rose-800 leading-relaxed">
+              Bạn có chắc chắn muốn xóa vĩnh viễn danh mục <strong>"{deleteTarget?.name}"</strong>?
+              Hành động này không thể hoàn tác và có thể ảnh hưởng đến các công thức, nguyên liệu liên kết.
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-[10px] border border-[#e5e7eb] text-xs font-semibold text-[#1f2937] hover:bg-[#f8faf8] cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-[10px] bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      </div>
     </AdminLayout>
   )
 }
+
 export default AdminCategoriesPage

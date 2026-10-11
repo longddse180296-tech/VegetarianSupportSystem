@@ -21,4 +21,4 @@ public interface IMemberRepository
     Task<MemberStatusUpdateResult> ChangeStatusAsync(string id, string adminId, bool lockAccount, string reason, DateTimeOffset now, CancellationToken cancellationToken);
 }
 
-public enum MemberStatusUpdateResult { Updated, NotFound, AlreadyInState, SelfLock, LastAdmin }
+public enum MemberStatusUpdateResult { Updated, NotFound, AlreadyInState, SelfLock, LastAdmin, ActorInactive }
