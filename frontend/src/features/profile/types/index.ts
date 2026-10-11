@@ -66,9 +66,9 @@ export interface UserProfile {
 }
 
 export interface ProfileStats {
-  postCount: number
-  commentCount: number
-  videoCount: number
+  postCount: number | null
+  commentCount: number | null
+  videoCount: number | null
 }
 
 export interface RecentPost {

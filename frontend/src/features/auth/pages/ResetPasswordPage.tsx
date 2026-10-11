@@ -1,5 +1,14 @@
 import React, { useState } from 'react'
-import { KeyRound, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react'
+import {
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  ArrowLeft,
+  Loader2,
+} from 'lucide-react'
 import { PublicLayout } from '../../../app/layouts/PublicLayout'
 import { authApi } from '../api/authApi'
 import { useAuth } from '../hooks/useAuth'
@@ -8,12 +17,18 @@ interface ResetPasswordPageProps {
   onNavigate?: (path: string) => void
 }
 
-export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate }) => {
+export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
+  onNavigate,
+}) => {
   const { user } = useAuth()
   const [token, setToken] = useState(() => {
     if (typeof window !== 'undefined') {
       const hashQuery = window.location.hash.split('?')[1] || ''
-      return new URLSearchParams(hashQuery).get('token') || new URLSearchParams(window.location.search).get('token') || ''
+      return (
+        new URLSearchParams(hashQuery).get('token') ||
+        new URLSearchParams(window.location.search).get('token') ||
+        ''
+      )
     }
     return ''
   })
@@ -29,7 +44,9 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
     setErrorMessage(null)
 
     if (!token.trim()) {
-      setErrorMessage('Mã liên kết xác thực (token) không tồn tại hoặc đã hết hạn.')
+      setErrorMessage(
+        'Mã liên kết xác thực (token) không tồn tại hoặc đã hết hạn.',
+      )
       return
     }
 
@@ -52,7 +69,10 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
       })
       setSuccessMessage(res.message)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.'
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.'
       setErrorMessage(message)
     } finally {
       setIsLoading(false)
@@ -76,7 +96,8 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
               Đặt lại mật khẩu mới
             </h1>
             <p className="text-gray-600 text-sm">
-              Nhập mật khẩu mới an toàn cho tài khoản Vegetarian Support của bạn.
+              Nhập mật khẩu mới an toàn cho tài khoản Vegetarian Support của
+              bạn.
             </p>
           </div>
 
@@ -96,7 +117,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
               <button
                 type="button"
                 onClick={() => onNavigate?.('/auth/login')}
-                className="w-full py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition duration-200"
+                className="fe1-btn fe1-btn-primary w-full py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition duration-200"
               >
                 Đăng nhập ngay
               </button>
@@ -120,7 +141,10 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="reset-new-password"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Mật khẩu mới
                 </label>
                 <div className="relative">
@@ -128,6 +152,8 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
                     <Lock className="w-5 h-5" />
                   </div>
                   <input
+                    id="reset-new-password"
+                    autoComplete="new-password"
                     type={showPassword ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -138,15 +164,22 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600"
+                    className="fe1-link absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="reset-confirm-password"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Xác nhận mật khẩu mới
                 </label>
                 <div className="relative">
@@ -154,6 +187,8 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
                     <Lock className="w-5 h-5" />
                   </div>
                   <input
+                    id="reset-confirm-password"
+                    autoComplete="new-password"
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -167,7 +202,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50"
+                className="fe1-btn fe1-btn-primary w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
@@ -183,7 +218,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
                 <button
                   type="button"
                   onClick={() => onNavigate?.('/auth/login')}
-                  className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-emerald-700 font-medium transition"
+                  className="fe1-link inline-flex items-center gap-2 text-sm text-gray-600 hover:text-emerald-700 font-medium transition"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Quay lại đăng nhập

@@ -1,3 +1,2 @@
-export * from './types/adminRestaurants.types'
-export * from './api/adminRestaurantsApi'
+export * from './api/restaurantContract'
 export * from './pages/AdminRestaurantsPage'

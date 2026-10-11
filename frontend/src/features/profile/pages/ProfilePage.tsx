@@ -17,8 +17,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   initialViewMode = 'overview',
 }) => {
   const { user, updateUser } = useAuth()
-  const [viewMode, setViewMode] = useState<'overview' | 'settings'>(initialViewMode)
-  const [prevMode, setPrevMode] = useState<'overview' | 'settings'>(initialViewMode)
+  const [viewMode, setViewMode] = useState<'overview' | 'settings'>(
+    initialViewMode,
+  )
+  const [prevMode, setPrevMode] = useState<'overview' | 'settings'>(
+    initialViewMode,
+  )
 
   if (initialViewMode !== prevMode) {
     setPrevMode(initialViewMode)
@@ -31,21 +35,35 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isUpdating, setIsUpdating] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [contentWarning, setContentWarning] = useState<string | null>(null)
   const [reloadTrigger, setReloadTrigger] = useState(0)
 
   useEffect(() => {
     let isMounted = true
     const loadData = async () => {
       try {
-        const [profData, statsData, postsData] = await Promise.all([
+        const [profData, statsData, postsData] = await Promise.allSettled([
           profileApi.getProfile(),
           profileApi.getProfileStats(),
           profileApi.getRecentPosts(),
         ])
         if (isMounted) {
-          setProfile(profData)
-          setStats(statsData)
-          setRecentPosts(postsData)
+          if (profData.status === 'rejected') throw profData.reason
+          const actualStats =
+            statsData.status === 'fulfilled'
+              ? statsData.value
+              : { postCount: null, commentCount: null, videoCount: null }
+          setProfile(profData.value)
+          setStats(actualStats)
+          setRecentPosts(
+            postsData.status === 'fulfilled' ? postsData.value : [],
+          )
+          setContentWarning(
+            Object.values(actualStats).some((value) => value === null) ||
+              postsData.status === 'rejected'
+              ? 'Một số dữ liệu bài viết/video/bình luận chưa tải được. Thông tin hồ sơ vẫn sử dụng được.'
+              : null,
+          )
           setError(null)
           setIsLoading(false)
         }
@@ -106,7 +124,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       breadcrumbs={[
         { label: 'Trang chủ', path: '/' },
         { label: 'Tài khoản', path: '/profile' },
-        { label: viewMode === 'settings' ? 'Cài đặt hồ sơ & ăn chay' : 'Tổng quan & Thể trạng' },
+        {
+          label:
+            viewMode === 'settings'
+              ? 'Cài đặt hồ sơ & ăn chay'
+              : 'Tổng quan & Thể trạng',
+        },
       ]}
     >
       {/* Loading Skeleton State */}
@@ -141,13 +164,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             <AlertCircle className="w-6 h-6" />
           </div>
           <div className="flex flex-col gap-1">
-            <h3 className="text-lg font-bold text-[#1f2937]">Không thể tải dữ liệu hồ sơ</h3>
+            <h3 className="text-lg font-bold text-[#1f2937]">
+              Không thể tải dữ liệu hồ sơ
+            </h3>
             <p className="text-xs text-[#6b7280]">{error}</p>
           </div>
           <button
             type="button"
             onClick={handleRetry}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-semibold cursor-pointer transition-colors shadow-sm"
+            className="fe1-btn fe1-btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-semibold cursor-pointer transition-colors shadow-sm"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Thử lại</span>
@@ -156,6 +181,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       )}
 
       {/* Loaded View Mode: Overview vs Settings */}
+      {contentWarning && (
+        <p
+          role="status"
+          className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900"
+        >
+          {contentWarning}
+          <button className="fe1-control ml-3 underline" onClick={handleRetry}>
+            Thử lại
+          </button>
+        </p>
+      )}
       {!isLoading && !error && profile && stats && (
         <>
           {viewMode === 'overview' ? (

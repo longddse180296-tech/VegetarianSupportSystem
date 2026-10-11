@@ -1,3 +1,2 @@
-export * from './types/adminRecipes.types'
-export * from './api/adminRecipesApi'
+export * from './api/recipeContract'
 export * from './pages/AdminRecipesPage'
