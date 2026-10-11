@@ -76,6 +76,6 @@ export interface RecentPost {
   category: string
   title: string
   publishedDate: string
-  likeCount: number
-  commentCount: number
+  likeCount: number | null
+  commentCount: number | null
 }

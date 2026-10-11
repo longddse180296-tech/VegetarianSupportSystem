@@ -291,6 +291,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
               </div>
 
               <div className="divide-y divide-slate-100">
+                {data?.recentArticles.length === 0 && <p className="py-4 text-xs text-slate-500">API tổng quan chưa cung cấp danh sách bài viết. Mở quản lý bài viết để xem dữ liệu.</p>}
                 {data?.recentArticles.map((art) => (
                   <div
                     key={art.id}
@@ -332,6 +333,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
               </div>
 
               <div className="divide-y divide-slate-100">
+                {data?.recentVideos.length === 0 && <p className="py-4 text-xs text-slate-500">API tổng quan chưa cung cấp danh sách video. Mở quản lý video để xem dữ liệu.</p>}
                 {data?.recentVideos.map((vid) => (
                   <div
                     key={vid.id}
@@ -366,6 +368,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
               </div>
 
               <div className="space-y-3">
+                {data?.recentActivities.length === 0 && <p className="text-xs text-slate-500">Chưa ghi nhận hoạt động gần đây.</p>}
                 {data?.recentActivities.map((act) => (
                   <div key={act.id} className="text-xs pb-3 border-b border-slate-100 last:border-0 last:pb-0">
                     <div className="flex items-center justify-between gap-2">
@@ -389,7 +392,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
                 </h4>
               </div>
               <p className="text-[11px] text-[#6b7280] leading-relaxed">
-                Các phân loại ẩm thực chay (Food Types), công thức (Recipes) và nguyên liệu (Ingredients) đã được cấu hình đồng bộ cùng bộ lọc AI &amp; Quét an toàn.
+                Kiểm tra danh mục công thức, nguồn gốc và bằng chứng thành phần của nguyên liệu trước khi tạo thực đơn.
               </p>
               <div className="pt-2 flex flex-col gap-1.5">
                 <button
@@ -404,7 +407,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
                   onClick={() => onNavigate('/admin/ingredients')}
                   className="w-full text-left text-xs font-semibold text-[#2e7d32] hover:underline"
                 >
-                  → Quản lý từ điển nguyên liệu &amp; E-Number
+                  → Quản lý nguyên liệu
                 </button>
               </div>
             </div>

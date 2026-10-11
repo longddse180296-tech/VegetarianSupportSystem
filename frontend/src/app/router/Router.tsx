@@ -1,8 +1,10 @@
 import React from 'react'
+import { getStoredToken } from '../../shared/api/apiClient'
 import { useAuth } from '../../features/auth'
 import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { RegisterPage } from '../../features/auth/pages/RegisterPage'
 import { ForgotPasswordPage } from '../../features/auth/pages/ForgotPasswordPage'
+import { ResetPasswordPage } from '../../features/auth/pages/ResetPasswordPage'
 import { ProfilePage } from '../../features/profile'
 import MembersPage from '../../features/admin/members/pages/MembersPage'
 import { AdminDashboardPage } from '../../features/admin/dashboard'
@@ -27,8 +29,6 @@ import {
   ArticleEditorPage,
 } from '../../features/articles'
 import {
-  GeneralMealPlanPage,
-  RecommendedMealPlanPage,
   PersonalizationSetupPage,
   MyMealPlanPage,
   MealPlansPublic,
@@ -97,9 +97,12 @@ const withPublic = (
 }
 
 export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
+  const { isLoading: authLoading } = useAuth()
   const path = ctx.currentPath
   const { onNavigate } = ctx
   const isLoggedIn = Boolean(ctx.user)
+
+  if (authLoading && !ctx.user && getStoredToken()) return <div role="status" className="p-12 text-center text-sm text-slate-500">Đang kiểm tra phiên đăng nhập...</div>
 
   if (path === '/' || path === '' || path === '/home' || path === 'home') {
     return withPublic(
@@ -262,7 +265,7 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       return <LoginPage onNavigate={onNavigate} />
     }
     return withPublic(
-      <RecommendedMealPlanPage onNavigate={onNavigate} />,
+      <MyMealPlanPage onNavigate={onNavigate} />,
       'meal-plans',
       ctx,
     )
@@ -319,7 +322,7 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   // ─── Meal Plans: Public Routes ────────────────────────────────────────
   if (path === '/meal-plans/discover' || path === '/meal-plans/sample') {
     return withPublic(
-      <GeneralMealPlanPage onNavigate={onNavigate} />,
+      <MealPlansPublic onNavigate={onNavigate} />,
       'meal-plans',
       ctx,
     )
@@ -360,6 +363,10 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       return <LoginPage onNavigate={onNavigate} />
     }
     return <ProfilePage onNavigate={onNavigate} initialViewMode="overview" />
+  }
+
+  if (path.startsWith('/auth/reset-password') || path.startsWith('/reset-password')) {
+    return <ResetPasswordPage onNavigate={onNavigate} />
   }
 
   if (!ctx.user) {

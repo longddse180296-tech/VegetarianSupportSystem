@@ -1,4 +1,6 @@
+import { apiClient } from '../../../shared/api/apiClient'
 import type {
+  ArticleComment,
   ArticleDetailDto,
   ArticleFilterParams,
   ArticleFormData,
@@ -9,6 +11,56 @@ import type {
   UserCommentItem,
   UserCommentSourceType,
 } from '../types/article.types'
+
+interface BackendArticleSummary {
+  id: string
+  title: string
+  category: string
+  coverImageUrl?: string | null
+  authorId: string
+  version: number
+  publishedAt: string
+}
+
+interface BackendArticleDetail {
+  id: string
+  title: string
+  content: string
+  category: string
+  coverImageUrl?: string | null
+  authorId: string
+  version: number
+  publishedAt: string
+  relatedArticles: BackendArticleSummary[]
+}
+
+interface BackendArticlePage<T> {
+  items: T[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+interface BackendMyArticleDetail {
+  id: string
+  title: string
+  content: string
+  category: string
+  coverImageUrl?: string | null
+  createdAt: string
+  updatedAt: string
+  status: 'Draft' | 'Submitted' | 'PendingAdminReview' | 'Published' | 'RevisionRequested' | 'Rejected' | 'Removed'
+  publishedVersion?: BackendArticleSummary | null
+  versions: Array<{
+    version: number
+    submissionId: string
+    aiStatus: string
+    adminStatus: string
+    aiSummary?: string | null
+    adminFeedback?: string | null
+    submittedAt: string
+  }>
+}
 
 // Mock Database of Public Articles mirroring the Figma Mockup
 const MOCK_ARTICLES: ArticleSummary[] = [
@@ -199,12 +251,70 @@ export const CATEGORIES = [
 
 /**
  * Fetch paginated list of public articles with search & category filters
+ * Real API: GET /api/articles
  */
 export async function getArticles(
   params: ArticleFilterParams = {}
 ): Promise<PaginatedResult<ArticleSummary>> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  try {
+    const query = new URLSearchParams()
+    if (params.keyword?.trim()) query.set('search', params.keyword.trim())
+    if (params.category && params.category !== 'all') {
+      const catObj = CATEGORIES.find((c) => c.id === params.category)
+      query.set('category', catObj ? catObj.label : params.category)
+    }
+    query.set('page', String(params.page || 1))
+    query.set('pageSize', String(params.pageSize || 6))
 
+    const res = await apiClient.get<BackendArticlePage<BackendArticleSummary>>(
+      `/api/articles?${query.toString()}`,
+      { requiresAuth: false }
+    )
+
+    if (res && res.items && res.items.length > 0) {
+      const mappedItems: ArticleSummary[] = res.items.map((b) => {
+        const catEntry = CATEGORIES.find(
+          (c) =>
+            c.label.toLowerCase() === b.category.toLowerCase() ||
+            c.id === b.category.toLowerCase()
+        )
+        return {
+          id: b.id,
+          title: b.title,
+          slug: b.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          excerpt: b.title,
+          thumbnailUrl:
+            b.coverImageUrl ||
+            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+          category: (catEntry?.id as any) || 'nutrition',
+          categoryLabel: b.category,
+          publishedAt: new Date(b.publishedAt).toLocaleDateString('vi-VN'),
+          readTimeMinutes: 5,
+          author: {
+            id: b.authorId,
+            name: 'Tác giả cộng đồng',
+            avatar:
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+            roleTitle: 'Thành viên',
+          },
+          tags: ['#chaykhoemanh', `#${b.category}`],
+          viewsCount: 100,
+          likesCount: 10,
+        }
+      })
+      return {
+        items: mappedItems,
+        totalCount: res.totalCount,
+        page: res.page,
+        pageSize: res.pageSize,
+        totalPages: Math.ceil(res.totalCount / res.pageSize) || 1,
+      }
+    }
+  } catch (err) {
+    console.warn('Backend /api/articles call failed or offline, falling back to mock:', err)
+  }
+
+  // Fallback to MOCK_ARTICLES if backend has no published articles yet
   let filtered = [...MOCK_ARTICLES]
 
   if (params.category && params.category !== 'all') {
@@ -316,9 +426,112 @@ function parseContentToSections(content: string) {
 
 /**
  * Fetch article detail by ID or Slug
+ * Real API: GET /api/articles/{id}
  */
 export async function getArticleById(id: string): Promise<ArticleDetailDto> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isGuid) {
+    try {
+      const data = await apiClient.get<BackendArticleDetail>(`/api/articles/${id}`, {
+        requiresAuth: false,
+      })
+      if (data) {
+        let helpfulCount = 0
+        try {
+          const reaction = await apiClient.get<{ count: number; reactedByMe: boolean }>(
+            `/api/articles/${id}/helpful`,
+            { requiresAuth: false }
+          )
+          helpfulCount = reaction.count
+        } catch {
+          // reaction optional
+        }
+
+        let comments: ArticleComment[] = []
+        try {
+          const commentRes = await apiClient.get<{
+            items: Array<{
+              id: string
+              authorId: string
+              body: string
+              createdAt: string
+              likeCount: number
+            }>
+          }>(`/api/comments?targetType=Article&targetId=${id}&page=1&pageSize=20`, {
+            requiresAuth: false,
+          })
+          if (commentRes?.items) {
+            comments = commentRes.items.map((c) => ({
+              id: c.id,
+              articleId: id,
+              authorName: 'Thành viên',
+              authorAvatar:
+                'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
+              content: c.body,
+              createdAt: new Date(c.createdAt).toLocaleDateString('vi-VN'),
+              likesCount: c.likeCount,
+              isLiked: false,
+            }))
+          }
+        } catch {
+          // comments optional
+        }
+
+        const related: ArticleSummary[] = (data.relatedArticles || []).map((b) => ({
+          id: b.id,
+          title: b.title,
+          slug: b.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          excerpt: b.title,
+          thumbnailUrl:
+            b.coverImageUrl ||
+            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+          category: 'nutrition',
+          categoryLabel: b.category,
+          publishedAt: new Date(b.publishedAt).toLocaleDateString('vi-VN'),
+          readTimeMinutes: 5,
+          author: {
+            id: b.authorId,
+            name: 'Tác giả',
+            avatar:
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+            roleTitle: 'Tác giả',
+          },
+          tags: ['#chaykhoemanh'],
+        }))
+
+        return {
+          id: data.id,
+          title: data.title,
+          slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          excerpt: data.title,
+          thumbnailUrl:
+            data.coverImageUrl ||
+            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+          category: 'nutrition',
+          categoryLabel: data.category,
+          publishedAt: new Date(data.publishedAt).toLocaleDateString('vi-VN'),
+          readTimeMinutes: Math.max(1, Math.ceil(data.content.length / 500)),
+          tags: ['#chaykhoemanh', `#${data.category}`],
+          author: {
+            id: data.authorId,
+            name: 'Tác giả bài viết',
+            avatar:
+              'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=200&q=80',
+            roleTitle: 'Tác giả cộng đồng',
+          },
+          likesCount: helpfulCount,
+          viewsCount: 50,
+          sections: parseContentToSections(data.content),
+          comments,
+          relatedArticles: related,
+        }
+      }
+    } catch (err) {
+      console.warn('Backend /api/articles/{id} fetch failed, falling back:', err)
+    }
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 500))
 
   if (MOCK_ARTICLE_DETAILS[id]) {
     return MOCK_ARTICLE_DETAILS[id]
@@ -432,22 +645,54 @@ export async function getArticleById(id: string): Promise<ArticleDetailDto> {
 
 /**
  * Add a comment to an article
+ * Real API: POST /api/comments
  */
 export async function addArticleComment(
-  _articleId: string,
+  articleId: string,
   content: string,
   _authorName = 'Bạn'
 ): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
   if (!content.trim()) throw new Error('Nội dung bình luận không được để trống')
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(articleId)
+  if (isGuid) {
+    await apiClient.post(
+      '/api/comments',
+      {
+        targetType: 'Article',
+        targetId: articleId,
+        body: content.trim(),
+      },
+      { requiresAuth: true }
+    )
+    return
+  }
+  await new Promise((resolve) => setTimeout(resolve, 500))
 }
 
 /**
  * Toggle like for an article
+ * Real API: PUT/DELETE /api/articles/{id}/helpful
  */
-export async function toggleArticleLike(_articleId: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return true
+export async function toggleArticleLike(
+  articleId: string,
+  currentlyLiked = false
+): Promise<boolean> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(articleId)
+  if (isGuid) {
+    try {
+      if (currentlyLiked) {
+        await apiClient.delete(`/api/articles/${articleId}/helpful`, { requiresAuth: true })
+        return false
+      } else {
+        await apiClient.put(`/api/articles/${articleId}/helpful`, undefined, { requiresAuth: true })
+        return true
+      }
+    } catch (err) {
+      console.warn('Helpful reaction call failed:', err)
+    }
+  }
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  return !currentlyLiked
 }
 
 /**
@@ -717,6 +962,7 @@ let MOCK_USER_COMMENTS: UserCommentItem[] = [
 
 /**
  * Fetch list of articles owned by current user
+ * Real API: GET /api/me/articles
  */
 export async function getUserArticles(params: {
   statusTab?: 'all' | 'published' | 'draft'
@@ -725,7 +971,67 @@ export async function getUserArticles(params: {
   page?: number
   pageSize?: number
 }): Promise<PaginatedResult<UserArticleItem>> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  try {
+    const query = new URLSearchParams()
+    query.set('page', String(params.page || 1))
+    query.set('pageSize', String(params.pageSize || 10))
+    if (params.statusTab === 'published') query.set('status', 'Published')
+    else if (params.statusTab === 'draft') query.set('status', 'Draft')
+
+    const res = await apiClient.get<BackendArticlePage<BackendMyArticleDetail>>(
+      `/api/me/articles?${query.toString()}`,
+      { requiresAuth: true }
+    )
+
+    if (res && res.items) {
+      const items: UserArticleItem[] = res.items.map((m) => {
+        let status: UserArticleItem['status'] = 'draft'
+        let statusLabel = 'Bản nháp'
+
+        if (m.status === 'Published') {
+          status = 'published'
+          statusLabel = 'Đã xuất bản'
+        } else if (m.status === 'Submitted' || m.status === 'PendingAdminReview') {
+          status = 'pending_review'
+          statusLabel = 'Chờ duyệt'
+        } else if (m.status === 'RevisionRequested') {
+          status = 'draft'
+          statusLabel = 'Yêu cầu sửa'
+        } else if (m.status === 'Rejected') {
+          status = 'draft'
+          statusLabel = 'Bị từ chối'
+        }
+
+        return {
+          id: m.id,
+          title: m.title,
+          excerpt: m.content ? m.content.slice(0, 150) + '...' : m.title,
+          category: 'nutrition',
+          categoryLabel: m.category,
+          status,
+          statusLabel,
+          publishedAt: m.publishedVersion
+            ? new Date(m.publishedVersion.publishedAt).toLocaleDateString('vi-VN')
+            : undefined,
+          updatedAt: new Date(m.updatedAt).toLocaleDateString('vi-VN'),
+          viewsCount: 0,
+          likesCount: 0,
+          commentsCount: 0,
+          thumbnailUrl: m.coverImageUrl || '',
+        }
+      })
+
+      return {
+        items,
+        totalCount: res.totalCount,
+        page: res.page,
+        pageSize: res.pageSize,
+        totalPages: Math.ceil(res.totalCount / res.pageSize) || 1,
+      }
+    }
+  } catch (err) {
+    console.warn('Backend /api/me/articles call failed or offline, falling back to mock:', err)
+  }
 
   let list = [...MOCK_USER_ARTICLES]
 
@@ -804,9 +1110,52 @@ export async function getUserComments(params: {
 
 /**
  * Create a new user article
+ * Real API: POST /api/me/articles & POST /api/me/articles/{id}/submit
  */
 export async function createUserArticle(data: ArticleFormData): Promise<UserArticleItem> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const catLabel =
+    CATEGORIES.find((c) => c.id === data.category)?.label || data.category || 'Dinh dưỡng'
+  const payload = {
+    title: data.title.trim(),
+    content: data.content.trim(),
+    category: catLabel,
+    coverImageUrl: data.thumbnailUrl?.trim() || null,
+  }
+
+  try {
+    const res = await apiClient.post<BackendMyArticleDetail>('/api/me/articles', payload, {
+      requiresAuth: true,
+    })
+
+    if (data.status === 'published') {
+      try {
+        await apiClient.post(`/api/me/articles/${res.id}/submit`, undefined, {
+          requiresAuth: true,
+        })
+      } catch (submitErr) {
+        console.warn('Auto submit failed:', submitErr)
+      }
+    }
+
+    return {
+      id: res.id,
+      title: res.title,
+      excerpt: res.content.slice(0, 150) + '...',
+      category: data.category,
+      categoryLabel: res.category,
+      status: data.status === 'published' ? 'pending_review' : 'draft',
+      statusLabel: data.status === 'published' ? 'Chờ duyệt' : 'Bản nháp',
+      updatedAt: 'Vừa xong',
+      viewsCount: 0,
+      likesCount: 0,
+      commentsCount: 0,
+      thumbnailUrl: res.coverImageUrl || '',
+    }
+  } catch (err) {
+    console.warn('Failed to call real POST /api/me/articles, saving to mock memory:', err)
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 500))
   const newArticle: UserArticleItem = {
     id: `user-art-${Date.now()}`,
     title: data.title,
@@ -834,7 +1183,9 @@ export async function createUserArticle(data: ArticleFormData): Promise<UserArti
     title: newArticle.title,
     slug: newArticle.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     excerpt: newArticle.excerpt,
-    thumbnailUrl: newArticle.thumbnailUrl || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+    thumbnailUrl:
+      newArticle.thumbnailUrl ||
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
     category: newArticle.category,
     categoryLabel: newArticle.categoryLabel,
     publishedAt: 'Hôm nay',
@@ -843,7 +1194,8 @@ export async function createUserArticle(data: ArticleFormData): Promise<UserArti
     author: {
       id: parsedUser?.id || 'user-curr',
       name: authorName,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      avatar:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
       roleTitle: 'Tác giả cộng đồng',
     },
     viewsCount: 0,
@@ -866,12 +1218,56 @@ export async function createUserArticle(data: ArticleFormData): Promise<UserArti
 
 /**
  * Update an existing article
+ * Real API: PUT /api/me/articles/{id}
  */
 export async function updateUserArticle(
   id: string,
   data: ArticleFormData
 ): Promise<UserArticleItem> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isGuid) {
+    try {
+      const catLabel =
+        CATEGORIES.find((c) => c.id === data.category)?.label || data.category || 'Dinh dưỡng'
+      const payload = {
+        title: data.title.trim(),
+        content: data.content.trim(),
+        category: catLabel,
+        coverImageUrl: data.thumbnailUrl?.trim() || null,
+      }
+      const res = await apiClient.put<BackendMyArticleDetail>(`/api/me/articles/${id}`, payload, {
+        requiresAuth: true,
+      })
+      return {
+        id: res.id,
+        title: res.title,
+        excerpt: res.content.slice(0, 150) + '...',
+        category: data.category,
+        categoryLabel: res.category,
+        status:
+          res.status === 'Published'
+            ? 'published'
+            : res.status === 'Draft'
+            ? 'draft'
+            : 'pending_review',
+        statusLabel:
+          res.status === 'Published'
+            ? 'Đã xuất bản'
+            : res.status === 'Draft'
+            ? 'Bản nháp'
+            : 'Chờ duyệt',
+        updatedAt: 'Vừa xong',
+        viewsCount: 0,
+        likesCount: 0,
+        commentsCount: 0,
+        thumbnailUrl: res.coverImageUrl || '',
+      }
+    } catch (err) {
+      console.warn('Backend update failed:', err)
+    }
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 500))
   const idx = MOCK_USER_ARTICLES.findIndex((a) => a.id === id)
   let updated: UserArticleItem
 
@@ -908,68 +1304,43 @@ export async function updateUserArticle(
     MOCK_USER_ARTICLES = [updated, ...MOCK_USER_ARTICLES]
   }
 
-  const pubIdx = MOCK_ARTICLES.findIndex((a) => a.id === id)
-  if (pubIdx >= 0) {
-    MOCK_ARTICLES[pubIdx].title = data.title
-    MOCK_ARTICLES[pubIdx].category = data.category
-    MOCK_ARTICLES[pubIdx].excerpt = updated.excerpt
-    if (data.thumbnailUrl) {
-      MOCK_ARTICLES[pubIdx].thumbnailUrl = data.thumbnailUrl
-    }
-  }
-
-  if (MOCK_ARTICLE_DETAILS[id]) {
-    MOCK_ARTICLE_DETAILS[id].title = data.title
-    MOCK_ARTICLE_DETAILS[id].category = data.category
-    MOCK_ARTICLE_DETAILS[id].categoryLabel = updated.categoryLabel
-    MOCK_ARTICLE_DETAILS[id].excerpt = updated.excerpt
-    MOCK_ARTICLE_DETAILS[id].sections = parseContentToSections(data.content)
-    if (data.thumbnailUrl) {
-      MOCK_ARTICLE_DETAILS[id].thumbnailUrl = data.thumbnailUrl
-    }
-    if (data.captionHeroImage !== undefined) {
-      MOCK_ARTICLE_DETAILS[id].captionHeroImage = data.captionHeroImage
-    }
-  } else {
-    MOCK_ARTICLE_DETAILS[id] = {
-      id,
-      title: data.title,
-      slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      excerpt: updated.excerpt,
-      thumbnailUrl:
-        data.thumbnailUrl ||
-        'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
-      captionHeroImage:
-        data.captionHeroImage ||
-        'Bữa ăn chay chuẩn dinh dưỡng với các loại rau củ tươi, đậu hạt và ngũ cốc nguyên cám.',
-      category: data.category,
-      categoryLabel: updated.categoryLabel,
-      publishedAt: 'Hôm nay',
-      readTimeMinutes: Math.max(1, Math.ceil(data.content.split(/\s+/).length / 120)),
-      tags: ['#chaykhoemanh', '#dinhduongthucvat'],
-      author: {
-        id: 'user-curr',
-        name: 'Van Quang Duy',
-        avatar:
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-        roleTitle: 'Tác giả cộng đồng',
-      },
-      viewsCount: 0,
-      likesCount: 0,
-      sections: parseContentToSections(data.content),
-      comments: [],
-      relatedArticles: MOCK_ARTICLES.slice(0, 3),
-    }
-  }
-
   return updated
 }
 
 /**
  * Submit article for admin review
+ * Real API: POST /api/me/articles/{id}/submit
  */
 export async function submitArticleForReview(id: string): Promise<UserArticleItem> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isGuid) {
+    try {
+      const res = await apiClient.post<BackendMyArticleDetail>(
+        `/api/me/articles/${id}/submit`,
+        undefined,
+        { requiresAuth: true }
+      )
+      return {
+        id: res.id,
+        title: res.title,
+        excerpt: res.content.slice(0, 150) + '...',
+        category: 'nutrition',
+        categoryLabel: res.category,
+        status: 'pending_review',
+        statusLabel: 'Chờ duyệt',
+        updatedAt: 'Vừa xong',
+        viewsCount: 0,
+        likesCount: 0,
+        commentsCount: 0,
+        thumbnailUrl: res.coverImageUrl || '',
+      }
+    } catch (err) {
+      console.warn('Backend submit failed:', err)
+      throw err
+    }
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 500))
   const idx = MOCK_USER_ARTICLES.findIndex((a) => a.id === id)
   if (idx === -1) {
     throw new Error('Không tìm thấy bài viết để gửi duyệt')
@@ -986,9 +1357,21 @@ export async function submitArticleForReview(id: string): Promise<UserArticleIte
 
 /**
  * Delete a user article
+ * Real API: DELETE /api/me/articles/{id}
  */
 export async function deleteUserArticle(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isGuid) {
+    try {
+      await apiClient.delete(`/api/me/articles/${id}`, { requiresAuth: true })
+      return true
+    } catch (err) {
+      console.warn('Backend delete failed:', err)
+      throw err
+    }
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 500))
   MOCK_USER_ARTICLES = MOCK_USER_ARTICLES.filter((a) => a.id !== id)
   const pubIdx = MOCK_ARTICLES.findIndex((a) => a.id === id)
   if (pubIdx >= 0) {

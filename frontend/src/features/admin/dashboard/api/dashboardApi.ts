@@ -1,6 +1,113 @@
-import type { DashboardOverviewData } from '../types/dashboard.types'
+import { apiClient } from '../../../../shared/api/apiClient'
+import type { DashboardOverviewData, RecentActivityItem } from '../types/dashboard.types'
 
-const MOCK_DASHBOARD_DATA: DashboardOverviewData = {
+interface BackendCatalogCount {
+  total: number
+  active: number
+}
+
+interface BackendCoreData {
+  categories: BackendCatalogCount
+  ingredients: BackendCatalogCount
+  recipes: BackendCatalogCount
+  restaurants: BackendCatalogCount
+}
+
+interface BackendMembers {
+  registered: number
+  active: number
+  locked: number
+}
+
+interface BackendContent {
+  publishedArticles: number
+  publishedVideos: number
+  comments: number | null
+}
+
+interface BackendModerationQueue {
+  articles: number
+  videos: number
+  total: number
+}
+
+interface BackendActivity {
+  type: string
+  entityId: string
+  title: string
+  actorUserId?: string | null
+  actorName?: string | null
+  occurredAtUtc: string
+}
+
+interface BackendDashboardOverview {
+  members: BackendMembers
+  coreData: BackendCoreData
+  content: BackendContent
+  pendingAdminReview: BackendModerationQueue
+  recentActivity: BackendActivity[]
+}
+
+function formatTimeAgo(utcDateStr: string): string {
+  try {
+    const diffMs = Date.now() - new Date(utcDateStr).getTime()
+    const diffSec = Math.floor(diffMs / 1000)
+    if (diffSec < 60) return 'Vừa xong'
+    const diffMin = Math.floor(diffSec / 60)
+    if (diffMin < 60) return `${diffMin} phút trước`
+    const diffHour = Math.floor(diffMin / 60)
+    if (diffHour < 24) return `${diffHour} giờ trước`
+    const diffDay = Math.floor(diffHour / 24)
+    if (diffDay < 30) return `${diffDay} ngày trước`
+    return new Date(utcDateStr).toLocaleDateString('vi-VN')
+  } catch {
+    return 'Gần đây'
+  }
+}
+
+function mapActivity(act: BackendActivity, index: number): RecentActivityItem {
+  const typeLower = act.type.toLowerCase()
+  let actType: RecentActivityItem['type'] = 'user'
+  let actionText = 'Đã thực hiện thao tác:'
+
+  if (typeLower.includes('article')) {
+    actType = 'article'
+    actionText = typeLower.includes('submit')
+      ? 'Đã gửi bài viết kiểm duyệt:'
+      : typeLower.includes('approve')
+      ? 'Đã phê duyệt bài viết:'
+      : 'Thao tác trên bài viết:'
+  } else if (typeLower.includes('video')) {
+    actType = 'video'
+    actionText = typeLower.includes('submit')
+      ? 'Đã gửi video kiểm duyệt:'
+      : 'Thao tác trên video:'
+  } else if (typeLower.includes('comment')) {
+    actType = 'comment'
+    actionText = 'Bình luận trên hệ thống:'
+  } else if (typeLower.includes('category')) {
+    actType = 'category'
+    actionText = 'Đã cập nhật danh mục:'
+  } else if (typeLower.includes('member')) {
+    actType = 'user'
+    actionText = typeLower.includes('register')
+      ? 'Đăng ký thành viên mới:'
+      : typeLower.includes('lock')
+      ? 'Đã khóa tài khoản thành viên:'
+      : 'Đã mở khóa tài khoản:'
+  }
+
+  return {
+    id: act.entityId || `act-${index}`,
+    actorName: act.actorName || 'Hệ thống',
+    timeAgo: formatTimeAgo(act.occurredAtUtc),
+    actionText,
+    targetTitle: act.title ? `“${act.title}”` : '',
+    type: actType,
+  }
+}
+
+export const MOCK_DASHBOARD_DATA: DashboardOverviewData = {
   stats: {
     members: {
       title: 'Thành viên đã đăng ký',
@@ -56,18 +163,6 @@ const MOCK_DASHBOARD_DATA: DashboardOverviewData = {
       authorName: 'Lê Thu Hà',
       publishedAt: '28/09/2024',
     },
-    {
-      id: 'ra-3',
-      title: 'Top 10 nguồn canxi dồi dào từ thực vật tự nhiên...',
-      authorName: 'Trần Gia Huy',
-      publishedAt: '20/09/2024',
-    },
-    {
-      id: 'ra-4',
-      title: 'Lộ trình chuyển đổi ăn chay an toàn và bền vững...',
-      authorName: 'Phạm Quốc Bảo',
-      publishedAt: '15/09/2024',
-    },
   ],
   recentVideos: [
     {
@@ -76,27 +171,6 @@ const MOCK_DASHBOARD_DATA: DashboardOverviewData = {
       authorName: 'Trần Gia Huy',
       duration: '08:45',
       publishedAt: '12/10/2024',
-    },
-    {
-      id: 'rv-2',
-      title: 'Gỏi cuốn nấm ngũ sắc sốt tương béo ngậy',
-      authorName: 'Nguyễn Minh Anh',
-      duration: '05:20',
-      publishedAt: '05/10/2024',
-    },
-    {
-      id: 'rv-3',
-      title: 'Nấu canh rong biển hạt sen thanh mát giải nhiệt',
-      authorName: 'Phạm Quốc Bảo',
-      duration: '10:15',
-      publishedAt: '01/10/2024',
-    },
-    {
-      id: 'rv-4',
-      title: 'Cách làm sốt tương mè rang đa năng tại nhà',
-      authorName: 'Lê Thu Hà',
-      duration: '04:35',
-      publishedAt: '26/09/2024',
     },
   ],
   recentActivities: [
@@ -108,47 +182,61 @@ const MOCK_DASHBOARD_DATA: DashboardOverviewData = {
       targetTitle: '“Kinh nghiệm bổ sung Protein thực vật”',
       type: 'article',
     },
-    {
-      id: 'act-2',
-      actorName: 'Trần Gia Huy',
-      timeAgo: '1 giờ trước',
-      actionText: 'Đã tải video mới:',
-      targetTitle: '“Đậu hũ sốt nấm hương”',
-      type: 'video',
-    },
-    {
-      id: 'act-3',
-      actorName: 'Lê Thu Hà',
-      timeAgo: '2 giờ trước',
-      actionText: 'Đã bình luận bài viết:',
-      targetTitle: '“Top 10 nguồn canxi dồi dào”',
-      type: 'comment',
-    },
-    {
-      id: 'act-4',
-      actorName: 'Admin',
-      timeAgo: 'Hôm qua',
-      actionText: 'Đã cập nhật danh mục:',
-      targetTitle: '“Dinh dưỡng thuần chay”',
-      type: 'category',
-    },
-    {
-      id: 'act-5',
-      actorName: 'Vũ Hoàng Long',
-      timeAgo: 'Hôm qua',
-      actionText: 'Đã đăng ký tài khoản thành viên mới trong hệ thống',
-      targetTitle: '',
-      type: 'user',
-    },
   ],
 }
 
 /**
  * Fetch Admin Dashboard Overview Data
- * Pre-architected for real backend API: GET /api/admin/dashboard
+ * Real backend API: GET /api/admin/dashboard
  */
 export async function getDashboardOverview(): Promise<DashboardOverviewData> {
-  // Simulate network latency (1.5s per directive)
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-  return MOCK_DASHBOARD_DATA
+    const data = await apiClient.get<BackendDashboardOverview>('/api/admin/dashboard')
+
+    return {
+      stats: {
+        members: {
+          title: 'Thành viên đã đăng ký',
+          value: data.members.registered,
+          badge: `${data.members.active} hoạt động`,
+          badgeType: 'success',
+          icon: 'users',
+          linkPath: '/admin/members',
+        },
+        articles: {
+          title: 'Bài viết đã xuất bản',
+          value: data.content.publishedArticles,
+          badge: data.pendingAdminReview.articles > 0 ? `${data.pendingAdminReview.articles} CHỜ DUYỆT` : 'ĐÃ ĐỒNG BỘ',
+          badgeType: data.pendingAdminReview.articles > 0 ? 'warning' : 'info',
+          icon: 'file-text',
+          linkPath: '/admin/articles',
+        },
+        videos: {
+          title: 'Video hướng dẫn',
+          value: data.content.publishedVideos,
+          badge: data.pendingAdminReview.videos > 0 ? `${data.pendingAdminReview.videos} CHỜ DUYỆT` : 'ỔN ĐỊNH',
+          badgeType: data.pendingAdminReview.videos > 0 ? 'warning' : 'neutral',
+          icon: 'video',
+          linkPath: '/admin/videos',
+        },
+        comments: {
+          title: 'Bình luận cộng đồng',
+          value: data.content.comments ?? 0,
+          badge: 'HIỂN THỊ',
+          badgeType: 'purple',
+          icon: 'message-square',
+          linkPath: '/admin/comments',
+        },
+        categories: {
+          title: 'Danh mục công thức',
+          value: data.coreData.categories.total,
+          badge: `${data.coreData.categories.active} ĐANG DÙNG`,
+          badgeType: 'neutral',
+          icon: 'layers',
+          linkPath: '/admin/categories',
+        },
+      },
+      recentArticles: [],
+      recentVideos: [],
+      recentActivities: data.recentActivity.map(mapActivity),
+    }
 }

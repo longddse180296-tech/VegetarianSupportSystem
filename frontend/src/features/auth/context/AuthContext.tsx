@@ -1,25 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import type { User, LoginCredentials, RegisterPayload } from '../types'
-import { authApi, getStoredUser, setStoredUser, getStoredToken } from '../api/authApi'
+import { authApi, setStoredUser, getStoredToken } from '../api/authApi'
 import { AuthContext, type AuthContextType } from './AuthContextInstance'
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = getStoredUser<User>()
-    if (stored) {
-      try {
-        const rawProfile = localStorage.getItem('vegetarian_mock_user_profile')
-        if (rawProfile) {
-          const parsed = JSON.parse(rawProfile)
-          if (parsed.fullName) stored.fullName = parsed.fullName
-          if (parsed.avatarUrl) stored.avatarUrl = parsed.avatarUrl
-        }
-      } catch {
-        // ignore
-      }
-    }
-    return stored
-  })
+  const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
   const refreshUser = async (): Promise<User | null> => {
@@ -38,11 +23,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!prev) return null
       const updated = { ...prev, ...updates }
       setStoredUser(updated)
-      try {
-        localStorage.setItem('auth_user', JSON.stringify(updated))
-      } catch {
-        // ignore
-      }
       return updated
     })
   }
@@ -56,28 +36,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!prev) return null
           const updated = { ...prev, ...customEvent.detail }
           setStoredUser(updated)
-          try {
-            localStorage.setItem('auth_user', JSON.stringify(updated))
-          } catch {
-            // ignore
-          }
           return updated
         })
       } else {
-        const stored = getStoredUser<User>()
-        if (stored) {
-          try {
-            const rawProfile = localStorage.getItem('vegetarian_mock_user_profile')
-            if (rawProfile) {
-              const parsed = JSON.parse(rawProfile)
-              if (parsed.fullName) stored.fullName = parsed.fullName
-              if (parsed.avatarUrl) stored.avatarUrl = parsed.avatarUrl
-            }
-          } catch {
-            // ignore
-          }
-          setUser(stored)
-        }
+        void refreshUser()
       }
     }
 

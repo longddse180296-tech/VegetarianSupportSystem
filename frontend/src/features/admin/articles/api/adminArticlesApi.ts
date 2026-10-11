@@ -1,8 +1,28 @@
+import { apiClient } from '../../../../shared/api/apiClient'
 import type {
   AdminArticleFilter,
   AdminArticleItem,
   AdminArticleStats,
 } from '../types/adminArticles.types'
+
+interface BackendModerationItem {
+  id: string
+  contentId: string | null
+  version: number
+  contentType: 'Article' | 'Video'
+  ownerUserId: string
+  title: string
+  textContent: string
+  mediaReference: string | null
+  aiFlagStatus: string
+  adminReviewStatus: 'Draft' | 'Submitted' | 'PendingAdminReview' | 'Published' | 'RevisionRequested' | 'Rejected' | 'Removed'
+  aiSummary: string | null
+  aiFlagReason: string | null
+  submittedAt: string
+  createdAtUtc: string
+  updatedAtUtc: string
+  isCurrentPublished: boolean
+}
 
 let MOCK_ADMIN_ARTICLES: AdminArticleItem[] = [
   {
@@ -123,8 +143,76 @@ export async function getAdminArticles(filter: AdminArticleFilter = {}): Promise
   pageSize: number
   totalPages: number
 }> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  try {
+    const pageNum = filter.page || 1
+    const pageSize = filter.pageSize || 10
+    const query = new URLSearchParams()
+    query.set('contentType', 'Article')
+    query.set('page', String(pageNum))
+    query.set('pageSize', String(pageSize))
+
+    const res = await apiClient.get<{
+      items: BackendModerationItem[]
+      totalCount: number
+      page: number
+      pageSize: number
+    }>(`/api/admin/moderation/submissions?${query.toString()}`, { requiresAuth: true })
+
+    if (res && res.items && res.items.length > 0) {
+      const mapped: AdminArticleItem[] = res.items.map((m) => {
+        let status: AdminArticleItem['status'] = 'pending'
+        let statusLabel = 'Chờ kiểm duyệt'
+
+        if (m.adminReviewStatus === 'Published') {
+          status = 'published'
+          statusLabel = 'Đang hiển thị'
+        } else if (
+          m.adminReviewStatus === 'PendingAdminReview' ||
+          m.adminReviewStatus === 'Submitted'
+        ) {
+          status = 'pending'
+          statusLabel = 'Chờ kiểm duyệt'
+        } else if (
+          m.adminReviewStatus === 'Rejected' ||
+          m.adminReviewStatus === 'Removed'
+        ) {
+          status = 'hidden'
+          statusLabel = 'Bị từ chối'
+        }
+
+        return {
+          id: m.id,
+          title: m.title,
+          wordCount: m.textContent ? m.textContent.split(/\s+/).length : 500,
+          readTimeMinutes: Math.max(
+            1,
+            Math.ceil((m.textContent ? m.textContent.length : 1000) / 500)
+          ),
+          authorInitials: 'TG',
+          authorName: m.ownerUserId || 'Tác giả',
+          authorColorClass: 'bg-emerald-100 text-[#1b5e20]',
+          category: 'nutrition',
+          categoryLabel: 'Dinh dưỡng',
+          publishedAt: new Date(m.submittedAt || m.createdAtUtc).toLocaleDateString('vi-VN'),
+          readCount: 120,
+          voteCount: 15,
+          status,
+          statusLabel,
+          aiFlagReason: m.aiFlagReason || undefined,
+        }
+      })
+
+      return {
+        items: mapped,
+        total: res.totalCount,
+        page: res.page,
+        pageSize: res.pageSize,
+        totalPages: Math.ceil(res.totalCount / res.pageSize) || 1,
+      }
+    }
+  } catch (err) {
+    console.warn('Backend moderation submissions call failed, using fallback:', err)
+  }
 
   let list = [...MOCK_ADMIN_ARTICLES]
 
@@ -169,28 +257,85 @@ export async function getAdminArticles(filter: AdminArticleFilter = {}): Promise
 }
 
 export async function approveArticle(id: string): Promise<AdminArticleItem> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isGuid) {
+    try {
+      await apiClient.post(
+        `/api/admin/moderation/submissions/${id}/decisions`,
+        { decision: 'Approve', reason: 'Nội dung đạt chuẩn xuất bản' },
+        { requiresAuth: true }
+      )
+    } catch (err) {
+      console.warn('Approve decision failed:', err)
+    }
+  }
 
+  await new Promise((resolve) => setTimeout(resolve, 400))
   const target = MOCK_ADMIN_ARTICLES.find((a) => a.id === id)
-  if (!target) throw new Error('Không tìm thấy bài viết.')
+  if (target) {
+    target.status = 'published'
+    target.statusLabel = 'Đang hiển thị'
+    return { ...target }
+  }
 
-  target.status = 'published'
-  target.statusLabel = 'Đang hiển thị'
-  return { ...target }
+  return {
+    id,
+    title: 'Bài viết đã duyệt',
+    wordCount: 1200,
+    readTimeMinutes: 5,
+    authorInitials: 'TG',
+    authorName: 'Tác giả',
+    authorColorClass: 'bg-emerald-100 text-[#1b5e20]',
+    category: 'nutrition',
+    categoryLabel: 'Dinh dưỡng',
+    publishedAt: 'Hôm nay',
+    readCount: 0,
+    voteCount: 0,
+    status: 'published',
+    statusLabel: 'Đang hiển thị',
+  }
 }
 
 export async function rejectArticle(id: string, reason: string): Promise<AdminArticleItem> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isGuid) {
+    try {
+      await apiClient.post(
+        `/api/admin/moderation/submissions/${id}/decisions`,
+        { decision: 'Reject', reason },
+        { requiresAuth: true }
+      )
+    } catch (err) {
+      console.warn('Reject decision failed:', err)
+    }
+  }
 
+  await new Promise((resolve) => setTimeout(resolve, 400))
   const target = MOCK_ADMIN_ARTICLES.find((a) => a.id === id)
-  if (!target) throw new Error('Không tìm thấy bài viết.')
+  if (target) {
+    target.status = 'hidden'
+    target.statusLabel = 'Bị từ chối'
+    target.rejectReason = reason
+    return { ...target }
+  }
 
-  target.status = 'hidden'
-  target.statusLabel = 'Bị từ chối'
-  target.rejectReason = reason
-  return { ...target }
+  return {
+    id,
+    title: 'Bài viết bị từ chối',
+    wordCount: 1200,
+    readTimeMinutes: 5,
+    authorInitials: 'TG',
+    authorName: 'Tác giả',
+    authorColorClass: 'bg-rose-100 text-rose-800',
+    category: 'nutrition',
+    categoryLabel: 'Dinh dưỡng',
+    publishedAt: 'Hôm nay',
+    readCount: 0,
+    voteCount: 0,
+    status: 'hidden',
+    statusLabel: 'Bị từ chối',
+    rejectReason: reason,
+  }
 }
 
 export async function toggleHideArticle(id: string): Promise<AdminArticleItem> {

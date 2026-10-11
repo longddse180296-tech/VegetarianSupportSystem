@@ -1,8 +1,25 @@
+import { apiClient } from '../../../../shared/api/apiClient'
 import type {
   AdminCommentFilter,
   AdminCommentItem,
   AdminCommentStats,
 } from '../types/adminComments.types'
+
+interface BackendCommentResponse {
+  id: string
+  targetType: 'Article' | 'Video'
+  targetId: string
+  parentId: string | null
+  authorId: string
+  body: string | null
+  status: 'Visible' | 'Hidden' | 'Removed'
+  createdAt: string
+  updatedAt: string
+  likeCount: number
+  moderationReason?: string | null
+  moderatedBy?: string | null
+  moderatedAt?: string | null
+}
 
 let MOCK_ADMIN_COMMENTS: AdminCommentItem[] = [
   {
@@ -116,8 +133,52 @@ export async function getAdminComments(filter: AdminCommentFilter = {}): Promise
   pageSize: number
   totalPages: number
 }> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  try {
+    const pageNum = filter.page || 1
+    const pageSize = filter.pageSize || 10
+    const query = new URLSearchParams()
+    query.set('page', String(pageNum))
+    query.set('pageSize', String(pageSize))
+    if (filter.keyword?.trim()) query.set('search', filter.keyword.trim())
+    if (filter.status === 'published') query.set('status', 'Visible')
+    else if (filter.status === 'hidden') query.set('status', 'Hidden')
+    if (filter.targetType === 'article') query.set('targetType', 'Article')
+    else if (filter.targetType === 'video') query.set('targetType', 'Video')
+
+    const res = await apiClient.get<{
+      items: BackendCommentResponse[]
+      totalCount: number
+      page: number
+      pageSize: number
+    }>(`/api/admin/comments?${query.toString()}`, { requiresAuth: true })
+
+    if (res && res.items && res.items.length > 0) {
+      const mapped: AdminCommentItem[] = res.items.map((c) => ({
+        id: c.id,
+        content: c.body || '[Bình luận đã bị ẩn hoặc gỡ bỏ]',
+        authorName: c.authorId || 'Thành viên',
+        authorEmail: 'user@system.local',
+        authorInitials: 'TV',
+        authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
+        targetType: c.targetType === 'Article' ? 'article' : 'video',
+        targetTitle: `Mục ${c.targetType} #${c.targetId.slice(0, 8)}`,
+        targetId: c.targetId,
+        createdAt: new Date(c.createdAt).toLocaleDateString('vi-VN'),
+        status: c.status === 'Visible' ? 'published' : 'hidden',
+        statusLabel: c.status === 'Visible' ? 'Đang hiển thị' : 'Đã tạm ẩn / gỡ',
+      }))
+
+      return {
+        items: mapped,
+        total: res.totalCount,
+        page: res.page,
+        pageSize: res.pageSize,
+        totalPages: Math.ceil(res.totalCount / res.pageSize) || 1,
+      }
+    }
+  } catch (err) {
+    console.warn('Backend /api/admin/comments call failed, using fallback:', err)
+  }
 
   let list = [...MOCK_ADMIN_COMMENTS]
 
@@ -157,21 +218,59 @@ export async function getAdminComments(filter: AdminCommentFilter = {}): Promise
 }
 
 export async function toggleHideComment(id: string): Promise<AdminCommentItem> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isGuid) {
+    try {
+      await apiClient.post(
+        `/api/admin/comments/${id}/hide`,
+        { reason: 'Tạm ẩn theo quy chuẩn kiểm duyệt của Quản trị viên' },
+        { requiresAuth: true }
+      )
+    } catch (err) {
+      console.warn('Hide comment error:', err)
+    }
+  }
 
+  await new Promise((resolve) => setTimeout(resolve, 400))
   const target = MOCK_ADMIN_COMMENTS.find((c) => c.id === id)
-  if (!target) throw new Error('Không tìm thấy bình luận.')
+  if (target) {
+    target.status = target.status === 'published' ? 'hidden' : 'published'
+    target.statusLabel = target.status === 'published' ? 'Đang hiển thị' : 'Đã tạm ẩn / gỡ'
+    return { ...target }
+  }
 
-  target.status = target.status === 'published' ? 'hidden' : 'published'
-  target.statusLabel = target.status === 'published' ? 'Đang hiển thị' : 'Đã tạm ẩn / gỡ'
-  return { ...target }
+  return {
+    id,
+    content: 'Bình luận',
+    authorName: 'Thành viên',
+    authorEmail: 'user@system.local',
+    authorInitials: 'TV',
+    authorAvatarBg: 'bg-emerald-100 text-[#1b5e20]',
+    targetType: 'article',
+    targetTitle: 'Bài viết',
+    targetId: 'art-1',
+    createdAt: 'Hôm nay',
+    status: 'hidden',
+    statusLabel: 'Đã tạm ẩn / gỡ',
+  }
 }
 
 export async function deleteAdminComment(id: string): Promise<boolean> {
-  // Simulate 1.5s network latency per directive
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isGuid) {
+    try {
+      await apiClient.post(
+        `/api/admin/comments/${id}/remove`,
+        { reason: 'Gỡ bỏ hoàn toàn khỏi hệ thống bởi Quản trị viên' },
+        { requiresAuth: true }
+      )
+      return true
+    } catch (err) {
+      console.warn('Remove comment error:', err)
+    }
+  }
 
+  await new Promise((resolve) => setTimeout(resolve, 400))
   MOCK_ADMIN_COMMENTS = MOCK_ADMIN_COMMENTS.filter((c) => c.id !== id)
   return true
 }
