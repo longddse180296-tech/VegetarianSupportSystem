@@ -6,6 +6,8 @@ Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường De
 
 Hợp đồng backend nhận ảnh món ăn và đánh giá sau khi User xác nhận nguyên liệu ở [food-scanning.md](food-scanning.md).
 
+Hợp đồng video nháp/upload riêng tư, xem công khai và quyền owner/Admin ở [videos.md](videos.md).
+
 Hợp đồng đăng ký, đăng nhập, JWT và Admin seed ở [auth.md](auth.md).
 
 Hợp đồng nhà hàng public/Admin, lọc theo khu vực/chế độ ăn/khoảng cách và trạng thái dữ liệu ở [restaurants.md](restaurants.md).

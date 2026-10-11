@@ -2,7 +2,7 @@
 
 Monorepo cho nhóm 2 frontend và 3 backend.
 
-Trạng thái: khung React và bốn project .NET 10 đã có thể build/run. Frontend đang là app trắng để nhóm tự xây giao diện. Backend có nền Moderation/AiChat, API scan ảnh món ăn, OpenAPI Development, EF Core SQL Server và migration ban đầu. Gemini được gọi từ backend khi cấu hình key local; chưa nối Auth thật, hồ sơ scan, lưu lịch sử scan hoặc áp dụng migration trên SQL Server. Các module MVP khác và CI/deploy chưa triển khai.
+Trạng thái: React và bốn project .NET 10 có thể build/run. Backend có Auth, Core Data, Moderation/AiChat, video lưu riêng tư, scan ảnh món và OCR nhãn, OpenAPI Development, EF Core SQL Server cùng migrations. Gemini được gọi từ backend khi cấu hình key local. BE 3 đã thêm worker kiểm duyệt, API video và lịch sử scan; cần áp dụng migration trên SQL Server khi tích hợp. Backend bài viết của BE 1 chưa có để nối quyết định moderation vào bài viết thật. Các module MVP khác và CI/deploy tiếp tục triển khai.
 
 ## Chạy trên máy
 

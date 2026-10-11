@@ -337,6 +337,49 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Favorites", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.FoodScanRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("InputJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("PreviousScanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProfileSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResultJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ResultVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId", "CreatedAtUtc");
+
+                    b.ToTable("FoodScanRecords", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Ingredient", b =>
                 {
                     b.Property<Guid>("Id")
@@ -689,6 +732,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<string>("AiEvidence")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<string>("AiFlagReason")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -697,6 +744,14 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("AiFlagType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("AiPriority")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("AiSummary")
                         .HasMaxLength(2000)
@@ -1292,6 +1347,70 @@ namespace Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_UserProfiles_WeightKg", "[WeightKg] IS NULL OR ([WeightKg] > 0 AND [WeightKg] <= 1000)");
                         });
+                });
+
+            modelBuilder.Entity("Domain.Entities.Video", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MediaKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("PublishedCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PublishedSubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PublishedThumbnailKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ThumbnailKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UploadStatus")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.Property<long>("ViewCount")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedSubmissionId");
+
+                    b.HasIndex("OwnerUserId", "CreatedAtUtc");
+
+                    b.ToTable("Videos", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.AiChatMessage", b =>

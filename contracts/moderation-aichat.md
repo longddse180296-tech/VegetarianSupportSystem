@@ -22,12 +22,12 @@ Ngày cập nhật: 02/10/2026. JSON dùng `camelCase`; enum được serialize 
 | `POST /moderation/submissions` | User/Admin | Gửi bản nội dung vào kiểm duyệt; trả `201`. |
 | `GET /moderation/submissions?contentType=&page=1&pageSize=20` | User/Admin | Danh sách phiên bản của chính mình, mới nhất trước. |
 | `GET /moderation/submissions/{id}` | Chủ nội dung | Chi tiết bản gửi. Người khác nhận `404`. |
-| `POST /moderation/submissions/{id}/retry-ai` | Chủ nội dung | Đưa bản có AI `Failed` về `Checking`; trả `200`. |
+| `POST /moderation/submissions/{id}/retry-ai` | Chủ nội dung | Chỉ cho bài viết: đưa bản có AI `Failed` về `Checking`; video trả `409`. |
 | `GET /admin/moderation/submissions?contentType=&aiStatus=&adminStatus=&page=1&pageSize=20` | Admin | Tìm/lọc các bản gửi. |
 | `GET /admin/moderation/submissions/queue?contentType=&aiStatus=&page=1&pageSize=20` | Admin | Lấy hàng đợi `PendingAdminReview`. |
 | `GET /admin/moderation/submissions/{id}` | Admin | Chi tiết và nhật ký quyết định. |
 | `POST /admin/moderation/submissions/{id}/decisions` | Admin | Quyết định; trả `200`. |
-| `POST /admin/moderation/submissions/{id}/mock-ai-result` | Admin, chỉ Development | Ghi kết quả AI mẫu để thử luồng; ngoài Development trả `404`. |
+| `POST /admin/moderation/submissions/{id}/mock-ai-result` | Admin, chỉ Development | Ghi kết quả AI mẫu cho bài viết; video trả `409`, ngoài Development trả `404`. |
 
 Ví dụ tạo bản đầu:
 
@@ -41,7 +41,7 @@ Ví dụ tạo bản đầu:
 }
 ```
 
-Để gửi phiên bản mới, truyền `contentId` đã có. Chỉ được gửi khi phiên bản mới nhất có trạng thái `RevisionRequested`, `Rejected` hoặc `Published`; `contentType` và chủ sở hữu không đổi. `Video` cần `mediaReference` trỏ tới tệp đã được lưu bởi module video sau này. Tiêu đề tối đa 200 ký tự, nội dung tối đa 50.000 ký tự, media reference tối đa 2.000 ký tự. Mỗi lần gửi tạo snapshot và version mới, ban đầu `aiFlagStatus=Checking`, `adminReviewStatus=Submitted`, `isCurrentPublished=false`. Nội dung mới không thay thế bản đang công khai khi chưa được Admin duyệt.
+Để gửi phiên bản mới, truyền `contentId` đã có. Chỉ được gửi khi phiên bản mới nhất có trạng thái `RevisionRequested`, `Rejected` hoặc `Published`; `contentType` và chủ sở hữu không đổi. Video gửi qua endpoint riêng `/api/me/videos/{id}/submit` sau khi upload media. Tiêu đề tối đa 200 ký tự, nội dung tối đa 50.000 ký tự, media reference tối đa 2.000 ký tự. Bài viết bắt đầu `aiFlagStatus=Checking`, `adminReviewStatus=Submitted`; video bắt đầu `aiFlagStatus=NotSubmitted`, `adminReviewStatus=PendingAdminReview`. Cả hai đều `isCurrentPublished=false` cho đến quyết định Admin. Nội dung mới không thay thế bản đang công khai khi chưa được Admin duyệt.
 
 Response bản gửi gồm `id`, `contentId`, `version`, `contentType`, `ownerUserId`, `title`, `textContent`, `mediaReference`, `aiFlagStatus`, `adminReviewStatus`, `aiSummary`, `aiFlagReason`, `aiCheckedScope`, `aiUncheckedScope`, `aiCheckedAt`, `submittedAt`, `createdAtUtc`, `updatedAtUtc`, `isCurrentPublished`, `decisions[]`. `aiFlagReason` bắt buộc khi AI `Flagged`, có thể có khi `Partial`; luôn `null` khi `Passed`/`Failed`. Mỗi quyết định có `id`, `version`, `decision`, `adminUserId`, `reason`, `decidedAt`. Danh sách có `{ "items": [], "totalCount": 0, "page": 1, "pageSize": 20 }`; `page` >= 1, `pageSize` 1–100.
 
@@ -57,18 +57,18 @@ Kết quả AI thật được ghi qua `ModerationService.RecordAiResultAsync` b
 }
 ```
 
-`status` chỉ nhận `Passed`, `Flagged`, `Partial`, `Failed`. `summary` bắt buộc, tối đa 2.000 ký tự. `Flagged` cần `flagReason`; `Partial` cần `uncheckedScope`; `Passed`/`Flagged` không được khai còn phạm vi chưa kiểm tra. Chuyển trạng thái sai trả `409`, dữ liệu sai trả `400`. Khi kết quả là `Passed`, `Flagged` hoặc `Partial`, bản gửi chuyển sang `PendingAdminReview`; `Failed` vẫn ở `Submitted` và có thể thử lại. AI không tự chuyển bản gửi sang `Published`.
+`status` chỉ nhận `Passed`, `Flagged`, `Partial`, `Failed` cho bài viết. `summary` bắt buộc, tối đa 2.000 ký tự. `Flagged` cần `flagReason`; `Partial` cần `uncheckedScope`; `Passed`/`Flagged` không được khai còn phạm vi chưa kiểm tra. Chuyển trạng thái sai trả `409`, dữ liệu sai trả `400`. Khi kết quả bài viết là `Passed`, `Flagged` hoặc `Partial`, bản gửi chuyển sang `PendingAdminReview`; `Failed` vẫn ở `Submitted` và có thể thử lại. Video không gọi AI và đi thẳng vào hàng đợi Admin. AI không tự chuyển bản gửi sang `Published`.
 
 Request Admin quyết định:
 
 ```json
 {
   "decision": "Approve",
-  "reason": "Đã xem nội dung và phạm vi AI kiểm tra"
+  "reason": "Đã xem trực tiếp nội dung"
 }
 ```
 
-`decision`: `Approve`, `RequestRevision`, `Reject`, `Remove`; `reason` bắt buộc, tối đa 2.000 ký tự. Ba quyết định đầu chỉ áp dụng khi chờ Admin sau khi AI hoàn tất. `Remove` chỉ áp dụng cho phiên bản đang được công khai. Mỗi quyết định lưu Admin ID, thời gian, version và lý do. Chỉ một phiên bản của cùng `contentId` được đánh dấu đang công khai.
+`decision`: `Approve`, `RequestRevision`, `Reject`, `Remove`; `reason` bắt buộc, tối đa 2.000 ký tự. Ba quyết định đầu áp dụng khi `PendingAdminReview`: bài viết sau AI hoàn tất, video ngay sau submit. `Remove` chỉ áp dụng cho phiên bản đang được công khai. Mỗi quyết định lưu Admin ID, thời gian, version và lý do. Chỉ một phiên bản của cùng `contentId` được đánh dấu đang công khai.
 
 Lỗi validation trả `400` kèm `ProblemDetails`; bản không tồn tại `404`; chuyển trạng thái sai/xung đột version `409`. Khung này chưa nối Article/Video repository, storage hoặc AI worker. `mediaReference` chưa được xác minh là tệp thuộc người gửi; module nội dung cần ràng buộc trước khi dùng để xuất bản thật.
 
@@ -95,3 +95,13 @@ Request gửi message (User/Guest):
 Guest giữ tối đa 3 lượt **có câu trả lời thành công** trong session 30 phút; không lưu DB/hồ sơ tài khoản. Trả `200` với `{status:"Answered", answer, remainingQuestions}` khi thành công; `503` với `status:"Unavailable"` và không trừ lượt khi adapter AI chưa có; `429` với `status:"LimitReached"` khi hết lượt. Cookie session có `HttpOnly`, `SameSite=Lax`; mức này không phải cơ chế chống lạm dụng tuyệt đối.
 
 `GeminiService` gọi Gemini `generateContent` từ backend. Cấu hình `Gemini:ApiKey` và tùy chọn `Gemini:Model` (mặc định `gemini-3.8-flash`); key được gửi trong header `x-goog-api-key`. Trong cấu hình local của máy phát triển, đặt `AiChat:UseMockResponses=false` để chat Guest/User gọi Gemini. Khi provider lỗi, timeout hoặc phản hồi không hợp lệ, Guest nhận `503 Unavailable` và không bị trừ lượt; User nhận `200` cùng `answerStatus=Unavailable`, câu hỏi đã được lưu, assistant message chưa được tạo. Khi thành công, Guest trừ một lượt và User lưu cả câu hỏi/câu trả lời trong DB. Chat chưa tham chiếu hồ sơ User. Moderation service có prompt JSON nhưng chưa được gọi bởi background worker. Trước khi tích hợp FE, cần nối Auth/Identity và áp dụng migration `InitialModerationAiChat` cùng migration bổ sung các cột moderation mới lên SQL Server thử nghiệm.
+
+## Tích hợp BE 3 (09/10/2026)
+
+Sau khi có submission bài viết từ module nội dung, worker nền quét các bản Article `Checking` mới nhất từ DB, gọi Gemini ở backend và ghi kết quả. Lỗi provider/timeout/JSON không hợp lệ ghi `Failed`, không vào queue; owner dùng `/{id}/retry-ai`. Worker bỏ qua phiên bản cũ. Admin không thể duyệt bản cũ khi đã có bản mới. `mock-ai-result` vẫn chỉ phục vụ Development, không nằm trong luồng sản phẩm.
+
+Trong trạng thái code ngày 09/10/2026, `POST /moderation/submissions` trả 503 cho Article vì BE 1 chưa có backend draft/version để xác minh contentId và owner; endpoint không tạo submission giả. Khi BE 1 hoàn tất, nối submit vào repository Article và mở lại đường này theo contract. Video gửi qua `/api/me/videos/{id}/submit`.
+
+Video phải tạo/upload qua `/api/me/videos` trước; endpoint moderation chung từ chối `contentType=Video`. Từ quyết định mới ngày 10/10/2026, video không được kiểm tra bởi AI; `aiFlagStatus=NotSubmitted`, các trường AI là `null`. Admin phải xem trực tiếp media qua quyền Admin. `Approve`, `RequestRevision`, `Reject`, `Remove` vẫn dùng endpoint quyết định hiện có và lưu actor, thời điểm, lý do, phiên bản. Migration `VideoAdminOnlyModeration` chuyển các submission video cũ sang quy tắc này.
+
+User chat gửi kèm vào Gemini phần hồ sơ **đã khai báo** gồm chế độ ăn và dị ứng. Guest không có phần này. Response gửi message User bổ sung `recipeSuggestions[]` gồm `id` và `name` từ các recipe active thật khi câu hỏi nhắc món/công thức/gợi ý; liên kết `/recipes/{id}`. Chat không tạo meal plan đã lưu. Cấu hình Development mặc định gọi Gemini thật khi có key; thiếu key trả Unavailable, không trả câu trả lời mẫu. Guest vẫn 3 lượt thành công trong session 30 phút phía server.

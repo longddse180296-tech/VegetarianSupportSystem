@@ -1,5 +1,6 @@
 using Application.Features.Articles;
 using Application.Features.Moderation;
+using Application.Features.Videos;
 using Domain.Entities;
 using Domain.Enums;
 
@@ -30,7 +31,7 @@ public sealed class ArticleWorkflowTests
     public async Task OtherAuthorCannotReadUpdateOrDelete()
     {
         var article = new Article("owner", "First", "Original", "Health", null, DateTimeOffset.UtcNow);
-        var service = new ArticleService(new SingleArticleRepository(article), new ModerationService(new EmptyModerationRepository()));
+        var service = new ArticleService(new SingleArticleRepository(article), new ModerationService(new EmptyModerationRepository(), new EmptyVideoPublication()));
         var request = new ArticleDraftRequest("Changed", "Content", "Health", null);
 
         Assert.Equal(ArticleError.NotFound, (await Assert.ThrowsAsync<ArticleException>(
@@ -49,7 +50,7 @@ public sealed class ArticleWorkflowTests
         var article = new Article("owner", "First", "Original", "Health", null, now);
         article.LinkSubmission(ModerationSubmission.Submit(Guid.NewGuid(), 1,
             ModeratedContentType.Article, "owner", "First", "Original", null, now), now);
-        var service = new ArticleService(new SingleArticleRepository(article), new ModerationService(new EmptyModerationRepository()));
+        var service = new ArticleService(new SingleArticleRepository(article), new ModerationService(new EmptyModerationRepository(), new EmptyVideoPublication()));
 
         Assert.Equal(ArticleError.Conflict, (await Assert.ThrowsAsync<ArticleException>(
             () => service.UpdateAsync(article.Id, "owner", new("Changed", "Text", "Health", null), CancellationToken.None))).Error);
@@ -98,9 +99,17 @@ public sealed class ArticleWorkflowTests
         public Task<ModerationSubmission?> GetByIdAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
         public Task<ModerationSubmission?> GetLatestForContentAsync(Guid contentId, CancellationToken ct) => throw new NotImplementedException();
         public Task<ModerationSubmission?> GetCurrentPublishedAsync(Guid contentId, CancellationToken ct) => throw new NotImplementedException();
+        public Task<IReadOnlyList<Guid>> GetCheckingIdsAsync(int count, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<Guid>>(Array.Empty<Guid>());
         public Task<ModerationPage> SearchAsync(ModerationSearch search, CancellationToken ct) => throw new NotImplementedException();
         public Task AddAsync(ModerationSubmission submission, CancellationToken ct) => throw new NotImplementedException();
         public Task SaveChangesAsync(CancellationToken ct) => throw new NotImplementedException();
         public Task ExecuteInTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken ct) => throw new NotImplementedException();
+    }
+
+    private sealed class EmptyVideoPublication : IVideoPublication
+    {
+        public Task ApplyDecisionAsync(Guid videoId, Guid submissionId, bool published, CancellationToken ct) =>
+            throw new NotImplementedException();
     }
 }

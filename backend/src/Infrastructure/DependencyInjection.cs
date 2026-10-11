@@ -19,6 +19,10 @@ using Application.Features.Comments;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
 using Infrastructure.Documents;
+using Infrastructure.BackgroundJobs;
+using Application.Features.Videos;
+using Application.Features.FoodScanning;
+using Infrastructure.Storage;
 using Infrastructure.Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -38,6 +42,7 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IAiChatRepository, AiChatRepository>();
+        services.AddScoped<IAiChatContextRepository, AiChatContextRepository>();
         services.AddScoped<IArticleRepository, ArticleRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
@@ -51,6 +56,12 @@ public static class DependencyInjection
         services.AddSingleton(new PasswordResetOptions(configuration["PasswordReset:ResetPageUrl"]));
         services.AddSingleton<IAccountPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IModerationRepository, ModerationRepository>();
+        services.AddScoped<VideoRepository>();
+        services.AddScoped<IVideoRepository>(sp => sp.GetRequiredService<VideoRepository>());
+        services.AddScoped<IVideoPublication>(sp => sp.GetRequiredService<VideoRepository>());
+        services.AddSingleton<IPrivateMediaStore, LocalPrivateMediaStore>();
+        services.AddScoped<IFoodScanRepository, FoodScanRepository>();
+        services.AddHostedService<ModerationAiWorker>();
         services.AddHttpClient<IGeminiService, GeminiService>(client =>
             client.Timeout = TimeSpan.FromSeconds(45));
         if (bool.TryParse(configuration["AiChat:UseMockResponses"], out var useMockResponses)

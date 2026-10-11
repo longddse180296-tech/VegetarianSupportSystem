@@ -12,6 +12,7 @@ using Application.Features.Restaurants;
 using Application.Features.Pantry;
 using Application.Features.Favorites;
 using Application.Features.MealPlans;
+using Application.Features.Videos;
 using Application.Features.Comments;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<PantryService>();
         services.AddScoped<FavoriteService>();
         services.AddScoped<MealPlanService>();
+        services.AddScoped<VideoService>();
         return services;
     }
 }

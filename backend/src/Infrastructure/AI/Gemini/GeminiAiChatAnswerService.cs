@@ -9,13 +9,14 @@ public sealed class GeminiAiChatAnswerService(IGeminiService geminiService) : IA
     public async Task<AiChatAnswerResult> GenerateAsync(
         string prompt,
         IReadOnlyList<AiChatTurn> history,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? profileContext = null)
     {
         var request = new GeminiChatRequest(
             prompt,
             history.Select(turn => new GeminiChatTurn(
                 turn.Role == AiChatMessageRole.User ? "user" : "assistant",
-                turn.Content)).ToArray());
+                turn.Content)).ToArray(), profileContext);
 
         try
         {

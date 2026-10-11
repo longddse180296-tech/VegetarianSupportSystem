@@ -6,6 +6,28 @@ namespace Domain.Tests;
 public sealed class ModerationSubmissionTests
 {
     [Fact]
+    public void VideoGoesDirectlyToAdminWithoutAiAndCanBeApproved()
+    {
+        var submission = ModerationSubmission.Submit(
+            Guid.NewGuid(), 1, ModeratedContentType.Video, "owner", "Video title",
+            "Video description", "private/video.mp4", DateTimeOffset.UtcNow);
+
+        Assert.Equal(AiFlagStatus.NotSubmitted, submission.AiFlagStatus);
+        Assert.Equal(AdminReviewStatus.PendingAdminReview, submission.AdminReviewStatus);
+        Assert.Null(submission.AiCheckedAt);
+        Assert.Throws<InvalidOperationException>(() => submission.RecordAiResult(
+            AiFlagStatus.Partial, "Only text checked", "title and description",
+            "video frames", DateTimeOffset.UtcNow));
+        Assert.Throws<InvalidOperationException>(() => submission.RetryAiCheck(DateTimeOffset.UtcNow));
+
+        submission.Decide(ModerationDecisionType.Approve, "admin", "Watched the video",
+            DateTimeOffset.UtcNow);
+
+        Assert.Equal(AdminReviewStatus.Published, submission.AdminReviewStatus);
+        Assert.True(submission.IsCurrentPublished);
+    }
+
+    [Fact]
     public void AiPassingDoesNotPublishBeforeAdminDecision()
     {
         var submission = NewSubmission();
