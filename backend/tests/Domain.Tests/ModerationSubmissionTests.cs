@@ -54,23 +54,33 @@ public sealed class ModerationSubmissionTests
         Assert.Equal("admin", decision.AdminUserId);
     }
 
-    [Fact]
-    public void FailedAiCheckMustBeRetriedAndCannotBeApproved()
+    [Theory]
+    [InlineData(ModerationDecisionType.Approve, AdminReviewStatus.Published, true)]
+    [InlineData(ModerationDecisionType.RequestRevision, AdminReviewStatus.RevisionRequested, false)]
+    [InlineData(ModerationDecisionType.Reject, AdminReviewStatus.Rejected, false)]
+    public void FailedAiCheckRequiresManualAdminDecision(
+        ModerationDecisionType decision, AdminReviewStatus expectedStatus, bool isPublished)
     {
         var submission = NewSubmission();
         submission.RecordAiResult(
             AiFlagStatus.Failed, "Provider unavailable", null, null,
             DateTimeOffset.UtcNow);
 
-        Assert.Equal(AdminReviewStatus.Submitted, submission.AdminReviewStatus);
+        Assert.Equal(AiFlagStatus.Failed, submission.AiFlagStatus);
+        Assert.Equal("Provider unavailable", submission.AiSummary);
+        Assert.Equal(AdminReviewStatus.PendingAdminReview, submission.AdminReviewStatus);
+        Assert.False(submission.IsCurrentPublished);
         Assert.Throws<InvalidOperationException>(() =>
-            submission.Decide(ModerationDecisionType.Approve, "admin", "reviewed", DateTimeOffset.UtcNow));
+            submission.RetryAiCheck(DateTimeOffset.UtcNow));
 
-        submission.RetryAiCheck(DateTimeOffset.UtcNow);
+        var record = submission.Decide(decision, "admin", "Reviewed the article manually",
+            DateTimeOffset.UtcNow);
 
-        Assert.Equal(AiFlagStatus.Checking, submission.AiFlagStatus);
-        Assert.Null(submission.AiSummary);
-        Assert.Equal(AdminReviewStatus.Submitted, submission.AdminReviewStatus);
+        Assert.Equal(expectedStatus, submission.AdminReviewStatus);
+        Assert.Equal(isPublished, submission.IsCurrentPublished);
+        Assert.Equal(AiFlagStatus.Failed, submission.AiFlagStatus);
+        Assert.Equal(decision, record.Decision);
+        Assert.Equal("Reviewed the article manually", record.Reason);
     }
 
     [Fact]

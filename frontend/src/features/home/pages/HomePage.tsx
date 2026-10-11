@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { getRecipes } from '../../recipes/api/recipeApi'
 import { getRestaurants } from '../../restaurants/api/restaurantApi'
-import { getVideos } from '../../videos/api/videoApi'
+import { listVideos, type VideoDetails } from '../../videos/api/backendVideos'
 
 interface HomePageProps {
   onNavigate?: (path: string) => void
@@ -99,33 +99,6 @@ const HOMEPAGE_ARTICLES = [
   },
 ]
 
-const HOMEPAGE_VIDEOS = [
-  {
-    id: 'vid-1',
-    title: 'Bí quyết làm sốt nấm thơm ngon chuẩn vị',
-    duration: '08:45',
-    author: 'Chef Minh Tuấn',
-    imageUrl:
-      'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'vid-2',
-    title: 'Nấu canh dưỡng sinh bồi bổ cơ thể không cần mì chính',
-    duration: '10:12',
-    author: 'Bác sĩ Hoàng Nam',
-    imageUrl:
-      'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'vid-3',
-    title: '3 loại sinh tố xanh giàu năng lượng cho buổi sáng tràn đầy',
-    duration: '06:30',
-    author: 'Lan Anh',
-    imageUrl:
-      'https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=600&q=80',
-  },
-]
-
 const HOMEPAGE_RESTAURANTS = [
   {
     id: 'an-lac',
@@ -157,7 +130,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
   const [searchTerm, setSearchTerm] = useState('')
   const [teaserInput, setTeaserInput] = useState('')
   const [recipes, setRecipes] = useState(HOMEPAGE_RECIPES)
-  const [videos, setVideos] = useState(HOMEPAGE_VIDEOS)
+  const [videos, setVideos] = useState<VideoDetails[]>([])
   const [restaurants, setRestaurants] = useState(HOMEPAGE_RESTAURANTS)
 
   // Load real data from services
@@ -168,7 +141,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
         const [recRes, restRes, vidRes] = await Promise.all([
           getRecipes({}),
           getRestaurants({}),
-          getVideos({}),
+          listVideos(),
         ])
         if (!isMounted) return
         if (recRes && recRes.items && recRes.items.length > 0) {
@@ -197,19 +170,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             })),
           )
         }
-        if (vidRes && vidRes.items && vidRes.items.length > 0) {
-          setVideos(
-            vidRes.items.slice(0, 3).map((v) => ({
-              id: v.id,
-              title: v.title,
-              duration: v.duration || '10:00',
-              author: v.creatorName || v.author?.name || 'Thành viên Bếp Chay',
-              imageUrl:
-                v.thumbnailUrl ||
-                'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80',
-            })),
-          )
-        }
+        setVideos(vidRes.slice(0, 3))
       } catch {
         // Fallback to seeds gracefully
       }
@@ -583,16 +544,11 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
             >
               <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
-                <img
-                  src={vid.imageUrl}
+                {vid.thumbnailUrl ? <img
+                  src={vid.thumbnailUrl}
                   alt={vid.title}
                   className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
-                />
-
-                {/* Duration badge */}
-                <span className="absolute bottom-3 right-3 rounded-md bg-black/80 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur">
-                  {vid.duration}
-                </span>
+                /> : <div className="flex h-full items-center justify-center text-white">Chưa có ảnh bìa</div>}
 
                 {/* Center Play Button */}
                 <button
@@ -615,7 +571,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   {vid.title}
                 </h3>
                 <div className="mt-2 text-[12px] text-[#6B7280] font-medium">
-                  {vid.author}
+                  {vid.viewCount.toLocaleString()} lượt xem
                 </div>
               </div>
             </article>

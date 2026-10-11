@@ -22,7 +22,7 @@ Ngày cập nhật: 02/10/2026. JSON dùng `camelCase`; enum được serialize 
 | `POST /moderation/submissions` | User/Admin | Gửi bản nội dung vào kiểm duyệt; trả `201`. |
 | `GET /moderation/submissions?contentType=&page=1&pageSize=20` | User/Admin | Danh sách phiên bản của chính mình, mới nhất trước. |
 | `GET /moderation/submissions/{id}` | Chủ nội dung | Chi tiết bản gửi. Người khác nhận `404`. |
-| `POST /moderation/submissions/{id}/retry-ai` | Chủ nội dung | Chỉ cho bài viết: đưa bản có AI `Failed` về `Checking`; video trả `409`. |
+| `POST /moderation/submissions/{id}/retry-ai` | Chủ nội dung | Chỉ dùng để khôi phục bản bài viết cũ còn `Failed` + `Submitted`; bản đã vào hàng đợi Admin trả `409`, video trả `409`. |
 | `GET /admin/moderation/submissions?contentType=&aiStatus=&adminStatus=&page=1&pageSize=20` | Admin | Tìm/lọc các bản gửi. |
 | `GET /admin/moderation/submissions/queue?contentType=&aiStatus=&page=1&pageSize=20` | Admin | Lấy hàng đợi `PendingAdminReview`. |
 | `GET /admin/moderation/submissions/{id}` | Admin | Chi tiết và nhật ký quyết định. |
@@ -57,7 +57,7 @@ Kết quả AI thật được ghi qua `ModerationService.RecordAiResultAsync` b
 }
 ```
 
-`status` chỉ nhận `Passed`, `Flagged`, `Partial`, `Failed` cho bài viết. `summary` bắt buộc, tối đa 2.000 ký tự. `Flagged` cần `flagReason`; `Partial` cần `uncheckedScope`; `Passed`/`Flagged` không được khai còn phạm vi chưa kiểm tra. Chuyển trạng thái sai trả `409`, dữ liệu sai trả `400`. Khi kết quả bài viết là `Passed`, `Flagged` hoặc `Partial`, bản gửi chuyển sang `PendingAdminReview`; `Failed` vẫn ở `Submitted` và có thể thử lại. Video không gọi AI và đi thẳng vào hàng đợi Admin. AI không tự chuyển bản gửi sang `Published`.
+`status` chỉ nhận `Passed`, `Flagged`, `Partial`, `Failed` cho bài viết. `summary` bắt buộc, tối đa 2.000 ký tự. `Flagged` cần `flagReason`; `Partial` cần `uncheckedScope`; `Passed`/`Flagged` không được khai còn phạm vi chưa kiểm tra. Chuyển trạng thái sai trả `409`, dữ liệu sai trả `400`. Cả bốn kết quả bài viết, kể cả `Failed`, đều chuyển bản gửi sang `PendingAdminReview`. `Failed` là lỗi xử lý, không phải bằng chứng nội dung đạt; Admin phải xem trực tiếp toàn bộ bài viết trước quyết định và ghi lý do. Video không gọi AI và đi thẳng vào hàng đợi Admin. AI không tự chuyển bản gửi sang `Published`.
 
 Request Admin quyết định:
 
@@ -68,7 +68,7 @@ Request Admin quyết định:
 }
 ```
 
-`decision`: `Approve`, `RequestRevision`, `Reject`, `Remove`; `reason` bắt buộc, tối đa 2.000 ký tự. Ba quyết định đầu áp dụng khi `PendingAdminReview`: bài viết sau AI hoàn tất, video ngay sau submit. `Remove` chỉ áp dụng cho phiên bản đang được công khai. Mỗi quyết định lưu Admin ID, thời gian, version và lý do. Chỉ một phiên bản của cùng `contentId` được đánh dấu đang công khai.
+`decision`: `Approve`, `RequestRevision`, `Reject`, `Remove`; `reason` bắt buộc, tối đa 2.000 ký tự. Ba quyết định đầu áp dụng khi `PendingAdminReview`: bài viết sau khi AI có kết quả hoặc thất bại, video ngay sau submit. Với bài viết `Failed`, Admin xem trước tiêu đề, ảnh đại diện và toàn bộ nội dung của đúng phiên bản đã gửi từ moderation submission trước khi quyết định; không lấy nội dung từ API bài viết công khai vì bản này chưa được xuất bản. `Remove` chỉ áp dụng cho phiên bản đang được công khai. Mỗi quyết định lưu Admin ID, thời gian, version và lý do. Chỉ một phiên bản của cùng `contentId` được đánh dấu đang công khai.
 
 Lỗi validation trả `400` kèm `ProblemDetails`; bản không tồn tại `404`; chuyển trạng thái sai/xung đột version `409`. Khung này chưa nối Article/Video repository, storage hoặc AI worker. `mediaReference` chưa được xác minh là tệp thuộc người gửi; module nội dung cần ràng buộc trước khi dùng để xuất bản thật.
 
@@ -98,7 +98,7 @@ Guest giữ tối đa 3 lượt **có câu trả lời thành công** trong sess
 
 ## Tích hợp BE 3 (09/10/2026)
 
-Sau khi có submission bài viết từ module nội dung, worker nền quét các bản Article `Checking` mới nhất từ DB, gọi Gemini ở backend và ghi kết quả. Lỗi provider/timeout/JSON không hợp lệ ghi `Failed`, không vào queue; owner dùng `/{id}/retry-ai`. Worker bỏ qua phiên bản cũ. Admin không thể duyệt bản cũ khi đã có bản mới. `mock-ai-result` vẫn chỉ phục vụ Development, không nằm trong luồng sản phẩm.
+Sau khi có submission bài viết từ module nội dung, worker nền quét các bản Article `Checking` mới nhất từ DB, gọi Gemini ở backend và ghi kết quả. Lỗi provider/timeout/JSON không hợp lệ ghi `Failed` và đưa bản gửi vào hàng đợi Admin để xem trực tiếp toàn bộ nội dung. Các bản mới nhất có `Failed` + `Submitted` đã lưu trước thay đổi này được chuyển vào hàng đợi bằng migration; bản phiên bản cũ không được đưa lại vào queue. Worker bỏ qua phiên bản cũ. Admin không thể duyệt bản cũ khi đã có bản mới. `mock-ai-result` vẫn chỉ phục vụ Development, không nằm trong luồng sản phẩm.
 
 Trong trạng thái code ngày 09/10/2026, `POST /moderation/submissions` trả 503 cho Article vì BE 1 chưa có backend draft/version để xác minh contentId và owner; endpoint không tạo submission giả. Khi BE 1 hoàn tất, nối submit vào repository Article và mở lại đường này theo contract. Video gửi qua `/api/me/videos/{id}/submit`.
 

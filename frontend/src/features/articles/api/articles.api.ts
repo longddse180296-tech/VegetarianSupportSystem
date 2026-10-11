@@ -94,8 +94,6 @@ export const articleApi = {
   remove: (id: string) => apiClient.delete<void>(`/api/me/articles/${id}`),
   review: (id: string) =>
     apiClient.get<Submission>(`/api/moderation/submissions/${id}`),
-  retry: (id: string) =>
-    apiClient.post<Submission>(`/api/moderation/submissions/${id}/retry-ai`),
 }
 export const commentApi = {
   create: (targetId: string, body: string, parentId: string | null = null) =>

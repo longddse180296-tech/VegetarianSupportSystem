@@ -206,7 +206,7 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   if (videoMatch) {
     const videoId = decodeURIComponent(videoMatch[1])
     return withPublic(
-      <VideoDetailPage videoId={videoId} onNavigate={onNavigate} />,
+      <VideoDetailPage key={videoId} videoId={videoId} onNavigate={onNavigate} />,
       'videos',
       ctx,
     )

@@ -56,7 +56,7 @@ public sealed class ModerationAiWorker(IServiceScopeFactory scopes, ILogger<Mode
                     ? validStatus : AiFlagStatus.Failed;
                 await moderation.RecordAiResultAsync(id, new ModerationAiResult(
                     status,
-                    status == AiFlagStatus.Failed ? "AI hiện không thể kiểm tra nội dung. Hãy thử lại sau." :
+                    status == AiFlagStatus.Failed ? "AI hiện không thể kiểm tra nội dung. Admin cần xem trực tiếp toàn bộ bài viết." :
                         (result.Summary ?? "AI đã kiểm tra phạm vi được ghi nhận."),
                     status == AiFlagStatus.Failed ? null : result.CheckedScope,
                     status == AiFlagStatus.Partial ? result.UncheckedScope : null,
@@ -73,7 +73,7 @@ public sealed class ModerationAiWorker(IServiceScopeFactory scopes, ILogger<Mode
                 try
                 {
                     await moderation.RecordAiResultAsync(id, new ModerationAiResult(
-                        AiFlagStatus.Failed, "AI hiện không thể kiểm tra nội dung. Hãy thử lại sau.",
+                        AiFlagStatus.Failed, "AI hiện không thể kiểm tra nội dung. Admin cần xem trực tiếp toàn bộ bài viết.",
                         null, null, null), cancellationToken);
                 }
                 catch (ModerationException) { }

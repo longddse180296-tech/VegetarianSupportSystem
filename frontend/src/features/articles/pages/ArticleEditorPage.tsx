@@ -274,29 +274,6 @@ export const ArticleEditorPage = ({
                   >
                     Xem kết quả và phạm vi kiểm tra
                   </button>
-                  {version.version === record.data?.versions[0]?.version &&
-                    version.aiStatus === 'Failed' &&
-                    version.adminStatus === 'Submitted' && (
-                      <button
-                        disabled={busy}
-                        className={`fe1-control ${secondaryClass} ml-3`}
-                        onClick={async () => {
-                          setBusy(true)
-                          setError(null)
-                          try {
-                            await articleApi.retry(version.submissionId)
-                            setNotice('Đã yêu cầu kiểm tra AI lại.')
-                            record.reload()
-                          } catch (reason) {
-                            setError(errorMessage(reason))
-                          } finally {
-                            setBusy(false)
-                          }
-                        }}
-                      >
-                        Thử lại AI
-                      </button>
-                    )}
                 </div>
               ))}
               <button className={secondaryClass} onClick={record.reload}>
