@@ -8,7 +8,6 @@ import type {
   RestaurantDish,
   RestaurantFilter,
   RestaurantListResponse,
-  RestaurantSortOption,
   ReviewComment,
   WeekHour,
 } from '../types/restaurant.types'
@@ -597,59 +596,7 @@ const IN_MEMORY_RESTAURANTS: Restaurant[] = [
   },
 ]
 
-// ---------- Helpers ----------
-function normalize(s: string) {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
 
-function applyFilter(list: Restaurant[], f: RestaurantFilter): Restaurant[] {
-  const token = normalize(f.search)
-  let out = list
-  if (f.search.trim()) {
-    out = out.filter(
-      (r) =>
-        normalize(r.name).includes(token) ||
-        normalize(r.address).includes(token) ||
-        normalize(`${r.district} ${r.city}`).includes(token) ||
-        r.tags.some((t) => normalize(t).includes(token)) ||
-        r.highlights.some((h) => normalize(h).includes(token)),
-    )
-  }
-  if (f.city !== 'all') out = out.filter((r) => r.city === f.city)
-  if (f.diet !== 'all')
-    out = out.filter((r) => (r.dietTypes as string[]).includes(f.diet))
-  if (f.ratingMin > 0) out = out.filter((r) => r.rating >= f.ratingMin)
-  if (f.deliveryOnly) out = out.filter((r) => r.hasDelivery)
-  // Lọc theo khoảng cách tối đa (pill Tất cả / <1 / <3 / <5 / <10): 0 = Tất cả (bỏ qua)
-  if (typeof f.distanceMaxKm === 'number' && f.distanceMaxKm > 0) {
-    out = out.filter((r) => Number.isFinite(r.distanceKm) && r.distanceKm <= f.distanceMaxKm)
-  }
-  return sortRestaurants(out, f.sort)
-}
-
-function sortRestaurants(list: Restaurant[], sort: RestaurantSortOption): Restaurant[] {
-  const arr = [...list]
-  switch (sort) {
-    case 'newest':
-      return arr.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-    case 'distance_asc':
-      return arr.sort((a, b) => a.distanceKm - b.distanceKm)
-    case 'rating_desc':
-      return arr.sort(
-        (a, b) => b.rating * 10000 + b.reviewCount - (a.rating * 10000 + a.reviewCount),
-      )
-    case 'relevance':
-    default:
-      return arr.sort(
-        (a, b) =>
-          b.rating + b.reviewCount / 1000 - (a.rating + a.reviewCount / 1000),
-      )
-  }
-}
 
 // ---------- Real Backend Interfaces & Adapters ----------
 interface BackendRestaurantSummary {
@@ -817,44 +764,34 @@ export async function getRestaurants(
     const res = await apiClient.get<BackendRestaurantPage>(`/api/restaurants?${params.toString()}`, {
       requiresAuth: false,
     })
-    if (res && Array.isArray(res.items) && res.items.length > 0) {
+    if (res && Array.isArray(res.items)) {
       const items = res.items.map(mapSummaryToRestaurant)
       return {
         items,
-        totalCount: res.totalCount || items.length,
+        totalCount: res.totalCount ?? items.length,
         appliedFilter: applied,
       }
     }
   } catch {
-    // Fallback to in-memory mock if backend offline
+    // API error
   }
 
-  await delay(300)
-  const items = applyFilter(IN_MEMORY_RESTAURANTS, applied)
-  return { items, totalCount: items.length, appliedFilter: applied }
+  return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
 export async function getRestaurantDetail(id: string): Promise<Restaurant | null> {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-  if (isUuid) {
-    try {
-      const res = await apiClient.get<BackendRestaurantResponse>(`/api/restaurants/${id}`, {
-        requiresAuth: false,
-      })
-      if (res && res.id) {
-        return mapDetailToRestaurant(res)
-      }
-    } catch {
-      // Fallback
+  try {
+    const res = await apiClient.get<BackendRestaurantResponse>(`/api/restaurants/${id}`, {
+      requiresAuth: false,
+    })
+    if (res && res.id) {
+      return mapDetailToRestaurant(res)
     }
+  } catch {
+    // Not found
   }
 
-  await delay(300)
-  if (!id || id === 'an-nhien' || id === 'r_annhien') {
-    return IN_MEMORY_RESTAURANTS.find((r) => r.id === 'an-nhien') ?? IN_MEMORY_RESTAURANTS[0] ?? null
-  }
-  const found = IN_MEMORY_RESTAURANTS.find((r) => r.id === id)
-  return found ?? IN_MEMORY_RESTAURANTS[0] ?? null
+  return null
 }
 
 // Alias (filterRestaurants) as requested in Task 6 spec

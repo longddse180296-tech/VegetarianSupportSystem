@@ -861,50 +861,7 @@ const IN_MEMORY_RECIPES: Recipe[] = [
   },
 ]
 
-// ---------- Helpers ----------
-function normalize(str: string) {
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
-function applyFilter(list: Recipe[], filter: RecipeListFilter): Recipe[] {
-  const token = normalize(filter.search)
-  let out = list
-  if (filter.search.trim()) {
-    out = out.filter(
-      (r) =>
-        normalize(r.title).includes(token) ||
-        normalize(r.description).includes(token) ||
-        r.tags.some((t) => normalize(t).includes(token)) ||
-        r.ingredients.some((ig) => normalize(ig.name).includes(token)),
-    )
-  }
-  if (filter.diet !== 'all') out = out.filter((r) => r.dietCategory === filter.diet)
-  if (filter.difficulty !== 'all') out = out.filter((r) => r.difficulty === filter.difficulty)
-  if (filter.favoritesOnly) out = out.filter((r) => r.isFavorite)
-  return sortRecipes(out, filter.sort)
-}
-
-function sortRecipes(list: Recipe[], sort: RecipeSortOption): Recipe[] {
-  const arr = [...list]
-  switch (sort) {
-    case 'newest':
-      return arr.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1))
-    case 'cooktime_asc':
-      return arr.sort((a, b) => a.cookTimeMinutes - b.cookTimeMinutes)
-    case 'favorite_desc':
-      return arr.sort((a, b) => b.favoriteCount - a.favoriteCount)
-    case 'relevance':
-    default:
-      return arr.sort(
-        (a, b) =>
-          b.favoriteCount + b.viewCount / 10 - (a.favoriteCount + a.viewCount / 10),
-      )
-  }
-}
+// Client filtering is handled on Backend via /api/recipes query params
 
 // ---------- Real Backend Interfaces & Adapters ----------
 interface BackendRecipeSummary {
@@ -1109,68 +1066,37 @@ export async function getRecipes(
     const res = await apiClient.get<BackendRecipePage>(`/api/recipes?${params.toString()}`, {
       requiresAuth: false,
     })
-    if (res && Array.isArray(res.items) && res.items.length > 0) {
+    if (res && Array.isArray(res.items)) {
       const items = res.items.map(mapSummaryToRecipe)
       return {
         items,
-        totalCount: res.totalCount || items.length,
+        totalCount: res.totalCount ?? items.length,
         appliedFilter: applied,
       }
     }
   } catch {
-    // If backend has no data or network issue, fallback to mock data
+    // API error
   }
 
-  await delay(300)
-  const items = applyFilter(IN_MEMORY_RECIPES, applied)
   return {
-    items,
-    totalCount: items.length,
+    items: [],
+    totalCount: 0,
     appliedFilter: applied,
   }
 }
 
 export async function getRecipeDetail(id: string): Promise<Recipe | null> {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-  if (isUuid) {
-    try {
-      const detail = await apiClient.get<BackendRecipeResponse>(`/api/recipes/${id}`, {
-        requiresAuth: false,
-      })
-      if (detail && detail.id) {
-        return mapDetailToRecipe(detail)
-      }
-    } catch {
-      // Fallback
+  try {
+    const detail = await apiClient.get<BackendRecipeResponse>(`/api/recipes/${id}`, {
+      requiresAuth: false,
+    })
+    if (detail && detail.id) {
+      return mapDetailToRecipe(detail)
     }
+  } catch {
+    // Not found
   }
 
-  await delay(300)
-  const found =
-    IN_MEMORY_RECIPES.find((r) => r.id === id) ??
-    (id === 'dau-hu-sot-nam' || id === 'r_001_tofu_tomato' ? IN_MEMORY_RECIPES[0] : null)
-  if (found) {
-    return {
-      ...found,
-      imageUrl: found.imageUrl || found.coverImage,
-      prepTime: found.prepTime || `${found.prepTimeMinutes || 10} phút`,
-      cookTime: found.cookTime || `${found.cookTimeMinutes} phút`,
-      totalTime:
-        found.totalTime ||
-        `${(found.prepTimeMinutes || 10) + found.cookTimeMinutes} phút`,
-      servings: found.servings || found.servingSize,
-      calories: found.calories || found.nutrition.kcal,
-      protein: found.protein || found.nutrition.proteinG,
-      carbs: found.carbs || found.nutrition.carbsG,
-      fat: found.fat || found.nutrition.fatG,
-      plantRatio: found.plantRatio || '100%',
-      ingredients: [...found.ingredients],
-      steps: [...found.steps],
-      relatedBlogs: found.relatedBlogs || MOCK_ARTICLES,
-      relatedVideos: found.relatedVideos || MOCK_VIDEOS,
-      relatedRestaurants: found.relatedRestaurants || MOCK_RESTAURANTS,
-    }
-  }
   return null
 }
 

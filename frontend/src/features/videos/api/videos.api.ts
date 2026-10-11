@@ -1,3 +1,4 @@
+import { apiClient, getStoredToken } from '../../../shared/api/apiClient';
 import type {
   UserVideoItem,
   VideoFilterParams,
@@ -11,6 +12,76 @@ export interface HomeVideoSummary {
   duration: string;
   thumbnailUrl: string;
   channelName: string;
+}
+
+interface BackendVideoDetails {
+  id: string;
+  title: string;
+  description: string;
+  categoryId: string | null;
+  uploadStatus: string;
+  aiFlagStatus: string | null;
+  adminReviewStatus: string | null;
+  version: number | null;
+  aiSummary: string | null;
+  aiUncheckedScope: string | null;
+  adminReason: string | null;
+  mediaUrl: string | null;
+  thumbnailUrl: string | null;
+  viewCount: number;
+  favoriteCount: number;
+  createdAtUtc: string;
+}
+
+interface BackendVideoPage {
+  items: BackendVideoDetails[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+function mapBackendToUserVideo(d: BackendVideoDetails): UserVideoItem {
+  const isPublished = d.adminReviewStatus === 'Published';
+  const isDraft = !d.adminReviewStatus || d.adminReviewStatus === 'Draft';
+  const isRejected = d.adminReviewStatus === 'Rejected';
+
+  let status: 'published' | 'pending' | 'draft' = 'pending';
+  let statusLabel = 'Đang kiểm duyệt';
+  if (isPublished) {
+    status = 'published';
+    statusLabel = 'Đã xuất bản';
+  } else if (isDraft) {
+    status = 'draft';
+    statusLabel = 'Bản nháp';
+  } else if (isRejected) {
+    status = 'draft';
+    statusLabel = 'Bị từ chối';
+  }
+
+  const createdDate = d.createdAtUtc ? d.createdAtUtc.slice(0, 10) : 'Gần đây';
+
+  return {
+    id: d.id,
+    title: d.title,
+    description: d.description,
+    category: 'main',
+    categoryLabel: 'Món chính',
+    duration: '10:00',
+    thumbnailUrl:
+      d.thumbnailUrl ||
+      `/api/videos/${d.id}/thumbnail` ||
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+    status,
+    statusLabel,
+    publishedAt: isPublished ? createdDate : undefined,
+    updatedAt: createdDate,
+    submittedAt: isDraft ? undefined : createdDate,
+    viewsCount: d.viewCount,
+    likesCount: d.favoriteCount,
+    commentsCount: 0,
+    aiFlagStatus: (d.aiFlagStatus as any) || 'NotSubmitted',
+    adminNote: d.adminReason || undefined,
+  };
 }
 
 const MOCK_VIDEOS: HomeVideoSummary[] = [
@@ -46,17 +117,25 @@ const MOCK_VIDEOS: HomeVideoSummary[] = [
 
 export async function fetchVideos(): Promise<HomeVideoSummary[]> {
   try {
-    const res = await fetch('/api/videos', {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
+    const res = await apiClient.get<BackendVideoPage>('/api/videos?page=1&pageSize=10', {
+      requiresAuth: false,
     });
-    if (res.ok) {
-      return await res.json();
+    if (res?.items?.length) {
+      return res.items.map((v) => ({
+        id: v.id,
+        title: v.title,
+        duration: '15:00',
+        thumbnailUrl:
+          v.thumbnailUrl ||
+          `/api/videos/${v.id}/thumbnail` ||
+          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+        channelName: 'Bếp Chay An Nhiên',
+      }));
     }
   } catch {
     // fallthrough to mock
   }
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 300));
   return MOCK_VIDEOS;
 }
 
@@ -250,54 +329,69 @@ function parseDurationToSeconds(duration: string): number {
 export async function getUserVideos(
   params: VideoFilterParams = {}
 ): Promise<PaginatedResult<UserVideoItem>> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  const token = getStoredToken();
+  if (token) {
+    try {
+      const res = await apiClient.get<BackendVideoPage>('/api/me/videos?page=1&pageSize=50');
+      if (res && Array.isArray(res.items) && res.items.length > 0) {
+        let list = res.items.map(mapBackendToUserVideo);
 
-  let list = [...MOCK_USER_VIDEOS];
+        // 1. Status Tab filter
+        if (params.statusTab && params.statusTab !== 'all') {
+          list = list.filter((v) => v.status === params.statusTab);
+        }
 
-  // 1. Status Tab filter
-  if (params.statusTab && params.statusTab !== 'all') {
-    list = list.filter((v) => v.status === params.statusTab);
+        // 2. Category filter
+        if (params.category && params.category !== 'all') {
+          list = list.filter((v) => v.category === params.category);
+        }
+
+        // 3. Keyword filter
+        if (params.keyword?.trim()) {
+          const q = params.keyword.toLowerCase().trim();
+          list = list.filter(
+            (v) =>
+              v.title.toLowerCase().includes(q) ||
+              v.description.toLowerCase().includes(q)
+          );
+        }
+
+        // 4. Sort
+        if (params.sortBy === 'views') {
+          list.sort((a, b) => b.viewsCount - a.viewsCount);
+        } else if (params.sortBy === 'duration') {
+          list.sort(
+            (a, b) => parseDurationToSeconds(b.duration) - parseDurationToSeconds(a.duration)
+          );
+        }
+
+        // 5. Pagination
+        const page = params.page || 1;
+        const pageSize = params.pageSize || 4;
+        const totalCount = list.length;
+        const totalPages = Math.ceil(totalCount / pageSize) || 1;
+        const startIndex = (page - 1) * pageSize;
+        const items = list.slice(startIndex, startIndex + pageSize);
+
+        return {
+          items,
+          totalCount,
+          page,
+          pageSize,
+          totalPages,
+        };
+      }
+    } catch {
+      // API error
+    }
   }
-
-  // 2. Category filter
-  if (params.category && params.category !== 'all') {
-    list = list.filter((v) => v.category === params.category);
-  }
-
-  // 3. Keyword filter
-  if (params.keyword?.trim()) {
-    const q = params.keyword.toLowerCase().trim();
-    list = list.filter(
-      (v) =>
-        v.title.toLowerCase().includes(q) ||
-        v.description.toLowerCase().includes(q) ||
-        v.categoryLabel.toLowerCase().includes(q)
-    );
-  }
-
-  // 4. Sort
-  if (params.sortBy === 'views') {
-    list.sort((a, b) => b.viewsCount - a.viewsCount);
-  } else if (params.sortBy === 'duration') {
-    list.sort(
-      (a, b) => parseDurationToSeconds(b.duration) - parseDurationToSeconds(a.duration)
-    );
-  }
-
-  // 5. Pagination
-  const page = params.page || 1;
-  const pageSize = params.pageSize || 4;
-  const totalCount = list.length;
-  const totalPages = Math.ceil(totalCount / pageSize) || 1;
-  const startIndex = (page - 1) * pageSize;
-  const items = list.slice(startIndex, startIndex + pageSize);
 
   return {
-    items,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
+    items: [],
+    totalCount: 0,
+    page: params.page || 1,
+    pageSize: params.pageSize || 4,
+    totalPages: 1,
   };
 }
 
@@ -318,6 +412,23 @@ export async function updateUserVideo(
   id: string,
   data: Partial<VideoFormData>
 ): Promise<UserVideoItem> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const token = getStoredToken();
+  if (token && isGuid) {
+    try {
+      const res = await apiClient.put<BackendVideoDetails>(`/api/me/videos/${id}`, {
+        title: data.title ?? '',
+        description: data.description ?? '',
+        categoryId: null,
+      });
+      if (res?.id) {
+        return mapBackendToUserVideo(res);
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 400));
   const index = MOCK_USER_VIDEOS.findIndex((v) => v.id === id);
   if (index === -1) {
@@ -348,6 +459,25 @@ export async function updateUserVideo(
 export async function createUserVideo(
   data: VideoFormData
 ): Promise<UserVideoItem> {
+  const token = getStoredToken();
+  if (token) {
+    try {
+      const res = await apiClient.post<BackendVideoDetails>('/api/me/videos', {
+        title: data.title,
+        description: data.description,
+        categoryId: null,
+      });
+      if (res?.id) {
+        if (data.status !== 'draft') {
+          await apiClient.post(`/api/me/videos/${res.id}/submit`).catch(() => {});
+        }
+        return mapBackendToUserVideo(res);
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 500));
   const catObj = VIDEO_CATEGORIES.find((c) => c.id === data.category);
   const isDraft = data.status === 'draft';
@@ -381,6 +511,20 @@ export async function createUserVideo(
  * Submit a draft video to moderation queue
  */
 export async function submitUserVideo(id: string): Promise<UserVideoItem> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const token = getStoredToken();
+  if (token && isGuid) {
+    try {
+      await apiClient.post(`/api/me/videos/${id}/submit`);
+      const updated = await apiClient.get<BackendVideoDetails>(`/api/me/videos/${id}`);
+      if (updated?.id) {
+        return mapBackendToUserVideo(updated);
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 400));
   const index = MOCK_USER_VIDEOS.findIndex((v) => v.id === id);
   if (index === -1) {
