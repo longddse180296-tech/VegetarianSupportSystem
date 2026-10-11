@@ -26,15 +26,17 @@ export class ApiError extends Error {
 
 export const getStoredToken = (): string | null => {
   try {
-    return localStorage.getItem(AUTH_TOKEN_KEY)
+    return sessionStorage.getItem(AUTH_TOKEN_KEY) || localStorage.getItem(AUTH_TOKEN_KEY)
   } catch {
     return null
   }
 }
 
-export const setStoredToken = (token: string): void => {
+export const setStoredToken = (token: string, rememberMe = true): void => {
   try {
-    localStorage.setItem(AUTH_TOKEN_KEY, token)
+    clearStoredAuth()
+    const storage = rememberMe ? localStorage : sessionStorage
+    storage.setItem(AUTH_TOKEN_KEY, token)
   } catch {
     // Ignore storage quota or access errors
   }
@@ -43,6 +45,7 @@ export const setStoredToken = (token: string): void => {
 export const removeStoredToken = (): void => {
   try {
     localStorage.removeItem(AUTH_TOKEN_KEY)
+    sessionStorage.removeItem(AUTH_TOKEN_KEY)
   } catch {
     // Ignore
   }
@@ -50,7 +53,8 @@ export const removeStoredToken = (): void => {
 
 export const getStoredUser = <T = unknown>(): T | null => {
   try {
-    const raw = localStorage.getItem(AUTH_USER_KEY)
+    const storage = sessionStorage.getItem(AUTH_TOKEN_KEY) ? sessionStorage : localStorage
+    const raw = storage.getItem(AUTH_USER_KEY)
     return raw ? (JSON.parse(raw) as T) : null
   } catch {
     return null
@@ -60,8 +64,9 @@ export const getStoredUser = <T = unknown>(): T | null => {
 export const setStoredUser = (user: unknown): void => {
   try {
     const serialized = JSON.stringify(user)
-    localStorage.setItem(AUTH_USER_KEY, serialized)
-    localStorage.setItem('auth_user', serialized)
+    const storage = sessionStorage.getItem(AUTH_TOKEN_KEY) ? sessionStorage : localStorage
+    storage.setItem(AUTH_USER_KEY, serialized)
+    storage.setItem('auth_user', serialized)
   } catch {
     // Ignore
   }
@@ -69,9 +74,11 @@ export const setStoredUser = (user: unknown): void => {
 
 export const clearStoredAuth = (): void => {
   try {
-    localStorage.removeItem(AUTH_TOKEN_KEY)
-    localStorage.removeItem(AUTH_USER_KEY)
-    localStorage.removeItem('auth_user')
+    for (const storage of [localStorage, sessionStorage]) {
+      storage.removeItem(AUTH_TOKEN_KEY)
+      storage.removeItem(AUTH_USER_KEY)
+      storage.removeItem('auth_user')
+    }
   } catch {
     // Ignore
   }
@@ -141,7 +148,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
 
     const status = response.status
-    let message = problem?.title || problem?.detail || ''
+    let message = problem?.detail || problem?.title || ''
 
     if (!message) {
       if (status === 400) {

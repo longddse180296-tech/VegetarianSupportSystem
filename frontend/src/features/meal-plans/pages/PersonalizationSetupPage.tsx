@@ -1,307 +1,75 @@
-import React, { useMemo, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import {
-  Sparkles,
-  ChevronRight,
-  RotateCcw,
-  Check,
-  AlertCircle,
-  ArrowRight,
-  Lock,
-} from 'lucide-react'
-import { useAuth } from '../../auth'
-import type {
-  GeneratedPersonalizedPlan,
-  PersonalizationFormValues,
-} from '../types/mealPlans.types'
-import {
-  calculateBmiAndCalories,
-  getDefaultPersonalizationValues,
-  saveRecommendedPlan,
-  submitPersonalizationPreferences,
-} from '../api/mealPlansApi'
-import { SetupStepper } from '../components/SetupStepper'
-import { BodyInfoFormCard } from '../components/BodyInfoFormCard'
-import { HealthGoalFormCard } from '../components/HealthGoalFormCard'
-import { PantrySelectionFormCard } from '../components/PantrySelectionFormCard'
-import { DietPreferenceFormCard } from '../components/DietPreferenceFormCard'
-import { PersonalizationPreviewSection } from '../components/PersonalizationPreviewSection'
+import { useEffect, useState } from 'react'
+import { Calendar, ChevronRight, Loader2, Sparkles } from 'lucide-react'
+import { profileApi } from '../../profile/api/profileApi'
+import type { UserProfile } from '../../profile/types'
+import { mealPlanApi, nextMonday } from '../api/mealPlanApi'
+import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
 
-const personalizationSchema = z.object({
-  gender: z.enum(['male', 'female']),
-  heightCm: z.number().min(100, 'Chiều cao tối thiểu 100cm').max(250, 'Chiều cao tối đa 250cm'),
-  weightKg: z.number().min(30, 'Cân nặng tối thiểu 30kg').max(250, 'Cân nặng tối đa 250kg'),
-  age: z.number().min(10, 'Tuổi tối thiểu 10').max(120, 'Tuổi tối đa 120'),
-  activityLevel: z.enum(['sedentary', 'moderate', 'active']),
-  goal: z.enum(['maintain', 'weight-loss', 'muscle-gain', 'detox']),
-  dietType: z.enum(['vegan', 'lacto', 'ovo', 'lacto-ovo']),
-  availableIngredients: z.array(z.string()),
-  allergens: z.array(z.string()),
-  preferences: z.array(z.string()),
-})
+interface PersonalizationSetupPageProps { onNavigate?: (path: string) => void }
 
-interface PersonalizationSetupPageProps {
-  onNavigate?: (path: string) => void
-}
+export const PersonalizationSetupPage = ({ onNavigate }: PersonalizationSetupPageProps) => {
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [name, setName] = useState('Thực đơn chay 7 ngày')
+  const [weekStartDate, setWeekStartDate] = useState(nextMonday)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    let active = true
+    profileApi.getProfile().then(value => { if (active) setProfile(value) })
+      .catch(err => { if (active) setError(err instanceof Error ? err.message : 'Không thể tải hồ sơ.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
 
-export const PersonalizationSetupPage: React.FC<PersonalizationSetupPageProps> = ({
-  onNavigate,
-}) => {
-  const { isAuthenticated } = useAuth()
-  const [generatedPlan, setGeneratedPlan] = useState<GeneratedPersonalizedPlan | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [toastMsg, setToastMsg] = useState<string | null>(null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-
-  const defaultValues = useMemo(() => getDefaultPersonalizationValues(), [])
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    control,
-    reset,
-  } = useForm<PersonalizationFormValues>({
-    resolver: zodResolver(personalizationSchema),
-    defaultValues,
-  })
-
-  // Watch fields reactively
-  const watchedGender = useWatch({ control, name: 'gender' }) || 'male'
-  const watchedHeight = useWatch({ control, name: 'heightCm' }) || 170
-  const watchedWeight = useWatch({ control, name: 'weightKg' }) || 65
-  const watchedAge = useWatch({ control, name: 'age' }) || 28
-  const watchedActivity = useWatch({ control, name: 'activityLevel' }) || 'moderate'
-  const watchedGoal = useWatch({ control, name: 'goal' }) || 'maintain'
-  const watchedDiet = useWatch({ control, name: 'dietType' }) || 'vegan'
-  const watchedIngredients = useWatch({ control, name: 'availableIngredients' }) || []
-  const watchedAllergens = useWatch({ control, name: 'allergens' }) || []
-  const watchedPreferences = useWatch({ control, name: 'preferences' }) || []
-
-  // Real-time BMI and calorie calculation
-  const bmiAnalysis = useMemo(() => {
-    return calculateBmiAndCalories(
-      watchedHeight,
-      watchedWeight,
-      watchedAge,
-      watchedGender,
-      watchedActivity,
-      watchedGoal
-    )
-  }, [watchedHeight, watchedWeight, watchedAge, watchedGender, watchedActivity, watchedGoal])
-
-  // Form submission handler
-  const onSubmit = async (data: PersonalizationFormValues) => {
+  const generate = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (busy || !profile?.dietaryType) return
+    setBusy(true)
+    setError(null)
     try {
-      setIsGenerating(true)
-      setErrorMsg(null)
-      const res = await submitPersonalizationPreferences(data)
-      setGeneratedPlan(res)
-      setToastMsg('Đã tạo thực đơn cá nhân hóa thành công! Đang chuyển đến trang gợi ý...')
-      setTimeout(() => {
-        onNavigate?.('/meal-plans/recommended')
-      }, 500)
-    } catch {
-      setErrorMsg('Không thể tạo thực đơn cá nhân hóa. Vui lòng thử lại.')
-    } finally {
-      setIsGenerating(false)
-    }
+      const plan = await mealPlanApi.generate(name.trim(), weekStartDate)
+      onNavigate?.(`/meal-plans/${plan.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể tạo thực đơn. Vui lòng thử lại.')
+    } finally { setBusy(false) }
   }
 
-  const handleReset = () => {
-    reset(defaultValues)
-    setGeneratedPlan(null)
-    setToastMsg('Đã khôi phục các giá trị mặc định.')
-    setTimeout(() => setToastMsg(null), 3000)
-  }
-
-  const handleSaveWeek = async () => {
-    await saveRecommendedPlan()
-    setToastMsg('Đã lưu toàn bộ thực đơn tuần! Đang chuyển đến Thực đơn của bạn...')
-    setTimeout(() => {
-      onNavigate?.('/meal-plans/my-plan')
-    }, 1000)
-  }
-
-  // ─── Auth Gate for Guest ────────────────────────────────────────────────
-  if (!isAuthenticated) {
-    return (
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="max-w-md mx-auto text-center bg-white p-8 sm:p-10 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
-          <div className="w-16 h-16 rounded-full bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center mx-auto shadow-xs">
-            <Lock className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-              Đăng nhập để thiết lập thực đơn
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-              Tính năng tính toán BMI, nguyên liệu tủ bếp và kế hoạch 7 ngày yêu cầu đăng nhập để lưu trữ vào tài khoản của bạn.
-            </p>
-          </div>
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/meal-plans')}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-            >
-              Quay lại
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/login')}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] text-white text-xs font-bold transition-colors shadow-sm"
-            >
-              Đăng nhập ngay
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  if (loading) return <MealPlanSkeleton />
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-7">
-      {/* 1. Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-xs font-medium text-slate-500">
-        <button
-          type="button"
-          onClick={() => onNavigate?.('/')}
-          className="hover:text-emerald-700 transition-colors"
-        >
-          Trang chủ
-        </button>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-        <button
-          type="button"
-          onClick={() => onNavigate?.('/meal-plans')}
-          className="hover:text-emerald-700 transition-colors"
-        >
-          Thực đơn
-        </button>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-        <span className="text-emerald-700 font-bold">Cá nhân hóa</span>
+    <div className="mx-auto max-w-5xl px-4 py-8 space-y-7">
+      <nav className="flex items-center gap-2 text-xs text-slate-500">
+        <button onClick={() => onNavigate?.('/meal-plans/my-plan')}>Thực đơn của tôi</button><ChevronRight className="w-3 h-3" /><span>Tạo thực đơn</span>
       </nav>
-
-      {/* 2. Page Header & Standard Badge */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Lập thực đơn cá nhân hóa
-          </h1>
-          <p className="text-xs md:text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
-            Trả lời một số câu hỏi về thể trạng, mục tiêu sức khỏe và nguyên liệu bạn đang có.
-          </p>
-        </div>
-
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#EAF5EE] text-[#1E6531] border border-emerald-200/80 self-start md:self-auto shrink-0">
-          Hệ thống tính toán theo chuẩn Viện Dinh Dưỡng
-        </span>
+      <section className="rounded-3xl bg-gradient-to-br from-[#0f4a24] to-[#22874a] p-8 text-white space-y-3">
+        <Sparkles className="w-7 h-7 text-emerald-200" />
+        <h1 className="text-3xl font-black">Thực đơn cá nhân hóa 7 ngày</h1>
+        <p className="text-sm text-white/80">21 bữa sáng, trưa và tối từ công thức đang hoạt động, theo chế độ ăn, dị ứng và thực phẩm cần tránh trong hồ sơ của bạn.</p>
+      </section>
+      <div className="grid md:grid-cols-2 gap-6">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 space-y-4">
+          <h2 className="font-bold text-lg">Hồ sơ dùng cho kế hoạch</h2>
+          <p className="text-sm">Chế độ ăn: <strong>{profile?.dietaryType || 'Chưa chọn'}</strong></p>
+          <p className="text-sm">Dị ứng đã lưu: {profile?.allergies.join(', ') || 'Chưa khai báo'}</p>
+          <p className="text-sm">Thực phẩm cần tránh: {profile?.avoidedFoods?.map(item => item.name).join(', ') || 'Chưa khai báo'}</p>
+          <p className="text-xs text-slate-500">Kế hoạch lưu thông tin hồ sơ tại thời điểm tạo. Đổi món và tạo lại dùng thông tin đã lưu trong kế hoạch. Tổng dinh dưỡng là thông tin tham khảo.</p>
+          <button type="button" disabled={busy} onClick={() => onNavigate?.('/profile')} className="text-sm font-bold text-emerald-800 underline">Kiểm tra / cập nhật hồ sơ</button>
+        </section>
+        <form onSubmit={generate} className="rounded-3xl border border-slate-200 bg-white p-6 space-y-5">
+          <h2 className="font-bold text-lg flex items-center gap-2"><Calendar className="w-5 h-5 text-emerald-700" />Thiết lập kế hoạch</h2>
+          <label className="block text-sm font-semibold">Tên thực đơn
+            <input required maxLength={120} value={name} onChange={event => setName(event.target.value)} disabled={busy} className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal" />
+          </label>
+          <label className="block text-sm font-semibold">Ngày bắt đầu (7 ngày liên tiếp)
+            <input type="date" required value={weekStartDate} onChange={event => setWeekStartDate(event.target.value)} disabled={busy} className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal" />
+          </label>
+          {!profile?.dietaryType && <p className="text-sm text-amber-800">Vui lòng chọn chế độ ăn trong hồ sơ trước khi tạo thực đơn.</p>}
+          {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+          <button type="submit" disabled={busy || !profile?.dietaryType || !name.trim()} className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#184d28] px-5 py-3 font-bold text-white disabled:opacity-50">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}{busy ? 'Đang tạo và lưu...' : 'Tạo và lưu 21 bữa'}
+          </button>
+        </form>
       </div>
-
-      {/* 3. Stepper Progress matching Figma */}
-      <SetupStepper />
-
-      {/* Toast Alert */}
-      {toastMsg && (
-        <div className="p-3.5 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200 text-xs font-semibold flex items-center gap-2 animate-in fade-in shadow-xs">
-          <Check className="w-4 h-4 text-emerald-600" />
-          <span>{toastMsg}</span>
-        </div>
-      )}
-
-      {/* Error Alert */}
-      {errorMsg && (
-        <div className="p-3.5 bg-rose-50 text-rose-800 rounded-2xl border border-rose-200 text-xs font-semibold flex items-center gap-2 animate-in fade-in shadow-xs">
-          <AlertCircle className="w-4 h-4 text-rose-600" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
-      {/* 4. Main 2-Column Form Layout matching Figma */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 items-start">
-          {/* Left Column: Thông tin cơ thể + Mục tiêu của bạn */}
-          <div className="space-y-7">
-            <BodyInfoFormCard
-              register={register}
-              setValue={setValue}
-              gender={watchedGender}
-              activityLevel={watchedActivity}
-              bmiAnalysis={bmiAnalysis}
-            />
-
-            <HealthGoalFormCard
-              currentGoal={watchedGoal}
-              setValue={setValue}
-            />
-          </div>
-
-          {/* Right Column: Nguyên liệu bạn đang có + Phân loại ăn chay, dị ứng, sở thích */}
-          <div className="space-y-7">
-            <PantrySelectionFormCard
-              availableIngredients={watchedIngredients}
-              setValue={setValue}
-            />
-
-            <DietPreferenceFormCard
-              dietType={watchedDiet}
-              allergens={watchedAllergens}
-              preferences={watchedPreferences}
-              setValue={setValue}
-            />
-          </div>
-        </div>
-
-        {/* 5. Generation CTA Bar matching Figma */}
-        <div className="bg-white rounded-3xl p-5 border border-emerald-200/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-sm">
-                Sẵn sàng cá nhân hóa thực đơn?
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                Hệ thống sẽ ghép nguyên liệu &amp; tính toán chuẩn dinh dưỡng chỉ cho bạn.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 self-end md:self-auto shrink-0">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-4 py-2.5 rounded-2xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-1.5"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
-              <span>Đặt lại</span>
-            </button>
-
-            <button
-              type="submit"
-              disabled={isGenerating}
-              className="px-5 py-2.5 rounded-2xl bg-[#1E6531] hover:bg-[#164e25] disabled:opacity-50 text-white text-xs font-bold transition-colors flex items-center gap-2 shadow-sm"
-            >
-              <span>{isGenerating ? 'Đang tính toán...' : 'Tạo thực đơn tuần'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </form>
-
-      {/* 6. Detailed Live Preview of Generated Plan */}
-      {generatedPlan && (
-        <PersonalizationPreviewSection
-          plan={generatedPlan}
-          onSaveWeek={handleSaveWeek}
-          onLoginClick={() => onNavigate?.('/auth/login')}
-          onViewRecipe={() => onNavigate?.('/recipes')}
-        />
-      )}
     </div>
   )
 }

@@ -12,7 +12,8 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
   const { user } = useAuth()
   const [token, setToken] = useState(() => {
     if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search).get('token') || ''
+      const hashQuery = window.location.hash.split('?')[1] || ''
+      return new URLSearchParams(hashQuery).get('token') || new URLSearchParams(window.location.search).get('token') || ''
     }
     return ''
   })

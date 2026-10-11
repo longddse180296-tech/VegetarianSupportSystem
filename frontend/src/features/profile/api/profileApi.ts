@@ -203,13 +203,20 @@ export const profileApi = {
   },
 
   async getProfileStats(): Promise<ProfileStats> {
-    return { postCount: 12, commentCount: 34, videoCount: 8 }
+    const [articles, comments, videos] = await Promise.all([
+      apiClient.get<{ totalCount: number }>('/api/me/articles?page=1&pageSize=1'),
+      apiClient.get<{ totalCount: number }>('/api/me/comments?page=1&pageSize=1'),
+      apiClient.get<{ totalCount: number }>('/api/me/videos?page=1&pageSize=1'),
+    ])
+    return { postCount: articles.totalCount, commentCount: comments.totalCount, videoCount: videos.totalCount }
   },
 
   async getRecentPosts(): Promise<RecentPost[]> {
-    return [
-      { id: 'post_01', category: 'Dinh dưỡng', title: 'Kinh nghiệm bổ sung Protein thực vật cho người mới bắt đầu', publishedDate: '14/10/2024', likeCount: 42, commentCount: 18 },
-      { id: 'post_02', category: 'Lối sống', title: 'Cách chuẩn bị Meal Prep chay tiện lợi cho cả tuần bận rộn', publishedDate: '28/09/2024', likeCount: 35, commentCount: 12 },
-    ]
+    const result = await apiClient.get<{ items: Array<{ id: string; category: string; title: string; updatedAt: string }> }>('/api/me/articles?status=Published&page=1&pageSize=3')
+    return result.items.map(item => ({
+      id: item.id, category: item.category, title: item.title,
+      publishedDate: new Date(item.updatedAt).toLocaleDateString('vi-VN'),
+      likeCount: null, commentCount: null,
+    }))
   },
 }

@@ -12,6 +12,7 @@ import { useAuth } from '../../auth'
 import type { DietType } from '../types/mealPlans.types'
 import { MealPlanCard, type RecommendedPlanItem } from '../components/MealPlanCard'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
+import { MyMealPlanPage } from './MyMealPlanPage'
 
 /* ─── Mock recommended plans for the public discovery page ──────────── */
 const MOCK_RECOMMENDED_PLANS: RecommendedPlanItem[] = [
@@ -160,13 +161,15 @@ export const MealPlansPublic: React.FC<MealPlansPublicProps> = ({ onNavigate }) 
     }
   }
 
-  const handleViewPlanDetail = (planId: string) => {
-    navigateWithAuth(`/meal-plans/${planId}`)
+  const handleViewPlanDetail = (_planId: string) => {
+    navigateWithAuth('/meal-plans/setup')
   }
 
   const handleCreatePersonalized = () => {
     navigateWithAuth('/meal-plans/create')
   }
+
+  if (isAuthenticated) return <MyMealPlanPage onNavigate={onNavigate} />
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-200">
@@ -243,12 +246,12 @@ export const MealPlansPublic: React.FC<MealPlansPublicProps> = ({ onNavigate }) 
           <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-5 space-y-3 min-w-[200px] shrink-0 hidden lg:block">
             <div className="flex items-center gap-2 text-white/80 text-xs font-semibold">
               <Utensils className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Thống kê hệ thống</span>
+              <span>Cấu trúc kế hoạch</span>
             </div>
             <div className="space-y-2.5">
               <div>
-                <p className="text-2xl font-black text-white">150+</p>
-                <p className="text-[10px] text-white/60 font-medium">Công thức chay</p>
+                <p className="text-2xl font-black text-white">21</p>
+                <p className="text-[10px] text-white/60 font-medium">Bữa ăn mỗi kế hoạch</p>
               </div>
               <div>
                 <p className="text-2xl font-black text-white">4</p>
@@ -267,10 +270,10 @@ export const MealPlansPublic: React.FC<MealPlansPublicProps> = ({ onNavigate }) 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">
-            Thực đơn đề xuất
+            Mẫu minh họa chế độ ăn
           </h2>
           <p className="text-xs md:text-sm text-slate-500 leading-relaxed max-w-lg">
-            Khám phá các kế hoạch bữa ăn chay mẫu được gợi ý theo từng mục tiêu sức khỏe và chế độ ăn.
+            Các thẻ dưới đây là dữ liệu minh họa, chưa phải kế hoạch đã lưu. Đăng nhập và tạo thực đơn từ hồ sơ để xem dữ liệu thực tế.
           </p>
         </div>
 

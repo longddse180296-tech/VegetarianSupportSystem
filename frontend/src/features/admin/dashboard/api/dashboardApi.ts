@@ -190,7 +190,6 @@ export const MOCK_DASHBOARD_DATA: DashboardOverviewData = {
  * Real backend API: GET /api/admin/dashboard
  */
 export async function getDashboardOverview(): Promise<DashboardOverviewData> {
-  try {
     const data = await apiClient.get<BackendDashboardOverview>('/api/admin/dashboard')
 
     return {
@@ -236,14 +235,8 @@ export async function getDashboardOverview(): Promise<DashboardOverviewData> {
           linkPath: '/admin/categories',
         },
       },
-      recentArticles: MOCK_DASHBOARD_DATA.recentArticles,
-      recentVideos: MOCK_DASHBOARD_DATA.recentVideos,
-      recentActivities: data.recentActivity && data.recentActivity.length > 0
-        ? data.recentActivity.map(mapActivity)
-        : MOCK_DASHBOARD_DATA.recentActivities,
+      recentArticles: [],
+      recentVideos: [],
+      recentActivities: data.recentActivity.map(mapActivity),
     }
-  } catch (err: unknown) {
-    console.warn('Backend /api/admin/dashboard error or unauthenticated, using fallback mock:', err)
-    return MOCK_DASHBOARD_DATA
-  }
 }

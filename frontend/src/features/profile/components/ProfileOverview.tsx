@@ -451,11 +451,11 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
                   <div className="flex items-center gap-4 text-xs text-[#6b7280] mt-0.5">
                     <span className="flex items-center gap-1">
                       <ThumbsUp className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{post.likeCount} lượt thích</span>
+                       <span>{post.likeCount ?? '—'} lượt thích</span>
                     </span>
                     <span className="flex items-center gap-1">
                       <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{post.commentCount} bình luận</span>
+                       <span>{post.commentCount ?? '—'} bình luận</span>
                     </span>
                   </div>
                 </div>

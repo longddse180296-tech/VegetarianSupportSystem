@@ -39,7 +39,7 @@ export const authApi = {
       expiresAt: data.expiresAtUtc,
     }
 
-    setStoredToken(response.accessToken)
+    setStoredToken(response.accessToken, credentials.rememberMe ?? false)
     setStoredUser(response.user)
 
     return response
@@ -99,8 +99,8 @@ export const authApi = {
         clearStoredAuth()
         return null
       }
-      // If server error or network issue occurs while offline, fallback to cached user if available
-      return getStoredUser<User>()
+      // Cached identity cannot establish a verified authenticated session.
+      throw err
     }
   },
 

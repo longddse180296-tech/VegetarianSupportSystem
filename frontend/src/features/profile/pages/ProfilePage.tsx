@@ -89,8 +89,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     }
   }
 
-  const displayName = profile?.fullName || user?.fullName || 'Quang Duy'
-  const displayEmail = profile?.email || user?.email || 'duy@gmail.com'
+  const displayName = profile?.fullName || user?.fullName || 'Thành viên'
+  const displayEmail = profile?.email || user?.email || ''
   const displayAvatar = profile?.avatarUrl || user?.avatarUrl
   const displayDiet = profile?.dietaryType || 'Chưa chọn chế độ ăn'
 
@@ -102,7 +102,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       userEmail={displayEmail}
       avatarUrl={displayAvatar}
       dietaryType={displayDiet}
-      statBadge={{ count: stats?.postCount ?? 12, label: 'Bài viết' }}
+      statBadge={{ count: stats?.postCount ?? 0, label: 'Bài viết' }}
       breadcrumbs={[
         { label: 'Trang chủ', path: '/' },
         { label: 'Tài khoản', path: '/profile' },
