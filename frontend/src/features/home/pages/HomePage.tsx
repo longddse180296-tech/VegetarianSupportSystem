@@ -156,20 +156,67 @@ const AI_SAMPLE_QUESTIONS = [
 export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [teaserInput, setTeaserInput] = useState('')
+  const [recipes, setRecipes] = useState(HOMEPAGE_RECIPES)
+  const [videos, setVideos] = useState(HOMEPAGE_VIDEOS)
+  const [restaurants, setRestaurants] = useState(HOMEPAGE_RESTAURANTS)
 
-  // Preload data from services
+  // Load real data from services
   useEffect(() => {
+    let isMounted = true
     void (async () => {
       try {
-        await Promise.all([
+        const [recRes, restRes, vidRes] = await Promise.all([
           getRecipes({}),
           getRestaurants({}),
           getVideos({}),
         ])
+        if (!isMounted) return
+        if (recRes && recRes.items && recRes.items.length > 0) {
+          setRecipes(
+            recRes.items.slice(0, 4).map((r) => ({
+              id: r.id,
+              title: r.title,
+              tag: r.category || 'Món chính',
+              cookTime: `${r.cookTimeMinutes || 20} phút`,
+              calories: `${r.calories || r.nutrition?.kcal || 350} kcal`,
+              imageUrl:
+                r.imageUrl ||
+                'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+            })),
+          )
+        }
+        if (restRes && restRes.items && restRes.items.length > 0) {
+          setRestaurants(
+            restRes.items.slice(0, 2).map((res) => ({
+              id: res.id,
+              name: res.name,
+              address: res.address,
+              distance: `${res.distanceKm || 1.5} km`,
+              isOpen: true,
+              imageUrl: res.imageUrl,
+            })),
+          )
+        }
+        if (vidRes && vidRes.items && vidRes.items.length > 0) {
+          setVideos(
+            vidRes.items.slice(0, 3).map((v) => ({
+              id: v.id,
+              title: v.title,
+              duration: v.duration || '10:00',
+              author: v.creatorName || v.author?.name || 'Thành viên Bếp Chay',
+              imageUrl:
+                v.thumbnailUrl ||
+                'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80',
+            })),
+          )
+        }
       } catch {
         // Fallback to seeds gracefully
       }
     })()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const handleSearchSubmit = (e: FormEvent) => {
@@ -364,7 +411,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {HOMEPAGE_RECIPES.map((recipe) => (
+          {recipes.map((recipe) => (
             <article
               key={recipe.id}
               className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
@@ -530,7 +577,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {HOMEPAGE_VIDEOS.map((vid) => (
+          {videos.map((vid) => (
             <article
               key={vid.id}
               className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
@@ -603,7 +650,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
             {/* 2 Card Nhà hàng bên trái */}
             <div className="lg:col-span-6 flex flex-col gap-4">
-              {HOMEPAGE_RESTAURANTS.map((res) => (
+              {restaurants.map((res) => (
                 <article
                   key={res.id}
                   className="flex flex-col sm:flex-row items-stretch rounded-[16px] border border-[#E5E7EB] bg-white p-3.5 gap-4 shadow-xs hover:border-[#C8E6C9] transition"
