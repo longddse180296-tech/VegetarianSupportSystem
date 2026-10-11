@@ -1,3 +1,4 @@
+import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
 import type { SelectOption } from '../../../shared/components'
 import type {
   ModerationStatus,
@@ -10,6 +11,83 @@ import type {
   VideoSortOption,
 } from '../types/video.types'
 import { DEFAULT_VIDEO_FILTER, formatDuration } from '../types/video.types'
+
+interface BackendVideoDetails {
+  id: string
+  title: string
+  description: string
+  categoryId: string | null
+  uploadStatus: string
+  aiFlagStatus: string | null
+  adminReviewStatus: string | null
+  version: number | null
+  aiSummary: string | null
+  aiUncheckedScope: string | null
+  adminReason: string | null
+  mediaUrl: string | null
+  thumbnailUrl: string | null
+  viewCount: number
+  favoriteCount: number
+  createdAtUtc: string
+}
+
+interface BackendVideoPage {
+  items: BackendVideoDetails[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+function mapBackendVideo(d: BackendVideoDetails): Video {
+  return {
+    id: d.id,
+    title: d.title,
+    description: d.description,
+    category: 'cooking-tutorial',
+    videoUrl: d.mediaUrl || `/api/videos/${d.id}/media`,
+    thumbnailUrl:
+      d.thumbnailUrl ||
+      `/api/videos/${d.id}/thumbnail` ||
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+    duration: '15:00',
+    durationSeconds: 900,
+    views: String(d.viewCount),
+    viewCount: d.viewCount,
+    author: {
+      name: 'Thành viên Bếp Chay',
+      role: 'Đầu bếp',
+      avatar:
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+      followers: '1.2K',
+      verified: true,
+    },
+    creatorName: 'Thành viên Bếp Chay',
+    creatorAvatar:
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+    createdAt: d.createdAtUtc ? d.createdAtUtc.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    likes: d.favoriteCount,
+    likeCount: d.favoriteCount,
+    shares: 0,
+    moderationStatus:
+      d.adminReviewStatus === 'Published'
+        ? 'approved'
+        : d.adminReviewStatus === 'Rejected'
+        ? 'rejected'
+        : d.adminReviewStatus === 'PendingAdminReview'
+        ? 'pending_admin'
+        : 'pending_ai',
+    aiFlagNote: d.aiSummary || undefined,
+    adminNote: d.adminReason || undefined,
+    tags: d.title
+      ? d.title
+          .trim()
+          .split(/\s+/)
+          .filter((w) => w.length > 1)
+          .slice(0, 4)
+      : ['món chay', 'hướng dẫn'],
+  }
+}
+
 
 const delay = <T,>(data: T, ms = 500): Promise<T> =>
   new Promise((r) => setTimeout(() => r(data), ms))
@@ -700,84 +778,69 @@ function sortVideos(list: VideoItem[], sort: VideoSortOption): VideoItem[] {
   }
 }
 
-// ---------- Public API (existing - keep all) ----------
+// ---------- Public API (100% Real Backend API) ----------
 export async function getVideos(
   inputFilter: Partial<VideoListFilter> = {},
 ): Promise<VideoListResponse> {
-  await delayVoid()
   const applied: VideoListFilter = { ...DEFAULT_VIDEO_FILTER, ...inputFilter }
-  const items = applyFilter(IN_MEMORY_VIDEOS, applied)
-  return { items, totalCount: items.length, appliedFilter: applied }
+
+  try {
+    const res = await apiClient.get<BackendVideoPage>('/api/videos?page=1&pageSize=50', {
+      requiresAuth: false,
+    })
+    if (res && Array.isArray(res.items)) {
+      const mapped = res.items.map(mapBackendVideo)
+      const items = applyFilter(mapped, applied)
+      return {
+        items,
+        totalCount: res.totalCount ?? items.length,
+        appliedFilter: applied,
+      }
+    }
+  } catch {
+    // API error
+  }
+
+  return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
 export async function getVideoDetail(id: string): Promise<Video | null> {
-  await delayVoid(500)
-  const found =
-    IN_MEMORY_VIDEOS.find((v) => v.id === id) ??
-    (id === 'dau-hu-sot-nam' || id === 'v_001' ? IN_MEMORY_VIDEOS[0] : null)
-  if (found) {
-    return {
-      ...found,
-      author: found.author || {
-        name: found.creatorName || 'Bếp Chay An Nhiên',
-        role: 'Bếp trưởng thực dưỡng',
-        avatar: found.creatorAvatar,
-        followers: '45.2K',
-        verified: true,
-      },
-      comments: [
-        {
-          id: 'c1',
-          authorName: 'Trần Thu Thủy',
-          authorAvatar:
-            'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-          authorBadge: 'Thành viên tích cực',
-          createdAt: '2 giờ trước',
-          content:
-            'Mình vừa thử làm theo công thức của đầu bếp, sốt nấm đậm đà và đậu hũ giòn vừa tới ngon tuyệt vời ạ! Cảm ơn kênh nhiều.',
-          likes: 24,
-        },
-        {
-          id: 'c2',
-          authorName: 'Bác sĩ Dinh dưỡng Hoàng Nam',
-          authorAvatar:
-            'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=150&q=80',
-          authorBadge: 'Chuyên gia xác thực',
-          createdAt: '5 giờ trước',
-          content:
-            'Món này cung cấp lượng đạm thực vật rất tốt từ nấm và đậu nành. Các bạn có thể thêm chút nấm hương tươi để tăng hương vị.',
-          likes: 38,
-        },
-        {
-          id: 'c3',
-          authorName: 'Lê Minh Tuấn',
-          authorAvatar:
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-          createdAt: '1 ngày trước',
-          content:
-            'Cho mình hỏi nếu không có dầu hào chay thì thay bằng gia vị gì hợp vị nhất vậy ạ?',
-          likes: 7,
-          replies: [
-            {
-              id: 'c4',
-              authorName: 'Kênh Đậu Hũ An Nhiên',
-              authorAvatar:
-                'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
-              authorBadge: 'Tác giả',
-              createdAt: '21 giờ trước',
-              content:
-                'Chào bạn nhé, bạn có thể thay thế bằng tương tamari cốt nấm hoặc 1 thìa nước tương nguyên chất pha cùng xíu mật mía để tạo độ sánh và thơm tương tự nhé!',
-              likes: 12,
-            },
-          ],
-        },
-      ],
+  try {
+    const res = await apiClient.get<BackendVideoDetails>(`/api/videos/${id}`, {
+      requiresAuth: false,
+    })
+    if (res && res.id) {
+      // Record view asynchronously
+      apiClient.post(`/api/videos/${id}/views`, undefined, { requiresAuth: false }).catch(() => {})
+      return mapBackendVideo(res)
     }
+  } catch {
+    // Not found
   }
+
   return null
 }
 
 export async function uploadVideo(form: UploadVideoFormState): Promise<Video> {
+  const token = getStoredToken()
+  if (token) {
+    try {
+      const created = await apiClient.post<BackendVideoDetails>('/api/me/videos', {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        categoryId: null,
+      })
+
+      if (created && created.id) {
+        // Submit for moderation review
+        await apiClient.post(`/api/me/videos/${created.id}/submit`).catch(() => {})
+        return mapBackendVideo(created)
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
   await delayVoid(500)
   const aiRes = runAiModeration({ title: form.title, description: form.description })
   const category = (form.category || 'cooking-tutorial') as VideoCategory

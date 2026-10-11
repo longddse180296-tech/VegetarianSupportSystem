@@ -49,41 +49,7 @@ export async function getQuickAddChips(): Promise<
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-function makeId(prefix = 'p'): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
-}
-
-const DANGER_WORDS = ['mỡ heo', 'mỡ gà', 'nước mắm', 'nước dùng xương', 'gelatin', 'e441', 'cá ngừ']
-const WARNING_WORDS = ['phô mai', 'sữa', 'bơ sữa', 'trứng', 'whey', 'casein']
-
-function computeSuitability(name: string): {
-  isSuitable: PantrySuitability
-  suitableNote: string
-} {
-  const text = name.toLowerCase().trim()
-  if (!text) return { isSuitable: 'unchecked', suitableNote: 'Chưa phân tích.' }
-  for (const w of DANGER_WORDS) {
-    if (text.includes(w)) {
-      return {
-        isSuitable: 'unsuitable',
-        suitableNote: `Phát hiện từ khóa "${w}" thường là nguồn gốc động vật, không phù hợp với chế độ thuần thực vật theo thông tin phổ biến. Hãy kiểm tra nhãn hoặc nhà sản xuất.`,
-      }
-    }
-  }
-  for (const w of WARNING_WORDS) {
-    if (text.includes(w)) {
-      return {
-        isSuitable: 'warning',
-        suitableNote: `Từ khóa "${w}" thường có thể không phù hợp với chế độ thuần thực vật nghiêm ngặt, tùy nguồn gốc. Xem nhãn hoặc dùng phiên bản thuần thực vật thay thế.`,
-      }
-    }
-  }
-  return {
-    isSuitable: 'suitable',
-    suitableNote:
-      'Theo tên gọi thông thường, nguyên liệu này thường phù hợp với chế độ thuần thực vật. Nếu có phụ gia, hãy kiểm tra nhãn sản phẩm để chắc chắn.',
-  }
-}
+// Note: Pantry items are fetched directly from Backend API (/api/pantry/items)
 
 const INITIAL_PANTRY: PantryItem[] = [
   {
@@ -367,13 +333,10 @@ export async function getPantryItems(category: PantryCategory | 'all' = 'all'): 
       return mapped.filter((p) => p.category === category)
     }
   } catch {
-    // Fallback to in-memory pantry if not authenticated or offline
+    // Return empty list if not logged in or error
   }
 
-  await delay(300)
-  const copy = [...inMemoryPantry]
-  if (category === 'all') return copy
-  return copy.filter((p) => p.category === category)
+  return []
 }
 
 export async function addPantryItem(form: AddIngredientFormState): Promise<PantryItem> {
@@ -381,51 +344,29 @@ export async function addPantryItem(form: AddIngredientFormState): Promise<Pantr
     Number.isFinite(Number(form.quantity)) && Number(form.quantity) > 0 ? Number(form.quantity) : 1
   const unitStr = form.unit.trim() || 'g'
 
-  try {
-    const created = await apiClient.post<BackendPantryItem>('/api/pantry/items', {
-      name: form.name.trim(),
-      quantity: qty,
-      unit: unitStr,
-    })
-    if (created && created.id) {
-      const mapped = mapBackendPantryItem(created)
-      inMemoryPantry = [mapped, ...inMemoryPantry]
-      return mapped
-    }
-  } catch {
-    // Fallback to in-memory creation
+  const created = await apiClient.post<BackendPantryItem>('/api/pantry/items', {
+    name: form.name.trim(),
+    quantity: qty,
+    unit: unitStr,
+  })
+
+  if (created && created.id) {
+    const mapped = mapBackendPantryItem(created)
+    inMemoryPantry = [mapped, ...inMemoryPantry]
+    return mapped
   }
 
-  await delay(300)
-  const suitability = computeSuitability(form.name)
-  const item: PantryItem = {
-    id: makeId('item'),
-    name: form.name.trim(),
-    quantity: Number.isFinite(Number(form.quantity)) ? Math.max(0, Number(form.quantity)) : 0,
-    unit: form.unit.trim() || 'g',
-    category: (form.category || 'khac') as PantryCategory,
-    isSuitable: suitability.isSuitable,
-    suitableNote: suitability.suitableNote,
-    addedAt: new Date().toISOString(),
-  }
-  inMemoryPantry = [item, ...inMemoryPantry]
-  return item
+  throw new Error('Không thể thêm nguyên liệu vào tủ bếp.')
 }
 
 export async function deletePantryItem(id: string): Promise<{ deleted: boolean; remaining: number }> {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-  if (isUuid) {
-    try {
-      await apiClient.delete(`/api/pantry/items/${id}`)
-    } catch {
-      // Ignore
-    }
+  try {
+    await apiClient.delete(`/api/pantry/items/${id}`)
+    inMemoryPantry = inMemoryPantry.filter((p) => p.id !== id)
+    return { deleted: true, remaining: inMemoryPantry.length }
+  } catch {
+    return { deleted: false, remaining: inMemoryPantry.length }
   }
-
-  await delay(200)
-  const before = inMemoryPantry.length
-  inMemoryPantry = inMemoryPantry.filter((p) => p.id !== id)
-  return { deleted: inMemoryPantry.length < before, remaining: inMemoryPantry.length }
 }
 
 function tokenize(s: string): string[] {
@@ -520,3 +461,27 @@ export async function getRecipeMatches(pantry: PantryItem[]): Promise<RecipeMatc
   }
   return filtered
 }
+
+export interface PantrySubstitutionCandidate {
+  ingredientId: string
+  name: string
+  defaultUnit: string | null
+  dietaryCompatibility: string | null
+  allergenWarnings: string[]
+  avoidedFoodWarnings: string[]
+}
+
+export async function getSubstitutionCandidates(
+  pantryItemId: string,
+): Promise<PantrySubstitutionCandidate[]> {
+  try {
+    const res = await apiClient.get<PantrySubstitutionCandidate[]>(
+      `/api/pantry/items/${pantryItemId}/substitution-candidates`,
+    )
+    if (res && Array.isArray(res)) return res
+  } catch {
+    // API error
+  }
+  return []
+}
+
