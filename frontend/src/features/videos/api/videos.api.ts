@@ -541,3 +541,49 @@ export async function submitUserVideo(id: string): Promise<UserVideoItem> {
 
   return MOCK_USER_VIDEOS[index];
 }
+
+/**
+ * Upload real media file for user video (MP4/WebM <= 200MB)
+ */
+export async function uploadVideoMedia(videoId: string, file: File): Promise<UserVideoItem | null> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(videoId);
+  const token = getStoredToken();
+  if (token && isGuid) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiClient.request<BackendVideoDetails>(`/api/me/videos/${videoId}/media`, {
+        method: 'POST',
+        body: formData,
+        requiresAuth: true,
+      });
+      if (res?.id) return mapBackendToUserVideo(res);
+    } catch {
+      // Error handling
+    }
+  }
+  return null;
+}
+
+/**
+ * Upload real thumbnail file for user video (JPG/PNG/WebP <= 10MB)
+ */
+export async function uploadVideoThumbnail(videoId: string, file: File): Promise<UserVideoItem | null> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(videoId);
+  const token = getStoredToken();
+  if (token && isGuid) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiClient.request<BackendVideoDetails>(`/api/me/videos/${videoId}/thumbnail`, {
+        method: 'POST',
+        body: formData,
+        requiresAuth: true,
+      });
+      if (res?.id) return mapBackendToUserVideo(res);
+    } catch {
+      // Error handling
+    }
+  }
+  return null;
+}

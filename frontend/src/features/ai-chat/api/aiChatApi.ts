@@ -469,3 +469,41 @@ export function streamAiText(
 
   return () => clearInterval(timer)
 }
+
+/**
+ * Lấy lịch sử tin nhắn của một cuộc hội thoại từ backend
+ */
+export async function getConversationMessages(
+  conversationId: string,
+): Promise<ChatMessage[]> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)
+  if (!isGuid || !getStoredToken()) return []
+
+  try {
+    const res = await apiClient.get<{
+      items: Array<{
+        id: string
+        role: 'User' | 'Assistant' | string
+        content: string
+        createdAtUtc: string
+      }>
+    }>(`/api/ai-chat/conversations/${conversationId}/messages?page=1&pageSize=50`)
+
+    if (res && Array.isArray(res.items)) {
+      return res.items.map((m) => {
+        const isAsst = m.role.toLowerCase() === 'assistant'
+        return {
+          id: m.id,
+          sender: isAsst ? 'assistant' : 'user',
+          role: isAsst ? 'assistant' : 'user',
+          content: m.content,
+          timestamp: m.createdAtUtc,
+        }
+      })
+    }
+  } catch {
+    // API error
+  }
+  return []
+}
+

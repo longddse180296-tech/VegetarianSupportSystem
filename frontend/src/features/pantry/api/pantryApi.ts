@@ -461,3 +461,27 @@ export async function getRecipeMatches(pantry: PantryItem[]): Promise<RecipeMatc
   }
   return filtered
 }
+
+export interface PantrySubstitutionCandidate {
+  ingredientId: string
+  name: string
+  defaultUnit: string | null
+  dietaryCompatibility: string | null
+  allergenWarnings: string[]
+  avoidedFoodWarnings: string[]
+}
+
+export async function getSubstitutionCandidates(
+  pantryItemId: string,
+): Promise<PantrySubstitutionCandidate[]> {
+  try {
+    const res = await apiClient.get<PantrySubstitutionCandidate[]>(
+      `/api/pantry/items/${pantryItemId}/substitution-candidates`,
+    )
+    if (res && Array.isArray(res)) return res
+  } catch {
+    // API error
+  }
+  return []
+}
+

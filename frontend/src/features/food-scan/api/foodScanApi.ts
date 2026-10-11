@@ -142,6 +142,34 @@ interface BackendEvaluation {
   avoidedFoodWarnings?: string[]
 }
 
+export interface LabelScanResult {
+  processingStatus: string
+  extractedText: string | null
+  isIncomplete: boolean
+  errorCode: string | null
+  note: string | null
+}
+
+export async function scanLabelImage(file: File): Promise<LabelScanResult | null> {
+  if (getStoredToken()) {
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await apiClient.request<LabelScanResult>('/api/food-scans/label-image', {
+        method: 'POST',
+        body: formData,
+        requiresAuth: true,
+      })
+      if (res && res.processingStatus) {
+        return res
+      }
+    } catch {
+      // Error
+    }
+  }
+  return null
+}
+
 export async function startScan(form: ScanInputForm): Promise<FoodScanResult> {
   // If image provided and user is authenticated, call real backend vision scan
   if (form.imageFile && getStoredToken()) {
