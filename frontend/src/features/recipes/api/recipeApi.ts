@@ -1,14 +1,19 @@
+import { apiClient } from '../../../shared/api/apiClient'
 import type { SelectOption } from '../../../shared/components'
 import type {
   Recipe,
+  RecipeDietCategory,
+  RecipeDifficulty,
+  RecipeIngredient,
   RecipeListFilter,
   RecipeListResponse,
   RecipeSortOption,
+  RecipeStep,
   RelatedBlogCard,
   RelatedRestaurantCard,
   RelatedVideoCard,
 } from '../types/recipe.types'
-import { DEFAULT_RECIPE_FILTER, SORT_LABELS } from '../types/recipe.types'
+import { DEFAULT_RECIPE_FILTER, DIET_CATEGORY_LABELS, SORT_LABELS } from '../types/recipe.types'
 
 const delay = (ms = 500) => new Promise<void>((r) => setTimeout(r, ms))
 
@@ -901,12 +906,222 @@ function sortRecipes(list: Recipe[], sort: RecipeSortOption): Recipe[] {
   }
 }
 
+// ---------- Real Backend Interfaces & Adapters ----------
+interface BackendRecipeSummary {
+  id: string
+  name: string
+  categoryId: string
+  categoryName: string
+  servings: number
+  prepTimeMinutes: number
+  cookTimeMinutes: number
+  imageUrl: string | null
+  caloriesPerServing: number | null
+  isActive: boolean
+  dietaryAssessments?: Array<{ dietaryType: number; status: number }>
+}
+
+interface BackendRecipeResponse {
+  id: string
+  categoryId: string
+  name: string
+  description: string | null
+  servings: number
+  instructions: string
+  prepTimeMinutes: number
+  cookTimeMinutes: number
+  imageUrl: string | null
+  caloriesPerServing: number | null
+  proteinGramPerServing: number | null
+  carbohydrateGramPerServing: number | null
+  fatGramPerServing: number | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string | null
+  categoryName: string
+  ingredients?: Array<{ ingredientId: string; name: string; isActive: boolean; quantity: number; unit: string; note: string | null }>
+  dietaryAssessments?: Array<{ dietaryType: number; status: number }>
+}
+
+interface BackendRecipePage {
+  items: BackendRecipeSummary[]
+  pageNumber: number
+  pageSize: number
+  totalCount: number
+}
+
+function mapDietCategory(assessments?: Array<{ dietaryType: number; status: number }>): RecipeDietCategory {
+  if (!assessments) return 'vegan'
+  const isCompatible = (type: number) => assessments.some((a) => a.dietaryType === type && a.status === 1)
+  if (isCompatible(1)) return 'vegan'
+  if (isCompatible(4)) return 'ovo-lacto'
+  if (isCompatible(2)) return 'lacto'
+  if (isCompatible(3)) return 'ovo'
+  return 'vegan'
+}
+
+function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
+  const cookMin = summary.cookTimeMinutes || 20
+  const prepMin = summary.prepTimeMinutes || 10
+  const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
+  const dietCat = mapDietCategory(summary.dietaryAssessments)
+  const fallbackImg =
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'
+  const img = summary.imageUrl || fallbackImg
+
+  return {
+    id: summary.id,
+    title: summary.name,
+    description: `Công thức ${summary.name} chuẩn vị, dinh dưỡng cân bằng và thanh đạm.`,
+    category: summary.categoryName,
+    dietType: DIET_CATEGORY_LABELS[dietCat] || 'Thuần thực vật',
+    prepTime: `${prepMin} phút`,
+    cookTime: `${cookMin} phút`,
+    totalTime: `${prepMin + cookMin} phút`,
+    servings: summary.servings || 2,
+    calories: summary.caloriesPerServing ? Math.round(summary.caloriesPerServing) : 320,
+    imageUrl: img,
+    coverImage: img,
+    cookTimeMinutes: cookMin,
+    prepTimeMinutes: prepMin,
+    servingSize: summary.servings || 2,
+    dietCategory: dietCat,
+    difficulty,
+    isFavorite: false,
+    favoriteCount: 12,
+    viewCount: 120,
+    authorName: 'Bếp Chay An Yên',
+    authorAvatar:
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+    tags: [summary.categoryName, DIET_CATEGORY_LABELS[dietCat]].filter(Boolean),
+    ingredients: [],
+    steps: [],
+    nutrition: {
+      kcal: summary.caloriesPerServing ? Math.round(summary.caloriesPerServing) : 320,
+      proteinG: 15,
+      carbsG: 35,
+      fatG: 10,
+    },
+    publishedAt: new Date().toISOString(),
+    relatedBlogs: MOCK_ARTICLES,
+    relatedVideos: MOCK_VIDEOS,
+    relatedRestaurants: MOCK_RESTAURANTS,
+  }
+}
+
+function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
+  const cookMin = detail.cookTimeMinutes || 20
+  const prepMin = detail.prepTimeMinutes || 10
+  const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
+  const dietCat = mapDietCategory(detail.dietaryAssessments)
+  const fallbackImg =
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'
+  const img = detail.imageUrl || fallbackImg
+
+  const rawSteps = detail.instructions
+    ? detail.instructions
+        .split(/\r?\n+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : []
+  const steps: RecipeStep[] = rawSteps.map((line, idx) => ({
+    stepNo: idx + 1,
+    stepNumber: idx + 1,
+    title: `Bước ${idx + 1}`,
+    description: line.replace(/^\d+[.)]\s*/, ''),
+    instruction: line.replace(/^\d+[.)]\s*/, ''),
+  }))
+
+  const ingredients: RecipeIngredient[] = (detail.ingredients || []).map((ing) => ({
+    id: ing.ingredientId,
+    name: ing.name,
+    amount: ing.quantity,
+    unit: ing.unit,
+    note: ing.note || '',
+  }))
+
+  return {
+    id: detail.id,
+    title: detail.name,
+    description: detail.description || `Công thức ${detail.name} thanh đạm, dinh dưỡng cân bằng.`,
+    category: detail.categoryName,
+    dietType: DIET_CATEGORY_LABELS[dietCat] || 'Thuần thực vật',
+    prepTime: `${prepMin} phút`,
+    cookTime: `${cookMin} phút`,
+    totalTime: `${prepMin + cookMin} phút`,
+    servings: detail.servings || 2,
+    calories: detail.caloriesPerServing ? Math.round(detail.caloriesPerServing) : 320,
+    protein: detail.proteinGramPerServing ? Math.round(detail.proteinGramPerServing) : 15,
+    carbs: detail.carbohydrateGramPerServing ? Math.round(detail.carbohydrateGramPerServing) : 35,
+    fat: detail.fatGramPerServing ? Math.round(detail.fatGramPerServing) : 10,
+    plantRatio: '100%',
+    imageUrl: img,
+    coverImage: img,
+    cookTimeMinutes: cookMin,
+    prepTimeMinutes: prepMin,
+    servingSize: detail.servings || 2,
+    dietCategory: dietCat,
+    difficulty,
+    isFavorite: false,
+    favoriteCount: 18,
+    viewCount: 165,
+    authorName: 'Bếp Chay An Yên',
+    authorAvatar:
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+    tags: [detail.categoryName, DIET_CATEGORY_LABELS[dietCat]].filter(Boolean),
+    ingredients,
+    steps,
+    nutrition: {
+      kcal: detail.caloriesPerServing ? Math.round(detail.caloriesPerServing) : 320,
+      proteinG: detail.proteinGramPerServing ? Math.round(detail.proteinGramPerServing) : 15,
+      carbsG: detail.carbohydrateGramPerServing ? Math.round(detail.carbohydrateGramPerServing) : 35,
+      fatG: detail.fatGramPerServing ? Math.round(detail.fatGramPerServing) : 10,
+    },
+    publishedAt: detail.createdAt,
+    relatedBlogs: MOCK_ARTICLES,
+    relatedVideos: MOCK_VIDEOS,
+    relatedRestaurants: MOCK_RESTAURANTS,
+  }
+}
+
 // ---------- Public API ----------
 export async function getRecipes(
   inputFilter: Partial<RecipeListFilter> = {},
 ): Promise<RecipeListResponse> {
-  await delay()
   const applied: RecipeListFilter = { ...DEFAULT_RECIPE_FILTER, ...inputFilter }
+
+  const dietMap: Record<string, number> = {
+    vegan: 1,
+    lacto: 2,
+    ovo: 3,
+    'ovo-lacto': 4,
+  }
+
+  const params = new URLSearchParams()
+  if (applied.search?.trim()) params.set('search', applied.search.trim())
+  if (applied.diet !== 'all' && dietMap[applied.diet]) {
+    params.set('dietaryType', String(dietMap[applied.diet]))
+  }
+  params.set('pageNumber', '1')
+  params.set('pageSize', '50')
+
+  try {
+    const res = await apiClient.get<BackendRecipePage>(`/api/recipes?${params.toString()}`, {
+      requiresAuth: false,
+    })
+    if (res && Array.isArray(res.items) && res.items.length > 0) {
+      const items = res.items.map(mapSummaryToRecipe)
+      return {
+        items,
+        totalCount: res.totalCount || items.length,
+        appliedFilter: applied,
+      }
+    }
+  } catch {
+    // If backend has no data or network issue, fallback to mock data
+  }
+
+  await delay(300)
   const items = applyFilter(IN_MEMORY_RECIPES, applied)
   return {
     items,
@@ -916,7 +1131,21 @@ export async function getRecipes(
 }
 
 export async function getRecipeDetail(id: string): Promise<Recipe | null> {
-  await delay(500)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isUuid) {
+    try {
+      const detail = await apiClient.get<BackendRecipeResponse>(`/api/recipes/${id}`, {
+        requiresAuth: false,
+      })
+      if (detail && detail.id) {
+        return mapDetailToRecipe(detail)
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  await delay(300)
   const found =
     IN_MEMORY_RECIPES.find((r) => r.id === id) ??
     (id === 'dau-hu-sot-nam' || id === 'r_001_tofu_tomato' ? IN_MEMORY_RECIPES[0] : null)
@@ -949,10 +1178,21 @@ export async function toggleFavorite(
   id: string,
   nextState?: boolean,
 ): Promise<{ id: string; isFavorite: boolean; favoriteCount: number }> {
-  await delay()
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isUuid) {
+    try {
+      if (nextState !== false) {
+        await apiClient.post('/api/favorites', { targetType: 'Recipe', targetId: id })
+      }
+    } catch {
+      // Ignore if offline/unauthorized
+    }
+  }
+
+  await delay(150)
   const idx = IN_MEMORY_RECIPES.findIndex((r) => r.id === id)
   if (idx < 0) {
-    return { id, isFavorite: false, favoriteCount: 0 }
+    return { id, isFavorite: nextState ?? true, favoriteCount: 1 }
   }
   const r = IN_MEMORY_RECIPES[idx]
   const willFavorite = nextState ?? !r.isFavorite

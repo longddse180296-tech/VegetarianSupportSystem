@@ -1,3 +1,4 @@
+import { apiClient } from '../../../shared/api/apiClient'
 import type {
   AddIngredientFormState,
   PantryCategory,
@@ -284,15 +285,118 @@ const REFERENCE_RECIPES: ReferenceRecipe[] = [
 
 let inMemoryPantry: PantryItem[] = [...INITIAL_PANTRY]
 
+// ---------- Real Backend Interfaces & Adapters ----------
+interface BackendPantryItem {
+  id: string
+  ingredientId: string | null
+  name: string
+  isCatalogMatched: boolean
+  quantity: number | null
+  unit: string | null
+  profileDiet: string | null
+  dietaryCompatibility: 'Compatible' | 'Incompatible' | 'Unknown' | null
+  dietaryNotice: string | null
+  allergenWarnings: string[]
+  avoidedFoodWarnings: string[]
+  createdAt: string
+  updatedAt: string | null
+}
+
+interface BackendPantryRecipeSuggestion {
+  recipeId: string
+  recipeName: string
+  imageUrl: string | null
+  servings: number
+  totalTimeMinutes: number
+  caloriesPerServing: number | null
+  matchPercent: number
+  availableIngredients: Array<{ ingredientId: string; name: string; quantity: number; unit: string; isAvailable: boolean }>
+  missingIngredients: Array<{ ingredientId: string; name: string; quantity: number; unit: string; isAvailable: boolean }>
+}
+
+function inferCategoryFromName(name: string): PantryCategory {
+  const lower = name.toLowerCase()
+  if (/(cải|rau|xà lách|cà chua|bí|cà rốt|dưa|ngò|hành|tỏi)/.test(lower)) return 'rau-cu-qua'
+  if (/(đậu|tofu|tàu hũ)/.test(lower)) return 'dau-mem-san-xuat'
+  if (/(hạt|gạo|yến mạch|chia|mè|đậu xanh|đậu đỏ)/.test(lower)) return 'hat-ngu-coc'
+  if (/(nấm|nấm hương|mộc nhĩ)/.test(lower)) return 'nam'
+  if (/(muối|tiêu|đường|dầu|nước tương|xì dầu|giấm)/.test(lower)) return 'gia-vi'
+  if (/(sữa|sữa hạt|sữa chua)/.test(lower)) return 'sua-hat'
+  if (/(cam|chuối|táo|xoài|thơm|dứa)/.test(lower)) return 'trai-cay'
+  if (/(chả|xúc xích|nem)/.test(lower)) return 'thuc-pham-che-bien'
+  return 'khac'
+}
+
+function mapBackendPantryItem(backendItem: BackendPantryItem): PantryItem {
+  let isSuitable: PantrySuitability = 'suitable'
+  if (backendItem.dietaryCompatibility === 'Incompatible') {
+    isSuitable = 'unsuitable'
+  } else if (
+    (backendItem.allergenWarnings && backendItem.allergenWarnings.length > 0) ||
+    (backendItem.avoidedFoodWarnings && backendItem.avoidedFoodWarnings.length > 0)
+  ) {
+    isSuitable = 'warning'
+  } else if (!backendItem.isCatalogMatched) {
+    isSuitable = 'unchecked'
+  }
+
+  let note = backendItem.dietaryNotice || 'Đã kiểm tra kho nguyên liệu cá nhân'
+  if (backendItem.allergenWarnings && backendItem.allergenWarnings.length > 0) {
+    note = `Cảnh báo dị ứng: ${backendItem.allergenWarnings.join(', ')}`
+  }
+
+  return {
+    id: backendItem.id,
+    name: backendItem.name,
+    quantity: backendItem.quantity ? Number(backendItem.quantity) : 1,
+    unit: backendItem.unit || 'g',
+    category: inferCategoryFromName(backendItem.name),
+    isSuitable,
+    suitableNote: note,
+    addedAt: backendItem.createdAt,
+  }
+}
+
 export async function getPantryItems(category: PantryCategory | 'all' = 'all'): Promise<PantryItem[]> {
-  await delay(500)
+  try {
+    const backendItems = await apiClient.get<BackendPantryItem[]>('/api/pantry/items')
+    if (backendItems && Array.isArray(backendItems)) {
+      const mapped = backendItems.map(mapBackendPantryItem)
+      inMemoryPantry = mapped
+      if (category === 'all') return mapped
+      return mapped.filter((p) => p.category === category)
+    }
+  } catch {
+    // Fallback to in-memory pantry if not authenticated or offline
+  }
+
+  await delay(300)
   const copy = [...inMemoryPantry]
   if (category === 'all') return copy
   return copy.filter((p) => p.category === category)
 }
 
 export async function addPantryItem(form: AddIngredientFormState): Promise<PantryItem> {
-  await delay(500)
+  const qty =
+    Number.isFinite(Number(form.quantity)) && Number(form.quantity) > 0 ? Number(form.quantity) : 1
+  const unitStr = form.unit.trim() || 'g'
+
+  try {
+    const created = await apiClient.post<BackendPantryItem>('/api/pantry/items', {
+      name: form.name.trim(),
+      quantity: qty,
+      unit: unitStr,
+    })
+    if (created && created.id) {
+      const mapped = mapBackendPantryItem(created)
+      inMemoryPantry = [mapped, ...inMemoryPantry]
+      return mapped
+    }
+  } catch {
+    // Fallback to in-memory creation
+  }
+
+  await delay(300)
   const suitability = computeSuitability(form.name)
   const item: PantryItem = {
     id: makeId('item'),
@@ -309,7 +413,16 @@ export async function addPantryItem(form: AddIngredientFormState): Promise<Pantr
 }
 
 export async function deletePantryItem(id: string): Promise<{ deleted: boolean; remaining: number }> {
-  await delay(500)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (isUuid) {
+    try {
+      await apiClient.delete(`/api/pantry/items/${id}`)
+    } catch {
+      // Ignore
+    }
+  }
+
+  await delay(200)
   const before = inMemoryPantry.length
   inMemoryPantry = inMemoryPantry.filter((p) => p.id !== id)
   return { deleted: inMemoryPantry.length < before, remaining: inMemoryPantry.length }
@@ -329,18 +442,41 @@ function matchScore(pantryItemName: string, recipeIngredient: string): boolean {
   const a = tokenize(pantryItemName)
   const b = tokenize(recipeIngredient)
   if (a.length === 0 || b.length === 0) return false
-  // Tối thiểu 2 token trùng hoặc 1 token chính của bùm khớp ít nhất 50% token B
   const setA = new Set(a)
   const overlap = b.filter((tok) => setA.has(tok))
   if (overlap.length === 0) return false
   if (overlap.length >= 2) return true
   if (overlap.length / b.length >= 0.5) return true
-  // match substring: pantry chứa ingredient hoàn chỉnh
   return a.join(' ').includes(b.join(' ')) || b.join(' ').includes(a.join(' '))
 }
 
 export async function getRecipeMatches(pantry: PantryItem[]): Promise<RecipeMatch[]> {
-  await delay(500)
+  try {
+    const suggestions = await apiClient.get<BackendPantryRecipeSuggestion[]>(
+      '/api/pantry/recipe-suggestions',
+    )
+    if (suggestions && Array.isArray(suggestions) && suggestions.length > 0) {
+      return suggestions.map((s) => ({
+        id: s.recipeId,
+        title: s.recipeName,
+        subtitle: `${s.totalTimeMinutes} phút · ${s.servings} khẩu phần`,
+        cover:
+          s.imageUrl ||
+          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+        timeMin: s.totalTimeMinutes,
+        kcal: s.caloriesPerServing ? Math.round(s.caloriesPerServing) : 350,
+        tag: 'Gợi ý từ tủ bếp',
+        matchedIngredients: s.availableIngredients.map((i) => i.name),
+        totalIngredients: s.availableIngredients.length + s.missingIngredients.length,
+        missingList: s.missingIngredients.map((i) => i.name),
+        matchPercent: Math.round(Number(s.matchPercent)),
+      }))
+    }
+  } catch {
+    // Fallback to client algorithm
+  }
+
+  await delay(300)
   const matches: RecipeMatch[] = REFERENCE_RECIPES.map((r) => {
     const matched: string[] = []
     r.ingredients.forEach((ing) => {
@@ -365,14 +501,14 @@ export async function getRecipeMatches(pantry: PantryItem[]): Promise<RecipeMatc
       matchPercent,
     }
   })
-  // Sắp xếp theo % khớp, nếu khớp 0 và totalMatched=0 -> ẩn bớt
+
   const filtered = matches
     .filter((m) => m.matchPercent >= 15)
     .sort((a, b) => {
       if (b.matchPercent !== a.matchPercent) return b.matchPercent - a.matchPercent
       return a.timeMin - b.timeMin
     })
-  // Đảm bảo có ít nhất 4-5 gợi ý tốt: nếu kết quả dưới 4, thêm top matches (kể cả <15%)
+
   if (filtered.length < 4) {
     const extras = matches
       .filter((m) => !filtered.includes(m))
