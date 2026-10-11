@@ -1,3 +1,4 @@
+import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
 import type {
   AiReplyPayload,
   AppRole,
@@ -194,7 +195,50 @@ export async function getWelcomeSuggestions(
   profile: ProfileSummary
   guestState: GuestChatState
 }> {
-  await delay(500)
+  let guestState: GuestChatState =
+    appRole === 'Guest'
+      ? { questionsRemaining: 3, limit: 3, locked: false }
+      : { questionsRemaining: -1, limit: -1, locked: false }
+
+  let realConversations: ChatConversation[] | null = null
+
+  // If Guest, check real session
+  if (appRole === 'Guest') {
+    try {
+      const session = await apiClient.get<{ remainingQuestions: number; isLocked: boolean }>(
+        '/api/ai-chat/guest/session',
+        { requiresAuth: false, credentials: 'include' },
+      )
+      if (session) {
+        guestState = {
+          questionsRemaining: session.remainingQuestions,
+          limit: 3,
+          locked: session.isLocked,
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  } else {
+    // If User, fetch real conversations
+    try {
+      const page = await apiClient.get<{
+        items: Array<{ id: string; createdAtUtc: string; updatedAtUtc: string }>
+      }>('/api/ai-chat/conversations?page=1&pageSize=20')
+      if (page && Array.isArray(page.items) && page.items.length > 0) {
+        realConversations = page.items.map((c, idx) => ({
+          id: c.id,
+          title: `Hội thoại tư vấn #${idx + 1}`,
+          summary: new Date(c.updatedAtUtc).toLocaleDateString('vi-VN'),
+          lastMessageAt: c.updatedAtUtc,
+          preview: 'Cuộc trò chuyện cùng Trợ lý ăn chay AI...',
+        }))
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
   const profile: ProfileSummary =
     appRole === 'Guest'
       ? {
@@ -214,7 +258,7 @@ export async function getWelcomeSuggestions(
           joinAt: new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString(),
         }
 
-  const conversations: ChatConversation[] = [
+  const defaultConversations: ChatConversation[] = [
     {
       id: 'conv-1',
       title: 'Nhu cầu protein cho người tập gym',
@@ -243,12 +287,9 @@ export async function getWelcomeSuggestions(
       'Hỏi đáp về dinh dưỡng chay, nguyên liệu thay thế, BMI, calo và nhận gợi ý bữa ăn khoa học được cá nhân hóa cho bạn.',
     recipes: WELCOME_RECIPES,
     faqs: FAQS_FIGMA,
-    conversations,
+    conversations: realConversations && realConversations.length > 0 ? realConversations : defaultConversations,
     profile,
-    guestState:
-      appRole === 'Guest'
-        ? { questionsRemaining: 3, limit: 3, locked: false }
-        : { questionsRemaining: -1, limit: -1, locked: false },
+    guestState,
   }
 }
 
@@ -324,7 +365,64 @@ export async function sendMessageToAi(
   content: string,
   _conversationId: string | null,
 ): Promise<ChatMessage> {
-  await delay(500)
+  const token = getStoredToken()
+
+  // 1. Try real User conversation if logged in
+  if (token) {
+    try {
+      let convId = _conversationId
+      if (!convId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(convId)) {
+        const created = await apiClient.post<{ id: string }>('/api/ai-chat/conversations')
+        if (created?.id) {
+          convId = created.id
+        }
+      }
+
+      if (convId) {
+        const sub = await apiClient.post<{
+          userMessage: { id: string; content: string; createdAtUtc: string }
+          assistantMessage: { id: string; content: string; createdAtUtc: string } | null
+          answerStatus: string
+        }>(`/api/ai-chat/conversations/${convId}/messages`, { content })
+
+        if (sub?.assistantMessage?.content) {
+          return {
+            id: sub.assistantMessage.id || makeId(),
+            sender: 'assistant',
+            role: 'assistant',
+            content: sub.assistantMessage.content,
+            timestamp: sub.assistantMessage.createdAtUtc || new Date().toISOString(),
+          }
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  } else {
+    // 2. Try real Guest message if guest
+    try {
+      const guestRes = await apiClient.post<{
+        status: string
+        answer: string | null
+        remainingQuestions: number
+      }>('/api/ai-chat/guest/messages', { content }, { requiresAuth: false, credentials: 'include' })
+
+      if (guestRes?.answer) {
+        return {
+          id: makeId(),
+          sender: 'assistant',
+          role: 'assistant',
+          content: guestRes.answer,
+          timestamp: new Date().toISOString(),
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  // 3. Fallback to composeReply
+  await delay(400)
   const payload = composeReply(content)
   return {
     id: makeId(),

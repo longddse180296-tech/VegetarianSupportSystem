@@ -1,3 +1,4 @@
+import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
 import type {
   ConfirmChecklistAnswers,
   FoodScanResult,
@@ -122,8 +123,60 @@ function randomScanId(): string {
   return `scan_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
+interface DishImageScanResult {
+  processingStatus: string
+  suggestedDishName: string
+  visibleIngredients: string[]
+  unknownFactors: string[]
+  followUpQuestions: string[]
+  errorCode: string | null
+  note: string | null
+}
+
+interface BackendEvaluation {
+  assessments: Array<{
+    diet: string
+    status: 'SuitableBasedOnProvidedInformation' | 'Incompatible' | 'InsufficientInformation'
+  }>
+  allergenWarnings?: string[]
+  avoidedFoodWarnings?: string[]
+}
+
 export async function startScan(form: ScanInputForm): Promise<FoodScanResult> {
-  await delay(500)
+  // If image provided and user is authenticated, call real backend vision scan
+  if (form.imageFile && getStoredToken()) {
+    try {
+      const formData = new FormData()
+      formData.append('image', form.imageFile)
+      const res = await apiClient.request<DishImageScanResult>('/api/food-scans/dish-image', {
+        method: 'POST',
+        body: formData,
+        requiresAuth: true,
+      })
+
+      if (res && res.processingStatus) {
+        const dishName = res.suggestedDishName || form.productName || 'Món ăn nhận diện từ ảnh'
+        const total = (res.visibleIngredients?.length || 0) + (res.unknownFactors?.length || 0)
+        return {
+          scanId: randomScanId(),
+          status: 'insufficient',
+          productName: dishName,
+          scannedAt: new Date().toISOString(),
+          flaggedIngredients: [],
+          safeIngredientsCount: res.visibleIngredients?.length || 0,
+          totalIngredientsCount: Math.max(1, total),
+          note:
+            res.note ||
+            'Hệ thống đã nhận diện các nguyên liệu nhìn thấy. Vui lòng hoàn thành xác nhận thêm về nước dùng, gia vị và mỡ nấu.',
+          basedOn: ['image'],
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  await delay(400)
   const analysis = detectStatusFromInput(form, null)
   const total = Math.max(4, form.ingredientText.split(/[,.;]/).filter((p) => p.trim()).length)
   return {
@@ -146,7 +199,81 @@ export async function confirmScan(
   form: ScanInputForm,
   confirm: ConfirmChecklistAnswers,
 ): Promise<FoodScanResult> {
-  await delay(500)
+  // If user is authenticated, try calling real evaluate endpoint
+  if (getStoredToken()) {
+    try {
+      // 1 = Plant, 2 = Egg, 3 = Dairy, 4 = Honey, 5 = Animal, 0 = Unknown
+      const ingredients: Array<{ name: string; kind: number }> = []
+      if (confirm.hasBoneBroth === true) ingredients.push({ name: 'Nước dùng xương', kind: 5 })
+      if (confirm.hasFishSauce === true) ingredients.push({ name: 'Nước mắm', kind: 5 })
+      if (confirm.hasAnimalFat === true) ingredients.push({ name: 'Mỡ động vật', kind: 5 })
+      if (confirm.hasHoneyOrEgg === true) ingredients.push({ name: 'Trứng/Mật ong', kind: 2 })
+      if (confirm.hasHiddenDairy === true) ingredients.push({ name: 'Chất từ sữa', kind: 3 })
+
+      const textParts = form.ingredientText
+        .split(/[,.;\n]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+      for (const p of textParts) {
+        const isDanger = DANGER_KEYWORDS.some((k) => p.toLowerCase().includes(k))
+        ingredients.push({ name: p, kind: isDanger ? 5 : 1 })
+      }
+      if (ingredients.length === 0) {
+        ingredients.push({ name: 'Nguyên liệu thông thường', kind: 1 })
+      }
+
+      const evalRes = await apiClient.post<BackendEvaluation>('/api/food-scans/evaluate', {
+        ingredients,
+        ingredientsComplete: confirm.sourceLabelImageProvided === true,
+      })
+
+      if (evalRes && Array.isArray(evalRes.assessments)) {
+        const vegan = evalRes.assessments.find((a) => a.diet === 'Vegan')
+        let status: ScanStatus = 'insufficient'
+        if (vegan?.status === 'SuitableBasedOnProvidedInformation') {
+          status = 'suitable'
+        } else if (vegan?.status === 'Incompatible') {
+          status = 'unsuitable'
+        }
+
+        const flagged: FlaggedIngredient[] = ingredients
+          .filter((i) => i.kind === 5 || i.kind === 2 || i.kind === 3)
+          .map((i, idx) => ({
+            id: `f_${idx}`,
+            name: i.name,
+            enumber: null,
+            source: 'Thành phần từ động vật hoặc sản phẩm động vật',
+            detail: 'Không phù hợp với chế độ thuần thực vật theo thông tin bạn đã xác nhận.',
+            confidence: 0.95,
+          }))
+
+        return {
+          scanId: randomScanId(),
+          status,
+          productName: form.productName || 'Món ăn đã kiểm tra',
+          scannedAt: new Date().toISOString(),
+          flaggedIngredients: flagged,
+          safeIngredientsCount: Math.max(0, ingredients.length - flagged.length),
+          totalIngredientsCount: ingredients.length,
+          note:
+            status === 'suitable'
+              ? 'Theo thông tin bạn đã xác nhận, không phát hiện thành phần động vật.'
+              : status === 'unsuitable'
+                ? 'Đã phát hiện thành phần không phù hợp với chế độ thuần thực vật theo thông tin đã cung cấp.'
+                : 'Chưa đủ thông tin để kết luận chắc chắn. Vui lòng kiểm tra kỹ nhãn hoặc hỏi rõ nhà sản xuất.',
+          basedOn: [
+            ...(form.imagePreview ? (['image'] as const) : []),
+            ...(form.ingredientText.trim().length >= 20 ? (['ingredient-text'] as const) : []),
+            'confirm-checklist',
+          ],
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  await delay(400)
   const analysis = detectStatusFromInput(form, confirm)
   const total = Math.max(5, form.ingredientText.split(/[,.;]/).filter((p) => p.trim()).length)
   return {
