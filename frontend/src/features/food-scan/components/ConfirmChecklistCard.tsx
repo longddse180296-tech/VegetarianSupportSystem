@@ -1,194 +1,233 @@
-import { ArrowLeft, CheckCircle2, CheckSquare } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { Button } from '../../../shared/components'
 import {
-  Button,
-  SkeletonLoader,
-  StatusBadge,
-} from '../../../shared/components'
-import type { ConfirmChecklistAnswers, FoodScanResult, ScanInputForm } from '../types/foodScan.types'
-
-export interface ConfirmQuestion {
-  key: keyof ConfirmChecklistAnswers
-  question: string
-  hint: string
-}
+  INGREDIENT_KIND_LABELS,
+  INGREDIENT_SOURCE_LABELS,
+  type ScanAnalysis,
+} from '../api/foodScanApi'
+import type { DraftIngredient, IngredientKind } from '../types/foodScan.types'
 
 export interface ConfirmChecklistCardProps {
-  questions: ConfirmQuestion[]
-  answers: ConfirmChecklistAnswers
-  countAnswered: number
-  isScanning: boolean
-  onAnswer: (key: keyof ConfirmChecklistAnswers, value: boolean | null) => void
-  form: ScanInputForm
-  resultAfterFirstScan: FoodScanResult | null
-  onConfirmFinish: () => void
-  onBackToScanner: () => void
+  analysis: ScanAnalysis
+  ingredients: DraftIngredient[]
+  correctedLabelText: string
+  labelIncomplete: boolean
+  resolvedQuestions: string[]
+  ingredientsComplete: boolean
+  isSaving: boolean
+  onIngredientsChange: (value: DraftIngredient[]) => void
+  onCorrectedLabelTextChange: (value: string) => void
+  onLabelIncompleteChange: (value: boolean) => void
+  onToggleQuestion: (question: string) => void
+  onIngredientsCompleteChange: (value: boolean) => void
+  onParseLabel: () => void
+  onEvaluate: () => void
+  onBack: () => void
 }
 
 export default function ConfirmChecklistCard({
-  questions,
-  answers,
-  countAnswered,
-  isScanning,
-  onAnswer,
-  form,
-  resultAfterFirstScan,
-  onConfirmFinish,
-  onBackToScanner,
+  analysis,
+  ingredients,
+  correctedLabelText,
+  labelIncomplete,
+  resolvedQuestions,
+  ingredientsComplete,
+  isSaving,
+  onIngredientsChange,
+  onCorrectedLabelTextChange,
+  onLabelIncompleteChange,
+  onToggleQuestion,
+  onIngredientsCompleteChange,
+  onParseLabel,
+  onEvaluate,
+  onBack,
 }: ConfirmChecklistCardProps) {
-  return (
-    <section className="grid gap-6 lg:grid-cols-[1.25fr_minmax(0,0.9fr)]">
-      <div className="flex flex-col gap-5">
-        <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-5 shadow-xs">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-base font-bold text-[#1f2937]">
-                Bộ câu hỏi kiểm tra bổ sung
-              </h2>
-              <p className="mt-1 text-xs text-[#6b7280]">
-                Trả lời hết {questions.length} câu hỏi để hệ thống có đủ cơ sở tham chiếu trước khi
-                trả kết quả cuối.
-              </p>
-            </div>
-            <StatusBadge
-              status="info"
-              label={`${countAnswered} / ${questions.length} đã trả lời`}
-              size="sm"
-            />
-          </div>
+  const questions = analysis.sourceType === 'Dish'
+    ? [...new Set([...analysis.data.unknownFactors, ...analysis.data.followUpQuestions])]
+    : []
+  const allConfirmed = ingredients.length > 0 && ingredients.every((item) =>
+    item.name.trim() && item.kind !== 'Unknown' &&
+    (item.source === 'UserConfirmed' || item.source === 'UserEdited'),
+  )
+  const canMarkComplete = allConfirmed &&
+    questions.every((question) => resolvedQuestions.includes(question)) &&
+    !labelIncomplete
 
-          {isScanning ? (
-            <div className="py-4">
-              <SkeletonLoader count={5} variant="text" />
-            </div>
-          ) : (
-            <ul className="space-y-4">
-              {questions.map((q, idx) => {
-                const answer = answers[q.key]
-                return (
-                  <li
-                    key={q.key}
-                    className="rounded-[12px] border border-[#e5e7eb] bg-slate-50/70 p-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[#2e7d32] ring-1 ring-[#c8e6c9]">
-                        {idx + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-[#1f2937]">
-                          {q.question}
-                        </div>
-                        <div className="mt-0.5 text-xs text-[#6b7280]">{q.hint}</div>
-                        <div className="mt-3 inline-flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={answer === true ? 'danger' : 'outline'}
-                            onClick={() => onAnswer(q.key, true)}
-                          >
-                            Có / Rất có thể
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={answer === false ? 'primary' : 'outline'}
-                            onClick={() => onAnswer(q.key, false)}
-                          >
-                            Không / Theo nhãn là không
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={answer === null ? 'secondary' : 'ghost'}
-                            onClick={() => onAnswer(q.key, null)}
-                          >
-                            {answer === null ? 'Tôi chưa chắc / bỏ qua' : 'Đã bỏ qua'}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
+  const updateIngredient = (id: string, changes: Partial<DraftIngredient>) => {
+    onIngredientsChange(ingredients.map((item) =>
+      item.id === id ? { ...item, ...changes, source: 'UserEdited' } : item,
+    ))
+  }
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-5 shadow-xs">
+        <h2 className="text-lg font-bold text-[#1f2937]">Xác nhận thông tin từ BE</h2>
+        <p className="mt-1 text-sm text-[#6b7280]">
+          AI/OCR chỉ gợi ý. Hãy sửa thông tin sai, chọn loại nguyên liệu và bổ sung phần ảnh không chứng minh được.
+        </p>
+        {analysis.sourceType === 'Dish' ? (
+          <div className="mt-4 rounded-xl bg-[#e8f5e9] p-4">
+            <p className="text-xs font-bold text-[#2e7d32]">Tên món AI gợi ý</p>
+            <p className="mt-1 font-semibold">{analysis.data.suggestedDishName || 'Chưa nhận diện được tên món'}</p>
+            <p className="mt-2 text-xs text-[#6b7280]">{analysis.data.note}</p>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <label className="block text-sm font-semibold" htmlFor="corrected-label-text">
+              Chữ OCR trên nhãn — sửa lại trước khi đánh giá
+            </label>
+            <textarea
+              id="corrected-label-text"
+              rows={6}
+              maxLength={10000}
+              className="w-full rounded-xl border border-[#e5e7eb] p-3 text-sm"
+              value={correctedLabelText}
+              onChange={(event) => onCorrectedLabelTextChange(event.target.value)}
+              placeholder="Nhập lại phần thành phần đọc được trên nhãn"
+            />
+            <Button type="button" variant="outline" size="sm" onClick={onParseLabel}>
+              Cập nhật danh sách nguyên liệu từ chữ đã sửa
+            </Button>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={labelIncomplete}
+                onChange={(event) => onLabelIncompleteChange(event.target.checked)}
+                className="mt-1"
+              />
+              <span>Nhãn vẫn bị cắt, mờ hoặc thiếu phần thành phần</span>
+            </label>
+            {analysis.data.isIncomplete && (
+              <p className="text-xs text-amber-800">BE đánh dấu ảnh nhãn ban đầu chưa đọc đủ. Chỉ bỏ dấu thiếu khi bạn đã kiểm tra và bổ sung được phần còn lại.</p>
+            )}
+          </div>
+        )}
       </div>
 
-      <aside className="flex flex-col gap-5">
-        <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-5 shadow-xs">
-          <h3 className="mb-3 text-sm font-bold text-[#1f2937]">Tóm tắt thông tin đã nhập</h3>
-          {isScanning ? (
-            <SkeletonLoader count={4} variant="text" />
-          ) : (
-            <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-xs font-bold text-[#6b7280]">Tên sản phẩm</dt>
-                <dd className="text-[#1f2937]">
-                  {form.productName || <span className="text-[#6b7280]">(chưa nhập)</span>}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-[#6b7280]">Thương hiệu</dt>
-                <dd className="text-[#1f2937]">
-                  {form.productBrand || <span className="text-[#6b7280]">(chưa nhập)</span>}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-[#6b7280]">Ảnh nhãn</dt>
-                <dd className="text-[#1f2937]">
-                  {form.imagePreview ? (
-                    <span className="inline-flex items-center gap-1 font-semibold text-[#2e7d32]">
-                      <CheckCircle2 size={12} /> Đã cung cấp
-                    </span>
-                  ) : (
-                    <span className="text-[#6b7280]">Chưa cung cấp ảnh</span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold text-[#6b7280]">Thành phần</dt>
-                <dd className="line-clamp-4 text-xs leading-5 text-[#1f2937]">
-                  {form.ingredientText || (
-                    <span className="text-[#6b7280]">(chưa nhập)</span>
-                  )}
-                </dd>
-              </div>
-              {resultAfterFirstScan && (
-                <div className="mt-2 border-t border-[#e5e7eb] pt-3">
-                  <dt className="mb-1.5 text-xs font-bold text-[#6b7280]">
-                    Trạng thái bước 1 (sau khi quét lần đầu)
-                  </dt>
-                  <StatusBadge status={resultAfterFirstScan.status} />
-                </div>
-              )}
-            </dl>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Button
-            type="button"
-            variant="primary"
-            size="lg"
-            fullWidth
-            isLoading={isScanning}
-            leftIcon={<CheckSquare size={15} />}
-            onClick={onConfirmFinish}
-          >
-            Xác nhận & Xem kết quả
-          </Button>
+      <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-5 shadow-xs">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-bold">Nguyên liệu để BE đánh giá</h3>
+            <p className="mt-1 text-xs text-[#6b7280]">Gợi ý chưa xác nhận và loại “Chưa rõ” không được tính là nguyên liệu thực vật.</p>
+          </div>
           <Button
             type="button"
             variant="outline"
-            size="md"
-            fullWidth
-            leftIcon={<ArrowLeft size={14} />}
-            onClick={onBackToScanner}
+            size="sm"
+            leftIcon={<Plus size={13} />}
+            disabled={ingredients.length >= 100}
+            onClick={() => onIngredientsChange([
+              ...ingredients,
+              { id: crypto.randomUUID(), name: '', kind: 'Unknown', source: 'UserEdited' },
+            ])}
           >
-            Quay lại chỉnh sửa ảnh / thành phần
+            Thêm
           </Button>
         </div>
-      </aside>
+
+        {ingredients.length === 0 && (
+          <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+            Chưa có nguyên liệu. Bạn có thể thêm thủ công; BE sẽ trả “chưa đủ thông tin” nếu không có dữ kiện xác nhận.
+          </p>
+        )}
+        <div className="mt-4 space-y-3">
+          {ingredients.map((item) => (
+            <div key={item.id} className="rounded-xl border border-[#e5e7eb] p-3">
+              <div className="grid gap-2 sm:grid-cols-[1fr_10rem_auto]">
+                <input
+                  aria-label="Tên nguyên liệu"
+                  maxLength={200}
+                  value={item.name}
+                  onChange={(event) => updateIngredient(item.id, { name: event.target.value })}
+                  className="min-w-0 rounded-lg border border-[#e5e7eb] px-3 py-2 text-sm"
+                  placeholder="Tên nguyên liệu"
+                />
+                <select
+                  aria-label={`Loại của ${item.name || 'nguyên liệu'}`}
+                  value={item.kind}
+                  onChange={(event) => updateIngredient(item.id, { kind: event.target.value as IngredientKind })}
+                  className="rounded-lg border border-[#e5e7eb] px-2 py-2 text-sm"
+                >
+                  {Object.entries(INGREDIENT_KIND_LABELS).map(([kind, label]) => (
+                    <option key={kind} value={kind}>{label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  aria-label={`Xóa ${item.name || 'nguyên liệu'}`}
+                  onClick={() => onIngredientsChange(ingredients.filter((entry) => entry.id !== item.id))}
+                  className="rounded-lg px-2 text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span>{INGREDIENT_SOURCE_LABELS[item.source]}</span>
+                {(item.source === 'AiSuggested' || item.source === 'LabelOcr') && (
+                  <button
+                    type="button"
+                    className="font-bold text-[#2e7d32] underline"
+                    onClick={() => onIngredientsChange(ingredients.map((entry) =>
+                      entry.id === item.id ? { ...entry, source: 'UserConfirmed' } : entry,
+                    ))}
+                  >
+                    Xác nhận nguyên liệu này
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {questions.length > 0 && (
+        <div className="rounded-[16px] border border-amber-200 bg-amber-50 p-5 shadow-xs">
+          <h3 className="font-bold text-amber-900">Yếu tố BE chưa xác định từ ảnh</h3>
+          <p className="mt-1 text-xs text-amber-900">Đánh dấu đã làm rõ sau khi xác nhận thông tin và thêm nguyên liệu liên quan ở trên. Mục chưa rõ sẽ được lưu vào kết quả.</p>
+          <ul className="mt-3 space-y-3">
+            {questions.map((question) => (
+              <li key={question}>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={resolvedQuestions.includes(question)}
+                    onChange={() => onToggleQuestion(question)}
+                    className="mt-1"
+                  />
+                  <span>{question}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="rounded-[16px] border border-[#e5e7eb] bg-white p-5 shadow-xs">
+        <label className="flex items-start gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={ingredientsComplete && canMarkComplete}
+            disabled={!canMarkComplete}
+            onChange={(event) => onIngredientsCompleteChange(event.target.checked)}
+            className="mt-1"
+          />
+          <span>Tôi đã xác nhận đầy đủ nguyên liệu liên quan, kể cả gia vị, nước dùng và thành phần ẩn.</span>
+        </label>
+        {!canMarkComplete && (
+          <p className="mt-2 text-xs text-amber-800">
+            Còn gợi ý chưa xác nhận, nguyên liệu chưa rõ, câu hỏi chưa giải đáp hoặc nhãn còn thiếu. Bạn vẫn có thể lưu kết quả “chưa đủ thông tin”.
+          </p>
+        )}
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Button type="button" onClick={onEvaluate} isLoading={isSaving} disabled={isSaving || ingredients.some((item) => !item.name.trim())}>
+            Đánh giá và lưu kết quả
+          </Button>
+          <Button type="button" variant="outline" onClick={onBack} leftIcon={<ArrowLeft size={14} />} disabled={isSaving}>
+            Quay lại ảnh
+          </Button>
+        </div>
+      </div>
     </section>
   )
 }

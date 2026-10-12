@@ -96,7 +96,7 @@ Quyền phải kiểm tra ở phía hệ thống, không chỉ ẩn nút trên g
 
 ### Luồng chính
 
-Bài viết: Bản nháp → Gửi duyệt → AI đang kiểm tra → AI hoàn tất → Chờ Admin → Đã xuất bản / Yêu cầu chỉnh sửa / Bị từ chối.
+Bài viết: Bản nháp → Gửi duyệt → AI đang kiểm tra → AI có kết quả hoặc kiểm tra thất bại → Chờ Admin → Đã xuất bản / Yêu cầu chỉnh sửa / Bị từ chối.
 
 Video: Bản nháp → Gửi duyệt → Chờ Admin xem trực tiếp → Đã xuất bản / Yêu cầu chỉnh sửa / Bị từ chối.
 
@@ -104,7 +104,7 @@ Video: Bản nháp → Gửi duyệt → Chờ Admin xem trực tiếp → Đã 
 - AI chỉ cung cấp tín hiệu và bằng chứng, không tự xuất bản, xóa nội dung hoặc khóa tài khoản.
 - Kết quả AI được lưu riêng với quyết định Admin; không dùng một trạng thái chung gây nhầm lẫn.
 - Kết quả AI gồm: không phát hiện vấn đề trong phạm vi đã kiểm tra, có cờ cần xem xét, kiểm tra chưa đầy đủ, lỗi xử lý.
-- Lỗi AI không được coi là đạt; nội dung vẫn chưa công khai. Cho thử lại. Nếu chỉ kiểm tra được một phần, Admin thấy rõ phần chưa kiểm tra và phải xem trực tiếp trước quyết định.
+- Lỗi AI không được coi là đạt và không tự công khai. Bản gửi vẫn vào hàng đợi Admin với trạng thái `Failed` riêng; Admin phải xem trực tiếp toàn bộ bài viết và ghi lý do khi duyệt, yêu cầu sửa hoặc từ chối. Nếu chỉ kiểm tra được một phần, Admin thấy rõ phần chưa kiểm tra và phải xem trực tiếp trước quyết định.
 - Admin có thể không đồng ý với cờ AI; quyết định cần lý do và được ghi nhật ký.
 - Sau yêu cầu sửa/từ chối, User sửa và gửi lại sẽ tạo phiên bản kiểm tra mới.
 - Khi sửa nội dung đang công khai: giữ phiên bản đã được duyệt; bản sửa là phiên bản riêng, chỉ thay thế sau khi hoàn tất quy trình duyệt tương ứng.
@@ -272,7 +272,7 @@ Nếu User xác nhận đầy đủ thành phần là thực vật: Phù hợp t
 7. Nhãn bị cắt/mờ cho sửa hoặc chụp lại; không mặc định phần thiếu là thành phần thực vật.
 8. Không có kết luận “an toàn dị ứng” chỉ từ ảnh hoặc nhãn không đầy đủ.
 9. Bài viết/video không được công khai trước Admin duyệt; video không chạy AI.
-10. AI bài viết lỗi → không xuất bản; kiểm tra một phần phải hiển thị rõ phạm vi còn thiếu cho Admin.
+10. AI bài viết lỗi → chuyển cho Admin xem trực tiếp, chỉ xuất bản sau quyết định của Admin; kiểm tra một phần phải hiển thị rõ phạm vi còn thiếu cho Admin.
 11. Sửa nội dung đã đăng tạo phiên bản mới để duyệt; không thay bản công khai ngay.
 12. Món trong thực đơn có ID công thức thật; không tự bỏ điều kiện dị ứng khi thiếu món.
 13. Đổi món cập nhật tổng dinh dưỡng và danh sách đi chợ; 7 ngày có đúng 3 bữa chính/ngày.

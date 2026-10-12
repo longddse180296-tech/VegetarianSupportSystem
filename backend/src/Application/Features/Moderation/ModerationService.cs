@@ -125,6 +125,9 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         CancellationToken cancellationToken)
     {
         var submission = await GetOwnedAsync(submissionId, ownerUserId, cancellationToken);
+        var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
+        if (latest?.Id != submission.Id)
+            throw new ModerationException(ModerationError.Conflict, "Cannot retry AI on an older version.");
 
         try
         {
@@ -231,7 +234,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
                 throw new ModerationException(ModerationError.Conflict, "Cannot approve an older version.");
             var readyForAdmin = submission.ContentType == ModeratedContentType.Video
                 ? submission.AiFlagStatus == AiFlagStatus.NotSubmitted
-                : submission.AiFlagStatus is AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial;
+                : submission.AiFlagStatus is AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial or AiFlagStatus.Failed;
             if (submission.AdminReviewStatus != AdminReviewStatus.PendingAdminReview
                 || !readyForAdmin)
             {

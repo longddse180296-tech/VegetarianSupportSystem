@@ -5,6 +5,7 @@ import {
 } from '../../../../shared/components/SharedDataTable'
 import { Modal } from '../../../../shared/components/Modal'
 import { getStoredToken } from '../../../../shared/api/apiClient'
+import { RichContentRenderer } from '../../../articles/components/RichContentRenderer'
 import { AdminFrame, Feedback } from '../../components/ApiWorkspace'
 import { useApiData } from '../../hooks/useApiData'
 import {
@@ -54,7 +55,10 @@ export function AiReview({ submission }: { submission: Submission }) {
           ),
       )}
       {submission.aiFlagStatus === 'Failed' && (
-        <p>AI chưa hoàn tất kiểm tra. Tác giả có thể thử lại.</p>
+        <p className="font-semibold text-amber-900">
+          AI không hoàn tất kiểm tra. Đây không phải kết quả đạt; Admin cần xem
+          trực tiếp toàn bộ nội dung trước khi quyết định.
+        </p>
       )}
       {submission.aiFlagStatus === 'Partial' &&
         !submission.aiUncheckedScope && (
@@ -123,6 +127,36 @@ function PrivateVideo({ submission }: { submission: Submission }) {
         </a>
       )}
     </div>
+  )
+}
+
+function ArticleSubmissionPreview({ submission }: { submission: Submission }) {
+  return (
+    <section aria-label="Xem trước bài viết đã gửi" className="space-y-3">
+      <div>
+        <h4 className="text-base font-bold text-slate-900">Xem trước bài viết</h4>
+        <p className="text-xs text-slate-500">
+          Nội dung của phiên bản {submission.version} đã gửi, chưa công khai.
+        </p>
+      </div>
+      <article className="overflow-hidden rounded-2xl border bg-white">
+        {submission.mediaReference &&
+          /^https?:\/\//i.test(submission.mediaReference) && (
+            <img
+              src={submission.mediaReference}
+              alt="Ảnh đại diện bài viết đã gửi"
+              referrerPolicy="no-referrer"
+              className="max-h-72 w-full object-cover"
+            />
+          )}
+        <div className="space-y-4 p-5 sm:p-6">
+          <h3 className="text-2xl font-extrabold text-[#184d28]">
+            {submission.title}
+          </h3>
+          <RichContentRenderer content={submission.textContent} />
+        </div>
+      </article>
+    </section>
   )
 }
 
@@ -213,7 +247,9 @@ export function ModerationWorkspace({
           className="fe1-link text-sm font-bold text-emerald-800"
           onClick={() => void open(item.id)}
         >
-          Xem / kiểm duyệt
+          {item.contentType === 'Article' && item.aiFlagStatus === 'Failed'
+            ? 'Xem trước / duyệt thủ công'
+            : 'Xem / kiểm duyệt'}
         </button>
       ),
     },
@@ -297,23 +333,17 @@ export function ModerationWorkspace({
               {adminStatusLabels[selected.adminReviewStatus]} ·{' '}
               {formatDate(selected.submittedAt)}
             </p>
-            <p className="whitespace-pre-wrap break-words">
-              {selected.textContent}
-            </p>
-            {selected.contentType === 'Article' &&
-              selected.mediaReference &&
-              /^https?:\/\//i.test(selected.mediaReference) && (
-                <img
-                  src={selected.mediaReference}
-                  alt="Ảnh kèm bài viết"
-                  referrerPolicy="no-referrer"
-                  className="w-full max-h-96 rounded-xl object-contain"
-                />
-              )}
+            <AiReview submission={selected} />
+            {selected.contentType === 'Article' ? (
+              <ArticleSubmissionPreview submission={selected} />
+            ) : (
+              <p className="whitespace-pre-wrap break-words">
+                {selected.textContent}
+              </p>
+            )}
             {selected.contentType === 'Video' && selected.mediaReference && (
               <PrivateVideo key={selected.id} submission={selected} />
             )}
-            <AiReview submission={selected} />
             <h4 className="font-bold">Lịch sử quyết định</h4>
             {selected.decisions.length ? (
               selected.decisions.map((item) => (

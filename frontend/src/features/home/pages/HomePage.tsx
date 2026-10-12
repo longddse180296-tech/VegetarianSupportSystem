@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
-  Bookmark,
   Calendar,
   Check,
   ChevronRight,
@@ -15,137 +14,17 @@ import {
   Sparkles,
   User,
 } from 'lucide-react'
-import { getRecipes } from '../../recipes/api/recipeApi'
-import { getRestaurants } from '../../restaurants/api/restaurantApi'
-import { getVideos } from '../../videos/api/videoApi'
+import { listVideos, type VideoDetails } from '../../videos/api/backendVideos'
+import { apiClient } from '../../../shared/api/apiClient'
+import { EmptyState, SkeletonLoader } from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
 
 interface HomePageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
-// Data seeds strictly adhering to Figma Design
 const QUICK_TAGS = ['Đậu hũ', 'Nấm', 'Salad bơ', 'Canh chua']
-
-const HOMEPAGE_RECIPES = [
-  {
-    id: 'dau-hu-sot-nam',
-    title: 'Đậu hũ sốt nấm',
-    tag: 'Món chính',
-    cookTime: '20 phút',
-    calories: '380 kcal',
-    imageUrl:
-      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'com-gao-lut-rau-cu',
-    title: 'Cơm gạo lứt rau củ',
-    tag: 'Món chính',
-    cookTime: '15 phút',
-    calories: '320 kcal',
-    imageUrl:
-      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'salad-bo-va-dau-ga',
-    title: 'Salad bơ và đậu gà',
-    tag: 'Salad',
-    cookTime: '10 phút',
-    calories: '290 kcal',
-    imageUrl:
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'bun-chay-thanh-dam',
-    title: 'Bún chay thanh đạm',
-    tag: 'Món nước',
-    cookTime: '25 phút',
-    calories: '410 kcal',
-    imageUrl:
-      'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80',
-  },
-]
-
-const HOMEPAGE_ARTICLES = [
-  {
-    id: 'art-1',
-    title: 'Làm sao để bổ sung đủ đạm khi ăn chay trường?',
-    author: 'BS. Hoàng Nam',
-    date: '15/05/2026',
-    excerpt:
-      'Ăn chay đúng phương pháp không chỉ thanh lọc hệ tiêu hóa mà còn cung cấp đầy đủ các chuỗi axit amin thiết yếu cho cơ thể...',
-    imageUrl:
-      'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'art-2',
-    title: 'Top 5 nguồn đạm thực vật lý tưởng giúp người tập gym phát triển cơ',
-    author: 'Lan Anh',
-    date: '14/05/2026',
-    excerpt:
-      'Khám phá các loại đậu hạt giàu protein, BCAAs tự nhiên giúp phát triển và duy trì khối lượng cơ bắp bền bỉ...',
-    imageUrl:
-      'https://images.unsplash.com/photo-1514733670139-4d87a1941d55?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'art-3',
-    title: 'Hướng dẫn xây dựng thực đơn ăn chay theo chuẩn dinh dưỡng',
-    author: 'Chuyên gia Minh Anh',
-    date: '12/05/2026',
-    excerpt:
-      'Từng bước cân đối 4 nhóm dưỡng chất thiết yếu để có những bữa ăn vừa ngon miệng vừa tràn đầy sinh lực...',
-    imageUrl:
-      'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600&q=80',
-  },
-]
-
-const HOMEPAGE_VIDEOS = [
-  {
-    id: 'vid-1',
-    title: 'Bí quyết làm sốt nấm thơm ngon chuẩn vị',
-    duration: '08:45',
-    author: 'Chef Minh Tuấn',
-    imageUrl:
-      'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'vid-2',
-    title: 'Nấu canh dưỡng sinh bồi bổ cơ thể không cần mì chính',
-    duration: '10:12',
-    author: 'Bác sĩ Hoàng Nam',
-    imageUrl:
-      'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'vid-3',
-    title: '3 loại sinh tố xanh giàu năng lượng cho buổi sáng tràn đầy',
-    duration: '06:30',
-    author: 'Lan Anh',
-    imageUrl:
-      'https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=600&q=80',
-  },
-]
-
-const HOMEPAGE_RESTAURANTS = [
-  {
-    id: 'an-lac',
-    name: 'Nhà hàng Chay An Lạc',
-    address: '43 Nguyễn Đình Chính, Quận Phú Nhuận, TP.HCM',
-    distance: '1.2 km',
-    isOpen: true,
-    imageUrl:
-      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 'moc-nhien',
-    name: 'Tiệm Chay Mộc Nhiên',
-    address: '391/8 Sư Vạn Hạnh, Phường 12, Quận 10, TP.HCM',
-    distance: '2.4 km',
-    isOpen: true,
-    imageUrl:
-      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
-  },
-]
 
 const AI_SAMPLE_QUESTIONS = [
   'Món này có chay không?',
@@ -153,66 +32,106 @@ const AI_SAMPLE_QUESTIONS = [
   'Gợi ý thực đơn hôm nay',
 ]
 
+interface HomeRecipeItem {
+  id: string
+  title: string
+  tag: string
+  cookTime: string
+  calories: string
+  imageUrl: string
+}
+
+interface HomeRestaurantItem {
+  id: string
+  name: string
+  address: string
+  distance: string
+  imageUrl: string
+}
+
+interface HomeArticleItem {
+  id: string
+  title: string
+  author: string
+  date: string
+  excerpt: string
+  imageUrl: string
+}
+
 export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [teaserInput, setTeaserInput] = useState('')
-  const [recipes, setRecipes] = useState(HOMEPAGE_RECIPES)
-  const [videos, setVideos] = useState(HOMEPAGE_VIDEOS)
-  const [restaurants, setRestaurants] = useState(HOMEPAGE_RESTAURANTS)
+  const [recipes, setRecipes] = useState<HomeRecipeItem[]>([])
+  const [videos, setVideos] = useState<VideoDetails[]>([])
+  const [restaurants, setRestaurants] = useState<HomeRestaurantItem[]>([])
+  const [articles, setArticles] = useState<HomeArticleItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadErrors, setLoadErrors] = useState<string[]>([])
 
   // Load real data from services
   useEffect(() => {
     let isMounted = true
     void (async () => {
-      try {
-        const [recRes, restRes, vidRes] = await Promise.all([
-          getRecipes({}),
-          getRestaurants({}),
-          getVideos({}),
+        const results = await Promise.allSettled([
+          apiClient.get<{ items: Array<{
+            id: string; name: string; categoryName: string; cookTimeMinutes: number
+            caloriesPerServing: number | null; imageUrl: string | null
+          }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false }),
+          apiClient.get<{ items: Array<{
+            id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null
+          }> }>('/api/restaurants?pageNumber=1&pageSize=2', { requiresAuth: false }),
+          listVideos(),
+          apiClient.get<{ items: Array<{
+            id: string; title: string; category: string; publishedAt: string; coverImageUrl: string | null
+          }> }>('/api/articles?page=1&pageSize=3', { requiresAuth: false }),
         ])
         if (!isMounted) return
-        if (recRes && recRes.items && recRes.items.length > 0) {
+        const [recipeResult, restaurantResult, videoResult, articleResult] = results
+
+        if (recipeResult.status === 'fulfilled') {
           setRecipes(
-            recRes.items.slice(0, 4).map((r) => ({
+            recipeResult.value.items.map((r) => ({
               id: r.id,
-              title: r.title,
-              tag: r.category || 'Món chính',
-              cookTime: `${r.cookTimeMinutes || 20} phút`,
-              calories: `${r.calories || r.nutrition?.kcal || 350} kcal`,
-              imageUrl:
-                r.imageUrl ||
-                'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+              title: r.name,
+              tag: r.categoryName,
+              cookTime: `${r.cookTimeMinutes} phút`,
+              calories: r.caloriesPerServing == null ? 'Chưa có dữ liệu calo' : `${Math.round(r.caloriesPerServing)} kcal`,
+              imageUrl: r.imageUrl || '',
             })),
           )
         }
-        if (restRes && restRes.items && restRes.items.length > 0) {
+
+        if (restaurantResult.status === 'fulfilled') {
           setRestaurants(
-            restRes.items.slice(0, 2).map((res) => ({
+            restaurantResult.value.items.map((res) => ({
               id: res.id,
               name: res.name,
               address: res.address,
-              distance: `${res.distanceKm || 1.5} km`,
-              isOpen: true,
-              imageUrl: res.imageUrl,
+              distance: res.distanceKm == null ? 'Chưa có khoảng cách' : `${res.distanceKm} km`,
+              imageUrl: res.imageUrl || '',
             })),
           )
         }
-        if (vidRes && vidRes.items && vidRes.items.length > 0) {
-          setVideos(
-            vidRes.items.slice(0, 3).map((v) => ({
-              id: v.id,
-              title: v.title,
-              duration: v.duration || '10:00',
-              author: v.creatorName || v.author?.name || 'Thành viên Bếp Chay',
-              imageUrl:
-                v.thumbnailUrl ||
-                'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80',
-            })),
-          )
+
+        if (videoResult.status === 'fulfilled') {
+          setVideos(videoResult.value.slice(0, 3))
         }
-      } catch {
-        // Fallback to seeds gracefully
-      }
+
+        if (articleResult.status === 'fulfilled') {
+            setArticles(
+              articleResult.value.items.map((a) => ({
+                id: a.id,
+                title: a.title,
+                author: 'Thành viên',
+                date: new Date(a.publishedAt).toLocaleDateString('vi-VN'),
+                excerpt: a.category,
+                imageUrl: a.coverImageUrl || '',
+              })),
+            )
+        }
+        const labels = ['công thức', 'nhà hàng', 'video', 'bài viết']
+        setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [labels[index]] : []))
+        setLoading(false)
     })()
     return () => {
       isMounted = false
@@ -390,348 +309,348 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       {/* =========================================================================
        * 3. SECTION: CÔNG THỨC NỔI BẬT
        * ========================================================================= */}
-      <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-              Công thức nổi bật
-            </h2>
-            <p className="mt-1 text-[14px] text-[#6B7280]">
-              Được chuyên gia dinh dưỡng chọn lọc, cân bằng dưỡng chất và dễ nấu tại nhà.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/recipes')}
-            className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
-          >
-            Xem tất cả công thức
-            <ArrowRight size={15} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {recipes.map((recipe) => (
-            <article
-              key={recipe.id}
-              className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
-            >
-              {/* Image & Tag */}
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
-                <img
-                  src={recipe.imageUrl}
-                  alt={recipe.title}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                />
-                <span className="absolute left-3 top-3 rounded-full bg-white/95 backdrop-blur px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32] shadow-xs">
-                  {recipe.tag}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Lưu công thức"
-                  className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#6B7280] hover:text-[#2E7D32] backdrop-blur transition"
-                >
-                  <Bookmark size={15} />
-                </button>
-              </div>
-
-              {/* Details */}
-              <div className="flex flex-1 flex-col justify-between p-4">
-                <div>
-                  <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-1.5 font-medium">
-                    <span className="flex items-center gap-1">
-                      <Clock size={12} />
-                      {recipe.cookTime}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Flame size={12} />
-                      {recipe.calories}
-                    </span>
-                  </div>
-                  <h3
-                    onClick={() => onNavigate?.(`/recipes/${recipe.id}`)}
-                    className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-1"
-                  >
-                    {recipe.title}
-                  </h3>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
-                  <button
-                    type="button"
-                    onClick={() => onNavigate?.(`/recipes/${recipe.id}`)}
-                    className="w-full rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition text-center"
-                  >
-                    Xem công thức
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* =========================================================================
-       * 4. SECTION: BÀI VIẾT MỚI NHẤT
-       * ========================================================================= */}
-      <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+      <div className="mx-auto max-w-[1240px] px-4 pt-8 sm:px-6">
+        {loading && <SkeletonLoader count={3} variant="card" />}
+        {loadErrors.length > 0 && <AlertError title="Một số nội dung chưa tải được" message={`Không thể tải ${loadErrors.join(', ')}. Hãy tải lại trang để thử lại.`} />}
+        {!loading && loadErrors.length === 0 && recipes.length + videos.length + articles.length + restaurants.length === 0 && (
+          <EmptyState title="Chưa có nội dung công khai" description="Nội dung sẽ xuất hiện khi được cập nhật và công khai." />
+        )}
+      </div>
+      {recipes.length > 0 && (
+        <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                Bài viết mới nhất
+                Công thức nổi bật
               </h2>
               <p className="mt-1 text-[14px] text-[#6B7280]">
-                Cẩm nang khoa học dinh dưỡng và kinh nghiệm thực hành từ các chuyên gia.
+                Được chuyên gia dinh dưỡng chọn lọc, cân bằng dưỡng chất và dễ nấu tại nhà.
               </p>
             </div>
             <button
               type="button"
-              onClick={() => onNavigate?.('/articles')}
+              onClick={() => onNavigate?.('/recipes')}
               className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
             >
-              Xem tất cả bài viết
+              Xem tất cả công thức
               <ArrowRight size={15} />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {HOMEPAGE_ARTICLES.map((article) => (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {recipes.map((recipe) => (
               <article
-                key={article.id}
-                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
+                key={recipe.id}
+                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
               >
-                <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                  <img
-                    src={article.imageUrl}
-                    alt={article.title}
+                {/* Image & Tag */}
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                  {recipe.imageUrl ? <img
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
+                  /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh</div>}
+                  <span className="absolute left-3 top-3 rounded-full bg-white/95 backdrop-blur px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32] shadow-xs">
+                    {recipe.tag}
+                  </span>
                 </div>
 
-                <div className="flex flex-1 flex-col justify-between p-5">
+                {/* Details */}
+                <div className="flex flex-1 flex-col justify-between p-4">
                   <div>
-                    <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-2 font-medium">
-                      <span className="flex items-center gap-1 text-[#2E7D32] font-semibold">
-                        <User size={12} />
-                        {article.author}
+                    <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-1.5 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        {recipe.cookTime}
                       </span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <Calendar size={12} />
-                        {article.date}
+                        <Flame size={12} />
+                        {recipe.calories}
                       </span>
                     </div>
-
                     <h3
-                      onClick={() => onNavigate?.(`/articles/${article.id}`)}
-                      className="text-[16px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
+                      onClick={() => onNavigate?.(`/recipes/${recipe.id}`)}
+                      className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-1"
                     >
-                      {article.title}
+                      {recipe.title}
                     </h3>
-
-                    <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">
-                      {article.excerpt}
-                    </p>
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
                     <button
                       type="button"
-                      onClick={() => onNavigate?.(`/articles/${article.id}`)}
-                      className="inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
+                      onClick={() => onNavigate?.(`/recipes/${recipe.id}`)}
+                      className="w-full rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition text-center"
                     >
-                      Đọc thêm
-                      <ChevronRight size={14} />
+                      Xem công thức
                     </button>
                   </div>
                 </div>
               </article>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* =========================================================================
-       * 5. SECTION: VIDEO NẤU ĂN NỔI BẬT
+       * 4. SECTION: BÀI VIẾT MỚI NHẤT
        * ========================================================================= */}
-      <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-              Video nấu ăn nổi bật
-            </h2>
-            <p className="mt-1 text-[14px] text-[#6B7280]">
-              Hướng dẫn trực quan từng bước giúp bạn tự tay chuẩn bị món chay thơm ngon.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/videos')}
-            className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
-          >
-            Xem tất cả video
-            <ArrowRight size={15} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {videos.map((vid) => (
-            <article
-              key={vid.id}
-              className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
-            >
-              <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
-                <img
-                  src={vid.imageUrl}
-                  alt={vid.title}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
-                />
-
-                {/* Duration badge */}
-                <span className="absolute bottom-3 right-3 rounded-md bg-black/80 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur">
-                  {vid.duration}
-                </span>
-
-                {/* Center Play Button */}
-                <button
-                  type="button"
-                  onClick={() => onNavigate?.(`/videos/${vid.id}`)}
-                  aria-label="Xem video"
-                  className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                >
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-[#2E7D32] shadow-xl group-hover:scale-110 transition duration-200">
-                    <Play size={18} className="fill-[#2E7D32] ml-0.5" />
-                  </span>
-                </button>
+      {articles.length > 0 && (
+        <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
+          <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+                  Bài viết mới nhất
+                </h2>
+                <p className="mt-1 text-[14px] text-[#6B7280]">
+                  Cẩm nang khoa học dinh dưỡng và kinh nghiệm thực hành từ các chuyên gia.
+                </p>
               </div>
-
-              <div className="p-4">
-                <h3
-                  onClick={() => onNavigate?.(`/videos/${vid.id}`)}
-                  className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
-                >
-                  {vid.title}
-                </h3>
-                <div className="mt-2 text-[12px] text-[#6B7280] font-medium">
-                  {vid.author}
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* =========================================================================
-       * 6. SECTION: NHÀ HÀNG CHAY GẦN BẠN
-       * ========================================================================= */}
-      <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                Nhà hàng chay gần bạn
-              </h2>
-              <p className="mt-1 text-[14px] text-[#6B7280]">
-                Địa điểm ẩm thực thuần chay chất lượng, thanh tịnh được cộng đồng đánh giá cao.
-              </p>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('/articles')}
+                className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
+              >
+                Xem tất cả bài viết
+                <ArrowRight size={15} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/restaurants')}
-              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
-            >
-              Xem trên bản đồ
-              <ArrowRight size={15} />
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-            {/* 2 Card Nhà hàng bên trái */}
-            <div className="lg:col-span-6 flex flex-col gap-4">
-              {restaurants.map((res) => (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {articles.map((article) => (
                 <article
-                  key={res.id}
-                  className="flex flex-col sm:flex-row items-stretch rounded-[16px] border border-[#E5E7EB] bg-white p-3.5 gap-4 shadow-xs hover:border-[#C8E6C9] transition"
+                  key={article.id}
+                  className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
                 >
-                  <img
-                    src={res.imageUrl}
-                    alt={res.name}
-                    className="h-32 sm:w-40 sm:h-auto rounded-[12px] object-cover shrink-0"
-                  />
-                  <div className="flex flex-1 flex-col justify-between">
+                  <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
+                    {article.imageUrl ? <img
+                      src={article.imageUrl}
+                      alt={article.title}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh bìa</div>}
+                  </div>
+
+                  <div className="flex flex-1 flex-col justify-between p-5">
                     <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-[15px] font-bold text-[#111827]">
-                          {res.name}
-                        </h3>
-                        <span className="rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-bold text-[#2E7D32]">
-                          Mở cửa
+                      <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-2 font-medium">
+                        <span className="flex items-center gap-1 text-[#2E7D32] font-semibold">
+                          <User size={12} />
+                          {article.author}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar size={12} />
+                          {article.date}
                         </span>
                       </div>
-                      <p className="mt-1 text-[12px] text-[#6B7280] line-clamp-2">
-                        {res.address}
+
+                      <h3
+                        onClick={() => onNavigate?.(`/articles/${article.id}`)}
+                        className="text-[16px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
+                      >
+                        {article.title}
+                      </h3>
+
+                      <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">
+                        {article.excerpt}
                       </p>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#F3F4F6]">
-                      <span className="flex items-center gap-1 text-[12px] font-semibold text-[#4B5563]">
-                        <MapPin size={12} className="text-[#2E7D32]" />
-                        {res.distance}
-                      </span>
+                    <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
                       <button
                         type="button"
-                        onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
-                        className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
+                        onClick={() => onNavigate?.(`/articles/${article.id}`)}
+                        className="inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
                       >
-                        Xem chi tiết
+                        Đọc thêm
+                        <ChevronRight size={14} />
                       </button>
                     </div>
                   </div>
                 </article>
               ))}
             </div>
+          </div>
+        </section>
+      )}
 
-            {/* Khung bản đồ thu nhỏ bên phải */}
-            <div className="lg:col-span-6">
-              <div className="relative aspect-[16/10] w-full rounded-[16px] overflow-hidden border border-[#E5E7EB] shadow-xs group">
-                <img
-                  src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80"
-                  alt="Bản đồ định vị nhà hàng chay"
-                  className="h-full w-full object-cover"
-                />
+      {/* =========================================================================
+       * 5. SECTION: VIDEO NẤU ĂN NỔI BẬT
+       * ========================================================================= */}
+      {videos.length > 0 && (
+        <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+                Video nấu ăn nổi bật
+              </h2>
+              <p className="mt-1 text-[14px] text-[#6B7280]">
+                Hướng dẫn trực quan từng bước giúp bạn tự tay chuẩn bị món chay thơm ngon.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/videos')}
+              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
+            >
+              Xem tất cả video
+              <ArrowRight size={15} />
+            </button>
+          </div>
 
-                {/* Map Overlay Badge */}
-                <div className="absolute top-4 left-4 rounded-[10px] border border-[#E5E7EB] bg-white/95 backdrop-blur px-3 py-2 shadow-md flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2E7D32] text-white">
-                    <MapPin size={13} />
-                  </span>
-                  <div>
-                    <div className="text-[12px] font-bold text-[#111827]">
-                      Nhà hàng Chay An Lạc
-                    </div>
-                    <div className="text-[10px] text-[#6B7280]">
-                      1.2 km • Phú Nhuận
-                    </div>
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {videos.map((vid) => (
+              <article
+                key={vid.id}
+                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
+              >
+                <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
+                  {vid.thumbnailUrl ? <img
+                    src={vid.thumbnailUrl}
+                    alt={vid.title}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
+                  /> : <div className="flex h-full items-center justify-center text-sm text-white">Chưa có ảnh bìa</div>}
 
-                {/* Button Mở rộng bản đồ */}
-                <div className="absolute bottom-4 right-4">
+                  {/* Center Play Button */}
                   <button
                     type="button"
-                    onClick={() => onNavigate?.('/restaurants')}
-                    className="rounded-[8px] bg-[#2E7D32] hover:bg-[#1B5E20] px-4 py-2 text-[13px] font-semibold text-white shadow-md transition"
+                    onClick={() => onNavigate?.(`/videos/${vid.id}`)}
+                    aria-label="Xem video"
+                    className="absolute inset-0 flex items-center justify-center cursor-pointer"
                   >
-                    Mở rộng bản đồ
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-[#2E7D32] shadow-xl group-hover:scale-110 transition duration-200">
+                      <Play size={18} className="fill-[#2E7D32] ml-0.5" />
+                    </span>
                   </button>
+                </div>
+
+                <div className="p-4">
+                  <h3
+                    onClick={() => onNavigate?.(`/videos/${vid.id}`)}
+                    className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
+                  >
+                    {vid.title}
+                  </h3>
+                  <div className="mt-2 text-[12px] text-[#6B7280] font-medium">
+                    {vid.viewCount.toLocaleString('vi-VN')} lượt xem
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+       * 6. SECTION: NHÀ HÀNG CHAY GẦN BẠN
+       * ========================================================================= */}
+      {restaurants.length > 0 && (
+        <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
+          <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+                  Nhà hàng chay
+                </h2>
+                <p className="mt-1 text-[14px] text-[#6B7280]">
+                  Khám phá địa điểm và thông tin nhà hàng trong hệ thống.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('/restaurants')}
+                className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
+              >
+                Xem trên bản đồ
+                <ArrowRight size={15} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+              {/* 2 Card Nhà hàng bên trái */}
+              <div className="lg:col-span-6 flex flex-col gap-4">
+                {restaurants.map((res) => (
+                  <article
+                    key={res.id}
+                    className="flex flex-col sm:flex-row items-stretch rounded-[16px] border border-[#E5E7EB] bg-white p-3.5 gap-4 shadow-xs hover:border-[#C8E6C9] transition"
+                  >
+                    {res.imageUrl ? <img
+                      src={res.imageUrl}
+                      alt={res.name}
+                      className="h-32 sm:w-40 sm:h-auto rounded-[12px] object-cover shrink-0"
+                    /> : <div className="flex h-32 items-center justify-center rounded-xl bg-slate-100 text-sm text-slate-500 sm:w-40">Chưa có ảnh</div>}
+                    <div className="flex flex-1 flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-[15px] font-bold text-[#111827]">
+                            {res.name}
+                          </h3>
+                        </div>
+                        <p className="mt-1 text-[12px] text-[#6B7280] line-clamp-2">
+                          {res.address}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#F3F4F6]">
+                        <span className="flex items-center gap-1 text-[12px] font-semibold text-[#4B5563]">
+                          <MapPin size={12} className="text-[#2E7D32]" />
+                          {res.distance}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
+                          className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
+                        >
+                          Xem chi tiết
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {/* Khung bản đồ thu nhỏ bên phải */}
+              <div className="lg:col-span-6">
+                <div className="relative aspect-[16/10] w-full rounded-[16px] overflow-hidden border border-[#E5E7EB] shadow-xs group">
+                  <img
+                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80"
+                    alt="Ảnh minh họa bản đồ"
+                    className="h-full w-full object-cover"
+                  />
+
+                  {/* Map Overlay Badge */}
+                  <div className="absolute top-4 left-4 rounded-[10px] border border-[#E5E7EB] bg-white/95 backdrop-blur px-3 py-2 shadow-md flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2E7D32] text-white">
+                      <MapPin size={13} />
+                    </span>
+                    <div>
+                      <div className="text-[12px] font-bold text-[#111827]">
+                        Tìm nhà hàng trên bản đồ
+                      </div>
+                      <div className="text-[10px] text-[#6B7280]">
+                        Ảnh minh họa — mở danh sách để xem vị trí thực tế
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Button Mở rộng bản đồ */}
+                  <div className="absolute bottom-4 right-4">
+                    <button
+                      type="button"
+                      onClick={() => onNavigate?.('/restaurants')}
+                      className="rounded-[8px] bg-[#2E7D32] hover:bg-[#1B5E20] px-4 py-2 text-[13px] font-semibold text-white shadow-md transition"
+                    >
+                      Mở rộng bản đồ
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* =========================================================================
        * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI (INTERACTIVE TEASER)

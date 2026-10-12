@@ -1,42 +1,13 @@
 export type ScanStatus = 'suitable' | 'unsuitable' | 'insufficient'
+export type ScanSourceType = 'Dish' | 'Label'
+export type IngredientKind = 'Plant' | 'Egg' | 'Dairy' | 'Honey' | 'Animal' | 'Unknown'
+export type IngredientSource = 'AiSuggested' | 'LabelOcr' | 'UserConfirmed' | 'UserEdited'
 
-export interface ScanInputForm {
-  imageFile: File | null
-  imagePreview: string | null
-  ingredientText: string
-  productName: string
-  productBrand: string
-  quantityGram: string
-}
-
-export interface ConfirmChecklistAnswers {
-  hasBoneBroth: boolean | null
-  hasFishSauce: boolean | null
-  hasAnimalFat: boolean | null
-  hasHoneyOrEgg: boolean | null
-  hasHiddenDairy: boolean | null
-  sourceLabelImageProvided: boolean | null
-}
-
-export interface FlaggedIngredient {
+export interface DraftIngredient {
   id: string
   name: string
-  enumber: string | null
-  source: string | null
-  detail: string
-  confidence: number // 0.0 - 1.0
-}
-
-export interface FoodScanResult {
-  scanId: string
-  status: ScanStatus
-  productName: string
-  scannedAt: string
-  flaggedIngredients: FlaggedIngredient[]
-  safeIngredientsCount: number
-  totalIngredientsCount: number
-  note: string
-  basedOn: ('image' | 'ingredient-text' | 'confirm-checklist')[]
+  kind: IngredientKind
+  source: IngredientSource
 }
 
 export interface ScanHistoryItem {
@@ -44,6 +15,14 @@ export interface ScanHistoryItem {
   productName: string
   status: ScanStatus
   scannedAt: string
-  scannedBy: string
+  dietLabel: string
+  resultVersion: number
   noteShort: string
+}
+
+export interface ScanHistoryPage {
+  items: ScanHistoryItem[]
+  totalCount: number
+  page: number
+  pageSize: number
 }

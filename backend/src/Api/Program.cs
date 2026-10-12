@@ -18,11 +18,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 if (builder.Environment.IsDevelopment())
 {
-    builder.Configuration.AddJsonFile(
-        "appsettings.Local.json",
-        optional: true,
-        reloadOnChange: true);
-    // Keep environment variables and command-line arguments above local settings.
+    var envPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"));
+    DotEnvLoader.Load(envPath);
+    // Keep environment variables and command-line arguments above appsettings.
     builder.Configuration.AddEnvironmentVariables();
     builder.Configuration.AddCommandLine(args);
 }

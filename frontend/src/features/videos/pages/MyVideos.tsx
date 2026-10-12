@@ -1,912 +1,293 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react'
+import { UserProfileShell } from '../../profile/components/UserProfileShell'
+import { Button, EmptyState, Input, Modal, Select, Textarea } from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
 import {
-  getUserVideos,
-  deleteUserVideo,
-  updateUserVideo,
-  createUserVideo,
-  submitUserVideo,
-  VIDEO_CATEGORIES,
-} from '../api/videos.api';
-import type {
-  PaginatedResult,
-  UserVideoItem,
-  VideoFormData,
-} from '../types';
-import { UserProfileShell } from '../../profile/components/UserProfileShell';
-import {
-  Button,
-  Input,
-  Select,
-  Textarea,
-  EmptyState,
-  Modal,
-} from '../../../shared/components';
-import AlertError from '../../../shared/components/AlertError';
+  createVideo,
+  getPrivateMediaUrl,
+  listVideoCategories,
+  listVideos,
+  submitVideo,
+  updateVideo,
+  uploadVideoFile,
+  type VideoCategoryOption,
+  type VideoDetails,
+} from '../api/backendVideos'
 
-interface MyVideosPageProps {
-  onNavigate?: (path: string) => void;
+interface Props {
+  onNavigate?: (path: string) => void
 }
 
-export default function MyVideosPage({ onNavigate }: MyVideosPageProps) {
-  const [activeTab, setActiveTab] = useState<'all' | 'published' | 'pending' | 'draft'>('all');
-  const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'newest' | 'views' | 'duration'>('newest');
-  const [currentPage, setCurrentPage] = useState<number>(1);
+interface VideoForm {
+  title: string
+  description: string
+  categoryId: string
+  media: File | null
+  thumbnail: File | null
+  submitNow: boolean
+}
 
-  const [videosData, setVideosData] = useState<PaginatedResult<UserVideoItem>>({
-    items: [],
-    totalCount: 0,
-    page: 1,
-    pageSize: 4,
-    totalPages: 1,
-  });
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
+const emptyForm = (): VideoForm => ({
+  title: '', description: '', categoryId: '', media: null, thumbnail: null, submitNow: true,
+})
 
-  // Modal delete state
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+function statusOf(video: VideoDetails): { key: string; label: string; color: string } {
+  switch (video.adminReviewStatus) {
+    case 'Published': return { key: 'published', label: 'Đã xuất bản', color: 'bg-emerald-100 text-emerald-800' }
+    case 'PendingAdminReview':
+    case 'Submitted': return { key: 'pending', label: 'Chờ Admin duyệt', color: 'bg-amber-100 text-amber-800' }
+    case 'RevisionRequested': return { key: 'draft', label: 'Cần chỉnh sửa', color: 'bg-orange-100 text-orange-800' }
+    case 'Rejected': return { key: 'draft', label: 'Bị từ chối', color: 'bg-red-100 text-red-800' }
+    case 'Removed': return { key: 'draft', label: 'Đã gỡ', color: 'bg-gray-100 text-gray-700' }
+    default: return { key: 'draft', label: 'Bản nháp', color: 'bg-slate-100 text-slate-700' }
+  }
+}
 
-  // Modal edit state
-  const [editingVideo, setEditingVideo] = useState<UserVideoItem | null>(null);
-  const [editForm, setEditForm] = useState<VideoFormData>({
-    title: '',
-    category: 'main',
-    duration: '',
-    description: '',
-    thumbnailUrl: '',
-  });
-  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+function validateFile(file: File, thumbnail: boolean): string | null {
+  const max = (thumbnail ? 10 : 200) * 1024 * 1024
+  const types = thumbnail ? ['image/jpeg', 'image/png', 'image/webp'] : ['video/mp4', 'video/webm']
+  if (!types.includes(file.type)) return thumbnail ? 'Ảnh bìa phải là JPG, PNG hoặc WEBP.' : 'Video phải là MP4 hoặc WEBM.'
+  if (file.size === 0 || file.size > max) return `Tệp phải lớn hơn 0 và không quá ${thumbnail ? 10 : 200} MB.`
+  return null
+}
 
-  // Modal upload/create state
-  const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
-  const [createForm, setCreateForm] = useState<VideoFormData>({
-    title: '',
-    category: 'main',
-    duration: '15:00',
-    description: '',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-    status: 'pending',
-  });
-  const [isSubmittingCreate, setIsSubmittingCreate] = useState<boolean>(false);
+function VideoThumbnail({ video }: { video: VideoDetails }) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!video.thumbnailUrl) return
+    if (video.adminReviewStatus === 'Published') return
+    let active = true
+    let objectUrl: string | null = null
+    void getPrivateMediaUrl(video.thumbnailUrl).then((value) => {
+      objectUrl = value
+      if (active) setUrl(value)
+      else URL.revokeObjectURL(value)
+    }).catch(() => undefined)
+    return () => {
+      active = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [video.id, video.thumbnailUrl, video.adminReviewStatus])
+  const source = video.adminReviewStatus === 'Published' ? video.thumbnailUrl : url
+  return <div className="flex aspect-video w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm text-slate-500 sm:w-48">
+    {source ? <img src={source} alt={video.title} className="h-full w-full object-cover" /> : 'Chưa có ảnh bìa'}
+  </div>
+}
 
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+export default function MyVideosPage({ onNavigate }: Props) {
+  const [videos, setVideos] = useState<VideoDetails[]>([])
+  const [categories, setCategories] = useState<VideoCategoryOption[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [refresh, setRefresh] = useState(0)
+  const [tab, setTab] = useState('all')
+  const [keyword, setKeyword] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState<VideoDetails | null>(null)
+  const [savedDraftId, setSavedDraftId] = useState<string | null>(null)
+  const [form, setForm] = useState<VideoForm>(emptyForm)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await getUserVideos({
-          statusTab: activeTab,
-          category: selectedCategory,
-          keyword: searchKeyword,
-          sortBy,
-          page: currentPage,
-          pageSize: 4,
-        });
-        if (isMounted) {
-          setVideosData(res);
-        }
-      } catch (err: unknown) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Lỗi khi tải danh sách video');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    let active = true
+    void Promise.all([listVideos(true), listVideoCategories().catch(() => [])])
+      .then(([rows, categoryRows]) => {
+        if (!active) return
+        setVideos(rows)
+        setCategories(categoryRows)
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(reason instanceof Error ? reason.message : 'Không thể tải video.')
+      })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [refresh])
+
+  const categoryName = (id: string | null) => categories.find((item) => item.id === id)?.name ?? 'Chưa chọn danh mục'
+  const filtered = useMemo(() => videos
+    .filter((video) => tab === 'all' || statusOf(video).key === tab)
+    .filter((video) => categoryFilter === 'all' || video.categoryId === categoryFilter)
+    .filter((video) => `${video.title} ${video.description}`.toLocaleLowerCase().includes(keyword.toLocaleLowerCase().trim()))
+    .sort((a, b) => new Date(b.createdAtUtc).getTime() - new Date(a.createdAtUtc).getTime()),
+  [videos, tab, categoryFilter, keyword])
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 6))
+  const currentPage = Math.min(page, pageCount)
+  const visible = filtered.slice((currentPage - 1) * 6, currentPage * 6)
+
+  const startCreate = () => {
+    setEditing(null)
+    setSavedDraftId(null)
+    setForm(emptyForm())
+    setError(null)
+    setOpen(true)
+  }
+
+  const startEdit = (video: VideoDetails) => {
+    setEditing(video)
+    setSavedDraftId(null)
+    setForm({ title: video.title, description: video.description, categoryId: video.categoryId ?? '', media: null, thumbnail: null, submitNow: false })
+    setError(null)
+    setOpen(true)
+  }
+
+  const save = async () => {
+    const title = form.title.trim()
+    if (!title) { setError('Vui lòng nhập tiêu đề video.'); return }
+    if (form.media) {
+      const fileError = validateFile(form.media, false)
+      if (fileError) { setError(fileError); return }
+    }
+    if (form.thumbnail) {
+      const fileError = validateFile(form.thumbnail, true)
+      if (fileError) { setError(fileError); return }
+    }
+    if (form.submitNow && !form.media && !editing?.mediaUrl && !savedDraftId) {
+      setError('Chọn tệp MP4 hoặc WEBM trước khi gửi duyệt.')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+    try {
+      let video: VideoDetails
+      if (editing) {
+        video = await updateVideo(editing.id, title, form.description.trim(), form.categoryId || null)
+      } else if (savedDraftId) {
+        video = await updateVideo(savedDraftId, title, form.description.trim(), form.categoryId || null)
+      } else {
+        video = await createVideo(title, form.description.trim(), form.categoryId || null)
+        setSavedDraftId(video.id)
       }
-    };
-    void fetchData();
-    return () => {
-      isMounted = false;
-    };
-  }, [activeTab, selectedCategory, searchKeyword, sortBy, currentPage, refreshTrigger]);
-
-  const handleConfirmDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      setIsDeleting(true);
-      await deleteUserVideo(deleteTarget.id);
-      setActionSuccessMsg(`Đã xóa video "${deleteTarget.title}" thành công.`);
-      setDeleteTarget(null);
-      setTimeout(() => setActionSuccessMsg(null), 3500);
-      setRefreshTrigger((prev) => prev + 1);
-    } catch {
-      setError('Không thể xóa video. Vui lòng thử lại.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleOpenEdit = (video: UserVideoItem) => {
-    setEditingVideo(video);
-    setEditForm({
-      title: video.title,
-      category: video.category,
-      duration: video.duration,
-      description: video.description,
-      thumbnailUrl: video.thumbnailUrl,
-    });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingVideo) return;
-    if (!editForm.title.trim()) {
-      alert('Vui lòng nhập tiêu đề video');
-      return;
-    }
-    try {
-      setIsSavingEdit(true);
-      await updateUserVideo(editingVideo.id, editForm);
-      setActionSuccessMsg(`Đã cập nhật video "${editForm.title}" thành công.`);
-      setEditingVideo(null);
-      setTimeout(() => setActionSuccessMsg(null), 3500);
-      setRefreshTrigger((prev) => prev + 1);
-    } catch {
-      setError('Không thể lưu cập nhật video.');
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
-
-  const handleCreateVideo = async () => {
-    if (!createForm.title.trim()) {
-      alert('Vui lòng nhập tiêu đề video');
-      return;
-    }
-    try {
-      setIsSubmittingCreate(true);
-      await createUserVideo(createForm);
-      setActionSuccessMsg(`Đã đăng video "${createForm.title}" thành công.`);
-      setIsCreateOpen(false);
-      setCreateForm({
-        title: '',
-        category: 'main',
-        duration: '15:00',
-        description: '',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-        status: 'pending',
-      });
-      setTimeout(() => setActionSuccessMsg(null), 3500);
-      setRefreshTrigger((prev) => prev + 1);
-    } catch {
-      setError('Không thể tạo video mới.');
-    } finally {
-      setIsSubmittingCreate(false);
-    }
-  };
-
-  const handleSubmitDraft = async (id: string, title: string) => {
-    try {
-      await submitUserVideo(id);
-      setActionSuccessMsg(`Đã gửi video "${title}" vào hàng đợi kiểm duyệt AI & Admin.`);
-      setTimeout(() => setActionSuccessMsg(null), 3500);
-      setRefreshTrigger((prev) => prev + 1);
-    } catch {
-      setError('Không thể gửi duyệt video.');
-    }
-  };
-
-  const paginationPages = useMemo(() => {
-    const total = videosData.totalPages;
-    const current = videosData.page;
-    const pages: (number | string)[] = [];
-    for (let i = 1; i <= total; i++) {
-      if (i === 1 || i === total || (i >= current - 1 && i <= current + 1)) {
-        pages.push(i);
-      } else if (pages[pages.length - 1] !== '...') {
-        pages.push('...');
+      if (form.media) video = await uploadVideoFile(video.id, form.media)
+      if (form.thumbnail) video = await uploadVideoFile(video.id, form.thumbnail, true)
+      if (form.submitNow) {
+        if (video.uploadStatus !== 'Ready') throw new Error('Video chưa tải lên thành công. Bản nháp đã được lưu để thử lại.')
+        await submitVideo(video.id)
       }
+      setNotice(form.submitNow ? 'Video đã được gửi tới hàng đợi Admin duyệt.' : 'Bản nháp đã được lưu trên server.')
+      setOpen(false)
+      setRefresh((value) => value + 1)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể lưu video.')
+      setRefresh((value) => value + 1)
+    } finally {
+      setSaving(false)
     }
-    return pages;
-  }, [videosData]);
+  }
+
+  const sendDraft = async (video: VideoDetails) => {
+    setError(null)
+    try {
+      await submitVideo(video.id)
+      setNotice('Video đã được gửi tới hàng đợi Admin duyệt.')
+      setRefresh((value) => value + 1)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể gửi duyệt video.')
+    }
+  }
 
   return (
     <UserProfileShell
       activeTab="my-videos"
-      breadcrumbs={[
-        { label: 'Trang chủ', path: '/' },
-        { label: 'Tài khoản', path: '/profile' },
-        { label: 'Video của tôi' },
-      ]}
-      statBadge={{ count: videosData.totalCount, label: 'Video' }}
+      breadcrumbs={[{ label: 'Trang chủ', path: '/' }, { label: 'Tài khoản', path: '/profile' }, { label: 'Video của tôi' }]}
+      statBadge={{ count: videos.length, label: 'Video' }}
       onNavigate={onNavigate}
     >
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
-        {/* Header Title & CTA Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">Video của tôi</h2>
-            <p className="text-xs text-slate-500 font-normal leading-normal mt-1">
-              Quản lý các video hướng dẫn nấu ăn, mẹo chế biến và kiến thức ẩm thực thuần chay của bạn.
-            </p>
-          </div>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => setIsCreateOpen(true)}
-            className="rounded-xl shadow-xs px-4"
-            leftIcon={<span className="text-base font-bold leading-none">+</span>}
-          >
-            Tải video mới
-          </Button>
-        </div>
-
-        {/* Action Success Notification */}
-        {actionSuccessMsg && (
-          <div className="my-4 p-3.5 bg-[#EAF5EE] text-[#1E6531] rounded-xl text-xs font-bold border border-emerald-200/80 flex items-center justify-between">
-            <span>✓ {actionSuccessMsg}</span>
-            <button
-              type="button"
-              onClick={() => setActionSuccessMsg(null)}
-              className="text-[#1E6531] hover:text-emerald-900 p-1 cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {/* Tabs Filter */}
-        <div className="flex flex-wrap items-center justify-between gap-4 my-6">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('all');
-                setCurrentPage(1);
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-                activeTab === 'all'
-                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
-                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
-              }`}
-            >
-              Tất cả
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('published');
-                setCurrentPage(1);
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-                activeTab === 'published'
-                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
-                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
-              }`}
-            >
-              Đã xuất bản
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('pending');
-                setCurrentPage(1);
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-                activeTab === 'pending'
-                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
-                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
-              }`}
-            >
-              Chờ duyệt
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('draft');
-                setCurrentPage(1);
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-                activeTab === 'draft'
-                  ? 'border-emerald-400 bg-[#EAF5EE] text-[#1E6531] shadow-2xs'
-                  : 'border-transparent text-[#1f2937] hover:bg-[#f8faf8]'
-              }`}
-            >
-              Bản nháp
-            </button>
-          </div>
-
-          <div className="text-xs text-slate-500 font-medium">
-            Hiển thị {videosData.items.length > 0 ? (currentPage - 1) * 4 + 1 : 0}-
-            {Math.min(currentPage * 4, videosData.totalCount)} trên tổng số{' '}
-            {videosData.totalCount} video
-          </div>
-        </div>
-
-        {/* Search, Category & Sort Controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
-          <div className="sm:col-span-2">
-            <Input
-              type="text"
-              value={searchKeyword}
-              onChange={(e) => {
-                setSearchKeyword(e.target.value);
-                setCurrentPage(1);
-              }}
-              placeholder="Tìm video theo tiêu đề, danh mục..."
-              leftIcon={
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              }
-              fullWidth
-            />
-          </div>
-
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-6">
           <div>
-            <Select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                setCurrentPage(1);
-              }}
-              options={VIDEO_CATEGORIES.map((c) => ({ value: c.id, label: c.label }))}
-              fullWidth
-            />
+            <h1 className="text-2xl font-bold text-slate-900">Video của tôi</h1>
+            <p className="mt-1 text-sm text-slate-500">Tải video lên, lưu bản nháp và gửi Admin duyệt.</p>
           </div>
-
-          <div>
-            <Select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'newest' | 'views' | 'duration')}
-              options={[
-                { value: 'newest', label: 'Sắp xếp: Mới nhất' },
-                { value: 'views', label: 'Sắp xếp: Lượt xem' },
-                { value: 'duration', label: 'Sắp xếp: Thời lượng dài' },
-              ]}
-              fullWidth
-            />
-          </div>
+          <Button variant="primary" onClick={startCreate}>+ Tải video mới</Button>
         </div>
 
-        {/* Content Section: Loading, Error, Empty or List */}
-        {loading && (
+        {notice && <p className="my-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
+        {error && <div className="my-4"><AlertError title="Không thể xử lý video" message={error} onRetry={() => setRefresh((value) => value + 1)} /></div>}
+
+        <div className="my-6 flex flex-wrap gap-2">
+          {([['all', 'Tất cả'], ['published', 'Đã xuất bản'], ['pending', 'Chờ duyệt'], ['draft', 'Bản nháp / cần sửa']] as const).map(([key, label]) => (
+            <button key={key} type="button" onClick={() => { setTab(key); setPage(1) }}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold ${tab === key ? 'bg-emerald-100 text-emerald-800' : 'text-slate-600 hover:bg-slate-50'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          <Input value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1) }} placeholder="Tìm theo tiêu đề hoặc mô tả" fullWidth />
+          <Select value={categoryFilter} onChange={(event) => { setCategoryFilter(event.target.value); setPage(1) }}
+            options={[{ value: 'all', label: 'Tất cả danh mục' }, ...categories.map((item) => ({ value: item.id, label: item.name }))]} fullWidth />
+        </div>
+
+        {loading ? <p className="py-8 text-center text-slate-500">Đang tải video...</p> : null}
+        {!loading && !error && visible.length === 0 && <EmptyState title="Chưa có video" description="Tải video đầu tiên hoặc thay đổi bộ lọc." actionLabel="Tải video mới" onAction={startCreate} />}
+        {!loading && visible.length > 0 && (
           <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="p-5 rounded-2xl border border-gray-100 bg-white animate-pulse flex flex-col sm:flex-row gap-4"
-              >
-                <div className="w-full sm:w-48 h-32 bg-gray-200 rounded-xl shrink-0" />
-                <div className="flex-1 space-y-3">
-                  <div className="w-24 h-5 bg-gray-200 rounded-full" />
-                  <div className="w-3/4 h-6 bg-gray-200 rounded" />
-                  <div className="w-full h-4 bg-gray-200 rounded" />
-                  <div className="w-48 h-4 bg-gray-200 rounded pt-2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {error && !loading && (
-          <div className="mb-6">
-            <AlertError
-              title="Không thể tải danh sách video"
-              message={error}
-              onRetry={() => setRefreshTrigger((prev) => prev + 1)}
-            />
-          </div>
-        )}
-
-        {!loading && !error && videosData.items.length === 0 && (
-          <div className="py-8">
-            <EmptyState
-              title="Chưa có video nào"
-              description="Bạn chưa có video nào ở trạng thái hoặc bộ lọc này. Hãy tải video công thức chay lên ngay hôm nay!"
-              actionLabel="Tải video mới ngay"
-              onAction={() => setIsCreateOpen(true)}
-            />
-          </div>
-        )}
-
-        {/* Video Cards List */}
-        {!loading && !error && videosData.items.length > 0 && (
-          <div className="space-y-4">
-            {videosData.items.map((vid) => {
-              const isDraft = vid.status === 'draft';
-              const isPending = vid.status === 'pending';
-              const isPublished = vid.status === 'published';
-
-              return (
-                <div
-                  key={vid.id}
-                  className="p-5 sm:p-6 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:shadow-sm transition-all bg-white flex flex-col md:flex-row gap-5 items-start"
-                >
-                  {/* Video Thumbnail with duration overlay and play badge */}
-                  <div
-                    className="relative w-full md:w-56 aspect-video rounded-xl overflow-hidden bg-gray-900 shrink-0 cursor-pointer group"
-                    onClick={() => {
-                      if (isPublished) {
-                        onNavigate?.(`/videos/${vid.id}`);
-                      } else {
-                        handleOpenEdit(vid);
-                      }
-                    }}
-                  >
-                    <img
-                      src={vid.thumbnailUrl}
-                      alt={vid.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 transition-all shadow-md">
-                        <svg className="w-4 h-4 ml-0.5 fill-current" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    </div>
-                    {/* Duration badge */}
-                    <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold text-white bg-black/80">
-                      {vid.duration}
-                    </span>
-                    {/* Status pill on thumbnail top-left */}
-                    <span
-                      className={`absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                        isPublished
-                          ? 'bg-emerald-600 text-white'
-                          : isPending
-                          ? 'bg-amber-500 text-white'
-                          : 'bg-gray-700 text-white'
-                      }`}
-                    >
-                      {vid.statusLabel}
-                    </span>
+            {visible.map((video) => {
+              const status = statusOf(video)
+              const editable = status.key !== 'pending'
+              return <article key={video.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm:flex-row">
+                <VideoThumbnail video={video} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.color}`}>{status.label}</span>
+                    <span className="text-xs text-slate-500">{categoryName(video.categoryId)}</span>
+                    <span className="text-xs text-slate-500">{video.uploadStatus === 'Ready' ? 'Tệp đã tải lên' : 'Chưa có tệp phát được'}</span>
                   </div>
-
-                  {/* Video Content & Details */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
-                    <div>
-                      {/* Top meta tags */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100">
-                            {vid.categoryLabel}
-                          </span>
-                          <span className="text-gray-400">•</span>
-                          <span className="text-gray-500">
-                            {isDraft
-                              ? `Cập nhật: ${vid.updatedAt || 'Hôm nay'}`
-                              : isPending
-                              ? `Đã gửi duyệt: ${vid.submittedAt || 'Hôm nay'}`
-                              : `Xuất bản: ${vid.publishedAt}`}
-                          </span>
-                          {vid.aiFlagStatus === 'Passed' && (
-                            <>
-                              <span className="text-gray-400">•</span>
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-100">
-                                <span>✓</span> AI đã duyệt nội dung
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget({ id: vid.id, title: vid.title })}
-                          className="text-gray-400 hover:text-red-600 text-sm p-1 rounded-lg hover:bg-red-50 transition-colors"
-                          title="Xóa video"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-
-                      {/* Title */}
-                      <h3
-                        onClick={() => {
-                          if (isPublished) {
-                            onNavigate?.(`/videos/${vid.id}`);
-                          } else {
-                            handleOpenEdit(vid);
-                          }
-                        }}
-                        className="text-base font-bold text-gray-900 hover:text-emerald-700 transition-colors cursor-pointer mb-1.5 line-clamp-1"
-                      >
-                        {vid.title}
-                      </h3>
-
-                      {/* Description */}
-                      <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed mb-3">
-                        {vid.description}
-                      </p>
-
-                      {/* Pending Notice Box */}
-                      {isPending && (
-                        <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/60 text-xs text-amber-800 flex items-center gap-2 mb-3">
-                          <span>⏳</span>
-                          <span>
-                            {vid.adminNote || 'Video đã qua kiểm duyệt AI an toàn, hiện đang chờ Admin phê duyệt trước khi công khai.'}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Draft Progress Bar */}
-                      {isDraft && vid.completionRate && (
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
-                            <span className="font-medium text-amber-700">
-                              ⚙️ Đang hoàn thiện – {vid.completionRate}%
-                            </span>
-                          </div>
-                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500 rounded-full transition-all"
-                              style={{ width: `${vid.completionRate}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer stats and actions */}
-                    <div className="pt-3 border-t border-gray-50 flex flex-wrap items-center justify-between gap-3 text-xs mt-auto">
-                      {isPublished ? (
-                        <div className="flex items-center gap-4 text-gray-500">
-                          <span title="Lượt xem">👁️ {vid.viewsCount.toLocaleString()}</span>
-                          <span title="Lượt thích">👍 {vid.likesCount}</span>
-                          <span title="Bình luận">💬 {vid.commentsCount}</span>
-                        </div>
-                      ) : (
-                        <div className="text-gray-400 italic text-[11px]">
-                          {isDraft ? 'Bản nháp lưu cục bộ' : 'Chờ kiểm duyệt Admin'}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        {isDraft ? (
-                          <>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleSubmitDraft(vid.id, vid.title)}
-                              className="rounded-xl"
-                              leftIcon={<span>🚀</span>}
-                            >
-                              Gửi duyệt
-                            </Button>
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() => handleOpenEdit(vid)}
-                              className="rounded-xl"
-                              leftIcon={<span>✏️</span>}
-                            >
-                              Tiếp tục sửa
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => setDeleteTarget({ id: vid.id, title: vid.title })}
-                              className="rounded-xl"
-                            >
-                              Xóa
-                            </Button>
-                          </>
-                        ) : isPending ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenEdit(vid)}
-                              className="rounded-xl"
-                              leftIcon={<span>✏️</span>}
-                            >
-                              Chỉnh sửa
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => setDeleteTarget({ id: vid.id, title: vid.title })}
-                              className="rounded-xl"
-                            >
-                              Hủy gửi
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onNavigate?.(`/videos/${vid.id}`)}
-                              className="rounded-xl"
-                              leftIcon={<span>👁️</span>}
-                            >
-                              Xem video
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleOpenEdit(vid)}
-                              className="rounded-xl"
-                              leftIcon={<span>✏️</span>}
-                            >
-                              Sửa
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                  <h2 className="mt-2 text-lg font-bold text-slate-900">{video.title}</h2>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-600">{video.description}</p>
+                  {video.adminReason && <p className="mt-2 rounded-lg bg-orange-50 p-2 text-sm text-orange-800">Phản hồi Admin: {video.adminReason}</p>}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {status.key === 'published' && <Button size="sm" variant="outline" onClick={() => onNavigate?.(`/videos/${video.id}`)}>Xem video</Button>}
+                    {editable && <Button size="sm" variant="outline" onClick={() => startEdit(video)}>Chỉnh sửa / tải tệp</Button>}
+                    {editable && video.uploadStatus === 'Ready' && status.key !== 'published' &&
+                      <Button size="sm" variant="primary" onClick={() => void sendDraft(video)}>Gửi Admin duyệt</Button>}
                   </div>
                 </div>
-              );
+              </article>
             })}
-
-            {/* Pagination Controls */}
-            {videosData.totalPages > 1 && (
-              <div className="flex items-center justify-between pt-6 border-t border-gray-100 text-xs">
-                <span className="text-gray-500">
-                  Đang xem {videosData.items.length > 0 ? (currentPage - 1) * 4 + 1 : 0} đến{' '}
-                  {Math.min(currentPage * 4, videosData.totalCount)} trên {videosData.totalCount} video
-                </span>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    ‹
-                  </button>
-
-                  {paginationPages.map((page, idx) => {
-                    if (typeof page === 'string') {
-                      return (
-                        <span key={idx} className="w-8 h-8 flex items-center justify-center text-gray-400">
-                          ...
-                        </span>
-                      );
-                    }
-                    const isActive = page === currentPage;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 rounded-lg font-semibold transition-all ${
-                          isActive
-                            ? 'bg-emerald-700 text-white'
-                            : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    type="button"
-                    disabled={currentPage === videosData.totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(videosData.totalPages, p + 1))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    ›
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
+        {pageCount > 1 && <div className="mt-6 flex items-center justify-end gap-3 text-sm">
+          <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Trước</Button>
+          <span>{currentPage} / {pageCount}</span>
+          <Button variant="outline" size="sm" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Sau</Button>
+        </div>}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Xác nhận xóa video"
-        description={`Bạn có chắc chắn muốn xóa video "${deleteTarget?.title}"? Hành động này sẽ gỡ video khỏi danh sách của bạn.`}
-        footer={
-          <div className="flex items-center justify-end gap-3 w-full">
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => setDeleteTarget(null)}
-              disabled={isDeleting}
-            >
-              Hủy
-            </Button>
-            <Button
-              variant="danger"
-              size="md"
-              onClick={handleConfirmDelete}
-              isLoading={isDeleting}
-            >
-              Xác nhận xóa
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-xs text-gray-600">
-          Lưu ý: Thao tác này không thể hoàn tác. Các tương tác và bình luận liên quan đến video này cũng sẽ bị gỡ bỏ theo quy chế kiểm duyệt.
-        </p>
-      </Modal>
-
-      {/* Edit Video Modal */}
-      <Modal
-        isOpen={Boolean(editingVideo)}
-        onClose={() => setEditingVideo(null)}
-        title="Chỉnh sửa thông tin video"
-        description="Cập nhật tiêu đề, danh mục và mô tả nội dung video của bạn."
-        footer={
-          <div className="flex items-center justify-end gap-3 w-full">
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => setEditingVideo(null)}
-              disabled={isSavingEdit}
-            >
-              Hủy
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={handleSaveEdit}
-              isLoading={isSavingEdit}
-            >
-              Lưu thay đổi
-            </Button>
-          </div>
-        }
+      <Modal isOpen={open} onClose={() => { if (!saving) setOpen(false) }}
+        title={editing ? 'Chỉnh sửa video' : 'Tải video mới'}
+        description="Video sẽ chỉ công khai sau khi Admin duyệt. MP4/WEBM tối đa 200 MB."
+        footer={<div className="flex justify-end gap-3">
+          <Button variant="outline" disabled={saving} onClick={() => setOpen(false)}>Đóng</Button>
+          <Button variant="primary" isLoading={saving} onClick={() => void save()}>{form.submitNow ? 'Lưu và gửi duyệt' : 'Lưu bản nháp'}</Button>
+        </div>}
       >
         <div className="space-y-4 py-2">
-          <Input
-            label="Tiêu đề video"
-            value={editForm.title}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
-            placeholder="Nhập tiêu đề video..."
-            required
-            fullWidth
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select
-              label="Danh mục món chay"
-              value={editForm.category}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))}
-              options={VIDEO_CATEGORIES.filter((c) => c.id !== 'all').map((c) => ({
-                value: c.id,
-                label: c.label,
-              }))}
-              fullWidth
-            />
-
-            <Input
-              label="Thời lượng (mm:ss)"
-              value={editForm.duration}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, duration: e.target.value }))}
-              placeholder="Ví dụ: 15:30"
-              fullWidth
-            />
-          </div>
-
-          <Input
-            label="URL ảnh đại diện thumbnail"
-            value={editForm.thumbnailUrl}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, thumbnailUrl: e.target.value }))}
-            placeholder="https://..."
-            fullWidth
-          />
-
-          <Textarea
-            label="Mô tả nội dung & các bước chính"
-            value={editForm.description}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
-            placeholder="Tóm tắt nội dung hướng dẫn..."
-            rows={3}
-            fullWidth
-          />
-        </div>
-      </Modal>
-
-      {/* Upload/Create New Video Modal */}
-      <Modal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        title="Tải lên video món chay mới"
-        description="Chia sẻ công thức, phương pháp chế biến thuần thực vật đến cộng đồng."
-        footer={
-          <div className="flex items-center justify-end gap-3 w-full">
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => setIsCreateOpen(false)}
-              disabled={isSubmittingCreate}
-            >
-              Hủy
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={handleCreateVideo}
-              isLoading={isSubmittingCreate}
-            >
-              {createForm.status === 'draft' ? 'Lưu bản nháp' : 'Gửi kiểm duyệt ngay'}
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4 py-2">
-          <Input
-            label="Tiêu đề video"
-            value={createForm.title}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
-            placeholder="Ví dụ: Cách nấu canh chua nấm chay chuẩn vị miền Tây..."
-            required
-            fullWidth
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select
-              label="Danh mục món chay"
-              value={createForm.category}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, category: e.target.value }))}
-              options={VIDEO_CATEGORIES.filter((c) => c.id !== 'all').map((c) => ({
-                value: c.id,
-                label: c.label,
-              }))}
-              fullWidth
-            />
-
-            <Input
-              label="Thời lượng (mm:ss)"
-              value={createForm.duration}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, duration: e.target.value }))}
-              placeholder="Ví dụ: 12:45"
-              fullWidth
-            />
-          </div>
-
-          <Input
-            label="Đường dẫn ảnh bìa (Thumbnail)"
-            value={createForm.thumbnailUrl}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, thumbnailUrl: e.target.value }))}
-            placeholder="https://..."
-            fullWidth
-          />
-
-          <Textarea
-            label="Mô tả & Công thức tóm tắt"
-            value={createForm.description}
-            onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
-            placeholder="Ghi chú nguyên liệu, mẹo nấu và khẩu phần..."
-            rows={3}
-            fullWidth
-          />
-
-          <div className="flex items-center gap-4 pt-2">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700">
-              <input
-                type="radio"
-                name="videoCreateStatus"
-                checked={createForm.status === 'pending'}
-                onChange={() => setCreateForm((prev) => ({ ...prev, status: 'pending' }))}
-                className="text-emerald-600 focus:ring-emerald-500"
-              />
-              Gửi kiểm duyệt ngay (AI & Admin)
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700">
-              <input
-                type="radio"
-                name="videoCreateStatus"
-                checked={createForm.status === 'draft'}
-                onChange={() => setCreateForm((prev) => ({ ...prev, status: 'draft' }))}
-                className="text-emerald-600 focus:ring-emerald-500"
-              />
-              Lưu bản nháp để hoàn thiện sau
-            </label>
-          </div>
+          {error && <AlertError title="Không thể lưu video" message={error} />}
+          {savedDraftId && <p className="rounded-lg bg-amber-50 p-2 text-sm text-amber-800">Bản nháp đã được tạo trên server. Có thể thử tải tệp lại.</p>}
+          <Input label="Tiêu đề" required value={form.title} onChange={(event) => setForm((value) => ({ ...value, title: event.target.value }))} fullWidth />
+          <Textarea label="Mô tả" value={form.description} onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))} rows={3} fullWidth />
+          <Select label="Danh mục" value={form.categoryId} onChange={(event) => setForm((value) => ({ ...value, categoryId: event.target.value }))}
+            options={[{ value: '', label: 'Chưa chọn' }, ...categories.map((item) => ({ value: item.id, label: item.name }))]} fullWidth />
+          <label className="block text-sm font-semibold text-slate-700">Tệp video (MP4/WEBM, tối đa 200 MB)
+            <input className="mt-2 block w-full text-sm" type="file" accept=".mp4,.webm,video/mp4,video/webm"
+              onChange={(event) => setForm((value) => ({ ...value, media: event.target.files?.[0] ?? null }))} />
+          </label>
+          {editing?.mediaUrl && <p className="text-xs text-emerald-700">Video hiện tại đã có tệp. Chọn tệp mới để thay thế.</p>}
+          <label className="block text-sm font-semibold text-slate-700">Ảnh bìa (JPG/PNG/WEBP, tối đa 10 MB)
+            <input className="mt-2 block w-full text-sm" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+              onChange={(event) => setForm((value) => ({ ...value, thumbnail: event.target.files?.[0] ?? null }))} />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" checked={form.submitNow} onChange={(event) => setForm((value) => ({ ...value, submitNow: event.target.checked }))} />
+            Gửi Admin duyệt sau khi tải tệp thành công
+          </label>
         </div>
       </Modal>
     </UserProfileShell>
-  );
+  )
 }

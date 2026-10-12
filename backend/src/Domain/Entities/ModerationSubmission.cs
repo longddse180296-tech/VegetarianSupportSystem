@@ -139,8 +139,7 @@ public sealed class ModerationSubmission
         AiCheckedAt = checkedAt;
         UpdatedAtUtc = checkedAt;
 
-        if (status != AiFlagStatus.Failed)
-            AdminReviewStatus = AdminReviewStatus.PendingAdminReview;
+        AdminReviewStatus = AdminReviewStatus.PendingAdminReview;
     }
 
     public void RetryAiCheck(DateTimeOffset retriedAt)
@@ -149,7 +148,7 @@ public sealed class ModerationSubmission
             throw new InvalidOperationException("Video submissions do not use AI checking.");
 
         if (AiFlagStatus != AiFlagStatus.Failed || AdminReviewStatus != AdminReviewStatus.Submitted)
-            throw new InvalidOperationException("Only a failed AI check can be retried.");
+            throw new InvalidOperationException("Only a failed AI check that has not entered Admin review can be retried.");
 
         AiFlagStatus = AiFlagStatus.Checking;
         AiSummary = null;
@@ -184,7 +183,7 @@ public sealed class ModerationSubmission
         {
             var readyForAdmin = ContentType == ModeratedContentType.Video
                 ? AiFlagStatus == AiFlagStatus.NotSubmitted
-                : AiFlagStatus is AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial;
+                : AiFlagStatus is AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial or AiFlagStatus.Failed;
             if (AdminReviewStatus != AdminReviewStatus.PendingAdminReview
                 || !readyForAdmin)
             {
