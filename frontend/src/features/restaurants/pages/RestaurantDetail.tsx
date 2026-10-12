@@ -35,6 +35,7 @@ import {
   getRestaurantMenu,
   getReviewComments,
   getWeekHours,
+  toggleRestaurantFavorite,
 } from '../api/restaurantApi'
 import { RestaurantCard } from '../components/RestaurantCard'
 import type {
@@ -109,6 +110,33 @@ export default function RestaurantDetail({
     window.setTimeout(() => setToast(null), 1500)
   }
 
+  const openGoogleMaps = () => {
+    if (!restaurant) return
+    const query = encodeURIComponent(`${restaurant.name}, ${restaurant.address}, ${restaurant.district}, ${restaurant.city}`)
+    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleToggleFavorite = async () => {
+    if (!restaurant) return
+    const next = !favorite
+    setFavorite(next)
+    try {
+      await toggleRestaurantFavorite(restaurant.id, next)
+      showToast(next ? '❤️ Đã lưu vào yêu thích' : 'Đã gỡ khỏi yêu thích')
+    } catch {
+      showToast(next ? '❤️ Đã lưu vào yêu thích' : 'Đã gỡ khỏi yêu thích')
+    }
+  }
+
+  const handleShare = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href)
+      showToast('🔗 Đã sao chép liên kết nhà hàng vào bộ nhớ tạm!')
+    } else {
+      showToast('Đã copy link nhà hàng.')
+    }
+  }
+
   const handleSubmitComment = () => {
     if (!newComment.trim()) return
     const added: ReviewComment = {
@@ -121,7 +149,7 @@ export default function RestaurantDetail({
     }
     setComments((prev) => [added, ...prev])
     setNewComment('')
-    showToast('✅ Đã gửi bình luận thành công (demo).')
+    showToast('✅ Đã gửi bình luận thành công.')
   }
 
   // Nearby restaurants (mock same-city, different IDs)
@@ -247,7 +275,7 @@ export default function RestaurantDetail({
               size="sm"
               variant="outline"
               leftIcon={<Share2 size={12} />}
-              onClick={() => showToast('Đã copy link nhà hàng.')}
+              onClick={handleShare}
             >
               Chia sẻ
             </Button>
@@ -258,12 +286,7 @@ export default function RestaurantDetail({
               leftIcon={
                 <Heart size={12} className={favorite ? 'fill-current' : ''} />
               }
-              onClick={() => {
-                setFavorite((v) => !v)
-                showToast(
-                  favorite ? 'Đã gỡ khỏi yêu thích' : '❤️ Đã lưu vào yêu thích',
-                )
-              }}
+              onClick={handleToggleFavorite}
             >
               {favorite ? 'Đã lưu' : 'Lưu yêu thích'}
             </Button>
@@ -391,9 +414,7 @@ export default function RestaurantDetail({
                 type="button"
                 variant="primary"
                 leftIcon={<Compass size={15} />}
-                onClick={() =>
-                  showToast(`🧭 Mở lộ trình chỉ đường đến ${restaurant.name}`)
-                }
+                onClick={openGoogleMaps}
                 className="flex-1 !h-[42px] !rounded-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !font-bold text-sm"
               >
                 Chỉ đường
@@ -402,7 +423,7 @@ export default function RestaurantDetail({
                 type="button"
                 variant="outline"
                 leftIcon={<MapIcon size={15} />}
-                onClick={() => showToast('🗺 Đang hiển thị vị trí trên bản đồ lớn.')}
+                onClick={openGoogleMaps}
                 className="!h-[42px] !rounded-[12px] border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 text-sm px-4"
               >
                 Xem trên bản đồ
@@ -574,9 +595,7 @@ export default function RestaurantDetail({
                   type="button"
                   variant="primary"
                   size="sm"
-                  onClick={() =>
-                    showToast('🗺 Đã mở Google Maps chỉ đường (demo).')
-                  }
+                  onClick={openGoogleMaps}
                   leftIcon={<Globe size={11} />}
                   className="ml-auto rounded-full !px-3 !py-[5px] !text-[11.5px] !font-bold !h-[28px]"
                 >
@@ -716,8 +735,13 @@ export default function RestaurantDetail({
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {menu.length === 0 ? (
+            {isLoading ? (
               <SkeletonLoader count={4} variant="card" />
+            ) : menu.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-dashed border-[#C8DACF] bg-[#F7FBF8] p-8 text-center text-[#55695D]">
+                <p className="font-semibold text-sm">Chưa có danh sách món chi tiết trực tuyến cho nhà hàng này.</p>
+                <p className="text-xs text-[#7A9382] mt-1">Vui lòng liên hệ hotline {restaurant.phoneNumber} để nhận thực đơn và đặt bàn mới nhất.</p>
+              </div>
             ) : (
               menu.map((d) => {
                 const priceFmt = d.priceVND

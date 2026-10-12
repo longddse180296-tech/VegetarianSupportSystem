@@ -19,32 +19,19 @@ import { Button, Modal } from '../../../shared/components'
 import {
   buildUserMessage,
   getChatHistoryFigma,
-  getDefaultBmi,
   getFaqsFigma,
-  getRecipeSuggestions,
   getUserProfileFields,
   sendMessageToAi,
   streamAiText,
 } from '../api/aiChatApi'
 import type {
   AppRole,
-  BMIResult,
   ChatMessage,
   FaqItem,
   GuestChatState,
   HistoryItem,
   PersonalProfileField,
-  RecipePreview,
 } from '../types/aiChat.types'
-
-const INITIAL_USER_QUESTION =
-  'Chỉ số BMI 22.5 của tôi có ý nghĩa gì đối với chế độ ăn chay?'
-
-const INITIAL_BOT_REPLY_1 =
-  'Chỉ số BMI 22.5 của bạn nằm trong ngưỡng Bình thường (18.5 – 22.9) theo chuẩn Tổ chức Y tế Thế giới (WHO) dành cho người trưởng thành châu Á.'
-
-const INITIAL_BOT_REPLY_2 =
-  'Dưới đây là 2 thực đơn bữa tối thanh nhẹ dưới 500 kcal rất hợp với chỉ số BMI của bạn hôm nay:'
 
 interface AiChatPageProps {
   onNavigate?: (path: string) => void
@@ -67,12 +54,10 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
 
-  // Sidebar mock data from API
+  // Sidebar data from API
   const [profileFields, setProfileFields] = useState<PersonalProfileField[]>([])
   const [faqs, setFaqs] = useState<FaqItem[]>([])
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
-  const [defaultBmi, setDefaultBmi] = useState<BMIResult | null>(null)
-  const [mealRecipes, setMealRecipes] = useState<RecipePreview[]>([])
   const [isLoadingInit, setIsLoadingInit] = useState(true)
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -83,45 +68,24 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
     let alive = true
     void (async () => {
       setIsLoadingInit(true)
-      const [fields, faqsData, historyData, bmi, recipes] = await Promise.all([
+      const [fields, faqsData, historyData] = await Promise.all([
         getUserProfileFields(),
         getFaqsFigma(),
         getChatHistoryFigma(),
-        getDefaultBmi(),
-        getRecipeSuggestions(22.5),
       ])
       if (!alive) return
       setProfileFields(fields)
       setFaqs(faqsData)
       setHistoryItems(historyData)
-      setDefaultBmi(bmi)
-      setMealRecipes(recipes)
 
-      // Seed initial conversation matching Figma design
       setMessages([
         {
-          id: 'msg-seed-user',
-          sender: 'user',
-          role: 'user',
-          content: INITIAL_USER_QUESTION,
-          timestamp: new Date(Date.now() - 120_000).toISOString(),
-        },
-        {
-          id: 'msg-seed-bot-1',
+          id: 'msg-welcome',
           sender: 'assistant',
           role: 'assistant',
-          content: INITIAL_BOT_REPLY_1,
-          timestamp: new Date(Date.now() - 60_000).toISOString(),
-          bmiAnalysis: bmi,
-          disclaimer: bmi.medicalDisclaimer,
-        },
-        {
-          id: 'msg-seed-bot-2',
-          sender: 'assistant',
-          role: 'assistant',
-          content: INITIAL_BOT_REPLY_2,
-          timestamp: new Date(Date.now() - 30_000).toISOString(),
-          recipePreview: recipes,
+          content:
+            'Xin chào! Tôi là Trợ lý AI dinh dưỡng chay. Bạn có thể hỏi tôi về thực đơn, dinh dưỡng, thành phần món ăn hoặc chọn câu hỏi gợi ý bên dưới.',
+          timestamp: new Date().toISOString(),
         },
       ])
       setIsLoadingInit(false)
@@ -214,36 +178,16 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
     if (cancelStreamRef.current) cancelStreamRef.current()
     setIsBotBusy(false)
     setStreamingMessageId(null)
-    if (defaultBmi && mealRecipes.length > 0) {
-      setMessages([
-        {
-          id: `msg-${Date.now()}-u`,
-          sender: 'user',
-          role: 'user',
-          content: INITIAL_USER_QUESTION,
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: `msg-${Date.now()}-b1`,
-          sender: 'assistant',
-          role: 'assistant',
-          content: INITIAL_BOT_REPLY_1,
-          timestamp: new Date().toISOString(),
-          bmiAnalysis: defaultBmi,
-          disclaimer: defaultBmi.medicalDisclaimer,
-        },
-        {
-          id: `msg-${Date.now()}-b2`,
-          sender: 'assistant',
-          role: 'assistant',
-          content: INITIAL_BOT_REPLY_2,
-          timestamp: new Date().toISOString(),
-          recipePreview: mealRecipes,
-        },
-      ])
-    } else {
-      setMessages([])
-    }
+    setMessages([
+      {
+        id: `msg-${Date.now()}`,
+        sender: 'assistant',
+        role: 'assistant',
+        content:
+          'Xin chào! Tôi là Trợ lý AI dinh dưỡng chay. Bạn có thể hỏi tôi về thực đơn, dinh dưỡng, thành phần món ăn hoặc chọn câu hỏi gợi ý bên dưới.',
+        timestamp: new Date().toISOString(),
+      },
+    ])
   }
 
   return (

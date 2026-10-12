@@ -319,17 +319,17 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               variant="outline"
               size="sm"
               leftIcon={<Printer size={13} />}
-              onClick={() => showToast('📄 Đã xuất danh sách khấu phần')}
+              onClick={() => window.print()}
               className="rounded-[10px] !text-[12.5px] !font-bold !text-[#4B5563] hover:!bg-[#F5FBF6] hover:!border-[#C8E6C9]"
             >
-              Đổi sót khấu phần
+              In danh sách
             </Button>
             <Button
               type="button"
               variant="outline"
               size="sm"
               leftIcon={<ShieldCheck size={14} />}
-              onClick={() => showToast('📑 Tính năng AI sẽ cập nhật chi tiết trong bản sau')}
+              onClick={() => onNavigate?.('/profile')}
             >
               Đổi chế độ ăn
             </Button>
@@ -414,7 +414,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                     variant="primary"
                     className="rounded-[10px]"
                     leftIcon={<PlusIcon size={14} />}
-                    onClick={() => showToast('📖 Hướng dẫn sử dụng Tủ bếp AI')}
+                    onClick={openAdd}
                   >
                     + Thêm nguyên liệu
                   </Button>

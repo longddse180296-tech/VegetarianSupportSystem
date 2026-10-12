@@ -35,11 +35,15 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const targetId = recipeId || 'dau-hu-sot-nam'
+      if (!recipeId) {
+        setIsNotFound(true)
+        setIsLoading(false)
+        return
+      }
       setIsLoading(true)
       setIsNotFound(false)
       try {
-        const data = await getRecipeDetail(targetId)
+        const data = await getRecipeDetail(recipeId)
         if (!cancelled) {
           if (!data) {
             setIsNotFound(true)
@@ -50,9 +54,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
         }
         if (!cancelled && data) {
           const [arts, vids, rests] = await Promise.all([
-            getRelatedArticles(targetId),
-            getRelatedVideos(targetId),
-            getRelatedRestaurants(targetId),
+            getRelatedArticles(recipeId),
+            getRelatedVideos(recipeId),
+            getRelatedRestaurants(recipeId),
           ])
           if (!cancelled) {
             setRelatedArticles(data.relatedBlogs || arts)
@@ -319,162 +323,168 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
         </section>
 
         {/* 4. BÀI VIẾT LIÊN QUAN */}
-        <section className="mb-12">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[20px] font-bold text-[#111827]">Bài viết liên quan</h2>
-            <span className="text-[13px] text-[#6B7280]">Gợi ý được nhiều người quan tâm</span>
-          </div>
+        {relatedArticles.length > 0 && (
+          <section className="mb-12">
+            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-[20px] font-bold text-[#111827]">Bài viết liên quan</h2>
+              <span className="text-[13px] text-[#6B7280]">Gợi ý được nhiều người quan tâm</span>
+            </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            {relatedArticles.slice(0, 3).map((art, idx) => (
-              <article
-                key={art.id || idx}
-                className="group flex flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-xs transition hover:-translate-y-0.5 hover:border-[#2E7D32]/40"
-              >
-                <div className="h-[160px] w-full overflow-hidden bg-gray-100">
-                  <img
-                    src={art.imageUrl}
-                    alt={art.title}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <div className="text-[12px] font-semibold text-[#6B7280]">{art.author}</div>
-                  <h3 className="mt-1 line-clamp-2 text-[15px] font-bold text-[#111827] group-hover:text-[#2E7D32] transition-colors">
-                    {art.title}
-                  </h3>
-                  <p className="mt-1.5 line-clamp-2 text-[13px] leading-[20px] text-[#6B7280]">
-                    {art.excerpt || art.desc}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showToast(`📖 Đang mở bài viết: ${art.title}`)
-                      onNavigate?.('/articles')
-                    }}
-                    className="mt-4 inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
-                  >
-                    Đọc thêm →
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              {relatedArticles.slice(0, 3).map((art, idx) => (
+                <article
+                  key={art.id || idx}
+                  className="group flex flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-xs transition hover:-translate-y-0.5 hover:border-[#2E7D32]/40"
+                >
+                  <div className="h-[160px] w-full overflow-hidden bg-gray-100">
+                    <img
+                      src={art.imageUrl}
+                      alt={art.title}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col p-4">
+                    <div className="text-[12px] font-semibold text-[#6B7280]">{art.author}</div>
+                    <h3 className="mt-1 line-clamp-2 text-[15px] font-bold text-[#111827] group-hover:text-[#2E7D32] transition-colors">
+                      {art.title}
+                    </h3>
+                    <p className="mt-1.5 line-clamp-2 text-[13px] leading-[20px] text-[#6B7280]">
+                      {art.excerpt || art.desc}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showToast(`📖 Đang mở bài viết: ${art.title}`)
+                        onNavigate?.('/articles')
+                      }}
+                      className="mt-4 inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
+                    >
+                      Đọc thêm →
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 5. VIDEO LIÊN QUAN */}
-        <section className="mb-12">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[20px] font-bold text-[#111827]">Video liên quan</h2>
-            <span className="text-[13px] text-[#6B7280]">
-              Video hướng dẫn chế biến trực quan
-            </span>
-          </div>
+        {relatedVideos.length > 0 && (
+          <section className="mb-12">
+            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-[20px] font-bold text-[#111827]">Video liên quan</h2>
+              <span className="text-[13px] text-[#6B7280]">
+                Video hướng dẫn chế biến trực quan
+              </span>
+            </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            {relatedVideos.slice(0, 3).map((vid, idx) => (
-              <article
-                key={vid.id || idx}
-                className="group flex flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-xs transition hover:-translate-y-0.5 hover:border-[#2E7D32]/40"
-              >
-                <div className="relative flex h-[160px] w-full items-center justify-center overflow-hidden bg-slate-900">
-                  <img
-                    src={vid.imageUrl}
-                    alt={vid.title}
-                    className="h-full w-full object-cover opacity-75 transition duration-300 group-hover:opacity-90"
-                  />
-                  <button
-                    type="button"
-                    aria-label={`Phát video ${vid.title}`}
-                    onClick={() => {
-                      showToast(`▶️ Đang mở video: ${vid.title}`)
-                      onNavigate?.('/videos')
-                    }}
-                    className="absolute flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-md transition hover:scale-110"
-                  >
-                    <Play size={20} className="translate-x-0.5 fill-slate-800" />
-                  </button>
-                  <span className="absolute bottom-2 right-2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-bold text-white">
-                    {vid.duration}
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <div className="text-[12px] font-semibold text-[#6B7280]">{vid.channel}</div>
-                  <h3 className="mt-1 line-clamp-2 text-[15px] font-bold text-[#111827] group-hover:text-[#2E7D32] transition-colors">
-                    {vid.title}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      showToast(`▶️ Đang mở video: ${vid.title}`)
-                      onNavigate?.('/videos')
-                    }}
-                    className="mt-4 inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
-                  >
-                    Xem video →
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              {relatedVideos.slice(0, 3).map((vid, idx) => (
+                <article
+                  key={vid.id || idx}
+                  className="group flex flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-xs transition hover:-translate-y-0.5 hover:border-[#2E7D32]/40"
+                >
+                  <div className="relative flex h-[160px] w-full items-center justify-center overflow-hidden bg-slate-900">
+                    <img
+                      src={vid.imageUrl}
+                      alt={vid.title}
+                      className="h-full w-full object-cover opacity-75 transition duration-300 group-hover:opacity-90"
+                    />
+                    <button
+                      type="button"
+                      aria-label={`Phát video ${vid.title}`}
+                      onClick={() => {
+                        showToast(`▶️ Đang mở video: ${vid.title}`)
+                        onNavigate?.('/videos')
+                      }}
+                      className="absolute flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-md transition hover:scale-110"
+                    >
+                      <Play size={20} className="translate-x-0.5 fill-slate-800" />
+                    </button>
+                    <span className="absolute bottom-2 right-2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-bold text-white">
+                      {vid.duration}
+                    </span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-4">
+                    <div className="text-[12px] font-semibold text-[#6B7280]">{vid.channel}</div>
+                    <h3 className="mt-1 line-clamp-2 text-[15px] font-bold text-[#111827] group-hover:text-[#2E7D32] transition-colors">
+                      {vid.title}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showToast(`▶️ Đang mở video: ${vid.title}`)
+                        onNavigate?.('/videos')
+                      }}
+                      className="mt-4 inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
+                    >
+                      Xem video →
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 6. NHÀ HÀNG CÓ MÓN TƯƠNG TỰ */}
-        <section className="mb-10">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[20px] font-bold text-[#111827]">
-              Nhà hàng có món tương tự
-            </h2>
-            <span className="text-[13px] text-[#6B7280]">
-              Địa điểm chay có từng món ngon đậu hũ &amp; nấm thanh đạm
-            </span>
-          </div>
+        {relatedRestaurants.length > 0 && (
+          <section className="mb-10">
+            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-[20px] font-bold text-[#111827]">
+                Nhà hàng có món tương tự
+              </h2>
+              <span className="text-[13px] text-[#6B7280]">
+                Địa điểm chay có từng món ngon đậu hũ &amp; nấm thanh đạm
+              </span>
+            </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {relatedRestaurants.slice(0, 2).map((rest, idx) => (
-              <div
-                key={rest.id || idx}
-                className="flex items-center justify-between gap-4 rounded-[16px] border border-[#E5E7EB] bg-white p-4 shadow-xs transition hover:border-[#2E7D32]/40"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <img
-                    src={rest.imageUrl}
-                    alt={rest.name}
-                    className="h-16 w-16 rounded-[12px] object-cover shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-[15px] font-bold text-[#111827]">
-                      {rest.name}
-                    </h3>
-                    <p className="mt-0.5 truncate text-[12.5px] text-[#6B7280]">
-                      {rest.address}
-                    </p>
-                    <div className="mt-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="primary"
-                        onClick={() => {
-                          showToast(`📍 Xem nhà hàng: ${rest.name}`)
-                          onNavigate?.(`/restaurants/${rest.id}`)
-                        }}
-                        className="!h-7 !rounded-[8px] !px-3 !text-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20]"
-                      >
-                        Xem chi tiết
-                      </Button>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {relatedRestaurants.slice(0, 2).map((rest, idx) => (
+                <div
+                  key={rest.id || idx}
+                  className="flex items-center justify-between gap-4 rounded-[16px] border border-[#E5E7EB] bg-white p-4 shadow-xs transition hover:border-[#2E7D32]/40"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <img
+                      src={rest.imageUrl}
+                      alt={rest.name}
+                      className="h-16 w-16 rounded-[12px] object-cover shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[15px] font-bold text-[#111827]">
+                        {rest.name}
+                      </h3>
+                      <p className="mt-0.5 truncate text-[12.5px] text-[#6B7280]">
+                        {rest.address}
+                      </p>
+                      <div className="mt-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="primary"
+                          onClick={() => {
+                            showToast(`📍 Xem nhà hàng: ${rest.name}`)
+                            onNavigate?.(`/restaurants/${rest.id}`)
+                          }}
+                          className="!h-7 !rounded-[8px] !px-3 !text-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20]"
+                        >
+                          Xem chi tiết
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="shrink-0">
-                  <span className="rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11.5px] font-bold text-[#2E7D32]">
-                    {rest.distanceKm} km
-                  </span>
+                  <div className="shrink-0">
+                    <span className="rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11.5px] font-bold text-[#2E7D32]">
+                      {rest.distanceKm} km
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Back to list button */}
         <div className="mt-8 pt-4 border-t border-[#E5E7EB] flex justify-start">
