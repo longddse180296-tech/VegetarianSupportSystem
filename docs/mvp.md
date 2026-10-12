@@ -17,7 +17,7 @@ Trạng thái: Đặc tả đã cập nhật. Chưa sửa canvas Figma vì công
 - Không có chức năng thông báo, nhắc bữa ăn hoặc lịch ăn chay theo ngày lễ.
 - Lịch bữa ăn thuộc kế hoạch thực đơn cá nhân hóa.
 - Guest được chat AI dùng thử.
-- Bài viết và video phải qua AI Flag Check, sau đó Admin duyệt trước khi xuất bản.
+- Bài viết qua AI Flag Check rồi Admin duyệt; video do Admin xem trực tiếp và duyệt, không qua AI. Đây là quyết định mới ngày 10/10/2026.
 - Admin quản lý công thức, nguyên liệu và nhà hàng, ngoài thành viên/nội dung/danh mục.
 - Thực đơn 7 ngày, 3 bữa chính mỗi ngày; chọn món từ kho công thức hệ thống, chưa sinh công thức mới ngoài kho.
 - Giữ xuất PDF và danh sách đi chợ.
@@ -43,7 +43,7 @@ Trạng thái: Đặc tả đã cập nhật. Chưa sửa canvas Figma vì công
 | Tủ bếp và gợi ý cá nhân hóa | Đăng nhập để dùng | Có | Có |
 | Lưu công thức/video/nhà hàng | Không | Có | Có |
 | Bình luận, phản hồi, đánh giá hữu ích | Không | Có | Có |
-| Tạo và quản lý bài viết/video | Không | Nội dung của mình | Quản trị nội dung; nội dung Admin tự tạo cũng được kiểm tra AI |
+| Tạo và quản lý bài viết/video | Không | Nội dung của mình | Quản trị nội dung; bài viết do Admin tự tạo cũng được kiểm tra AI, video không qua AI |
 | Duyệt/gỡ nội dung | Không | Không | Có |
 | Quản lý thành viên, công thức, nguyên liệu, nhà hàng, danh mục | Không | Không | Có |
 
@@ -81,7 +81,7 @@ Quyền phải kiểm tra ở phía hệ thống, không chỉ ẩn nút trên g
 
 - Tìm kiếm, lọc danh mục/thời lượng, xem chi tiết và video liên quan; thích, lưu, chia sẻ bằng liên kết.
 - User tải video, nhập tiêu đề/mô tả/danh mục/ảnh đại diện, lưu nháp, xem trước và gửi duyệt.
-- Thể hiện xử lý tệp, lỗi tải lên, đang AI kiểm tra, chờ Admin, yêu cầu sửa, bị từ chối, đã xuất bản và đã gỡ.
+- Thể hiện xử lý tệp, lỗi tải lên, chờ Admin, yêu cầu sửa, bị từ chối, đã xuất bản và đã gỡ.
 - Xem số lượt xem và tương tác thực tế; không cần trang phân tích nâng cao riêng cho MVP.
 - Không có theo dõi kênh hoặc tóm tắt video thành công thức trong MVP. Trích lời nói phục vụ kiểm duyệt là xử lý nội bộ, không phải tính năng tóm tắt video cho User.
 
@@ -96,33 +96,35 @@ Quyền phải kiểm tra ở phía hệ thống, không chỉ ẩn nút trên g
 
 ### Luồng chính
 
-Bản nháp → Gửi duyệt → AI đang kiểm tra → AI hoàn tất → Chờ Admin → Đã xuất bản / Yêu cầu chỉnh sửa / Bị từ chối.
+Bài viết: Bản nháp → Gửi duyệt → AI đang kiểm tra → AI có kết quả hoặc kiểm tra thất bại → Chờ Admin → Đã xuất bản / Yêu cầu chỉnh sửa / Bị từ chối.
 
-- Mọi bài viết/video gửi xuất bản đều qua hai bước. AI không gắn cờ vẫn phải chờ Admin.
+Video: Bản nháp → Gửi duyệt → Chờ Admin xem trực tiếp → Đã xuất bản / Yêu cầu chỉnh sửa / Bị từ chối.
+
+- Bài viết qua AI rồi Admin; video chỉ qua Admin. AI không gắn cờ bài viết vẫn phải chờ Admin.
 - AI chỉ cung cấp tín hiệu và bằng chứng, không tự xuất bản, xóa nội dung hoặc khóa tài khoản.
 - Kết quả AI được lưu riêng với quyết định Admin; không dùng một trạng thái chung gây nhầm lẫn.
 - Kết quả AI gồm: không phát hiện vấn đề trong phạm vi đã kiểm tra, có cờ cần xem xét, kiểm tra chưa đầy đủ, lỗi xử lý.
-- Lỗi AI không được coi là đạt; nội dung vẫn chưa công khai. Cho thử lại. Nếu chỉ kiểm tra được một phần, Admin thấy rõ phần chưa kiểm tra và phải xem trực tiếp trước quyết định.
+- Lỗi AI không được coi là đạt và không tự công khai. Bản gửi vẫn vào hàng đợi Admin với trạng thái `Failed` riêng; Admin phải xem trực tiếp toàn bộ bài viết và ghi lý do khi duyệt, yêu cầu sửa hoặc từ chối. Nếu chỉ kiểm tra được một phần, Admin thấy rõ phần chưa kiểm tra và phải xem trực tiếp trước quyết định.
 - Admin có thể không đồng ý với cờ AI; quyết định cần lý do và được ghi nhật ký.
 - Sau yêu cầu sửa/từ chối, User sửa và gửi lại sẽ tạo phiên bản kiểm tra mới.
-- Khi sửa nội dung đang công khai: giữ phiên bản đã được duyệt; bản sửa là phiên bản riêng, chỉ thay thế sau AI kiểm tra và Admin duyệt.
+- Khi sửa nội dung đang công khai: giữ phiên bản đã được duyệt; bản sửa là phiên bản riêng, chỉ thay thế sau khi hoàn tất quy trình duyệt tương ứng.
 - Nội dung đã xuất bản bị AI gắn cờ sau đó vẫn cần Admin xem xét trước khi gỡ theo quy tắc trong tài liệu tham khảo.
 
 ### Phạm vi AI kiểm tra
 
 - Bài viết: tiêu đề, nội dung, ảnh đại diện/ảnh đính kèm được hỗ trợ.
-- Video: tiêu đề, mô tả, ảnh đại diện, lời nói được trích xuất và hình ảnh video theo khả năng xử lý đã triển khai.
+- Video không dùng AI kiểm duyệt. Admin xem trực tiếp tiêu đề, mô tả và media trước khi quyết định.
 - Gắn cờ spam, nội dung xúc phạm/không phù hợp, quảng cáo trái quy định cộng đồng, tuyên bố sức khỏe cần kiểm chứng hoặc nội dung không liên quan.
 - Mỗi cờ có loại, mức ưu tiên, lý do và đoạn văn/ảnh/mốc thời gian liên quan nếu có.
 - Không nói “video đã an toàn hoàn toàn” nếu chỉ đọc tiêu đề hoặc kiểm tra một số khung hình. Luôn cho Admin biết phạm vi đã phân tích.
 
 ### Giao diện Admin cần có
 
-- Hàng đợi bài viết/video, lọc theo loại, trạng thái AI, có cờ và thời điểm gửi.
+- Hàng đợi bài viết/video, lọc theo loại và thời điểm gửi; trạng thái AI/cờ chỉ áp dụng cho bài viết.
 - Màn hình chi tiết: nội dung, kết quả AI, bằng chứng, phiên bản, lịch sử xử lý.
 - Hành động: duyệt xuất bản, yêu cầu chỉnh sửa, từ chối, gỡ nội dung đã xuất bản; nhập lý do.
 - Nhật ký ghi người quyết định, thời gian, phiên bản và lý do. Không cần chức năng thông báo: User xem kết quả tại “Bài viết/Video của tôi”.
-- Kiểm duyệt bình luận tiếp tục do Admin quản lý; chưa mở rộng AI bắt buộc cho bình luận vì yêu cầu hiện tại chỉ nêu bài viết và video.
+- Kiểm duyệt bình luận tiếp tục do Admin quản lý; chưa mở rộng AI bắt buộc cho bình luận.
 
 ## 6. Lập thực đơn cá nhân hóa
 
@@ -248,14 +250,14 @@ Nếu User xác nhận đầy đủ thành phần là thực vật: Phù hợp t
 | 104:9040 — Đăng ký | Bỏ lời giới thiệu đánh giá nhà hàng, chat không giới hạn và tính năng ngoài MVP |
 | 104:13628, 104:14218 — Hồ sơ | Bỏ barcode/mobile, nhật ký hấp thu thực tế, chứng nhận y khoa và cam kết phát hiện mọi thành phần ẩn |
 | 104:10071 — Admin Dashboard | Thêm hàng đợi kiểm duyệt và liên kết công thức/nguyên liệu/nhà hàng |
-| 104:10884, 104:11422 — Admin bài viết/video | Tách trạng thái AI và xuất bản; thêm bằng chứng, phản hồi, quyết định Admin |
+| 104:10884, 104:11422 — Admin bài viết/video | Tách trạng thái AI bài viết và xuất bản; video Admin xem trực tiếp; thêm bằng chứng, phản hồi, quyết định Admin |
 
 ### Màn hình/trạng thái bổ sung
 
 - Scan cho Guest: giới thiệu + đăng nhập; không upload trước đăng nhập.
 - Scan: chọn loại ảnh, xác nhận OCR/nguyên liệu, câu hỏi bổ sung, chưa đủ thông tin, phù hợp có điều kiện, không phù hợp, lỗi ảnh/phân tích và lịch sử chi tiết.
 - Video: tạo/chỉnh sửa, tải tệp, tiến trình xử lý, gửi duyệt.
-- Admin: chi tiết kiểm duyệt bài viết/video, kết quả AI, bằng chứng và nhật ký quyết định.
+- Admin: chi tiết kiểm duyệt bài viết/video, kết quả AI cho bài viết, media cho video và nhật ký quyết định.
 - Admin: danh sách và biểu mẫu chi tiết công thức, nguyên liệu, nhà hàng.
 - Thực đơn: không đủ món phù hợp, thay món, danh sách đi chợ và xuất PDF.
 
@@ -269,8 +271,8 @@ Nếu User xác nhận đầy đủ thành phần là thực vật: Phù hợp t
 6. Trứng được xác nhận, các thành phần khác đầy đủ và phù hợp → Ovo/Lacto-ovo phù hợp theo dữ liệu; Vegan/Lacto không phù hợp.
 7. Nhãn bị cắt/mờ cho sửa hoặc chụp lại; không mặc định phần thiếu là thành phần thực vật.
 8. Không có kết luận “an toàn dị ứng” chỉ từ ảnh hoặc nhãn không đầy đủ.
-9. Bài viết/video không có cờ AI vẫn không được công khai trước Admin duyệt.
-10. AI lỗi → không xuất bản; kiểm tra một phần phải hiển thị rõ phạm vi còn thiếu cho Admin.
+9. Bài viết/video không được công khai trước Admin duyệt; video không chạy AI.
+10. AI bài viết lỗi → chuyển cho Admin xem trực tiếp, chỉ xuất bản sau quyết định của Admin; kiểm tra một phần phải hiển thị rõ phạm vi còn thiếu cho Admin.
 11. Sửa nội dung đã đăng tạo phiên bản mới để duyệt; không thay bản công khai ngay.
 12. Món trong thực đơn có ID công thức thật; không tự bỏ điều kiện dị ứng khi thiếu món.
 13. Đổi món cập nhật tổng dinh dưỡng và danh sách đi chợ; 7 ngày có đúng 3 bữa chính/ngày.

@@ -39,7 +39,7 @@ export const authApi = {
       expiresAt: data.expiresAtUtc,
     }
 
-    setStoredToken(response.accessToken)
+    setStoredToken(response.accessToken, credentials.rememberMe ?? false)
     setStoredUser(response.user)
 
     return response
@@ -99,8 +99,8 @@ export const authApi = {
         clearStoredAuth()
         return null
       }
-      // If server error or network issue occurs while offline, fallback to cached user if available
-      return getStoredUser<User>()
+      // Cached identity cannot establish a verified authenticated session.
+      throw err
     }
   },
 
@@ -121,7 +121,7 @@ export const authApi = {
   },
 
   /**
-   * Password reset request helper
+   * Real API: Password reset request helper (POST /api/auth/forgot-password)
    */
   async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
     const normalizedEmail = email.trim().toLowerCase()
@@ -135,9 +135,35 @@ export const authApi = {
       throw new Error('Email không hợp lệ.')
     }
 
+    const res = await apiClient.post<{ message?: string }>(
+      '/api/auth/forgot-password',
+      { email: normalizedEmail },
+      { requiresAuth: false },
+    )
+
     return {
       success: true,
-      message: 'Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến email của bạn nếu tài khoản tồn tại trong hệ thống.',
+      message: res?.message || 'Nếu email có tài khoản hợp lệ, hướng dẫn đặt lại mật khẩu sẽ được gửi.',
+    }
+  },
+
+  /**
+   * Real API: Reset password with token (POST /api/auth/reset-password)
+   */
+  async resetPassword(payload: {
+    token: string
+    newPassword: string
+    confirmPassword: string
+  }): Promise<{ success: boolean; message: string }> {
+    await apiClient.post(
+      '/api/auth/reset-password',
+      payload,
+      { requiresAuth: false },
+    )
+
+    return {
+      success: true,
+      message: 'Mật khẩu của bạn đã được đặt lại thành công. Vui lòng đăng nhập bằng mật khẩu mới.',
     }
   },
 }

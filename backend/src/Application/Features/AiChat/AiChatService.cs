@@ -5,7 +5,8 @@ namespace Application.Features.AiChat;
 
 public sealed class AiChatService(
     IAiChatRepository repository,
-    IAiChatAnswerService answerService)
+    IAiChatAnswerService answerService,
+    IAiChatContextRepository contextRepository)
 {
     private const int HistoryLimit = 20;
 
@@ -84,12 +85,13 @@ public sealed class AiChatService(
         var turns = history
             .Select(message => new AiChatTurn(message.Role, message.Content))
             .ToArray();
-        var answer = await answerService.GenerateAsync(content, turns, cancellationToken);
+        var profileContext = await contextRepository.GetProfileContextAsync(userId, cancellationToken);
+        var answer = await answerService.GenerateAsync(content, turns, cancellationToken, profileContext);
 
         if (!answer.IsAvailable || string.IsNullOrWhiteSpace(answer.Answer))
         {
             return new AiChatSubmissionDto(
-                ToDto(userMessage), null, AiChatAnswerStatus.Unavailable);
+                ToDto(userMessage), null, AiChatAnswerStatus.Unavailable, []);
         }
 
         var assistantMessage = await repository.AddMessageAsync(
@@ -98,8 +100,12 @@ public sealed class AiChatService(
             answer.Answer.Trim(),
             cancellationToken);
 
+        var recipes = content.Contains("công thức", StringComparison.OrdinalIgnoreCase) ||
+            content.Contains("món", StringComparison.OrdinalIgnoreCase) ||
+            content.Contains("gợi ý", StringComparison.OrdinalIgnoreCase)
+            ? await contextRepository.GetActiveRecipesAsync(cancellationToken) : [];
         return new AiChatSubmissionDto(
-            ToDto(userMessage), ToDto(assistantMessage), AiChatAnswerStatus.Answered);
+            ToDto(userMessage), ToDto(assistantMessage), AiChatAnswerStatus.Answered, recipes);
     }
 
     private static AiChatConversationDto ToDto(AiChatConversation conversation) =>

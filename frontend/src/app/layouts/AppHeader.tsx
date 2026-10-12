@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Logo from './Logo'
-import { ChevronDown, LogOut, UserCircle } from 'lucide-react'
+import { LogOut, UserCircle } from 'lucide-react'
 import './AppHeader.css'
 
 const NAV_ITEMS = [
@@ -18,6 +18,7 @@ export interface AppHeaderProps {
   activeNav?: string
   isLoggedIn?: boolean
   userName?: string
+  avatarUrl?: string
   onLogout?: () => void
   onNavigate?: (path: string) => void
 }
@@ -26,6 +27,7 @@ export default function AppHeader({
   activeNav = 'home',
   isLoggedIn = false,
   userName,
+  avatarUrl,
   onLogout,
   onNavigate,
 }: AppHeaderProps) {
@@ -115,13 +117,23 @@ export default function AppHeader({
             <div className="app-header-user">
               <button
                 type="button"
-                className="app-header-user-btn"
+                className={`app-header-user-btn${activeNav === 'profile' ? ' app-header-user-btn-active' : ''}`}
                 title={userName}
                 onClick={() => onNavigate?.('/profile')}
               >
-                <UserCircle size={18} className="app-header-user-icon" />
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={userName || 'Avatar'}
+                    className="w-5 h-5 rounded-full object-cover shrink-0 border border-emerald-400"
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <UserCircle size={18} className="app-header-user-icon" />
+                )}
                 <span className="app-header-user-name">{userName || 'Tài khoản'}</span>
-                <ChevronDown size={14} />
               </button>
               <button
                 type="button"

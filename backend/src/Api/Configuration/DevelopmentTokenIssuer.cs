@@ -8,7 +8,7 @@ namespace Api.Configuration;
 // Local testing only. This service is registered and mapped only in Development.
 public sealed class DevelopmentTokenIssuer(string issuer, string audience, string signingKey)
 {
-    public DevelopmentTokenResponse Issue(string userId, string role)
+    public DevelopmentTokenResponse Issue(string userId, string role, int tokenVersion)
     {
         var expiresAtUtc = DateTimeOffset.UtcNow.AddHours(1);
         var token = new JwtSecurityToken(
@@ -18,7 +18,8 @@ public sealed class DevelopmentTokenIssuer(string issuer, string audience, strin
             [
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-                new Claim("role", role)
+                new Claim("role", role),
+                new Claim("ver", tokenVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
             ],
             expires: expiresAtUtc.UtcDateTime,
             signingCredentials: new SigningCredentials(

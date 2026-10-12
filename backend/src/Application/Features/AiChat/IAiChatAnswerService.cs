@@ -17,5 +17,6 @@ public interface IAiChatAnswerService
     Task<AiChatAnswerResult> GenerateAsync(
         string prompt,
         IReadOnlyList<AiChatTurn> history,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        string? profileContext = null);
 }

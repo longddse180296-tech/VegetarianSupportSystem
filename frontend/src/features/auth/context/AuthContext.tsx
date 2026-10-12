@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import type { User, LoginCredentials, RegisterPayload } from '../types'
-import { authApi, getStoredUser, getStoredToken } from '../api/authApi'
+import { authApi, setStoredUser, getStoredToken } from '../api/authApi'
 import { AuthContext, type AuthContextType } from './AuthContextInstance'
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => getStoredUser<User>())
+  const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
   const refreshUser = async (): Promise<User | null> => {
@@ -17,6 +17,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return null
     }
   }
+
+  const updateUser = (updates: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null
+      const updated = { ...prev, ...updates }
+      setStoredUser(updated)
+      return updated
+    })
+  }
+
+  // Listen for user profile updates across components or storage changes
+  useEffect(() => {
+    const handleSync = (e: Event) => {
+      const customEvent = e as CustomEvent<Partial<User>>
+      if (customEvent.detail) {
+        setUser((prev) => {
+          if (!prev) return null
+          const updated = { ...prev, ...customEvent.detail }
+          setStoredUser(updated)
+          return updated
+        })
+      } else {
+        void refreshUser()
+      }
+    }
+
+    window.addEventListener('vegetarian_user_updated', handleSync)
+    window.addEventListener('storage', handleSync)
+    return () => {
+      window.removeEventListener('vegetarian_user_updated', handleSync)
+      window.removeEventListener('storage', handleSync)
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -94,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     refreshUser,
+    updateUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

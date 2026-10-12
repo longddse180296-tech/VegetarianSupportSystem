@@ -100,11 +100,19 @@ export const DietPreferenceFormCard: React.FC<DietPreferenceFormCardProps> = ({
             return (
               <div
                 key={opt.id}
-                onClick={() => setValue('dietType', opt.id)}
-                className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between gap-1 text-left ${
+                role="button"
+                tabIndex={0}
+                onClick={() => setValue('dietType', opt.id, { shouldValidate: true, shouldDirty: true })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setValue('dietType', opt.id, { shouldValidate: true, shouldDirty: true })
+                  }
+                }}
+                className={`p-3.5 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between gap-1 text-left active:scale-[0.99] ${
                   isSelected
-                    ? 'border-emerald-600 bg-[#EAF5EE] text-[#1E6531] shadow-xs'
-                    : 'border-slate-200/80 bg-white text-gray-800 hover:bg-slate-50'
+                    ? 'border-emerald-600 bg-[#EAF5EE] text-[#1E6531] shadow-xs ring-1 ring-emerald-600'
+                    : 'border-slate-200/80 bg-white text-gray-800 hover:bg-slate-50 hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between">

@@ -1,0 +1,214 @@
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 640px;
+  padding: 24px;
+}
+
+.admin-form-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-field-label .required-mark {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.form-field-input,
+.form-field-select,
+.form-field-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #ffffff;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.form-field-input:focus,
+.form-field-select:focus,
+.form-field-textarea:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.form-field-input.input-error,
+.form-field-select.input-error,
+.form-field-textarea.input-error {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.form-field-input.input-error:focus,
+.form-field-select.input-error:focus,
+.form-field-textarea.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.form-field-textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.form-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.form-checkbox-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #10b981;
+  cursor: pointer;
+}
+
+.form-checkbox-field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-submit {
+  padding: 11px 24px;
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-submit:hover {
+  background: #059669;
+}
+
+.btn-submit:disabled {
+  background: #6ee7b7;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  padding: 11px 24px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.form-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 4px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sub-form-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sub-form-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sub-form-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.btn-remove-sub {
+  padding: 6px 12px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-remove-sub:hover {
+  background: #fecaca;
+}
+
+.btn-add-sub {
+  padding: 10px 16px;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1.5px dashed #6ee7b7;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+  width: 100%;
+}
+
+.btn-add-sub:hover {
+  background: #d1fae5;
+}

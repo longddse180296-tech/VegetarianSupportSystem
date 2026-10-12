@@ -8,7 +8,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  FileCheck2,
 } from 'lucide-react'
 
 interface ForgotPasswordFormProps {
@@ -117,9 +116,12 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                 <RotateCcw className="w-6 h-6" />
               </div>
               <div className="flex flex-col gap-1">
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Quên mật khẩu?</h2>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  Quên mật khẩu?
+                </h2>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Nhập email đã đăng ký. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu cho bạn.
+                  Nhập email đã đăng ký. Chúng tôi sẽ gửi hướng dẫn đặt lại mật
+                  khẩu cho bạn.
                 </p>
               </div>
             </div>
@@ -135,7 +137,10 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
             {/* Form */}
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="forgot-email" className="text-xs font-semibold text-slate-700">
+                <label
+                  htmlFor="forgot-email"
+                  className="text-xs font-semibold text-slate-700"
+                >
                   Email <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative flex items-center">
@@ -158,11 +163,16 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                   />
                 </div>
                 {fieldError && (
-                  <span className="text-xs text-rose-600 font-medium">{fieldError}</span>
+                  <span className="text-xs text-rose-600 font-medium">
+                    {fieldError}
+                  </span>
                 )}
                 <div className="flex items-center gap-1.5 text-slate-400 text-xs mt-1">
                   <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>Chúng tôi sẽ gửi một liên kết an toàn có hiệu lực trong 30 phút.</span>
+                  <span>
+                    Chúng tôi sẽ gửi một liên kết an toàn có hiệu lực trong 30
+                    phút.
+                  </span>
                 </div>
               </div>
 
@@ -170,7 +180,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="mt-2 w-full py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white font-medium text-sm flex items-center justify-center gap-2 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="fe1-btn fe1-btn-primary mt-2 w-full py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white font-medium text-sm flex items-center justify-center gap-2 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -191,27 +201,11 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
               <button
                 type="button"
                 onClick={onNavigateToLogin}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded p-1"
+                className="fe1-link inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded p-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Quay lại đăng nhập</span>
               </button>
-            </div>
-
-            {/* Error Rules Box (matching Figma) */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-600 flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5 font-semibold text-slate-700">
-                <FileCheck2 className="w-3.5 h-3.5 text-slate-500" />
-                <span>Quy chuẩn thông báo lỗi:</span>
-              </div>
-              <ul className="flex flex-col gap-1 pl-4 text-slate-500 text-[11px]">
-                <li>
-                  • Email trống: <span className="text-rose-600 font-medium">&ldquo;Vui lòng nhập email.&rdquo;</span>
-                </li>
-                <li>
-                  • Email sai định dạng: <span className="text-rose-600 font-medium">&ldquo;Email không hợp lệ.&rdquo;</span>
-                </li>
-              </ul>
             </div>
           </>
         ) : (
@@ -221,11 +215,15 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
               <CheckCircle2 className="w-7 h-7" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <h2 className="text-xl font-bold text-slate-900">Email đã được gửi!</h2>
+              <h2 className="text-xl font-bold text-slate-900">
+                Email đã được gửi!
+              </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
                 Chúng tôi đã gửi đường dẫn khôi phục mật khẩu đến:
                 <br />
-                <span className="font-semibold text-slate-900 text-sm">{email}</span>
+                <span className="font-semibold text-slate-900 text-sm">
+                  {email}
+                </span>
               </p>
               {successMessage && (
                 <p className="text-xs text-emerald-700 mt-2 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
@@ -238,14 +236,14 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="w-full py-2.5 px-4 rounded-lg border border-slate-300 text-slate-700 font-medium text-xs hover:bg-slate-50 transition-colors"
+                className="fe1-btn fe1-btn-outline w-full py-2.5 px-4 rounded-lg border border-slate-300 text-slate-700 font-medium text-xs hover:bg-slate-50 transition-colors"
               >
                 Gửi lại email khác
               </button>
               <button
                 type="button"
                 onClick={onNavigateToLogin}
-                className="w-full py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-xs transition-colors flex items-center justify-center gap-1.5"
+                className="fe1-btn fe1-btn-primary w-full py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-xs transition-colors flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Quay về trang đăng nhập</span>

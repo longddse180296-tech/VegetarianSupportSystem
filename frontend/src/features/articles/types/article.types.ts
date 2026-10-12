@@ -134,5 +134,6 @@ export interface ArticleFormData {
   content: string
   excerpt?: string
   thumbnailUrl?: string
+  captionHeroImage?: string
   status: 'published' | 'draft'
 }

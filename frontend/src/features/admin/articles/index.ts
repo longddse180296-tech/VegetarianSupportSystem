@@ -1,3 +1,2 @@
-export * from './types/adminArticles.types'
-export * from './api/adminArticlesApi'
+export * from '../moderation/api/adminModerationApi'
 export * from './pages/AdminArticlesPage'

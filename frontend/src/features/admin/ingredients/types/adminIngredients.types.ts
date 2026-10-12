@@ -1,25 +1,25 @@
-export type DangerLevel = 'safe' | 'warning' | 'danger'
+export type IngredientOrigin = 'Unknown' | 'Plant' | 'Animal'
 
-export interface AdminIngredientItem {
-  id: string
+export interface IngredientInput {
   name: string
-  category: string
-  eNumber: string
-  vegan: boolean
-  lactoVegan: boolean
-  dangerLevel: DangerLevel
-  description?: string
+  aliases: string | null
+  origin: IngredientOrigin
+  containsEgg: boolean
+  containsMilk: boolean
+  containsHoney: boolean
+  containsOtherAnimalProducts: boolean | null
+  allergens: string | null
+  defaultUnit: string | null
+  caloriesPer100Gram: number | null
+  proteinGramPer100Gram: number | null
+  carbohydrateGramPer100Gram: number | null
+  fatGramPer100Gram: number | null
+  source: string | null
 }
 
-export interface AdminIngredientStats {
-  total: number
-  safe: number
-  warning: number
-  danger: number
-}
-
-export interface AdminIngredientFilter {
-  keyword?: string
-  dangerLevel?: DangerLevel | 'all'
-  category?: string
+export interface AdminIngredientItem extends IngredientInput {
+  id: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string | null
 }

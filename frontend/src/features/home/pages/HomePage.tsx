@@ -1,625 +1,774 @@
-import { useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react'
 import {
-  Leaf,
-  Sparkles,
-  Users,
-  BadgeCheck,
-  Search,
-  Clock,
-  ChefHat,
-  Flame,
-  Bookmark,
   ArrowRight,
+  Calendar,
+  Check,
+  ChevronRight,
+  Clock,
+  Flame,
+  Leaf,
   MapPin,
-  Send,
-  BookOpen,
   Play,
-  CircleUser,
-  Star,
-  Navigation,
-} from 'lucide-react';
-import './HomePage.css';
+  Search,
+  Send,
+  Sparkles,
+  User,
+} from 'lucide-react'
+import { listVideos, type VideoDetails } from '../../videos/api/backendVideos'
+import { apiClient } from '../../../shared/api/apiClient'
+import { EmptyState, SkeletonLoader } from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
 
 interface HomePageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
-const SEARCH_TABS = ['Món chính', 'Công thức', 'Bài viết', 'Video'] as const;
+const QUICK_TAGS = ['Đậu hũ', 'Nấm', 'Salad bơ', 'Canh chua']
 
-const FEATURED_RECIPES = [
-  {
-    id: 'r1',
-    time: '25 phút',
-    level: 'Dễ',
-    kcal: '380 kcal',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Delicious%20vegan%20tofu%20mushroom%20stew%20in%20white%20bowl%2C%20top%20down%20view%2C%20wooden%20table&image_size=square_hd',
-    name: 'Đậu hũ sốt nấm',
-    tags: ['Đậu hũ non xốt nấm', 'Nấm rừng sấy khô', 'Hành tây tím'],
-  },
-  {
-    id: 'r2',
-    time: '20 phút',
-    level: 'Dễ',
-    kcal: '320 kcal',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vegan%20brown%20rice%20stir%20fry%20with%20colorful%20vegetables%2C%20bowl%20top%20down&image_size=square_hd',
-    name: 'Cơm gạo lứt rau củ',
-    tags: ['Gạo lứt', 'Đậu xanh cắt nhỏ', 'Ớt chuông', 'Hành tây', 'Cà rốt'],
-  },
-  {
-    id: 'r3',
-    time: '15 phút',
-    level: 'Dễ',
-    kcal: '290 kcal',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Avocado%20salad%20with%20chickpeas%2C%20cherry%20tomatoes%2C%20cucumber%20in%20white%20bowl&image_size=square_hd',
-    name: 'Salad bơ và đậu gà',
-    tags: ['Thịt nai', 'Giấm balsamic', 'Rau diếp xanh', 'Hành tây tím'],
-  },
-  {
-    id: 'r4',
-    time: '30 phút',
-    level: 'Vừa',
-    kcal: '410 kcal',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vegan%20noodle%20soup%20with%20fried%20tofu%20and%20herbs%2C%20Vietnamese%20bun%20style&image_size=square_hd',
-    name: 'Bún chay thanh đạm',
-    tags: ['Nước dùng quế', 'Đậu phụ rán', 'Nấm', 'Rau thơm', 'Tỏi băm'],
-  },
-];
+const AI_SAMPLE_QUESTIONS = [
+  'Món này có chay không?',
+  'Bữa sáng 10 phút nhiều đạm',
+  'Gợi ý thực đơn hôm nay',
+]
 
-const LATEST_ARTICLES = [
-  {
-    id: 'a1',
-    author: 'BS. Hoàng Nam',
-    readTime: '6 phút đọc',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Female%20nutritionist%20consulting%20patient%20about%20B12%20supplements%2C%20clinic%20setting&image_size=landscape_16_9',
-    title: 'Làm sao để bổ sung đủ Vitamin B12 khi ăn chế độ thuần chay?',
-    excerpt:
-      'Phần lớn người ăn thuần chay thường thiếu B12 vì không ăn sản phẩm từ động vật. Hiểu rõ tầm quan trọng và cách bổ sung an toàn giúp bạn tránh được triệu chứng thiếu hụt nguy hiểm...',
-  },
-  {
-    id: 'a2',
-    author: 'ThS. Dinh dưỡng Lê Chi',
-    readTime: '7 phút đọc',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=7%20colorful%20plant%20protein%20sources%3A%20tofu%2C%20lentils%2C%20chickpeas%2C%20quinoa%2C%20almonds%2C%20seeds%2C%20tempeh%2C%20wooden%20kitchen&image_size=landscape_16_9',
-    title: 'Top 7 nguồn đạm thực vật với giá trị đạo hàm cao',
-    excerpt:
-      'Đậu xanh nành, hạt chia, đậu đỏ, đậu thầu, hạt điều, đậu phộng, hạt quinoa. 7 loại thực phẩm cung cấp protein hoàn chỉnh không kém thịt, nhưng tốt cho hệ tim mạch và cân bằng đường...',
-  },
-  {
-    id: 'a3',
-    author: 'Chuyên gia Minh Anh',
-    readTime: '5 phút đọc',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Young%20woman%20meal%20prepping%20plant%20based%20lunch%20boxes%20with%20colorful%20veggies%20at%20home%20kitchen&image_size=landscape_16_9',
-    title: 'Hướng dẫn xây dựng thực đơn 7 ngày chuyển dần sang ăn chay',
-    excerpt:
-      'Bắt đầu không ăn thịt 1 ngày một tuần, sau đó tăng dần và kết hợp thêm các bữa ăn yến mạch, rau xanh, các loại đậu. Chuyển đổi từ từ giúp cơ thể thích nghi tốt hơn và giảm tối đa cảm giác thèm...',
-  },
-];
+interface HomeRecipeItem {
+  id: string
+  title: string
+  tag: string
+  cookTime: string
+  calories: string
+  imageUrl: string
+}
 
-const FEATURED_VIDEOS = [
-  {
-    id: 'v1',
-    duration: '08:45',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vegan%20broccoli%20tofu%20stir%20fry%20cooking%20in%20wok%2C%20steam%2C%20asian%20kitchen&image_size=landscape_16_9',
-    title: 'Bí quyết làm sốt xào nấm đậu rau củ thơm ngon (chuẩn xí)',
-    chef: 'Mẹo Dễ Ăn Tốt',
-  },
-  {
-    id: 'v2',
-    duration: '10:12',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Pouring%20golden%20vegan%20pumpkin%20soup%20in%20bowl%2C%20cozy%20kitchen%2C%20autumn&image_size=landscape_16_9',
-    title: 'Nấu nước dùng rau củ ngọt thanh không cần mì chính',
-    chef: 'Bếp nhà Thu Khoa',
-  },
-  {
-    id: 'v3',
-    duration: '06:30',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Three%20fresh%20green%20smoothies%20with%20spinach%2C%20apple%2C%20kiwi%2C%20banana%2C%20morning%20breakfast&image_size=landscape_16_9',
-    title: '3 món sinh tố xanh giàu năng lượng cho buổi sáng bận rộn',
-    chef: 'Sống xanh Đơn giản',
-  },
-];
+interface HomeRestaurantItem {
+  id: string
+  name: string
+  address: string
+  distance: string
+  imageUrl: string
+}
 
-const RESTAURANTS = [
-  {
-    id: 'rest1',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Cozy%20wooden%20interior%20of%20a%20vegan%20vegetarian%20restaurant%20with%20plants%2C%20Vietnam&image_size=landscape_4_3',
-    name: 'Nhà hàng Chay An Lạc',
-    address: '43 Nguyễn Đình Chính, Quận 3, TP.HCM',
-    tags: ['Món mặn chay', 'Món gia truyền'],
-    distance: '1.2 km',
-  },
-  {
-    id: 'rest2',
-    image:
-      'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Minimalist%20modern%20vegetarian%20deli%20counter%20with%20fresh%20salads%2C%20sandwiches%2C%20bright%20lighting&image_size=landscape_4_3',
-    name: 'Tiệm Chay Mộc Nhiên',
-    address: '45 Trần Hưng Đạo, Quận 1, TP.HCM',
-    tags: ['Lẩu nấm chay', 'Cơm hộp đường'],
-    distance: '3.0 km',
-  },
-];
+interface HomeArticleItem {
+  id: string
+  title: string
+  author: string
+  date: string
+  excerpt: string
+  imageUrl: string
+}
 
-const AI_SUGGESTIONS = [
-  'Thực đơn 7 ngày giảm cân, nấu nhanh dưới 30 phút',
-  'Bữa ăn nhiều chất sắt cho người thiếu máu',
-];
+export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePageProps) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [teaserInput, setTeaserInput] = useState('')
+  const [recipes, setRecipes] = useState<HomeRecipeItem[]>([])
+  const [videos, setVideos] = useState<VideoDetails[]>([])
+  const [restaurants, setRestaurants] = useState<HomeRestaurantItem[]>([])
+  const [articles, setArticles] = useState<HomeArticleItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadErrors, setLoadErrors] = useState<string[]>([])
 
-const CHAT_MESSAGES = [
-  {
-    role: 'user',
-    text: 'Bữa sáng đơn giản, 10 phút nấu ăn nhanh rất đầy đủ',
-  },
-  {
-    role: 'assistant',
-    text:
-      '✨ Gợi ý cho bạn:\n\n• Smoothie Protein: Chuối + sữa đậu nành + hạt điều + rau chân vịt (xay nhuyễn, ~23g Protein)\n• Cháo bí đỏ yến mạch nha đam (~31g Protein)\n• Bánh mì chà bông + thịt kho tàu (30g Protein, Buddha Bowl)\n\nThời gian nấu trung bình 8 phút, đảm bảo đủ no đến trưa. Thêm 1 quả trứng cút nếu bạn ăn Ovo-Lacto nhé! 💪',
-  },
-];
+  // Load real data from services
+  useEffect(() => {
+    let isMounted = true
+    void (async () => {
+        const results = await Promise.allSettled([
+          apiClient.get<{ items: Array<{
+            id: string; name: string; categoryName: string; cookTimeMinutes: number
+            caloriesPerServing: number | null; imageUrl: string | null
+          }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false }),
+          apiClient.get<{ items: Array<{
+            id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null
+          }> }>('/api/restaurants?pageNumber=1&pageSize=2', { requiresAuth: false }),
+          listVideos(),
+          apiClient.get<{ items: Array<{
+            id: string; title: string; category: string; publishedAt: string; coverImageUrl: string | null
+          }> }>('/api/articles?page=1&pageSize=3', { requiresAuth: false }),
+        ])
+        if (!isMounted) return
+        const [recipeResult, restaurantResult, videoResult, articleResult] = results
 
-export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn = false }: HomePageProps) {
-  const [searchTab, setSearchTab] = useState<typeof SEARCH_TABS[number]>('Món chính');
-  const [chatInput, setChatInput] = useState('');
+        if (recipeResult.status === 'fulfilled') {
+          setRecipes(
+            recipeResult.value.items.map((r) => ({
+              id: r.id,
+              title: r.name,
+              tag: r.categoryName,
+              cookTime: `${r.cookTimeMinutes} phút`,
+              calories: r.caloriesPerServing == null ? 'Chưa có dữ liệu calo' : `${Math.round(r.caloriesPerServing)} kcal`,
+              imageUrl: r.imageUrl || '',
+            })),
+          )
+        }
+
+        if (restaurantResult.status === 'fulfilled') {
+          setRestaurants(
+            restaurantResult.value.items.map((res) => ({
+              id: res.id,
+              name: res.name,
+              address: res.address,
+              distance: res.distanceKm == null ? 'Chưa có khoảng cách' : `${res.distanceKm} km`,
+              imageUrl: res.imageUrl || '',
+            })),
+          )
+        }
+
+        if (videoResult.status === 'fulfilled') {
+          setVideos(videoResult.value.slice(0, 3))
+        }
+
+        if (articleResult.status === 'fulfilled') {
+            setArticles(
+              articleResult.value.items.map((a) => ({
+                id: a.id,
+                title: a.title,
+                author: 'Thành viên',
+                date: new Date(a.publishedAt).toLocaleDateString('vi-VN'),
+                excerpt: a.category,
+                imageUrl: a.coverImageUrl || '',
+              })),
+            )
+        }
+        const labels = ['công thức', 'nhà hàng', 'video', 'bài viết']
+        setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [labels[index]] : []))
+        setLoading(false)
+    })()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const handleSearchSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    if (!searchTerm.trim()) return
+    onNavigate?.(`/recipes?q=${encodeURIComponent(searchTerm.trim())}`)
+  }
+
+  const handleQuickTagClick = (tag: string) => {
+    setSearchTerm(tag)
+    onNavigate?.(`/recipes?q=${encodeURIComponent(tag)}`)
+  }
+
+  const handleTeaserSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    onNavigate?.('/ai-chat')
+  }
 
   return (
-    <div className="home-page">
-      {/* ============ HERO ============ */}
-      <section className="home-hero">
-        <div className="home-hero-inner">
-          <div className="home-hero-left">
-            <span className="home-hero-eyebrow">
-              <Leaf size={14} />
-              Dinh dưỡng thuần thực vật mỗi ngày - Trợ lý AI cùng hành
-            </span>
-            <h1 className="home-hero-title">
-              Ăn chay lành mạnh, đơn
-              <br />
-              giản hơn mỗi ngày
-            </h1>
-            <p className="home-hero-subtitle">
-              Khám phá công thức, tìm cửa hàng hữu cơ, tìm nhà hàng gần bạn và nhận hỗ trợ dinh dưỡng từ AI.
-            </p>
-            <div className="home-hero-ctas">
-              <button
-                type="button"
-                className="btn btn-primary btn-primary-filled"
-                onClick={() => onNavigate?.('/recipes')}
-              >
-                Khám phá cộng đồng
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={() => onNavigate?.('/ai-chat')}
-              >
-                <Sparkles size={16} />
-                Trải nghiệm trải AI
-              </button>
-            </div>
+    <div className="min-h-screen bg-[#FBFDFB] text-[#1F2937] font-['Inter']">
+      {/* =========================================================================
+       * 1. HERO SECTION & THỐNG KÊ (TOP BANNER)
+       * ========================================================================= */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#E8F5E9]/60 via-[#F8FAF8] to-[#FBFDFB] border-b border-[#E8F5E9] py-12 lg:py-16">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
+            {/* Cột trái */}
+            <div className="lg:col-span-7 flex flex-col items-start gap-5">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#C8E6C9] bg-white px-3.5 py-1.5 text-[12px] font-bold tracking-wider text-[#2E7D32] shadow-xs">
+                <Leaf size={14} className="fill-[#2E7D32]" />
+                NỀN TẢNG ẨM THỰC &amp; DINH DƯỠNG THỰC VẬT
+              </span>
 
-            <div className="home-hero-stats">
-              <div className="home-stat">
-                <Users size={16} />
-                <div>
-                  <strong>1.200+</strong>
-                  <span>Công thức</span>
-                </div>
-              </div>
-              <div className="home-stat">
-                <Star size={16} />
-                <div>
-                  <strong>đã 85%</strong>
-                  <span>Người thích</span>
-                </div>
-              </div>
-              <div className="home-stat">
-                <BadgeCheck size={16} />
-                <div>
-                  <strong>100%</strong>
-                  <span>Thuần thực vật</span>
-                </div>
-              </div>
-            </div>
-          </div>
+              <h1 className="text-[36px] sm:text-[46px] lg:text-[50px] font-extrabold tracking-tight text-[#111827] leading-[1.15]">
+                Ăn chay lành mạnh, <br className="hidden sm:inline" />
+                đơn giản hơn mỗi ngày
+              </h1>
 
-          <div className="home-hero-right">
-            <div className="hero-image-wrap">
-              <img
-                src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Vibrant%20colorful%20vegan%20Buddha%20bowl%20with%20chickpeas%2C%20roasted%20vegetables%2C%20quinoa%2C%20avocado%2C%20purple%20cabbage%2C%20top%20view%2C%20marble%20table&image_size=square_hd"
-                alt="Món ăn chay dinh dưỡng"
-                className="hero-image"
-              />
-              <div className="hero-image-card-badge top-right">
-                <span className="badge-dot" />
-                Nguyên liệu Món Anh
-                <br />
-                <small>buddhabowlexample.com</small>
-              </div>
-              <div className="hero-image-card-badge top-right-2">
-                <div className="meal-plan-header">
-                  <CircleUser size={14} />
-                  <span>Cho hồ sơ Thuần chay</span>
-                </div>
-                <div className="meal-plan-row">
-                  <span>Lunch 1000 kcal</span>
-                  <span>Thứ 6, 18 tháng 10</span>
-                </div>
+              <p className="text-[16px] text-[#4B5563] leading-relaxed max-w-[540px]">
+                Khám phá hàng trăm công thức thuần chay, thực đơn cá nhân hóa và nhận trợ giúp từ trợ lý AI dinh dưỡng.
+              </p>
+
+              {/* Cặp nút CTA */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   type="button"
-                  className="btn btn-mini"
-                  onClick={() => onNavigate?.('/meal-plans')}
+                  onClick={() => onNavigate?.('/recipes')}
+                  className="rounded-[10px] bg-[#2E7D32] hover:bg-[#1B5E20] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition active:scale-98"
                 >
-                  🧭 Xem ngay
+                  Khám phá công thức
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('/ai-chat')}
+                  className="inline-flex items-center gap-2 rounded-[10px] border border-[#2E7D32] bg-white hover:bg-[#E8F5E9] px-6 py-3 text-[15px] font-semibold text-[#2E7D32] transition active:scale-98"
+                >
+                  <Sparkles size={16} />
+                  Tư vấn dinh dưỡng với AI
                 </button>
               </div>
-              <div className="hero-image-card-badge bottom-left">
-                <Leaf size={12} />
-                ăn 40 món Mới
+
+              {/* 3 Cam kết */}
+              <div className="flex flex-wrap items-center gap-6 pt-4 text-[13px] font-semibold text-[#374151]">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>100% Thuần thực vật</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>Chuẩn khoa học dinh dưỡng</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>Hơn 10.000+ người dùng</span>
+                </div>
               </div>
-              <div className="hero-image-card-badge bottom-right">
-                <strong>18.5 • 22.9</strong>
-                <small>Gợi ý theo BMI: 19-24</small>
+            </div>
+
+            {/* Cột phải: Ảnh đĩa salad tròn + Floating Card */}
+            <div className="lg:col-span-5 flex justify-center lg:justify-end relative">
+              <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px]">
+                {/* Vòng nền gradient nhẹ */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#C8E6C9]/40 to-transparent scale-105" />
+
+                <img
+                  src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
+                  alt="Đĩa salad thuần chay ngũ sắc"
+                  className="h-full w-full rounded-full object-cover shadow-2xl ring-8 ring-white"
+                />
+
+                {/* Floating Card: BMI */}
+                <div className="absolute bottom-2 left-0 sm:-left-4 rounded-[14px] border border-[#E5E7EB] bg-white/95 backdrop-blur px-4 py-3 shadow-xl">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                      <Check size={14} strokeWidth={3} />
+                    </span>
+                    <div>
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">
+                        Chỉ số thể trạng
+                      </div>
+                      <div className="text-[13px] font-bold text-[#111827]">
+                        BMI chuẩn 18.5 – 22.9
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Floating Badge: Góc trên */}
+                <div className="absolute top-4 right-0 sm:-right-2 rounded-[14px] border border-[#E5E7EB] bg-white/95 backdrop-blur px-3.5 py-2.5 shadow-lg flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                  <span className="text-[12px] font-bold text-[#111827]">
+                    Công thức mới mỗi ngày
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ============ SEARCH BAR ============ */}
-      <section className="home-search-wrap">
-        <div className="home-search">
-          <div className="home-search-input-wrap">
-            <Search size={18} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm công thức, bài viết, video..."
-              className="home-search-input"
-            />
-            <button type="button" className="btn btn-search">
+      {/* =========================================================================
+       * 2. THANH TÌM KIẾM NHANH TOÀN HỆ THỐNG
+       * ========================================================================= */}
+      <section className="mx-auto max-w-[1240px] px-4 sm:px-6 -mt-7 relative z-20">
+        <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-4 sm:p-5 shadow-lg">
+          <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
+              <Search
+                size={18}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+              />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm kiếm món ăn, bài viết, video..."
+                className="w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] pl-10 pr-4 py-3 text-[14px] text-[#1F2937] placeholder:text-[#9CA3AF] focus:border-[#2E7D32] focus:bg-white focus:outline-none transition"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full sm:w-auto rounded-[10px] bg-[#2E7D32] hover:bg-[#1B5E20] px-8 py-3 text-[14px] font-semibold text-white transition active:scale-98 shrink-0"
+            >
               Tìm kiếm
             </button>
-          </div>
-          <div className="home-search-tabs" role="tablist">
-            {SEARCH_TABS.map(tab => (
+          </form>
+
+          {/* Quick Tags */}
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
+            <span className="font-semibold text-[#6B7280]">Gợi ý từ khóa:</span>
+            {QUICK_TAGS.map((tag) => (
               <button
-                key={tab}
+                key={tag}
                 type="button"
-                role="tab"
-                aria-selected={searchTab === tab}
-                className={`search-tab ${searchTab === tab ? 'search-tab-active' : ''}`}
-                onClick={() => setSearchTab(tab)}
+                onClick={() => handleQuickTagClick(tag)}
+                className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1 font-medium text-[#4B5563] hover:border-[#C8E6C9] hover:bg-[#E8F5E9] hover:text-[#2E7D32] transition"
               >
-                {tab}
+                #{tag}
               </button>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ============ FEATURED RECIPES ============ */}
-      <section className="home-section recipes-section">
-        <div className="home-section-head">
-          <div>
-            <h2 className="home-section-title">Công thức nổi bật</h2>
-            <p className="home-section-desc">
-              Được chuyên gia dinh dưỡng chọn lọc và đã được thử món trong các vụ tuần lễ.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="link-arrow"
-            onClick={() => onNavigate?.('/recipes')}
-          >
-            Xem tất cả công thức
-            <ArrowRight size={16} />
-          </button>
-        </div>
-
-        <div className="recipe-grid">
-          {FEATURED_RECIPES.map(recipe => (
-            <article key={recipe.id} className="recipe-card-home">
-              <div className="recipe-meta-top">
-                <span className="chip chip-ghost"><Clock size={12} /> {recipe.time}</span>
-                <span className="chip chip-ghost"><ChefHat size={12} /> {recipe.level}</span>
-                <span className="chip chip-ghost"><Flame size={12} /> {recipe.kcal}</span>
-              </div>
-              <div className="recipe-img-wrap">
-                <img src={recipe.image} alt={recipe.name} className="recipe-img" />
-              </div>
-              <h3 className="recipe-name">{recipe.name}</h3>
-              <p className="recipe-tags">
-                {recipe.tags.slice(0, 3).map(t => (
-                  <span key={t}>#{t}</span>
-                ))}
+      {/* =========================================================================
+       * 3. SECTION: CÔNG THỨC NỔI BẬT
+       * ========================================================================= */}
+      <div className="mx-auto max-w-[1240px] px-4 pt-8 sm:px-6">
+        {loading && <SkeletonLoader count={3} variant="card" />}
+        {loadErrors.length > 0 && <AlertError title="Một số nội dung chưa tải được" message={`Không thể tải ${loadErrors.join(', ')}. Hãy tải lại trang để thử lại.`} />}
+        {!loading && loadErrors.length === 0 && recipes.length + videos.length + articles.length + restaurants.length === 0 && (
+          <EmptyState title="Chưa có nội dung công khai" description="Nội dung sẽ xuất hiện khi được cập nhật và công khai." />
+        )}
+      </div>
+      {recipes.length > 0 && (
+        <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+                Công thức nổi bật
+              </h2>
+              <p className="mt-1 text-[14px] text-[#6B7280]">
+                Được chuyên gia dinh dưỡng chọn lọc, cân bằng dưỡng chất và dễ nấu tại nhà.
               </p>
-              <div className="recipe-card-actions">
-                <button
-                  type="button"
-                  className="btn btn-outline-green"
-                  onClick={() => onNavigate?.(`/recipes/${encodeURIComponent(recipe.id)}`)}
-                >
-                  Xem công thức
-                </button>
-                <button type="button" className="btn-icon" aria-label="Lưu">
-                  <Bookmark size={16} />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* ============ LATEST ARTICLES ============ */}
-      <section className="home-section articles-section">
-        <div className="home-section-head">
-          <div>
-            <h2 className="home-section-title">Bài viết mới nhất</h2>
-            <p className="home-section-desc">
-              Cẩm nang kiến thức khoa học và kinh nghiệm dinh dưỡng từ chuyên gia y tế.
-            </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/recipes')}
+              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
+            >
+              Xem tất cả công thức
+              <ArrowRight size={15} />
+            </button>
           </div>
-          <button
-            type="button"
-            className="link-arrow"
-            onClick={() => onNavigate?.('/articles')}
-          >
-            Xem tất cả bài viết
-            <ArrowRight size={16} />
-          </button>
-        </div>
 
-        <div className="articles-grid">
-          {LATEST_ARTICLES.map(article => (
-            <article key={article.id} className="article-card-home">
-              <img src={article.image} alt={article.title} className="article-img" />
-              <div className="article-meta">
-                <CircleUser size={14} />
-                <span>{article.author}</span>
-                <span className="dot">•</span>
-                <span>{article.readTime}</span>
-              </div>
-              <h3 className="article-title">{article.title}</h3>
-              <p className="article-excerpt">{article.excerpt}</p>
-              <button
-                type="button"
-                className="link-readmore"
-                onClick={() => onNavigate?.(`/articles/${encodeURIComponent(article.id)}`)}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {recipes.map((recipe) => (
+              <article
+                key={recipe.id}
+                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
               >
-                Đọc thêm →
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
+                {/* Image & Tag */}
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                  {recipe.imageUrl ? <img
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh</div>}
+                  <span className="absolute left-3 top-3 rounded-full bg-white/95 backdrop-blur px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32] shadow-xs">
+                    {recipe.tag}
+                  </span>
+                </div>
 
-      {/* ============ FEATURED VIDEOS ============ */}
-      <section className="home-section videos-section">
-        <div className="home-section-head">
-          <div>
-            <h2 className="home-section-title">Video nấu ăn nổi bật</h2>
-            <p className="home-section-desc">
-              Hướng dẫn trực quan từng bước giúp bạn làm món chay ngon miệng tại nhà.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="link-arrow"
-            onClick={() => onNavigate?.('/videos')}
-          >
-            Xem thêm video
-            <ArrowRight size={16} />
-          </button>
-        </div>
-
-        <div className="videos-grid">
-          {FEATURED_VIDEOS.map(video => (
-            <article key={video.id} className="video-card-home">
-              <div className="video-thumb-wrap">
-                <img src={video.image} alt={video.title} className="video-thumb" />
-                <span className="video-duration">{video.duration}</span>
-                <button
-                  type="button"
-                  className="play-btn"
-                  onClick={() => onNavigate?.(`/videos/${encodeURIComponent(video.id)}`)}
-                  aria-label="Xem video"
-                >
-                  <Play size={20} fill="currentColor" />
-                </button>
-              </div>
-              <h3 className="video-title">{video.title}</h3>
-              <p className="video-chef">
-                <ChefHat size={14} /> {video.chef}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* ============ RESTAURANTS NEARBY ============ */}
-      <section className="home-section restaurants-section">
-        <div className="home-section-head">
-          <div>
-            <h2 className="home-section-title">Nhà hàng chay gần bạn</h2>
-            <p className="home-section-desc">
-              Địa điểm thưởng thức món chay chất lượng và an lành.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="link-arrow"
-            onClick={() => onNavigate?.('/restaurants')}
-          >
-            <MapPin size={16} />
-            Xem bản đồ
-          </button>
-        </div>
-
-        <div className="restaurants-layout">
-          <div className="restaurants-list-col">
-            {RESTAURANTS.map(r => (
-              <article key={r.id} className="restaurant-card-home">
-                <img src={r.image} alt={r.name} className="restaurant-img" />
-                <div className="restaurant-info">
-                  <div className="restaurant-top-row">
-                    <h3 className="restaurant-name">{r.name}</h3>
-                    <span className="distance-chip">{r.distance}</span>
+                {/* Details */}
+                <div className="flex flex-1 flex-col justify-between p-4">
+                  <div>
+                    <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-1.5 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        {recipe.cookTime}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Flame size={12} />
+                        {recipe.calories}
+                      </span>
+                    </div>
+                    <h3
+                      onClick={() => onNavigate?.(`/recipes/${recipe.id}`)}
+                      className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-1"
+                    >
+                      {recipe.title}
+                    </h3>
                   </div>
-                  <p className="restaurant-addr">
-                    <MapPin size={12} /> {r.address}
-                  </p>
-                  <div className="restaurant-tags">
-                    {r.tags.map(t => (
-                      <span key={t} className="pill">{t}</span>
-                    ))}
+
+                  <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
+                    <button
+                      type="button"
+                      onClick={() => onNavigate?.(`/recipes/${recipe.id}`)}
+                      className="w-full rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition text-center"
+                    >
+                      Xem công thức
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline-green btn-sm"
-                    onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(r.id)}`)}
-                  >
-                    Xem chi tiết
-                  </button>
                 </div>
               </article>
             ))}
           </div>
+        </section>
+      )}
 
-          <div className="restaurant-map-col">
-            <div className="restaurant-map">
-              <img
-                src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Minimal%20clean%20street%20map%20illustration%20with%20green%20location%20pins%20marking%20vegetarian%20restaurants%2C%20flat%20design%2C%20light%20green%20theme&image_size=landscape_4_3"
-                alt="Bản đồ nhà hàng"
-                className="map-img"
-              />
-              <div className="map-popup">
-                <div className="map-popup-title">🍲 Quán Mộc Nhiên</div>
-                <div className="map-popup-sub">⭐ 4.7 • 1.2 km • Quận 3, HCM</div>
-                <button
-                  type="button"
-                  className="btn btn-primary-filled btn-xs"
-                  onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent('rest2')}`)}
-                >
-                  Xem chi tiết
-                </button>
+      {/* =========================================================================
+       * 4. SECTION: BÀI VIẾT MỚI NHẤT
+       * ========================================================================= */}
+      {articles.length > 0 && (
+        <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
+          <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+                  Bài viết mới nhất
+                </h2>
+                <p className="mt-1 text-[14px] text-[#6B7280]">
+                  Cẩm nang khoa học dinh dưỡng và kinh nghiệm thực hành từ các chuyên gia.
+                </p>
               </div>
-              <div className="map-actions">
-                <span className="map-tab active">Bản đồ</span>
-                <span className="map-tab">Vệ tinh</span>
-                <button type="button" className="btn-icon map-fullscreen" aria-label="fullscreen">
-                  <Navigation size={14} />
-                </button>
-              </div>
-            </div>
-            <p className="map-hint">
-              💡 Tìm thấy 16 quán chay quanh bạn.
               <button
                 type="button"
-                className="link-inline"
-                onClick={() => onNavigate?.('/restaurants')}
+                onClick={() => onNavigate?.('/articles')}
+                className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
               >
-                Hiển thị danh sách đầy đủ
+                Xem tất cả bài viết
+                <ArrowRight size={15} />
               </button>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ============ AI ASK PANEL ============ */}
-      <section className="home-section ai-section">
-        <div className="ai-panel-left">
-          <span className="ai-eyebrow">
-            <Sparkles size={14} />
-            AI Nutrition Assistant 2.0
-          </span>
-          <h2 className="home-section-title">Hỏi trợ lý dinh dưỡng AI</h2>
-          <p className="home-section-desc">
-            Nhận gợi ý thực đơn, nguyên liệu thay thế (B12, chất sắt và bổ sung calo) trong tích tắc chỉ trong tích tắc.
-          </p>
-          <div className="ai-suggestions">
-            {AI_SUGGESTIONS.map(s => (
-              <button key={s} type="button" className="suggestion-chip">
-                <BookOpen size={14} /> {s}
-              </button>
-            ))}
-            <button type="button" className="suggestion-chip">
-              💡 Thêm 1 món mới vào thực đơn 7 ngày
-            </button>
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary-filled"
-            onClick={() => onNavigate?.('/ai-chat')}
-          >
-            Mở bác sĩ trò chuyện
-          </button>
-        </div>
-
-        <div className="ai-panel-right">
-          <div className="ai-chat-top">
-            <span className="ai-badge-avatar">
-              <Sparkles size={12} />
-            </span>
-            <div>
-              <strong>Trợ lý Vegetarian AI</strong>
-              <span className="online-dot" />
             </div>
-            <span className="ai-right-dot">Mới cập nhật</span>
-          </div>
 
-          <div className="ai-question">
-            Bạn đang nấu cho mình hay cả nhà? Bao nhiêu khẩu phần?
-          </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {articles.map((article) => (
+                <article
+                  key={article.id}
+                  className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
+                >
+                  <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
+                    {article.imageUrl ? <img
+                      src={article.imageUrl}
+                      alt={article.title}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh bìa</div>}
+                  </div>
 
-          <div className="ai-bubble user-bubble">
-            <strong>🧑</strong>
-            <p>{CHAT_MESSAGES[0].text}</p>
-          </div>
+                  <div className="flex flex-1 flex-col justify-between p-5">
+                    <div>
+                      <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-2 font-medium">
+                        <span className="flex items-center gap-1 text-[#2E7D32] font-semibold">
+                          <User size={12} />
+                          {article.author}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar size={12} />
+                          {article.date}
+                        </span>
+                      </div>
 
-          <div className="ai-bubble assistant-bubble">
-            <strong>🌿</strong>
-            <p>
-              {CHAT_MESSAGES[1].text.split('\n').map((line, i) => (
-                <span key={i}>
-                  {line}
-                  {i < CHAT_MESSAGES[1].text.split('\n').length - 1 && <br />}
-                </span>
+                      <h3
+                        onClick={() => onNavigate?.(`/articles/${article.id}`)}
+                        className="text-[16px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
+                      >
+                        {article.title}
+                      </h3>
+
+                      <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">
+                        {article.excerpt}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
+                      <button
+                        type="button"
+                        onClick={() => onNavigate?.(`/articles/${article.id}`)}
+                        className="inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
+                      >
+                        Đọc thêm
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </article>
               ))}
-            </p>
+            </div>
           </div>
+        </section>
+      )}
 
-          <div className="ai-chat-input-wrap">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              placeholder="Hỏi thêm về cơ chế nấu, chế độ..."
-              className="ai-chat-input"
-            />
+      {/* =========================================================================
+       * 5. SECTION: VIDEO NẤU ĂN NỔI BẬT
+       * ========================================================================= */}
+      {videos.length > 0 && (
+        <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+                Video nấu ăn nổi bật
+              </h2>
+              <p className="mt-1 text-[14px] text-[#6B7280]">
+                Hướng dẫn trực quan từng bước giúp bạn tự tay chuẩn bị món chay thơm ngon.
+              </p>
+            </div>
             <button
               type="button"
-              className="btn ai-send-btn"
-              onClick={() => {
-                setChatInput('');
-                onNavigate?.('/ai-chat');
-              }}
-              aria-label="Gửi câu hỏi"
+              onClick={() => onNavigate?.('/videos')}
+              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
             >
-              <Send size={16} />
+              Xem tất cả video
+              <ArrowRight size={15} />
             </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {videos.map((vid) => (
+              <article
+                key={vid.id}
+                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
+              >
+                <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
+                  {vid.thumbnailUrl ? <img
+                    src={vid.thumbnailUrl}
+                    alt={vid.title}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
+                  /> : <div className="flex h-full items-center justify-center text-sm text-white">Chưa có ảnh bìa</div>}
+
+                  {/* Center Play Button */}
+                  <button
+                    type="button"
+                    onClick={() => onNavigate?.(`/videos/${vid.id}`)}
+                    aria-label="Xem video"
+                    className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                  >
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-[#2E7D32] shadow-xl group-hover:scale-110 transition duration-200">
+                      <Play size={18} className="fill-[#2E7D32] ml-0.5" />
+                    </span>
+                  </button>
+                </div>
+
+                <div className="p-4">
+                  <h3
+                    onClick={() => onNavigate?.(`/videos/${vid.id}`)}
+                    className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
+                  >
+                    {vid.title}
+                  </h3>
+                  <div className="mt-2 text-[12px] text-[#6B7280] font-medium">
+                    {vid.viewCount.toLocaleString('vi-VN')} lượt xem
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+       * 6. SECTION: NHÀ HÀNG CHAY GẦN BẠN
+       * ========================================================================= */}
+      {restaurants.length > 0 && (
+        <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
+          <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+                  Nhà hàng chay
+                </h2>
+                <p className="mt-1 text-[14px] text-[#6B7280]">
+                  Khám phá địa điểm và thông tin nhà hàng trong hệ thống.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('/restaurants')}
+                className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
+              >
+                Xem trên bản đồ
+                <ArrowRight size={15} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+              {/* 2 Card Nhà hàng bên trái */}
+              <div className="lg:col-span-6 flex flex-col gap-4">
+                {restaurants.map((res) => (
+                  <article
+                    key={res.id}
+                    className="flex flex-col sm:flex-row items-stretch rounded-[16px] border border-[#E5E7EB] bg-white p-3.5 gap-4 shadow-xs hover:border-[#C8E6C9] transition"
+                  >
+                    {res.imageUrl ? <img
+                      src={res.imageUrl}
+                      alt={res.name}
+                      className="h-32 sm:w-40 sm:h-auto rounded-[12px] object-cover shrink-0"
+                    /> : <div className="flex h-32 items-center justify-center rounded-xl bg-slate-100 text-sm text-slate-500 sm:w-40">Chưa có ảnh</div>}
+                    <div className="flex flex-1 flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-[15px] font-bold text-[#111827]">
+                            {res.name}
+                          </h3>
+                        </div>
+                        <p className="mt-1 text-[12px] text-[#6B7280] line-clamp-2">
+                          {res.address}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#F3F4F6]">
+                        <span className="flex items-center gap-1 text-[12px] font-semibold text-[#4B5563]">
+                          <MapPin size={12} className="text-[#2E7D32]" />
+                          {res.distance}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
+                          className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
+                        >
+                          Xem chi tiết
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {/* Khung bản đồ thu nhỏ bên phải */}
+              <div className="lg:col-span-6">
+                <div className="relative aspect-[16/10] w-full rounded-[16px] overflow-hidden border border-[#E5E7EB] shadow-xs group">
+                  <img
+                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80"
+                    alt="Ảnh minh họa bản đồ"
+                    className="h-full w-full object-cover"
+                  />
+
+                  {/* Map Overlay Badge */}
+                  <div className="absolute top-4 left-4 rounded-[10px] border border-[#E5E7EB] bg-white/95 backdrop-blur px-3 py-2 shadow-md flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2E7D32] text-white">
+                      <MapPin size={13} />
+                    </span>
+                    <div>
+                      <div className="text-[12px] font-bold text-[#111827]">
+                        Tìm nhà hàng trên bản đồ
+                      </div>
+                      <div className="text-[10px] text-[#6B7280]">
+                        Ảnh minh họa — mở danh sách để xem vị trí thực tế
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Button Mở rộng bản đồ */}
+                  <div className="absolute bottom-4 right-4">
+                    <button
+                      type="button"
+                      onClick={() => onNavigate?.('/restaurants')}
+                      className="rounded-[8px] bg-[#2E7D32] hover:bg-[#1B5E20] px-4 py-2 text-[13px] font-semibold text-white shadow-md transition"
+                    >
+                      Mở rộng bản đồ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+       * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI (INTERACTIVE TEASER)
+       * ========================================================================= */}
+      <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
+        <div className="rounded-[20px] border border-[#C8E6C9] bg-gradient-to-br from-[#F0FDF4] via-white to-[#F0FDF4] p-6 sm:p-10 shadow-sm">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
+            {/* Cột trái: Teaser Info */}
+            <div className="lg:col-span-6 flex flex-col items-start gap-4">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C8E6C9] bg-[#E8F5E9] px-3 py-1 text-[12px] font-bold text-[#2E7D32]">
+                <Sparkles size={13} />
+                TRỢ LÝ ẢO DINH DƯỠNG THỰC VẬT
+              </span>
+
+              <h2 className="text-[28px] sm:text-[34px] font-extrabold tracking-tight text-[#111827] leading-tight">
+                Hỏi trợ lý dinh dưỡng AI
+              </h2>
+
+              <p className="text-[15px] text-[#4B5563] leading-relaxed">
+                Giải đáp thắc mắc dinh dưỡng, nguyên liệu thay thế, tính toán calo và nhận gợi ý bữa ăn phù hợp cho bạn trong tích tắc.
+              </p>
+
+              {/* Sample question chips */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {AI_SAMPLE_QUESTIONS.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => onNavigate?.('/ai-chat')}
+                    className="rounded-full border border-[#C8E6C9] bg-white px-3.5 py-1.5 text-[12px] font-medium text-[#2E7D32] hover:bg-[#E8F5E9] transition"
+                  >
+                    💬 {q}
+                  </button>
+                ))}
+              </div>
+
+              {/* CTA button */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('/ai-chat')}
+                  className="rounded-[10px] bg-[#2E7D32] hover:bg-[#1B5E20] px-7 py-3 text-[15px] font-semibold text-white shadow-sm transition active:scale-98"
+                >
+                  Bắt đầu chat với AI ngay
+                </button>
+              </div>
+            </div>
+
+            {/* Cột phải: Chat Simulator Mockup */}
+            <div className="lg:col-span-6">
+              <div className="rounded-[16px] border border-[#E5E7EB] bg-white shadow-lg overflow-hidden">
+                {/* Header chat box */}
+                <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3 bg-[#F9FAFB]">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                      <Sparkles size={14} />
+                    </span>
+                    <span className="text-[13px] font-bold text-[#111827]">
+                      Vegetarian AI Assistant
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2E7D32]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
+                    Đang hoạt động
+                  </span>
+                </div>
+
+                {/* Messages conversation preview */}
+                <div className="p-4 space-y-3.5 bg-white text-[13px] leading-relaxed">
+                  {/* User message */}
+                  <div className="flex justify-end">
+                    <div className="rounded-[14px] rounded-tr-none bg-[#2E7D32] text-white px-4 py-2.5 max-w-[85%] shadow-xs">
+                      Bữa sáng đơn giản, 10 phút nấu nhanh và giàu đạm thực vật?
+                    </div>
+                  </div>
+
+                  {/* Bot message */}
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32] mt-0.5">
+                      <Leaf size={14} className="fill-[#2E7D32]" />
+                    </span>
+                    <div className="rounded-[14px] rounded-tl-none bg-[#E8F5E9] border border-[#C8E6C9] p-3 text-[#1F2937] max-w-[90%] space-y-1">
+                      <p className="font-semibold text-[#2E7D32]">
+                        Chào bạn! Gợi ý bữa sáng nhanh cho bạn:
+                      </p>
+                      <p>• Smoothie chuối, yến mạch &amp; bơ đậu phộng (~22g protein)</p>
+                      <p>• Đậu hũ xào nấm ăn kèm bánh mì nguyên cám (~18g protein)</p>
+                      <p className="text-[12px] text-[#6B7280] pt-1">
+                        Thời gian thực hiện chỉ khoảng 8 – 10 phút, đầy đủ năng lượng cho cả buổi sáng!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Input simulator */}
+                <form
+                  onSubmit={handleTeaserSubmit}
+                  className="border-t border-[#E5E7EB] p-2.5 bg-[#F9FAFB] flex items-center gap-2"
+                >
+                  <input
+                    type="text"
+                    value={teaserInput}
+                    onChange={(e) => setTeaserInput(e.target.value)}
+                    placeholder="Nhập câu hỏi của bạn..."
+                    className="flex-1 rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[13px] text-[#1F2937] focus:border-[#2E7D32] focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#2E7D32] text-white hover:bg-[#1B5E20] transition"
+                  >
+                    <Send size={14} />
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       </section>
     </div>
-  );
+  )
 }

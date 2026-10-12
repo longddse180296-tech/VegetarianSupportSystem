@@ -22,8 +22,10 @@ public sealed class User
     public string Id { get; private set; } = string.Empty;
     public string FullName { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
+    public string? PhoneNumber { get; private set; }
     public string NormalizedEmail { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
+    public int TokenVersion { get; private set; }
     public UserRole Role { get; private set; }
     public bool IsLocked { get; private set; }
     public string? LockReason { get; private set; }
@@ -57,9 +59,31 @@ public sealed class User
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    public void SetPhoneNumber(string? phoneNumber, DateTimeOffset updatedAtUtc)
+    {
+        phoneNumber = phoneNumber?.Trim();
+        if (string.IsNullOrEmpty(phoneNumber))
+        {
+            PhoneNumber = null;
+        }
+        else
+        {
+            var digits = phoneNumber.Count(char.IsDigit);
+            if (phoneNumber.Length > 30 || digits is < 7 or > 15 ||
+                phoneNumber.Any(c => !char.IsDigit(c) && c is not ('+' or ' ' or '-' or '.' or '(' or ')')) ||
+                phoneNumber.Count(c => c == '+') > 1 ||
+                (phoneNumber.Contains('+') && phoneNumber[0] != '+'))
+                throw new ArgumentException("Phone number must contain 7 to 15 digits and at most 30 characters.", nameof(phoneNumber));
+            PhoneNumber = phoneNumber;
+        }
+
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
     public void ChangePasswordHash(string passwordHash, DateTimeOffset updatedAtUtc)
     {
         PasswordHash = RequireText(passwordHash, 1_000, nameof(passwordHash));
+        TokenVersion++;
         UpdatedAtUtc = updatedAtUtc;
     }
 

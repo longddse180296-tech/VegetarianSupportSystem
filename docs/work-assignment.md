@@ -17,9 +17,9 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 |---|---|---|---|
 | FE 1 | Frontend | Auth, profile, bai viet, admin shell/admin moderation, thuc don | `frontend/src/features/auth`, `profile`, `articles`, `admin`, `meal-plans` |
 | FE 2 | Frontend | Cong thuc, video, nha hang, AI chat, scan, tu bep | `frontend/src/features/recipes`, `videos`, `restaurants`, `ai-chat`, `food-scan`, `pantry` |
-| BE 1 | Backend | Tai khoan, phan quyen, ho so nguoi dung, thanh vien admin | `Application/Features/Auth`, `Profiles`, `Administration`, `Infrastructure/Identity` |
-| BE 2 | Backend | Du lieu cot loi: danh muc, nguyen lieu, cong thuc, nha hang, favorite | `Application/Features/Categories`, `Ingredients`, `Recipes`, `Restaurants`, `Favorites` |
-| BE 3 | Backend | Noi dung user, video, binh luan, moderation, AI, scan, thuc don, tu bep | `Application/Features/Articles`, `Videos`, `Comments`, `Moderation`, `AiChat`, `FoodScanning`, `MealPlans`, `Pantry` |
+| BE 1 | Backend | Tai khoan, ho so, thanh vien, dashboard, articles, comments/like/vote | `Application/Features/Auth`, `Profiles`, `Administration`, `Articles`, `Comments`, `Infrastructure/Identity` |
+| BE 2 | Backend | Danh muc, nguyen lieu, cong thuc, nha hang, favorite, pantry, meal plans/PDF | `Application/Features/Categories`, `Ingredients`, `Recipes`, `Restaurants`, `Favorites`, `Pantry`, `MealPlans`, `Infrastructure/Documents` |
+| BE 3 | Backend | Videos/storage, moderation, AI chat, scan/OCR/history, Gemini | Application/Features/Videos, Moderation, AiChat, FoodScanning; Infrastructure/AI/Gemini, Storage |
 
 ## FE 1: Auth, profile, article, admin, meal plan
 
@@ -59,7 +59,7 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 ### Can phoi hop voi
 
 - BE 1 cho auth/profile/member.
-- BE 3 cho articles/comments/moderation/meal plans.
+- BE 2 cho meal plans va Admin core data; BE 3 cho moderation/Admin videos.
 - FE 2 de thong nhat layout, shared component, empty/loading/error state.
 
 ## FE 2: Recipes, videos, restaurants, AI, scan, pantry
@@ -83,10 +83,6 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 - `frontend/src/features/food-scan`
 - `frontend/src/features/pantry`
 - `frontend/src/features/favorites`
-- `frontend/src/features/admin/recipes`
-- `frontend/src/features/admin/ingredients`
-- `frontend/src/features/admin/restaurants`
-- `frontend/src/features/admin/categories`
 
 ### Viec can lam
 
@@ -98,191 +94,34 @@ Tai lieu nay chia viec theo Figma va MVP hien tai. Nhom co 2 frontend va 3 backe
 6. Lam AI chat: guest trial, user chat co ho so, history neu backend ho tro.
 7. Lam scan: guest intro, upload user, xac nhan nguyen lieu/OCR, cau hoi bo sung, ket qua co dieu kien.
 8. Lam pantry: CRUD nguyen lieu dang co, goi y thay the, goi y cong thuc.
-9. Lam admin core data UI: categories, ingredients, recipes, restaurants.
+9. Phoi hop FE 1 ve mapping du lieu core data; FE 1 so huu admin categories, ingredients, recipes, restaurants theo AGENTS.md.
 
 ### Can phoi hop voi
 
 - BE 2 cho categories/ingredients/recipes/restaurants/favorites.
-- BE 3 cho videos/AI/scan/pantry.
+- BE 2 cho pantry; BE 3 cho videos/AI/scan; BE 1 cho comments/like.
 - FE 1 de dung chung auth guard, layout va admin shell.
 
-## BE 1: Auth, profile, member, role
+## Phan cong Backend cap nhat 08/10/2026
 
-### Folder code
+Phan cong can bang theo phan viec con lai, thay the bang BE cu. Chi tiet 20 task, API, folder, phu thuoc va nghiem thu o [backend-work-assignment.md](backend-work-assignment.md).
 
-- `backend/src/Application/Features/Auth`
-- `backend/src/Application/Features/Profiles`
-- `backend/src/Application/Features/Administration`
-- `backend/src/Domain/Entities`
-- `backend/src/Domain/Enums`
-- `backend/src/Infrastructure/Identity`
-- `backend/src/Infrastructure/Persistence`
-- `backend/src/Api/Authorization`
-- `backend/src/Api/Controllers`
+| Nguoi | Pham vi so huu | Task |
+|---|---|---|
+| BE 1 | Auth, profile/BMI/TDEE, members, dashboard, articles, comments/like/vote | BE1-01 den BE1-07 |
+| BE 2 | Categories, ingredients, recipes, restaurants, favorites, pantry, meal plans/shopping/PDF | BE2-01 den BE2-09 |
+| BE 3 | Videos/storage, moderation, AI chat, scan/OCR/history, Gemini | BE3-01 den BE3-04 |
 
-### Viec can lam
+BE 1 so huu bai viet va phien ban public; BE 3 so huu AI flag/quyet dinh Admin. Hai ben chot interface content ID/version va ap dung ket qua dung phien ban. BE 2 so huu pantry/meal plan; BE 3 cung cap Gemini client neu can giai thich AI, khong nhan thay nghiep vu lap thuc don.
 
-1. Thiet ke entity/tables cho User, Role, Profile, Allergy/FoodAvoidance neu can.
-2. Dang ky, dang nhap, refresh/remember session, dang xuat.
-3. Quen mat khau/reset mat khau qua email neu scope nhom chot lam trong MVP.
-4. Role guard cho Guest/User/Admin.
-5. Profile: che do an, di ung, chieu cao/can nang, muc van dong, muc tieu, khu vuc tim nha hang.
-6. BMI/TDEE tinh bang cong thuc co dinh trong backend, khong de chatbot tu tinh tuy y.
-7. Admin members: list/filter, xem thong tin, khoa/mo khoa co ly do.
-
-### API contract uu tien
-
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/me`
-- `PUT /api/me/profile`
-- `GET /api/admin/members`
-- `PATCH /api/admin/members/{id}/status`
-
-### Can phoi hop voi
-
-- FE 1 cho auth/profile/admin members.
-- BE 2/BE 3 de cung cap current user, role va profile cho recipe, scan, meal plan, chat.
-
-## BE 2: Core data
-
-### Folder code
-
-- `backend/src/Application/Features/Categories`
-- `backend/src/Application/Features/Ingredients`
-- `backend/src/Application/Features/Recipes`
-- `backend/src/Application/Features/Restaurants`
-- `backend/src/Application/Features/Favorites`
-- `backend/src/Domain/Entities`
-- `backend/src/Domain/Enums`
-- `backend/src/Domain/Rules`
-- `backend/src/Infrastructure/Persistence`
-- `backend/src/Api/Controllers`
-
-### Viec can lam
-
-1. Categories: CRUD, deactivate, check noi dung dang tham chieu.
-2. Ingredients: nguon goc thuc vat/dong vat/chua ro, trung/sua/mat ong, di ung, dinh duong, don vi.
-3. Recipes: CRUD admin, ingredients/quantity, serving, steps, nutrition, dietary type tinh tu thanh phan, active/inactive.
-4. Restaurants: CRUD admin, dia chi, toa do/khu vuc, gio mo cua, lien he, gia tham khao, che do an khai bao, mon lien quan.
-5. Public query: recipe list/detail/filter, restaurant list/detail/filter, category list.
-6. Favorites: save/unsave recipes, videos, restaurants.
-7. Seed data mau vua du de demo meal plan, scan va recipe filter.
-
-### API contract uu tien
-
-- `GET /api/categories`
-- `GET /api/ingredients`
-- `GET /api/recipes`
-- `GET /api/recipes/{id}`
-- `GET /api/restaurants`
-- `GET /api/restaurants/{id}`
-- `POST /api/favorites`
-- `DELETE /api/favorites/{id}`
-- `GET /api/admin/categories`
-- `POST /api/admin/categories`
-- `GET /api/admin/ingredients`
-- `POST /api/admin/ingredients`
-- `GET /api/admin/recipes`
-- `POST /api/admin/recipes`
-- `GET /api/admin/restaurants`
-- `POST /api/admin/restaurants`
-
-### Can phoi hop voi
-
-- FE 2 cho recipe/restaurant/admin core data UI.
-- BE 3 cho meal plan, pantry, scan can dung recipe/ingredient rules.
-
-## BE 3: Content, moderation, AI, scan, meal plan
-
-### Folder code
-
-- `backend/src/Application/Features/Articles`
-- `backend/src/Application/Features/Videos`
-- `backend/src/Application/Features/Comments`
-- `backend/src/Application/Features/Moderation`
-- `backend/src/Application/Features/AiChat`
-- `backend/src/Application/Features/FoodScanning`
-- `backend/src/Application/Features/MealPlans`
-- `backend/src/Application/Features/Pantry`
-- `backend/src/Infrastructure/AI/Gemini`
-- `backend/src/Infrastructure/Storage`
-- `backend/src/Infrastructure/Documents`
-- `backend/src/Infrastructure/BackgroundJobs`
-- `backend/src/Api/Controllers`
-
-### Viec can lam
-
-1. Articles: public list/detail, user draft, preview, submit, edit, resubmit, status tracking.
-2. Videos: public list/detail, upload metadata/file info, draft, submit, processing status, status tracking.
-3. Comments: comment/reply/edit/delete own comment, admin hide/remove if needed.
-4. Moderation: AI Flag Check cho article/video, tach AI status va Admin review status.
-5. Admin review: approve, request revision, reject, remove published content, log reason/version.
-6. AI chat: guest trial, user chat co profile, link goi y recipe.
-7. Food scan: upload image, detect visible ingredients/OCR, user confirm, extra questions, conditional result.
-8. Pantry: CRUD pantry items, substitutions, recipe matching.
-9. Meal plans: 7 ngay x 3 bua, pick from recipe kho, nutrition totals, swap meal, shopping list, PDF.
-
-### API contract uu tien
-
-- `GET /api/articles`
-- `POST /api/articles`
-- `POST /api/articles/{id}/submit`
-- `GET /api/my/articles`
-- `GET /api/videos`
-- `POST /api/videos`
-- `POST /api/videos/{id}/submit`
-- `GET /api/my/videos`
-- `POST /api/comments`
-- `GET /api/admin/moderation/queue`
-- `GET /api/admin/moderation/{id}`
-- `POST /api/admin/moderation/{id}/approve`
-- `POST /api/admin/moderation/{id}/request-revision`
-- `POST /api/admin/moderation/{id}/reject`
-- `POST /api/ai-chat/messages`
-- `POST /api/food-scans`
-- `POST /api/food-scans/{id}/confirm`
-- `GET /api/pantry`
-- `POST /api/pantry`
-- `POST /api/meal-plans`
-- `GET /api/meal-plans/{id}`
-- `POST /api/meal-plans/{id}/swap`
-- `GET /api/meal-plans/{id}/shopping-list`
-- `GET /api/meal-plans/{id}/pdf`
-
-### Can phoi hop voi
-
-- FE 1 cho article/admin moderation/comments.
-- FE 2 cho video/AI/scan/pantry/meal plan.
-- BE 1 cho profile/role.
-- BE 2 cho recipes/ingredients.
+Moi BE tu lam DB/model/config/migration va test module minh. BE 2 dieu phoi merge snapshot; BE 1 dieu phoi quyen; BE 3 dieu phoi storage/Gemini. Khong giao toan bo test hoac migration cho mot nguoi.
 
 ## Thu tu lam khuyen nghi
 
-### Dot 1: Nen mong
-
-1. BE 1: Auth, role, current user, profile co ban.
-2. BE 2: Categories, ingredients, recipes seed.
-3. FE 1: Router, layout, auth/profile forms.
-4. FE 2: Recipe list/detail dung mock hoac API BE2.
-5. BE 3: Article/video draft + submit flow skeleton.
-
-### Dot 2: Tich hop noi dung va admin
-
-1. BE 3: AI/Admin status model, moderation queue.
-2. FE 1: Article owner + admin moderation.
-3. FE 2: Video owner + public video.
-4. BE 2: Restaurants + favorites.
-5. FE 2: Restaurants + favorites.
-
-### Dot 3: AI va ca nhan hoa
-
-1. BE 3: AI chat, pantry, scan, meal plan.
-2. FE 2: AI chat, pantry, scan, meal plan.
-3. BE 1/BE 2: Profile + recipe/ingredient rules ho tro scan/meal plan.
-4. Ca nhom: test nghiem thu trong `docs/mvp.md`.
-
+1. Chot contract chung: profile, recipe query, moderation decision, storage; noi cac API da co vao FE.
+2. BE 1 lam articles/comments; BE 2 lam restaurants/favorites/pantry; BE 3 lam videos/moderation.
+3. BE 1 hoan thien dashboard/reset email; BE 2 lam meal plans/shopping/PDF; BE 3 hoan thien scan/OCR/history/chat.
+4. Ca ba test module cua minh va cung FE chay nghiem thu MVP. Ra lai khoi luong sau dot dau de dieu chinh ticket ho tro.
 ## Quy tac ban giao giua FE va BE
 
 Moi tinh nang phai co:
@@ -299,5 +138,5 @@ Moi tinh nang phai co:
 - FE chia theo man hinh Figma de bao dam UI bam dung prototype.
 - BE chia theo domain de giu Clean Architecture va de moi nguoi so huu mot nhom nghiep vu ro rang.
 - Core data do BE 2 lam truoc vi recipes/ingredients/restaurants la du lieu nen cho scan, meal plan, pantry va public browsing.
-- Moderation va AI do BE 3 lam vi article/video/scan/chat deu can Gemini va can tach AI status voi Admin decision.
+- BE 1 so huu articles/comments; BE 2 so huu pantry/meal plans; BE 3 so huu videos/moderation/AI/scan. Phan cong tinh ca do kho va code da co, khong chia theo so luong man hinh.
 - Auth/profile do BE 1 lam vi moi tinh nang ca nhan hoa va admin deu can role, current user va profile.

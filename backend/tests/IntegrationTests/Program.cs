@@ -1,13 +1,15 @@
 using Application;
 using Api.Controllers;
+using Api.Configuration;
+using Api.Authorization;
 using CoreDataChecks;
 using Infrastructure;
 using Infrastructure.Persistence;
+using Application.Features.Auth;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using System.Security.Claims;
 
 var database = "CoreDataChecks_" + Guid.NewGuid().ToString("N");
 var connection = new SqlConnectionStringBuilder(
@@ -19,24 +21,26 @@ var connection = new SqlConnectionStringBuilder(
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Configuration["ConnectionStrings:DefaultConnection"] = connection.ConnectionString;
+builder.Configuration["PasswordReset:ResetPageUrl"] = "http://localhost:5173/#/auth/reset-password";
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<IAccessTokenIssuer>(
+    new JwtAccessTokenIssuer("integration-tests", "integration-tests", new string('k', 32)));
+builder.Services.AddSingleton<CapturingResetEmailSender>();
+builder.Services.AddSingleton<IPasswordResetEmailSender>(provider =>
+    provider.GetRequiredService<CapturingResetEmailSender>());
 builder.Services.AddControllers().AddApplicationPart(typeof(CategoriesController).Assembly);
+builder.Services.AddAuthentication("Test")
+    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthenticationHandler>(
+        "Test", _ => { });
+builder.Services.AddAuthorization(AccountAuthorization.AddAccountPolicies);
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 await using var app = builder.Build();
 app.UseExceptionHandler();
-
-// Synthetic identities are confined to this test executable on loopback.
-app.Use(async (context, next) =>
-{
-    if (context.Request.Headers.TryGetValue("Test-Role", out var role))
-    {
-        context.User = new ClaimsPrincipal(
-            new ClaimsIdentity([new Claim(ClaimTypes.Role, role.ToString())], "Test"));
-    }
-    await next();
-});
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.MapOpenApi();
 app.Urls.Add("http://127.0.0.1:0");
@@ -56,6 +60,16 @@ void Check(bool condition, string name)
 
 try
 {
+    if (args.Contains("--dashboard-only", StringComparer.Ordinal))
+    {
+        await db.Database.EnsureCreatedAsync();
+        await app.StartAsync();
+        using var dashboardClient = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+        await DashboardApiChecks.RunAsync(dashboardClient, app.Services, Check);
+        Console.WriteLine($"ALL {checks} DASHBOARD CHECKS PASSED");
+        return;
+    }
+
     DietaryChecks.Run(Check);
     await db.GetService<IMigrator>().MigrateAsync("20261002044444_InitialCoreData");
     var legacyId = Guid.NewGuid();
@@ -74,6 +88,12 @@ try
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
     await CoreDataApiChecks.RunAsync(client, db, Check);
     await SeedFilterChecks.RunAsync(client, db, Check);
+    await PasswordResetApiChecks.RunAsync(client,
+        app.Services.GetRequiredService<CapturingResetEmailSender>(), Check);
+    await SmtpTransportChecks.RunAsync(Check);
+    await PasswordResetChecks.RunAsync(db, Check);
+    await DashboardApiChecks.RunAsync(client, app.Services, Check);
+    await MemberApiChecks.RunAsync(client, app.Services, Check);
 
     await app.StopAsync();
     await db.GetService<IMigrator>().MigrateAsync("0");

@@ -2,9 +2,9 @@
 
 ASP.NET Core Web API, C#, .NET 10 của Vegetarian Support. Nền Moderation và AiChat đã có entity, repository, controller và migration ban đầu. Gemini thật chưa được cấu hình hoặc gọi; Development dùng câu trả lời chat mẫu từ backend.
 
-Solution `Backend.sln` gồm bốn project Clean Architecture: `Api`, `Application`, `Domain`, `Infrastructure`. Api tham chiếu Application/Infrastructure; Infrastructure tham chiếu Application; Application tham chiếu Domain.
+Solution `Backend.sln` gồm bốn project Clean Architecture: `Api`, `Application`, `Domain`, `Infrastructure`. Api tham chiếu Application/Infrastructure; Infrastructure tham chiếu Application; Application tham chiếu Domain. File `Backend.csproj` ở thư mục này là launcher phát triển, để chạy API bằng lệnh ngắn `dotnet run` mà không sao chép startup code.
 
-Từ thư mục backend: `dotnet build Backend.sln -c Release`, rồi `dotnet run --project src/Api --launch-profile http`. API chạy tại http://localhost:5080. Swagger UI ở `/swagger` và OpenAPI JSON ở `/openapi/v1.json`, chỉ bật trong Development; `/` chuyển tới Swagger UI trong môi trường này. Xem hợp đồng Moderation/AiChat ở `../contracts/moderation-aichat.md` và phần migration BE 2 ở `../docs/be2-migration-handoff.md`.
+Từ thư mục backend: `dotnet build Backend.sln -c Release`, rồi `dotnet run`. Lệnh này chuyển tiếp tới `src/Api/Api.csproj`; có thể dùng `dotnet run --project src/Api --launch-profile http` khi cần chạy trực tiếp project API. API chạy tại http://localhost:5080. Swagger UI ở `/swagger` và OpenAPI JSON ở `/openapi/v1.json`, chỉ bật trong Development; `/` chuyển tới Swagger UI trong môi trường này. Xem hợp đồng Moderation/AiChat ở `../contracts/moderation-aichat.md` và phần migration BE 2 ở `../docs/be2-migration-handoff.md`.
 
 Package SQL hiện có:
 

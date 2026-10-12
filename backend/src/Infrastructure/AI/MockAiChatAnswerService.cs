@@ -8,7 +8,8 @@ public sealed class MockAiChatAnswerService : IAiChatAnswerService
     public Task<AiChatAnswerResult> GenerateAsync(
         string prompt,
         IReadOnlyList<AiChatTurn> history,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? profileContext = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         return Task.FromResult(AiChatAnswerResult.FromAnswer(

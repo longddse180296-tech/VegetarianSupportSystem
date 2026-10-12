@@ -1,5 +1,6 @@
 export type * from './types'
-export * from './api/membersApi'
+export { ApiError, currentUser, listMembers, getMember, getHistory, changeStatus } from './api/membersApi'
+export type { Member as ApiMember, MemberDetail as ApiMemberDetail, MemberPage, StatusEntry, StatusPage } from './api/membersApi'
 export * from './components/MemberTable'
 export * from './components/MemberDetailView'
 export * from './components/LockMemberModal'

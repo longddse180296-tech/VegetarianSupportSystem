@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from '../features/auth'
 import { RouterRenderer, type RouterContext } from './router/Router'
+import { isFe1Route } from './router/uiScope'
 import './App.css'
+import '../styles/fe1.css'
 
 const getInitialPath = (): string => {
   if (typeof window !== 'undefined') {
@@ -37,11 +39,16 @@ const AppContent: React.FC = () => {
     }
   }
 
+  const handleLogout = async () => {
+    await logout()
+    onNavigate('/')
+  }
+
   const ctx: RouterContext = { currentPath, onNavigate }
 
   return (
-    <div className="min-h-screen">
-      <RouterRenderer {...ctx} user={user} logout={logout} />
+    <div className={`min-h-screen${isFe1Route(currentPath) ? ' fe1-ui' : ''}`}>
+      <RouterRenderer {...ctx} user={user} logout={handleLogout} />
     </div>
   )
 }

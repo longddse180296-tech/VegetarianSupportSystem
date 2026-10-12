@@ -11,7 +11,9 @@ vegetarian-support/
 .github/
 .github/workflows/
 backend/
+backend/Backend.csproj
 backend/Backend.sln
+backend/Program.cs
 backend/src/
 backend/src/Api/
 backend/src/Api/Authorization/

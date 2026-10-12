@@ -1,0 +1,49 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 56px 24px;
+  background: #ffffff;
+  border: 1px dashed #cfe0d3;
+  border-radius: 16px;
+  color: #2f4b36;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+  display: flex;
+}
+
+.empty-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #244c2e;
+}
+
+.empty-desc {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #556b5b;
+  max-width: 420px;
+  line-height: 1.55;
+}
+
+.empty-reset-btn {
+  padding: 10px 20px;
+  background: #2f7a45;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.empty-reset-btn:hover {
+  background: #246137;
+}

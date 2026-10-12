@@ -9,6 +9,7 @@ interface PublicLayoutProps {
   onNavigate?: (path: string) => void;
   isLoggedIn?: boolean;
   userName?: string;
+  avatarUrl?: string;
   onLogout?: () => void;
 }
 
@@ -18,6 +19,7 @@ export function PublicLayout({
   onNavigate,
   isLoggedIn,
   userName,
+  avatarUrl,
   onLogout,
 }: PublicLayoutProps) {
   return (
@@ -27,6 +29,7 @@ export function PublicLayout({
         onNavigate={onNavigate}
         isLoggedIn={isLoggedIn}
         userName={userName}
+        avatarUrl={avatarUrl}
         onLogout={onLogout}
       />
       <main className="public-layout-main">{children}</main>

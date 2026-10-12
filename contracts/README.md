@@ -6,7 +6,27 @@ Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường De
 
 Hợp đồng backend nhận ảnh món ăn và đánh giá sau khi User xác nhận nguyên liệu ở [food-scanning.md](food-scanning.md).
 
+Hợp đồng video nháp/upload riêng tư, xem công khai và quyền owner/Admin ở [videos.md](videos.md).
+
 Hợp đồng đăng ký, đăng nhập, JWT và Admin seed ở [auth.md](auth.md).
+
+Hợp đồng nhà hàng public/Admin, lọc theo khu vực/chế độ ăn/khoảng cách và trạng thái dữ liệu ở [restaurants.md](restaurants.md).
+
+Hợp đồng Pantry: kho nguyên liệu theo tài khoản, đối chiếu profile, gợi ý công thức và danh sách thay thế ở [pantry.md](pantry.md).
+
+Hợp đồng lưu yêu thích cho công thức, video và nhà hàng ở [favorites.md](favorites.md).
+
+Hợp đồng thực đơn 7 ngày, thay món, danh sách đi chợ, áp dụng tuần mới và PDF ở [meal-plans.md](meal-plans.md).
+
+Hợp đồng xem/cập nhật hồ sơ cá nhân, dị ứng và thực phẩm cần tránh ở [profile.md](profile.md).
+
+Hợp đồng danh sách, chi tiết và khóa/mở khóa thành viên Admin ở [admin-members.md](admin-members.md).
+
+Hợp đồng số liệu thực, hàng đợi và hoạt động gần đây của Admin Dashboard ở [admin-dashboard.md](admin-dashboard.md).
+
+Hợp đồng bài viết public, nháp của tôi, phiên bản và gửi kiểm duyệt ở [articles.md](articles.md).
+
+Hợp đồng bình luận, phản hồi, quản trị bình luận và helpful/like ở [comments.md](comments.md).
 
 Quy ước nghiệp vụ và tích hợp của Categories, Ingredients, Recipes được ghi tại [Core Data tuần 1](core-data.md). Không duy trì thêm một bản OpenAPI thủ công cạnh tranh trong thư mục này.
 

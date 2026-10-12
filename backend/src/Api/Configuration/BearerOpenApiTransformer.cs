@@ -17,47 +17,56 @@ public sealed class BearerOpenApiTransformer : IOpenApiDocumentTransformer
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",
             BearerFormat = "JWT",
-            Description = "Token đăng nhập; trong Development có thể lấy tại POST /api/dev-auth/token."
+            Description = "Dùng accessToken từ POST /api/auth/login. Dev token chỉ dùng với tài khoản có thật trong Development."
         };
 
         foreach (var (path, pathItem) in document.Paths)
         {
-            if (path.Equals("/api/food-scans/dish-image", StringComparison.OrdinalIgnoreCase)
-                && pathItem.Operations?.TryGetValue(HttpMethod.Post, out var uploadOperation) == true)
+            if ((path.Equals("/api/videos/{id}/media", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/api/videos/{id}/thumbnail", StringComparison.OrdinalIgnoreCase))
+                && pathItem.Operations?.TryGetValue(HttpMethod.Get, out var mediaOperation) == true)
             {
-                uploadOperation.RequestBody = new OpenApiRequestBody
+                // Public media remains anonymous, but Swagger must send a token for owner/admin previews.
+                mediaOperation.Security ??= [];
+                mediaOperation.Security.Add(new OpenApiSecurityRequirement
                 {
-                    Required = true,
-                    Content = new Dictionary<string, OpenApiMediaType>
-                    {
-                        ["multipart/form-data"] = new OpenApiMediaType
-                        {
-                            Schema = new OpenApiSchema
-                            {
-                                Type = JsonSchemaType.Object,
-                                Required = new HashSet<string> { "image" },
-                                Properties = new Dictionary<string, IOpenApiSchema>
-                                {
-                                    ["image"] = new OpenApiSchema
-                                    {
-                                        Type = JsonSchemaType.String,
-                                        Format = "binary"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                };
-                uploadOperation.Responses ??= new OpenApiResponses();
-                uploadOperation.Responses.TryAdd("400", new OpenApiResponse { Description = "Ảnh không hợp lệ hoặc quá 10 MB." });
-                uploadOperation.Responses.TryAdd("422", new OpenApiResponse { Description = "Không nhận diện được món ăn trong ảnh." });
-                uploadOperation.Responses.TryAdd("503", new OpenApiResponse { Description = "Dịch vụ phân tích ảnh chưa sẵn sàng." });
+                    [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+                });
+            }
+
+            if (pathItem.Operations?.TryGetValue(HttpMethod.Post, out var uploadOperation) == true)
+            {
+                var isDishImage = path.Equals("/api/food-scans/dish-image", StringComparison.OrdinalIgnoreCase);
+                var isLabelImage = path.Equals("/api/food-scans/label-image", StringComparison.OrdinalIgnoreCase);
+                var isVideoMedia = path.Equals("/api/me/videos/{id}/media", StringComparison.OrdinalIgnoreCase);
+                var isVideoThumbnail = path.Equals("/api/me/videos/{id}/thumbnail", StringComparison.OrdinalIgnoreCase);
+
+                if (isDishImage || isLabelImage || isVideoMedia || isVideoThumbnail)
+                {
+                    SetFileUploadRequestBody(uploadOperation, isDishImage || isLabelImage ? "image" : "file");
+                }
+
+                if (isDishImage)
+                {
+                    uploadOperation.Responses ??= new OpenApiResponses();
+                    uploadOperation.Responses.TryAdd("400", new OpenApiResponse { Description = "Ảnh không hợp lệ hoặc quá 10 MB." });
+                    uploadOperation.Responses.TryAdd("422", new OpenApiResponse { Description = "Không nhận diện được món ăn trong ảnh." });
+                    uploadOperation.Responses.TryAdd("503", new OpenApiResponse { Description = "Dịch vụ phân tích ảnh chưa sẵn sàng." });
+                }
             }
 
             if (!path.StartsWith("/api/moderation/", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/api/admin/moderation/", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/admin/", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/api/ai-chat/conversations", StringComparison.OrdinalIgnoreCase)
-                && !path.StartsWith("/api/food-scans/", StringComparison.OrdinalIgnoreCase))
+                && !path.StartsWith("/api/food-scans/", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/me/videos", StringComparison.OrdinalIgnoreCase)
+                && !path.Equals("/api/auth/me", StringComparison.OrdinalIgnoreCase)
+                && !path.Equals("/api/auth/logout", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/profile/me", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/pantry/", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/meal-plans", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/api/favorites", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -84,5 +93,32 @@ public sealed class BearerOpenApiTransformer : IOpenApiDocumentTransformer
         }
 
         return Task.CompletedTask;
+    }
+
+    private static void SetFileUploadRequestBody(OpenApiOperation operation, string fieldName)
+    {
+        operation.RequestBody = new OpenApiRequestBody
+        {
+            Required = true,
+            Content = new Dictionary<string, OpenApiMediaType>
+            {
+                ["multipart/form-data"] = new OpenApiMediaType
+                {
+                    Schema = new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.Object,
+                        Required = new HashSet<string> { fieldName },
+                        Properties = new Dictionary<string, IOpenApiSchema>
+                        {
+                            [fieldName] = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.String,
+                                Format = "binary"
+                            }
+                        }
+                    }
+                }
+            }
+        };
     }
 }
