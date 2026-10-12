@@ -300,7 +300,11 @@ export async function getVideoListBrowseHelpers(): Promise<{
   return {
     categories: FIGMA_PILL_CATEGORIES,
     hashtagTopics: FIGMA_HASHTAG_TOPICS,
-    topChefs: [],
+    topChefs: [
+      { id: 'c1', name: 'Bếp Chay Tuệ Đức', role: 'Bếp trưởng món chay', videos: 18, avatarSeed: 'asian chef portrait friendly smiling kitchen' },
+      { id: 'c2', name: 'Minh An Chay', role: 'Chuyên gia dinh dưỡng thuần chay', videos: 12, avatarSeed: 'vietnamese female chef culinary apron' },
+      { id: 'c3', name: 'Cô Ba Nấu Chay', role: 'Ẩm thực gia đình miền Tây', videos: 9, avatarSeed: 'warm elderly vietnamese woman smiling kitchen' },
+    ],
     durationOpts: DURATION_OPTIONS,
     sortOpts: SORT_OPTIONS_VIDEO_LIST,
   }
@@ -394,5 +398,111 @@ export async function getVideoDetailMeta(videoId: string): Promise<{
       { key: 'save', label: 'Lưu video' },
     ],
     description: v.description,
+  }
+}
+
+export async function toggleVideoLike(
+  videoId: string,
+  nextLiked: boolean,
+): Promise<{ count: number; reactedByMe: boolean }> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(videoId)
+  if (isGuid) {
+    try {
+      if (nextLiked) {
+        return await apiClient.put<{ count: number; reactedByMe: boolean }>(`/api/videos/${videoId}/like`)
+      } else {
+        return await apiClient.delete<{ count: number; reactedByMe: boolean }>(`/api/videos/${videoId}/like`)
+      }
+    } catch {
+      // offline / unauthenticated
+    }
+  }
+  return { count: nextLiked ? 1 : 0, reactedByMe: nextLiked }
+}
+
+export async function toggleVideoSave(
+  videoId: string,
+  nextSaved: boolean,
+): Promise<boolean> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(videoId)
+  if (isGuid) {
+    try {
+      if (nextSaved) {
+        await apiClient.post('/api/favorites', { targetType: 'Video', targetId: videoId })
+        return true
+      } else {
+        const res = await apiClient.get<{ items: Array<{ id: string; targetId: string }> }>(
+          '/api/favorites?targetType=Video&pageSize=100',
+        )
+        const match = res?.items?.find((f) => f.targetId.toLowerCase() === videoId.toLowerCase())
+        if (match?.id) {
+          await apiClient.delete(`/api/favorites/${match.id}`)
+        }
+        return false
+      }
+    } catch {
+      // offline / unauthenticated
+    }
+  }
+  return nextSaved
+}
+
+export async function toggleCommentLike(
+  commentId: string,
+  nextLiked: boolean,
+): Promise<{ count: number; reactedByMe: boolean }> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(commentId)
+  if (isGuid) {
+    try {
+      if (nextLiked) {
+        return await apiClient.put<{ count: number; reactedByMe: boolean }>(`/api/comments/${commentId}/like`)
+      } else {
+        return await apiClient.delete<{ count: number; reactedByMe: boolean }>(`/api/comments/${commentId}/like`)
+      }
+    } catch {
+      // offline / unauthenticated
+    }
+  }
+  return { count: nextLiked ? 1 : 0, reactedByMe: nextLiked }
+}
+
+export async function createVideoComment(
+  videoId: string,
+  body: string,
+  parentId?: string,
+): Promise<CommentItem> {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(videoId)
+  if (isGuid) {
+    try {
+      const res = await apiClient.post<{ id: string; createdAt: string; likeCount: number }>(
+        '/api/comments',
+        {
+          targetType: 'Video',
+          targetId: videoId,
+          parentId: parentId || null,
+          body,
+        },
+      )
+      return {
+        id: res.id,
+        initials: 'BẠN',
+        author: 'Bạn (Thành viên)',
+        badges: [{ label: 'Thành viên tích cực', tone: 'member' }],
+        timeAgo: 'Vừa xong',
+        content: body,
+        likes: res.likeCount ?? 0,
+      }
+    } catch {
+      // offline / fallback
+    }
+  }
+  return {
+    id: `new-${Date.now()}`,
+    initials: 'BẠN',
+    author: 'Bạn (Thành viên)',
+    badges: [{ label: 'Thành viên tích cực', tone: 'member' }],
+    timeAgo: 'Vừa xong',
+    content: body,
+    likes: 0,
   }
 }

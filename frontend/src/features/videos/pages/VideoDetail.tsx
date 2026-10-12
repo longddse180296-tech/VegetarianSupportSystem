@@ -29,6 +29,10 @@ import {
   getVideoDetailComments,
   getRelatedVideos,
   getVideoDetailMeta,
+  toggleVideoLike,
+  toggleVideoSave,
+  toggleCommentLike,
+  createVideoComment,
   type CommentItem,
   type RelatedVideo,
 } from '../api/videoApi'
@@ -123,21 +127,47 @@ export default function VideoDetail({
     }
   }, [])
 
-  const handleSubmitComment = () => {
+  const handleSubmitComment = async () => {
     const text = commentDraft.trim()
     if (!text) return
-    const newComment: CommentItem = {
-      id: `new-${Date.now()}`,
-      initials: 'BẠN',
-      author: 'Bạn (Thành viên)',
-      badges: [{ label: 'Thành viên tích cực', tone: 'member' }],
-      timeAgo: 'Vừa xong',
-      content: text,
-      likes: 0,
-    }
+    const idToUse = video?.id || videoId
+    const newComment = await createVideoComment(idToUse, text)
     setComments((prev) => [newComment, ...prev])
     setCommentDraft('')
     showToast('✅ Đã gửi bình luận')
+  }
+
+  const handleLikeVideo = async () => {
+    const idToUse = video?.id || videoId
+    const next = !liked
+    setLiked(next)
+    await toggleVideoLike(idToUse, next)
+    showToast(next ? '👍 Đã thích video này' : 'Đã bỏ thích')
+  }
+
+  const handleSaveVideo = async () => {
+    const idToUse = video?.id || videoId
+    const next = !saved
+    setSaved(next)
+    await toggleVideoSave(idToUse, next)
+    showToast(next ? '🔖 Đã lưu video vào danh sách' : 'Đã bỏ lưu video')
+  }
+
+  const handleShareVideo = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href)
+      showToast('🔗 Liên kết video đã được sao chép vào bộ nhớ tạm')
+    } else {
+      showToast('🔗 Link video đã được sao chép')
+    }
+  }
+
+  const handleLikeComment = async (commentId: string) => {
+    setComments((prev) =>
+      prev.map((c) => (c.id === commentId ? { ...c, likes: c.likes + 1 } : c)),
+    )
+    await toggleCommentLike(commentId, true)
+    showToast('👍 Đã thích bình luận')
   }
 
   // Group top-level comments and replies
@@ -386,34 +416,28 @@ export default function VideoDetail({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setLiked((v) => !v)
-                    showToast(liked ? 'Đã bỏ thích' : '👍 Đã thích video này')
-                  }}
-                  className={`inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-[13px] font-medium transition ${
+                  onClick={handleLikeVideo}
+                  className={`inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-[13px] font-medium transition cursor-pointer ${
                     liked
                       ? 'bg-[#E8F5E9] text-[#2e7d32] border-[#C8E6C9]'
                       : 'bg-white hover:bg-[#F9FAFB] text-[#374151]'
                   }`}
                 >
                   <ThumbsUpIcon size={14} className={liked ? 'fill-[#2e7d32]' : ''} />
-                  <span>1.2K Thích</span>
+                  <span>{liked ? 'Đã thích' : 'Thích'}</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => showToast('🔗 Link video đã được sao chép')}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] px-3.5 py-1.5 text-[13px] font-medium text-[#374151] transition"
+                  onClick={handleShareVideo}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white hover:bg-[#F9FAFB] px-3.5 py-1.5 text-[13px] font-medium text-[#374151] transition cursor-pointer"
                 >
                   <ShareIcon size={14} />
                   <span>Chia sẻ</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setSaved((v) => !v)
-                    showToast(saved ? 'Đã bỏ lưu video' : '🔖 Đã lưu video vào danh sách')
-                  }}
-                  className={`inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-[13px] font-medium transition ${
+                  onClick={handleSaveVideo}
+                  className={`inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] px-3.5 py-1.5 text-[13px] font-medium transition cursor-pointer ${
                     saved
                       ? 'bg-[#E8F5E9] text-[#2e7d32] border-[#C8E6C9]'
                       : 'bg-white hover:bg-[#F9FAFB] text-[#374151]'
@@ -536,8 +560,8 @@ export default function VideoDetail({
                         <div className="mt-2 flex items-center gap-4 text-[12px] font-medium text-[#6B7280]">
                           <button
                             type="button"
-                            onClick={() => showToast(`👍 Đã thích bình luận của ${comment.author}`)}
-                            className="inline-flex items-center gap-1 hover:text-[#2e7d32] transition"
+                            onClick={() => handleLikeComment(comment.id)}
+                            className="inline-flex items-center gap-1 hover:text-[#2e7d32] transition cursor-pointer"
                           >
                             <ThumbsUpIcon size={13} />
                             <span>{comment.likes}</span>
@@ -585,8 +609,8 @@ export default function VideoDetail({
                           <div className="mt-2 flex items-center gap-4 text-[12px] font-medium text-[#6B7280]">
                             <button
                               type="button"
-                              onClick={() => showToast(`👍 Đã thích phản hồi của ${reply.author}`)}
-                              className="inline-flex items-center gap-1 hover:text-[#2e7d32] transition"
+                              onClick={() => handleLikeComment(reply.id)}
+                              className="inline-flex items-center gap-1 hover:text-[#2e7d32] transition cursor-pointer"
                             >
                               <ThumbsUpIcon size={13} />
                               <span>{reply.likes}</span>

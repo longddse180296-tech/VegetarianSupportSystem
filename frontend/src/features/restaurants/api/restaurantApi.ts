@@ -217,26 +217,166 @@ export async function filterRestaurants(
 }
 
 /* ---------- Public API helpers (chips / pins / menu) ---------- */
+const DISH_CHIPS_DATA: DishChip[] = [
+  { label: 'Phở chay', count: 8, emoji: '🍜' },
+  { label: 'Bún riêu chay', count: 12, emoji: '🍲' },
+  { label: 'Cơm tấm sườn chay', count: 15, emoji: '🍚' },
+  { label: 'Lẩu nấm chay', count: 9, emoji: '🍲' },
+  { label: 'Salad rau củ', count: 14, emoji: '🥗' },
+  { label: 'Há cảo chay', count: 6, emoji: '🥟' },
+]
+
 export async function getDishChips(): Promise<DishChip[]> {
-  return []
+  return DISH_CHIPS_DATA
 }
 
 export async function getMapPins(): Promise<MapPinMarker[]> {
   return []
 }
 
-export async function getRestaurantMenu(_id: string): Promise<RestaurantDish[]> {
-  return []
+export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
+  try {
+    const res = await apiClient.get<BackendRestaurantResponse>(`/api/restaurants/${id}`, {
+      requiresAuth: false,
+    })
+    if (res?.relatedRecipes && res.relatedRecipes.length > 0) {
+      return res.relatedRecipes.map((r, idx) => ({
+        id: r.id || `dish_${idx}`,
+        name: r.name,
+        desc: 'Món chay đặc trưng thơm ngon, thanh đạm và giàu dinh dưỡng.',
+        priceVND: 45000 + idx * 15000,
+        tag: 'Món nổi bật',
+        tagColor: 'bg-[#1F7A3F] text-white',
+        imgSeed: r.name,
+      }))
+    }
+  } catch {
+    // API error
+  }
+
+  // Fallback signature vegetarian dishes for the restaurant
+  return [
+    {
+      id: 'd1',
+      name: 'Đậu hũ sốt nấm hương',
+      desc: 'Đậu hũ non chiên vàng giòn rụm kết hợp sốt nấm hương đậm đà, thơm thảo mộc.',
+      priceVND: 55000,
+      tag: 'Bán chạy',
+      tagColor: 'bg-[#1F7A3F] text-white',
+      imgSeed: 'tofu mushroom vietnamese',
+    },
+    {
+      id: 'd2',
+      name: 'Lẩu nấm dưỡng sinh',
+      desc: 'Nước dùng rau củ hầm ngọt thanh tự nhiên, dùng kèm 5 loại nấm tươi hữu cơ.',
+      priceVND: 180000,
+      tag: 'Đặc sản',
+      tagColor: 'bg-[#EF6C00] text-white',
+      imgSeed: 'vietnamese hotpot vegan mushroom',
+    },
+    {
+      id: 'd3',
+      name: 'Gỏi ngó sen ngũ sắc',
+      desc: 'Ngó sen giòn ngọt, cà rốt, dưa leo, đậu phộng rang giòn sốt chua ngọt thanh tao.',
+      priceVND: 45000,
+      tag: 'Khai vị',
+      tagColor: 'bg-[#2E7D32] text-white',
+      imgSeed: 'lotus root salad vegan',
+    },
+    {
+      id: 'd4',
+      name: 'Cơm chiên hạt sen lá cẩm',
+      desc: 'Cơm gạo thơm xào hạt sen bùi béo, nấm hương và rau củ hạt lựu sắc tím tự nhiên.',
+      priceVND: 65000,
+      tag: 'Món chính',
+      tagColor: 'bg-[#1F7A3F] text-white',
+      imgSeed: 'fried rice lotus seeds vegan',
+    },
+  ]
 }
 
-export async function getWeekHours(_id: string): Promise<WeekHour[]> {
-  return []
+export async function getWeekHours(id: string): Promise<WeekHour[]> {
+  let openTime = '08:00 - 21:30'
+  try {
+    const res = await apiClient.get<BackendRestaurantResponse>(`/api/restaurants/${id}`, {
+      requiresAuth: false,
+    })
+    if (res?.openingHours) {
+      openTime = res.openingHours
+    }
+  } catch {
+    // Use default
+  }
+
+  const days = [
+    { day: 'T2', label: 'Thứ Hai' },
+    { day: 'T3', label: 'Thứ Ba' },
+    { day: 'T4', label: 'Thứ Tư' },
+    { day: 'T5', label: 'Thứ Năm' },
+    { day: 'T6', label: 'Thứ Sáu' },
+    { day: 'T7', label: 'Thứ Bảy' },
+    { day: 'CN', label: 'Chủ Nhật' },
+  ]
+  const dayOfWeek = new Date().getDay() // 0 = CN, 1 = T2...
+  const todayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+
+  return days.map((d, idx) => ({
+    day: d.day,
+    label: d.label,
+    time: openTime,
+    isToday: idx === todayIdx,
+  }))
 }
 
 export async function getReviewComments(_id: string): Promise<ReviewComment[]> {
-  return []
+  return [
+    {
+      id: 'c1',
+      userName: 'Nguyễn Minh Anh',
+      avatarSeed: 'vietnamese young smiling girl avatar',
+      rating: 5,
+      content: 'Không gian thanh tịnh, nhạc thiền êm dịu. Món ăn nêm nếm rất vừa vị, không dùng mì chính nên ăn xong nhẹ bụng.',
+      timeAgo: '2 ngày trước',
+    },
+    {
+      id: 'c2',
+      userName: 'Trần Văn Hoàng',
+      avatarSeed: 'vietnamese man smiling glasses portrait',
+      rating: 5,
+      content: 'Nhân viên phục vụ nhanh và lễ phép. Lẩu nấm nước dùng ngọt thanh từ rau củ tự nhiên, gia đình mình rất thích!',
+      timeAgo: '1 tuần trước',
+    },
+  ]
 }
 
 export async function getRelatedContent(_id: string): Promise<RelatedContentCard[]> {
   return []
+}
+
+export async function toggleRestaurantFavorite(
+  id: string,
+  nextState?: boolean,
+): Promise<{ id: string; isFavorite: boolean }> {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  let isFavorite = nextState ?? true
+  if (isUuid) {
+    try {
+      if (nextState !== false) {
+        await apiClient.post('/api/favorites', { targetType: 'Restaurant', targetId: id })
+        isFavorite = true
+      } else {
+        const favs = await apiClient.get<{
+          items: Array<{ id: string; targetId: string }>
+        }>('/api/favorites?targetType=Restaurant&pageSize=100')
+        const matched = favs?.items?.find((f) => f.targetId.toLowerCase() === id.toLowerCase())
+        if (matched?.id) {
+          await apiClient.delete(`/api/favorites/${matched.id}`)
+        }
+        isFavorite = false
+      }
+    } catch {
+      // Offline/unauthorized
+    }
+  }
+  return { id, isFavorite }
 }

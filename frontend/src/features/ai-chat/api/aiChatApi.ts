@@ -34,7 +34,55 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 }
 
 export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
-  return []
+  const token = getStoredToken()
+  if (token) {
+    try {
+      const p = await apiClient.get<{
+        diet: string | null
+        bmi: number | null
+        adultBmiCategory: string | null
+        weightGoal: string | null
+        allergies: Array<{ name: string }> | null
+      }>('/api/profile/me')
+      if (p) {
+        const dietMap: Record<string, string> = {
+          Vegan: 'Thuần chay (Vegan)',
+          LactoVegetarian: 'Chay có sữa (Lacto)',
+          OvoVegetarian: 'Chay có trứng (Ovo)',
+          LactoOvoVegetarian: 'Chay trứng sữa (Lacto-Ovo)',
+          Pescatarian: 'Chay bán phần (Pesco)',
+          Flexitarian: 'Ăn chay linh hoạt (Flexi)',
+        }
+        const dietLabel = p.diet ? (dietMap[p.diet] ?? p.diet) : 'Ăn chay linh hoạt'
+        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${p.adultBmiCategory ?? 'Bình thường'})` : '21.5 (Bình thường)'
+        const goalMap: Record<string, string> = {
+          LoseWeight: 'Giảm mỡ & thanh lọc cơ thể',
+          MaintainWeight: 'Duy trì cân nặng & sức khỏe',
+          GainWeight: 'Tăng cân & phát triển cơ bắp',
+        }
+        const goalLabel = p.weightGoal ? (goalMap[p.weightGoal] ?? p.weightGoal) : 'Duy trì sức khỏe'
+        const allergiesLabel = p.allergies && p.allergies.length > 0
+          ? p.allergies.map((a) => a.name).join(', ')
+          : 'Không có ghi nhận'
+
+        return [
+          { key: 'diet', label: 'Chế độ ăn', value: dietLabel, tone: 'ok' },
+          { key: 'bmi', label: 'Chỉ số BMI', value: bmiVal, tone: 'ok' },
+          { key: 'goal', label: 'Mục tiêu', value: goalLabel, tone: 'info' },
+          { key: 'allergy', label: 'Dị ứng cảnh báo', value: allergiesLabel, tone: 'warn' },
+        ]
+      }
+    } catch {
+      // offline / unauthorized
+    }
+  }
+
+  return [
+    { key: 'diet', label: 'Chế độ ăn', value: 'Chay linh hoạt (Khách)', tone: 'soft' },
+    { key: 'bmi', label: 'Chỉ số BMI', value: '22.0 (Khuyến nghị)', tone: 'info' },
+    { key: 'goal', label: 'Mục tiêu', value: 'Khám phá món chay khoa học', tone: 'info' },
+    { key: 'allergy', label: 'Dị ứng cảnh báo', value: 'Chưa cập nhật', tone: 'soft' },
+  ]
 }
 
 export async function getFaqsFigma(): Promise<FaqItem[]> {
@@ -42,7 +90,31 @@ export async function getFaqsFigma(): Promise<FaqItem[]> {
 }
 
 export async function getChatHistoryFigma(): Promise<HistoryItem[]> {
-  return []
+  const token = getStoredToken()
+  if (token) {
+    try {
+      const page = await apiClient.get<{
+        items: Array<{ id: string; createdAtUtc: string; updatedAtUtc: string }>
+      }>('/api/ai-chat/conversations?page=1&pageSize=5')
+      if (page && Array.isArray(page.items) && page.items.length > 0) {
+        return page.items.map((c, idx) => ({
+          id: c.id,
+          title: `Tư vấn dinh dưỡng #${idx + 1}`,
+          messages: 4,
+          dateLabel: new Date(c.updatedAtUtc).toLocaleDateString('vi-VN'),
+          tone: idx === 0 ? 'recent' : idx === 1 ? 'mid' : 'old',
+        }))
+      }
+    } catch {
+      // offline
+    }
+  }
+
+  return [
+    { id: 'h-1', title: 'Thực đơn chay 7 ngày đủ protein', messages: 6, dateLabel: 'Mẫu gợi ý', tone: 'recent' },
+    { id: 'h-2', title: 'Món chay thay thế thịt cho người mới', messages: 4, dateLabel: 'Mẫu gợi ý', tone: 'mid' },
+    { id: 'h-3', title: 'Cách tính calo bữa ăn thuần thực vật', messages: 5, dateLabel: 'Mẫu gợi ý', tone: 'old' },
+  ]
 }
 
 export async function getDefaultBmi(): Promise<BMIResult | null> {

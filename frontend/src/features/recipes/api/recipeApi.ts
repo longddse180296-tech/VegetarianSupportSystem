@@ -16,14 +16,87 @@ import type {
 import { DEFAULT_RECIPE_FILTER, DIET_CATEGORY_LABELS, SORT_LABELS } from '../types/recipe.types'
 
 export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlogCard[]> {
+  try {
+    const res = await apiClient.get<{
+      items: Array<{
+        id: string
+        title: string
+        description?: string
+        imageUrl?: string
+        authorName?: string
+      }>
+    }>('/api/articles?pageSize=3', { requiresAuth: false })
+    if (res?.items && Array.isArray(res.items)) {
+      return res.items.slice(0, 3).map((a) => ({
+        id: a.id,
+        title: a.title,
+        excerpt: a.description || 'Bài viết chia sẻ kinh nghiệm dinh dưỡng và lối sống ăn chay an lành.',
+        imageUrl:
+          a.imageUrl ||
+          'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600&q=80',
+        author: a.authorName || 'Bếp Chay An Yên',
+        readTime: '5 phút đọc',
+        publishedAt: 'Mới đăng',
+        tags: ['Ăn chay', 'Sức khỏe'],
+      }))
+    }
+  } catch {
+    // API error
+  }
   return []
 }
 
 export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoCard[]> {
+  try {
+    const res = await apiClient.get<{
+      items: Array<{
+        id: string
+        title: string
+        thumbnailUrl?: string
+      }>
+    }>('/api/videos?pageSize=3', { requiresAuth: false })
+    if (res?.items && Array.isArray(res.items)) {
+      return res.items.slice(0, 3).map((v) => ({
+        id: v.id,
+        title: v.title,
+        imageUrl:
+          v.thumbnailUrl ||
+          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+        duration: '15:00',
+        channel: 'Bếp Chay An Nhiên',
+      }))
+    }
+  } catch {
+    // API error
+  }
   return []
 }
 
 export async function getRelatedRestaurants(_recipeId: string): Promise<RelatedRestaurantCard[]> {
+  try {
+    const res = await apiClient.get<{
+      items: Array<{
+        id: string
+        name: string
+        address: string
+        imageUrl?: string
+        distanceKm?: number
+      }>
+    }>('/api/restaurants?pageSize=2', { requiresAuth: false })
+    if (res?.items && Array.isArray(res.items)) {
+      return res.items.slice(0, 2).map((r) => ({
+        id: r.id,
+        name: r.name,
+        address: r.address,
+        imageUrl:
+          r.imageUrl ||
+          'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80',
+        distanceKm: r.distanceKm ? Number(r.distanceKm) : 1.5,
+      }))
+    }
+  } catch {
+    // API error
+  }
   return []
 }
 
@@ -341,7 +414,13 @@ export async function toggleFavorite(
         await apiClient.post('/api/favorites', { targetType: 'Recipe', targetId: id })
         isFavorite = true
       } else {
-        await apiClient.delete(`/api/favorites?targetType=Recipe&targetId=${id}`)
+        const favs = await apiClient.get<{
+          items: Array<{ id: string; targetId: string }>
+        }>('/api/favorites?targetType=Recipe&pageSize=100')
+        const matched = favs?.items?.find((f) => f.targetId.toLowerCase() === id.toLowerCase())
+        if (matched?.id) {
+          await apiClient.delete(`/api/favorites/${matched.id}`)
+        }
         isFavorite = false
       }
     } catch {
