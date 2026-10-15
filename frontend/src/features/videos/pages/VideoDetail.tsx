@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Bookmark, Play, Reply, Share2, Sparkles, ThumbsUp } from 'lucide-react'
+import { ArrowLeft, Bookmark, Play, Reply, Share2, ThumbsUp } from 'lucide-react'
 import { Button, EmptyState, SkeletonLoader, Textarea } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
@@ -149,7 +149,12 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
               onPlay={() => void recordView()} onError={() => setActionError('Không thể phát tệp video. Hãy thử lại hoặc kiểm tra định dạng được trình duyệt hỗ trợ.')} />
               : <div className="flex h-full items-center justify-center text-white">Tệp video chưa có sẵn.</div>}
           </div>
-          <h1 className="mt-6 text-2xl font-bold sm:text-3xl">{video.title}</h1>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold sm:text-3xl">{video.title}</h1>
+            <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-semibold text-[#2E7D32]">
+              {video.dietType || 'Thuần chay (Vegan)'}
+            </span>
+          </div>
           <p className="mt-2 text-sm text-slate-500">{video.viewCount.toLocaleString('vi-VN')} lượt xem · {new Date(video.createdAtUtc).toLocaleDateString('vi-VN')}</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button variant="outline" size="sm" disabled={interactionsLoading} isLoading={liking} aria-pressed={reaction.reactedByMe} leftIcon={<ThumbsUp size={15} fill={reaction.reactedByMe ? 'currentColor' : 'none'} />} onClick={() => void toggleLike()}>{reaction.count} Thích</Button>
@@ -186,11 +191,6 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
               <p className="mt-2 line-clamp-2 text-sm font-semibold hover:text-emerald-700">{item.title}</p>
               <p className="mt-1 text-xs text-slate-500">{item.viewCount.toLocaleString('vi-VN')} lượt xem</p>
             </button>)}</div>
-          </section>
-          <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <h2 className="font-bold text-emerald-800">Cần gợi ý món chay?</h2>
-            <p className="my-3 text-sm text-slate-600">Trao đổi với trợ lý AI về nguyên liệu thay thế và cách chuẩn bị bữa ăn.</p>
-            <Button variant="primary" fullWidth leftIcon={<Sparkles size={15} />} onClick={() => onNavigate?.('/ai-chat')}>Chat với trợ lý AI</Button>
           </section>
         </aside>
       </div>

@@ -1,4 +1,26 @@
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
+import type { CoreDietType } from '../types/video.types'
+
+export function inferVideoDietType(title?: string, description?: string): CoreDietType {
+  const lower = `${title ?? ''} ${description ?? ''}`.toLowerCase()
+  if (
+    /(trứng)/.test(lower) &&
+    /(sữa|phô mai|bơ)/.test(lower) &&
+    !/(sữa hạt|sữa đậu|bơ đậu phộng|bơ thực vật)/.test(lower)
+  ) {
+    return 'Trứng & Sữa (Lacto-ovo)'
+  }
+  if (/(trứng|lòng đỏ|lòng trắng|mayonnaise)/.test(lower)) {
+    return 'Chay có trứng (Ovo)'
+  }
+  if (
+    /(sữa|phô mai|cheese|bơ|váng sữa)/.test(lower) &&
+    !/(sữa hạt|sữa đậu|bơ đậu phộng|bơ thực vật)/.test(lower)
+  ) {
+    return 'Ăn chay có sữa (Lacto)'
+  }
+  return 'Thuần chay (Vegan)'
+}
 
 export interface VideoDetails {
   id: string
@@ -15,6 +37,7 @@ export interface VideoDetails {
   viewCount: number
   favoriteCount: number
   createdAtUtc: string
+  dietType?: string | null
 }
 
 interface VideoPage {
@@ -36,13 +59,25 @@ export async function listVideos(mine = false): Promise<VideoDetails[]> {
       `/api/${mine ? 'me/' : ''}videos?page=${page}&pageSize=100`,
       { requiresAuth: mine },
     )
-    items.push(...result.items)
+    items.push(
+      ...result.items.map((v: VideoDetails) => ({
+        ...v,
+        dietType: v.dietType || inferVideoDietType(v.title, v.description),
+      })),
+    )
     if (items.length >= result.totalCount || result.items.length === 0) return items
   }
 }
 
-export const getPublicVideo = (id: string) =>
-  apiClient.get<VideoDetails>(`/api/videos/${encodeURIComponent(id)}`, { requiresAuth: false })
+export async function getPublicVideo(id: string): Promise<VideoDetails> {
+  const video = await apiClient.get<VideoDetails>(`/api/videos/${encodeURIComponent(id)}`, {
+    requiresAuth: false,
+  })
+  return {
+    ...video,
+    dietType: video.dietType || inferVideoDietType(video.title, video.description),
+  }
+}
 
 export const getMyVideo = (id: string) =>
   apiClient.get<VideoDetails>(`/api/me/videos/${encodeURIComponent(id)}`)

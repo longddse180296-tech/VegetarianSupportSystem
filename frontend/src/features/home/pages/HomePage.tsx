@@ -32,6 +32,13 @@ const AI_SAMPLE_QUESTIONS = [
   'Gợi ý thực đơn hôm nay',
 ]
 
+const RESTAURANT_DIET_MAP: Record<number, string> = {
+  1: 'Thuần chay (Vegan)',
+  2: 'Ăn chay có sữa (Lacto)',
+  3: 'Chay có trứng (Ovo)',
+  4: 'Trứng & Sữa (Lacto-ovo)',
+}
+
 interface HomeRecipeItem {
   id: string
   title: string
@@ -45,7 +52,7 @@ interface HomeRestaurantItem {
   id: string
   name: string
   address: string
-  distance: string
+  dietType: string
   imageUrl: string
 }
 
@@ -60,7 +67,6 @@ interface HomeArticleItem {
 
 export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePageProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [teaserInput, setTeaserInput] = useState('')
   const [recipes, setRecipes] = useState<HomeRecipeItem[]>([])
   const [videos, setVideos] = useState<VideoDetails[]>([])
   const [restaurants, setRestaurants] = useState<HomeRestaurantItem[]>([])
@@ -78,8 +84,8 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             caloriesPerServing: number | null; imageUrl: string | null
           }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false }),
           apiClient.get<{ items: Array<{
-            id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null
-          }> }>('/api/restaurants?pageNumber=1&pageSize=2', { requiresAuth: false }),
+            id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null; dietaryTypes?: number[]
+          }> }>('/api/restaurants?pageNumber=1&pageSize=3', { requiresAuth: false }),
           listVideos(),
           apiClient.get<{ items: Array<{
             id: string; title: string; category: string; publishedAt: string; coverImageUrl: string | null
@@ -103,13 +109,17 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
         if (restaurantResult.status === 'fulfilled') {
           setRestaurants(
-            restaurantResult.value.items.map((res) => ({
-              id: res.id,
-              name: res.name,
-              address: res.address,
-              distance: res.distanceKm == null ? 'Chưa có khoảng cách' : `${res.distanceKm} km`,
-              imageUrl: res.imageUrl || '',
-            })),
+            restaurantResult.value.items.map((res) => {
+              const firstDiet = res.dietaryTypes && res.dietaryTypes.length > 0 ? res.dietaryTypes[0] : 1
+              const dietLabel = RESTAURANT_DIET_MAP[firstDiet] ?? 'Thuần chay (Vegan)'
+              return {
+                id: res.id,
+                name: res.name,
+                address: res.address,
+                dietType: dietLabel,
+                imageUrl: res.imageUrl || '',
+              }
+            }),
           )
         }
 
@@ -149,9 +159,12 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
     onNavigate?.(`/recipes?q=${encodeURIComponent(tag)}`)
   }
 
-  const handleTeaserSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    onNavigate?.('/ai-chat')
+  const handleGoToAiChat = (query?: string) => {
+    if (query) {
+      onNavigate?.(`/ai-chat?q=${encodeURIComponent(query)}`)
+    } else {
+      onNavigate?.('/ai-chat')
+    }
   }
 
   return (
@@ -220,7 +233,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               </div>
             </div>
 
-            {/* Cột phải: Ảnh đĩa salad tròn + Floating Card */}
+            {/* Cột phải: Ảnh đĩa salad tròn */}
             <div className="lg:col-span-5 flex justify-center lg:justify-end relative">
               <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px]">
                 {/* Vòng nền gradient nhẹ */}
@@ -231,31 +244,6 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   alt="Đĩa salad thuần chay ngũ sắc"
                   className="h-full w-full rounded-full object-cover shadow-2xl ring-8 ring-white"
                 />
-
-                {/* Floating Card: BMI */}
-                <div className="absolute bottom-2 left-0 sm:-left-4 rounded-[14px] border border-[#E5E7EB] bg-white/95 backdrop-blur px-4 py-3 shadow-xl">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
-                      <Check size={14} strokeWidth={3} />
-                    </span>
-                    <div>
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">
-                        Chỉ số thể trạng
-                      </div>
-                      <div className="text-[13px] font-bold text-[#111827]">
-                        BMI chuẩn 18.5 – 22.9
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating Badge: Góc trên */}
-                <div className="absolute top-4 right-0 sm:-right-2 rounded-[14px] border border-[#E5E7EB] bg-white/95 backdrop-blur px-3.5 py-2.5 shadow-lg flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
-                  <span className="text-[12px] font-bold text-[#111827]">
-                    Công thức mới mỗi ngày
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -544,7 +532,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       )}
 
       {/* =========================================================================
-       * 6. SECTION: NHÀ HÀNG CHAY GẦN BẠN
+       * 6. SECTION: NHÀ HÀNG CHAY
        * ========================================================================= */}
       {restaurants.length > 0 && (
         <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
@@ -563,207 +551,165 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 onClick={() => onNavigate?.('/restaurants')}
                 className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
               >
-                Xem trên bản đồ
+                Xem tất cả nhà hàng
                 <ArrowRight size={15} />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-              {/* 2 Card Nhà hàng bên trái */}
-              <div className="lg:col-span-6 flex flex-col gap-4">
-                {restaurants.map((res) => (
-                  <article
-                    key={res.id}
-                    className="flex flex-col sm:flex-row items-stretch rounded-[16px] border border-[#E5E7EB] bg-white p-3.5 gap-4 shadow-xs hover:border-[#C8E6C9] transition"
-                  >
-                    {res.imageUrl ? <img
-                      src={res.imageUrl}
-                      alt={res.name}
-                      className="h-32 sm:w-40 sm:h-auto rounded-[12px] object-cover shrink-0"
-                    /> : <div className="flex h-32 items-center justify-center rounded-xl bg-slate-100 text-sm text-slate-500 sm:w-40">Chưa có ảnh</div>}
-                    <div className="flex flex-1 flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-[15px] font-bold text-[#111827]">
-                            {res.name}
-                          </h3>
-                        </div>
-                        <p className="mt-1 text-[12px] text-[#6B7280] line-clamp-2">
-                          {res.address}
-                        </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {restaurants.map((res) => (
+                <article
+                  key={res.id}
+                  className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
+                >
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+                    {res.imageUrl ? (
+                      <img
+                        src={res.imageUrl}
+                        alt={res.name}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                        Chưa có ảnh
                       </div>
+                    )}
+                  </div>
 
-                      <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#F3F4F6]">
-                        <span className="flex items-center gap-1 text-[12px] font-semibold text-[#4B5563]">
-                          <MapPin size={12} className="text-[#2E7D32]" />
-                          {res.distance}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
-                          className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
-                        >
-                          Xem chi tiết
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              {/* Khung bản đồ thu nhỏ bên phải */}
-              <div className="lg:col-span-6">
-                <div className="relative aspect-[16/10] w-full rounded-[16px] overflow-hidden border border-[#E5E7EB] shadow-xs group">
-                  <img
-                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80"
-                    alt="Ảnh minh họa bản đồ"
-                    className="h-full w-full object-cover"
-                  />
-
-                  {/* Map Overlay Badge */}
-                  <div className="absolute top-4 left-4 rounded-[10px] border border-[#E5E7EB] bg-white/95 backdrop-blur px-3 py-2 shadow-md flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2E7D32] text-white">
-                      <MapPin size={13} />
-                    </span>
+                  <div className="flex flex-1 flex-col justify-between p-4">
                     <div>
-                      <div className="text-[12px] font-bold text-[#111827]">
-                        Tìm nhà hàng trên bản đồ
-                      </div>
-                      <div className="text-[10px] text-[#6B7280]">
-                        Ảnh minh họa — mở danh sách để xem vị trí thực tế
-                      </div>
+                      <h3
+                        onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
+                        className="text-[16px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-1"
+                      >
+                        {res.name}
+                      </h3>
+                      <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-[#6B7280] line-clamp-2 leading-relaxed">
+                        <MapPin size={13} className="text-[#2E7D32] shrink-0 mt-0.5" />
+                        <span>{res.address}</span>
+                      </p>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#F3F4F6]">
+                      <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-1 text-xs font-semibold text-[#2E7D32]">
+                        {res.dietType}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
+                        className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
+                      >
+                        Xem chi tiết
+                      </button>
                     </div>
                   </div>
-
-                  {/* Button Mở rộng bản đồ */}
-                  <div className="absolute bottom-4 right-4">
-                    <button
-                      type="button"
-                      onClick={() => onNavigate?.('/restaurants')}
-                      className="rounded-[8px] bg-[#2E7D32] hover:bg-[#1B5E20] px-4 py-2 text-[13px] font-semibold text-white shadow-md transition"
-                    >
-                      Mở rộng bản đồ
-                    </button>
-                  </div>
-                </div>
-              </div>
+                </article>
+              ))}
             </div>
           </div>
         </section>
       )}
 
       {/* =========================================================================
-       * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI (INTERACTIVE TEASER)
+       * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI (DEMO / PREVIEW)
        * ========================================================================= */}
-      <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
-        <div className="rounded-[20px] border border-[#C8E6C9] bg-gradient-to-br from-[#F0FDF4] via-white to-[#F0FDF4] p-6 sm:p-10 shadow-sm">
-          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
-            {/* Cột trái: Teaser Info */}
-            <div className="lg:col-span-6 flex flex-col items-start gap-4">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C8E6C9] bg-[#E8F5E9] px-3 py-1 text-[12px] font-bold text-[#2E7D32]">
-                <Sparkles size={13} />
+      <section className="mx-auto max-w-[1240px] px-4 sm:px-6 my-12">
+        <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F0FDF4] p-6 sm:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            {/* Cột trái: Thông tin & điều hướng */}
+            <div className="flex flex-col items-start">
+              <span className="bg-[#E8F5E9] text-[#2E7D32] px-3 py-1 rounded-full text-xs font-semibold">
                 TRỢ LÝ ẢO DINH DƯỠNG THỰC VẬT
               </span>
 
-              <h2 className="text-[28px] sm:text-[34px] font-extrabold tracking-tight text-[#111827] leading-tight">
+              <h2 className="text-2xl md:text-3xl font-bold text-[#111827] mt-3 mb-2">
                 Hỏi trợ lý dinh dưỡng AI
               </h2>
 
-              <p className="text-[15px] text-[#4B5563] leading-relaxed">
+              <p className="text-[15px] text-[#4B5563] leading-relaxed max-w-[500px]">
                 Giải đáp thắc mắc dinh dưỡng, nguyên liệu thay thế, tính toán calo và nhận gợi ý bữa ăn phù hợp cho bạn trong tích tắc.
               </p>
 
-              {/* Sample question chips */}
-              <div className="flex flex-wrap gap-2 pt-1">
+              {/* 3 Nút câu hỏi mẫu (dạng pill clickable/demo) */}
+              <div className="flex flex-wrap gap-2 pt-4">
                 {AI_SAMPLE_QUESTIONS.map((q) => (
                   <button
                     key={q}
                     type="button"
-                    onClick={() => onNavigate?.('/ai-chat')}
-                    className="rounded-full border border-[#C8E6C9] bg-white px-3.5 py-1.5 text-[12px] font-medium text-[#2E7D32] hover:bg-[#E8F5E9] transition"
+                    onClick={() => handleGoToAiChat(q)}
+                    className="rounded-full border border-[#C8E6C9] bg-white px-3.5 py-1.5 text-xs font-medium text-[#2E7D32] hover:bg-[#E8F5E9] transition cursor-pointer"
                   >
                     💬 {q}
                   </button>
                 ))}
               </div>
 
-              {/* CTA button */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => onNavigate?.('/ai-chat')}
-                  className="rounded-[10px] bg-[#2E7D32] hover:bg-[#1B5E20] px-7 py-3 text-[15px] font-semibold text-white shadow-sm transition active:scale-98"
-                >
-                  Bắt đầu chat với AI ngay
-                </button>
-              </div>
+              {/* Nút hành động chính (CTA) */}
+              <button
+                type="button"
+                onClick={() => handleGoToAiChat()}
+                className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-6 py-3 rounded-[10px] font-medium flex items-center gap-2 mt-6 w-fit cursor-pointer transition active:scale-98"
+              >
+                <Sparkles size={16} />
+                <span>Bắt đầu chat với AI ngay</span>
+              </button>
             </div>
 
-            {/* Cột phải: Chat Simulator Mockup */}
-            <div className="lg:col-span-6">
-              <div className="rounded-[16px] border border-[#E5E7EB] bg-white shadow-lg overflow-hidden">
-                {/* Header chat box */}
-                <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3 bg-[#F9FAFB]">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
-                      <Sparkles size={14} />
-                    </span>
-                    <span className="text-[13px] font-bold text-[#111827]">
-                      Vegetarian AI Assistant
-                    </span>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2E7D32]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-                    Đang hoạt động
+            {/* Cột phải: Mô phỏng khung chat demo */}
+            <div
+              onClick={() => handleGoToAiChat()}
+              className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm p-5 cursor-pointer hover:border-[#C8E6C9] transition"
+            >
+              {/* Header mini */}
+              <div className="flex items-center justify-between border-b border-[#F3F4F6] pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    <Leaf size={14} className="fill-[#2E7D32]" />
+                  </span>
+                  <span className="text-[14px] font-bold text-[#111827]">
+                    Vegetarian AI Assistant
                   </span>
                 </div>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#2E7D32]">
+                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                  Đang hoạt động
+                </span>
+              </div>
 
-                {/* Messages conversation preview */}
-                <div className="p-4 space-y-3.5 bg-white text-[13px] leading-relaxed">
-                  {/* User message */}
-                  <div className="flex justify-end">
-                    <div className="rounded-[14px] rounded-tr-none bg-[#2E7D32] text-white px-4 py-2.5 max-w-[85%] shadow-xs">
-                      Bữa sáng đơn giản, 10 phút nấu nhanh và giàu đạm thực vật?
-                    </div>
-                  </div>
-
-                  {/* Bot message */}
-                  <div className="flex items-start gap-2.5">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32] mt-0.5">
-                      <Leaf size={14} className="fill-[#2E7D32]" />
-                    </span>
-                    <div className="rounded-[14px] rounded-tl-none bg-[#E8F5E9] border border-[#C8E6C9] p-3 text-[#1F2937] max-w-[90%] space-y-1">
-                      <p className="font-semibold text-[#2E7D32]">
-                        Chào bạn! Gợi ý bữa sáng nhanh cho bạn:
-                      </p>
-                      <p>• Smoothie chuối, yến mạch &amp; bơ đậu phộng (~22g protein)</p>
-                      <p>• Đậu hũ xào nấm ăn kèm bánh mì nguyên cám (~18g protein)</p>
-                      <p className="text-[12px] text-[#6B7280] pt-1">
-                        Thời gian thực hiện chỉ khoảng 8 – 10 phút, đầy đủ năng lượng cho cả buổi sáng!
-                      </p>
-                    </div>
-                  </div>
+              {/* Tin nhắn người dùng mẫu */}
+              <div className="flex justify-end">
+                <div className="bg-[#2E7D32] text-white rounded-[16px] rounded-tr-none p-3 text-sm ml-auto max-w-[85%] shadow-xs leading-relaxed">
+                  Bữa sáng đơn giản, 10 phút nấu nhanh và giàu đạm thực vật?
                 </div>
+              </div>
 
-                {/* Input simulator */}
-                <form
-                  onSubmit={handleTeaserSubmit}
-                  className="border-t border-[#E5E7EB] p-2.5 bg-[#F9FAFB] flex items-center gap-2"
+              {/* Tin nhắn AI trả lời mẫu */}
+              <div className="bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none p-4 text-sm mt-3 leading-relaxed space-y-1 border border-[#C8E6C9]/60">
+                <p className="font-semibold text-[#2E7D32]">
+                  Chào bạn! Gợi ý bữa sáng nhanh &amp; giàu đạm cho bạn:
+                </p>
+                <p>• Smoothie chuối, yến mạch &amp; bơ đậu phộng (~22g protein)</p>
+                <p>• Đậu hũ non xào nấm ăn kèm bánh mì nguyên cám (~18g protein)</p>
+                <p className="text-[12px] text-[#6B7280] pt-1">
+                  Thời gian thực hiện chỉ khoảng 8 – 10 phút, cung cấp năng lượng dồi dào cho ngày mới!
+                </p>
+              </div>
+
+              {/* Input giả lập ở dưới */}
+              <div className="mt-4 pt-3 border-t border-[#F3F4F6] flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  placeholder="Nhập câu hỏi của bạn..."
+                  className="flex-1 rounded-[8px] border border-[#E5E7EB] bg-[#F9FAFB] px-3.5 py-2 text-sm text-[#9CA3AF] cursor-pointer focus:outline-none"
+                />
+                <button
+                  type="button"
+                  aria-label="Gửi câu hỏi sang trợ lý AI"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#2E7D32] text-white hover:bg-[#1B5E20] transition cursor-pointer"
                 >
-                  <input
-                    type="text"
-                    value={teaserInput}
-                    onChange={(e) => setTeaserInput(e.target.value)}
-                    placeholder="Nhập câu hỏi của bạn..."
-                    className="flex-1 rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2 text-[13px] text-[#1F2937] focus:border-[#2E7D32] focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#2E7D32] text-white hover:bg-[#1B5E20] transition"
-                  >
-                    <Send size={14} />
-                  </button>
-                </form>
+                  <Send size={14} />
+                </button>
               </div>
             </div>
           </div>

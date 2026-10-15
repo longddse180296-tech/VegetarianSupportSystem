@@ -23,6 +23,12 @@ export type VideoSortOption =
   | 'duration_asc'
   | 'most_liked'
 
+export type CoreDietType =
+  | 'Thuần chay (Vegan)'
+  | 'Ăn chay có sữa (Lacto)'
+  | 'Chay có trứng (Ovo)'
+  | 'Trứng & Sữa (Lacto-ovo)'
+
 // ---------- Labels ----------
 export const MODERATION_STATUS_LABELS: Record<VideoModerationStatus, string> = {
   pending_ai: 'AI đang kiểm tra',
@@ -78,6 +84,7 @@ export interface Video {
   title: string
   description: string
   category: VideoCategory | string
+  dietType?: CoreDietType | string
   videoUrl: string
   thumbnailUrl: string
   duration?: string

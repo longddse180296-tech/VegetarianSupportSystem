@@ -1,4 +1,4 @@
-import { Filter, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Button, Input } from '../../../shared/components'
 import type {
   RestaurantDietType,
@@ -10,7 +10,7 @@ interface RestaurantFilterBarProps {
   filter: RestaurantFilterState
   onChange: (next: Partial<RestaurantFilterState>) => void
   onReset: () => void
-  totalCount: number
+  totalCount?: number
   isLoading?: boolean
   onSearch?: () => void
 }
@@ -32,8 +32,6 @@ const DIET_PILL_OPTIONS: Array<{ value: RestaurantDietType; label: string }> = [
   { value: 'lacto', label: 'Ăn chay có sữa (Lacto)' },
   { value: 'ovo', label: 'Ăn chay có trứng (Ovo)' },
   { value: 'ovo-lacto', label: 'Ăn chay có trứng sữa (Lacto-ovo)' },
-  { value: 'raw', label: 'Chay dưỡng sinh' },
-  { value: 'vegetarian-friendly', label: 'Cà phê chay' },
 ]
 
 /* ---------- Helpers ---------- */
@@ -60,8 +58,6 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
   filter,
   onChange,
   onReset,
-  totalCount,
-  isLoading = false,
   onSearch,
 }) => {
   const activeDist = activeDistancePill(filter.distanceMaxKm)
@@ -141,42 +137,36 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
           <span className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#3E5146] min-w-[96px]">
             Tiện ích:
           </span>
-          {DIET_PILL_OPTIONS.map((opt, idx) => {
+          {DIET_PILL_OPTIONS.map((opt) => {
             const active = filter.diet === opt.value
             return (
-              <span key={opt.value} className="inline-flex items-center gap-2">
-                {idx === 2 && <span className="text-slate-300 font-light select-none">|</span>}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    onChange({
-                      diet: (active ? 'all' : opt.value) as RestaurantDietType,
-                    })
+              <Button
+                type="button"
+                key={opt.value}
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  onChange({
+                    diet: (active ? 'all' : opt.value) as RestaurantDietType,
+                  })
+                }
+                className={`rounded-full !h-[28px] !px-3 !py-[5px] !text-[12px] font-semibold !leading-[16px] transition
+                  ${
+                    active
+                      ? '!bg-[#2E7D32] !border-[#2E7D32] !text-white shadow-sm !hover:bg-[#1B5E20]'
+                      : '!bg-[#F0F4F8] border border-[#DDE5EC] !text-[#324253] hover:!border-[#B7D9C1] hover:!bg-[#EAF5EC]'
                   }
-                  className={`rounded-full !h-[28px] !px-3 !py-[5px] !text-[12px] font-semibold !leading-[16px] transition
-                    ${
-                      active
-                        ? '!bg-[#2E7D32] !border-[#2E7D32] !text-white shadow-sm !hover:bg-[#1B5E20]'
-                        : '!bg-[#F0F4F8] border border-[#DDE5EC] !text-[#324253] hover:!border-[#B7D9C1] hover:!bg-[#EAF5EC]'
-                    }
-                  `}
-                >
-                  {active && <span className="mr-1">✓</span>}
-                  {opt.label}
-                </Button>
-              </span>
+                `}
+              >
+                {active && <span className="mr-1">✓</span>}
+                {opt.label}
+              </Button>
             )
           })}
         </div>
 
-        {/* Row 3: Tổng số quán ăn + nút Xóa bộ lọc */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11px] font-extrabold text-[#2E7D32]">
-            <Filter size={11} />
-            {isLoading ? 'Đang tải...' : `${totalCount} địa điểm`}
-          </span>
+        {/* Row 3: Nút Xóa bộ lọc */}
+        <div className="flex items-center justify-end pt-1">
           <Button
             type="button"
             variant="ghost"

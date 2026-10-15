@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -6,15 +6,11 @@ import {
   Calendar,
   Check,
   CheckCircle2,
-  ChevronRight,
   Clock as ClockIcon,
-  Leaf,
   Plus as PlusIcon,
-  Printer,
   Search as SearchIcon,
   ShieldCheck,
   Sparkles as SparklesIcon,
-  Stethoscope,
   Trash2 as TrashIcon,
   TriangleAlert as TriangleAlertIcon,
   UtensilsCrossed as UtensilsIcon,
@@ -26,18 +22,22 @@ import {
   Modal,
   Select,
   type SelectOption,
-  StatusBadge,
 } from '../../../shared/components'
 import {
   addPantryItem,
   CATEGORY_ORDER,
+  type CoreDietType,
   deletePantryItem,
+  evaluateIngredientForDiet,
   getPantryCategories,
   getPantryItems,
   getQuickAddChips,
   getRecipeMatches,
+  getSubstitutionForIngredient,
   QUICK_ADD_CHIPS,
+  updatePantryItem,
 } from '../api/pantryApi'
+import { profileApi } from '../../profile/api/profileApi'
 import type {
   AddIngredientFormState,
   PantryCategory,
@@ -50,7 +50,8 @@ import {
   PANTRY_CATEGORY_LABELS,
 } from '../types/pantry.types'
 
-function suitabilityTone(s: PantrySuitability): {
+
+function suitabilityTone(s: PantrySuitability, diet?: CoreDietType): {
   label: string
   cls: string
   tagCls: string
@@ -58,6 +59,15 @@ function suitabilityTone(s: PantrySuitability): {
   border: string
   bg: string
 } {
+  const dietShort =
+    diet === 'Ăn chay có sữa (Lacto)'
+      ? 'Lacto'
+      : diet === 'Chay có trứng (Ovo)'
+        ? 'Ovo'
+        : diet === 'Trứng & Sữa (Lacto-ovo)'
+          ? 'Lacto-ovo'
+          : 'Vegan'
+
   switch (s) {
     case 'suitable':
       return {
@@ -79,7 +89,7 @@ function suitabilityTone(s: PantrySuitability): {
       }
     case 'unsuitable':
       return {
-        label: 'Không hợp với Vegan',
+        label: `Không hợp với ${dietShort}`,
         cls: 'text-[#9F1239]',
         tagCls: 'bg-[#FFE4E6] text-[#9F1239] ring-1 ring-[#FECDD3]',
         icon: <AlertTriangle size={15} className="text-[#EF4444]" />,
@@ -108,6 +118,7 @@ interface PantryPageProps {
 export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: PantryPageProps) {
   /* ---------------- STATES ---------------- */
   const [items, setItems] = useState<PantryItem[]>([])
+  const [currentDiet, setCurrentDiet] = useState<CoreDietType>('Thuần chay (Vegan)')
   const [matches, setMatches] = useState<RecipeMatch[]>([])
   const [isLoadingItems, setIsLoadingItems] = useState(false)
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
@@ -136,6 +147,37 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
       cancelled = true
     }
   }, [])
+
+  /* ---- Sync diet from profile if available & react to profile updates ---- */
+  const syncDietFromProfile = useCallback(async () => {
+    try {
+      const p = await profileApi.getProfile()
+      if (p?.dietaryType) {
+        if (p.dietaryType === 'Lacto-vegetarian') {
+          setCurrentDiet('Ăn chay có sữa (Lacto)')
+        } else if (p.dietaryType === 'Ovo-vegetarian') {
+          setCurrentDiet('Chay có trứng (Ovo)')
+        } else if (p.dietaryType === 'Lacto-ovo vegetarian') {
+          setCurrentDiet('Trứng & Sữa (Lacto-ovo)')
+        } else if (p.dietaryType === 'Vegan') {
+          setCurrentDiet('Thuần chay (Vegan)')
+        }
+      }
+    } catch {
+      // guest or offline
+    }
+  }, [])
+
+  useEffect(() => {
+    void syncDietFromProfile()
+    const handleProfileUpdate = () => {
+      void syncDietFromProfile()
+    }
+    window.addEventListener('vegetarian_user_updated', handleProfileUpdate)
+    return () => {
+      window.removeEventListener('vegetarian_user_updated', handleProfileUpdate)
+    }
+  }, [syncDietFromProfile])
 
   /* ---- Inline modal form (Figma-standard Modal) ---- */
   const [form, setForm] = useState<AddIngredientFormState>({
@@ -190,24 +232,36 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     }
   }, [items])
 
+  /* ---------------- ITEMS WITH DIET SUITABILITY ---------------- */
+  const itemsWithDiet = useMemo(() => {
+    return items.map((it) => {
+      const evalRes = evaluateIngredientForDiet(it.name, currentDiet)
+      return {
+        ...it,
+        isSuitable: evalRes.isSuitable,
+        suitableNote: evalRes.note,
+      }
+    })
+  }, [items, currentDiet])
+
   /* ---------------- STATS ---------------- */
   const stats = useMemo(() => {
-    const suit = items.filter((i) => i.isSuitable === 'suitable').length
-    const warn = items.filter((i) => i.isSuitable === 'warning').length
-    const unsuit = items.filter((i) => i.isSuitable === 'unsuitable').length
-    return { suit, warn, unsuit, total: items.length }
-  }, [items])
+    const suit = itemsWithDiet.filter((i) => i.isSuitable === 'suitable').length
+    const warn = itemsWithDiet.filter((i) => i.isSuitable === 'warning').length
+    const unsuit = itemsWithDiet.filter((i) => i.isSuitable === 'unsuitable').length
+    return { suit, warn, unsuit, total: itemsWithDiet.length }
+  }, [itemsWithDiet])
 
   /* ---------------- FILTERED ITEMS (for UI) ---------------- */
   const filteredItems = useMemo(() => {
-    if (!search.trim()) return items
+    if (!search.trim()) return itemsWithDiet
     const q = search.toLowerCase()
-    return items.filter(
+    return itemsWithDiet.filter(
       (i) =>
         i.name.toLowerCase().includes(q) ||
-        PANTRY_CATEGORY_LABELS[i.category].toLowerCase().includes(q),
+        PANTRY_CATEGORY_LABELS[i.category]?.toLowerCase().includes(q),
     )
-  }, [items, search])
+  }, [itemsWithDiet, search])
 
   /* ---------------- GROUPED BY CATEGORY ---------------- */
   const grouped = useMemo(() => {
@@ -219,6 +273,36 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     })
     return g
   }, [filteredItems])
+
+  /* ---------------- AI SUBSTITUTIONS FOR VIOLATING INGREDIENTS ---------------- */
+  const violatingItems = useMemo(() => {
+    return itemsWithDiet.filter((i) => i.isSuitable === 'unsuitable')
+  }, [itemsWithDiet])
+
+  const suggestedReplacements = useMemo(() => {
+    return violatingItems.map((item) => {
+      const sub = getSubstitutionForIngredient(item.name, currentDiet)
+      return {
+        item,
+        ...sub,
+      }
+    })
+  }, [violatingItems, currentDiet])
+
+  const dietBadgeText = useMemo(() => {
+    switch (currentDiet) {
+      case 'Thuần chay (Vegan)':
+        return 'Phù hợp Thuần chay'
+      case 'Ăn chay có sữa (Lacto)':
+        return 'Phù hợp Chay có sữa'
+      case 'Chay có trứng (Ovo)':
+        return 'Phù hợp Chay có trứng'
+      case 'Trứng & Sữa (Lacto-ovo)':
+        return 'Phù hợp Trứng & Sữa'
+      default:
+        return 'Phù hợp Ăn chay'
+    }
+  }, [currentDiet])
 
   /* ---------------- HANDLERS ---------------- */
   const resetForm = () => {
@@ -252,12 +336,29 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     if (!validateForm()) return
     setIsAddSubmitting(true)
     try {
-      const item = await addPantryItem({ ...form, name: form.name.trim() })
-      setItems((prev) => [item, ...prev])
-      const t = suitabilityTone(item.isSuitable)
-      showToast(
-        `Đã thêm ${item.name} · ${t.label}`,
-      )
+      try {
+        const item = await addPantryItem({ ...form, name: form.name.trim() })
+        setItems((prev) => [item, ...prev])
+        const evalRes = evaluateIngredientForDiet(item.name, currentDiet)
+        const t = suitabilityTone(evalRes.isSuitable, currentDiet)
+        showToast(`Đã thêm ${item.name} · ${t.label}`)
+      } catch {
+        // Fallback for guest/offline
+        const localItem: PantryItem = {
+          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          name: form.name.trim(),
+          quantity: Number(form.quantity) || 1,
+          unit: form.unit || 'g',
+          category: form.category as PantryCategory,
+          isSuitable: 'suitable',
+          suitableNote: 'Đã thêm vào tủ bếp',
+          addedAt: new Date().toISOString(),
+        }
+        setItems((prev) => [localItem, ...prev])
+        const evalRes = evaluateIngredientForDiet(localItem.name, currentDiet)
+        const t = suitabilityTone(evalRes.isSuitable, currentDiet)
+        showToast(`Đã thêm ${localItem.name} · ${t.label}`)
+      }
       closeAdd()
     } finally {
       setIsAddSubmitting(false)
@@ -275,7 +376,43 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     if (r.deleted) {
       setItems((prev) => prev.filter((i) => i.id !== id))
       showToast(`Đã xóa ${cur?.name ?? 'nguyên liệu'}`)
+    } else {
+      // Local fallback
+      setItems((prev) => prev.filter((i) => i.id !== id))
+      showToast(`Đã xóa ${cur?.name ?? 'nguyên liệu'}`)
     }
+  }
+
+  const handleApplyReplacement = async (
+    item: PantryItem,
+    newIngredientName: string,
+    newCategory: PantryCategory,
+  ) => {
+    try {
+      await updatePantryItem(item.id, {
+        name: newIngredientName,
+        quantity: item.quantity,
+        unit: item.unit,
+      })
+    } catch {
+      // Local state fallback
+    }
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id
+          ? {
+              ...i,
+              name: newIngredientName,
+              category: newCategory,
+              isSuitable: 'suitable' as const,
+              suitableNote: `Đã thay thế an toàn theo hồ sơ ${currentDiet}.`,
+            }
+          : i,
+      ),
+    )
+
+    showToast(`✨ Đã thay thế "${item.name}" bằng "${newIngredientName}"`)
   }
 
   /* ============================================================
@@ -313,27 +450,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
             <span className="text-[#9CA3AF]">/</span>
             <span className="font-bold text-[#1F2937]">Gợi ý món từ Tủ bếp AI</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              leftIcon={<Printer size={13} />}
-              onClick={() => window.print()}
-              className="rounded-[10px] !text-[12.5px] !font-bold !text-[#4B5563] hover:!bg-[#F5FBF6] hover:!border-[#C8E6C9]"
-            >
-              In danh sách
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              leftIcon={<ShieldCheck size={14} />}
-              onClick={() => onNavigate?.('/profile')}
-            >
-              Đổi chế độ ăn
-            </Button>
-          </div>
         </div>
 
         {/* ================= HERO ================= */}
@@ -346,9 +462,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               >
                 Gợi ý Món Chay Từ Tủ Bếp AI
               </h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#E6F3EC] px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-[0.02em] text-[#2E7D32] ring-1 ring-[#C8E6C9]">
-                <SparklesIcon size={11} /> Smart Pantry 2.4
-              </span>
             </div>
             <p
               className="mt-2 font-normal text-[#6B7280]"
@@ -357,31 +470,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               Khám phá các món ăn ngon, chuẩn dinh dưỡng từ nguyên liệu sẵn có gian bếp của bạn cùng
               Trợ lý AI thông minh.
             </p>
-          </div>
-        </section>
-
-        {/* ================= SUITABILITY STRIP ================= */}
-        <section
-          className="mb-6 flex flex-col items-start gap-3 rounded-[16px] border border-[#C8E6C9] bg-gradient-to-br from-[#FFFFFF] via-[#F5FBF6] to-[#E8F5E9] px-5 py-4 shadow-xs md:flex-row md:items-center md:justify-between"
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#DCFCE7] ring-4 ring-[#DCFCE7]/40">
-              <BadgeCheck size={22} className="text-[#16A34A]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2.5 py-1 text-[11px] font-bold text-[#92400E] ring-1 ring-[#FDE68A]">
-                  ✅ Đã đồng bộ hồ sơ
-                </span>
-                <span className="text-[13.5px] font-bold text-[#0F172A]">
-                  Chế độ hiện tại: Thuần chay (Vegan)
-                </span>
-              </div>
-              <p className="mt-1.5 text-[13px] leading-[20px] text-[#4B5563]">
-                Hệ thống tự động quét nhận diện 100% nguồn gốc động vật (thịt, cá, sữa bò, trứng gia cầm, gelatin,
-                mỡ động vật) để đảm bảo món chay an tâm tuyệt đối.
-              </p>
-            </div>
           </div>
         </section>
 
@@ -394,55 +482,40 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-xs"
               style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
             >
-              <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#E8F5E9] text-[#2E7D32]">
-                      <UtensilsIcon size={16} />
-                    </span>
-                    <span
-                      className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
-                      style={{ fontSize: '17px', lineHeight: '24px' }}
-                    >
-                      Tủ bếp của bạn
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11.5px] font-bold text-[#4338CA]">
-                      {filteredItems.length} nguyên liệu đã chọn
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    className="rounded-[10px]"
-                    leftIcon={<PlusIcon size={14} />}
-                    onClick={openAdd}
-                  >
-                    + Thêm nguyên liệu
-                  </Button>
-                </div>
+              <div className="mb-4 flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#E8F5E9] text-[#2E7D32]">
+                  <UtensilsIcon size={16} />
+                </span>
+                <span
+                  className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
+                  style={{ fontSize: '17px', lineHeight: '24px' }}
+                >
+                  Tủ bếp của bạn
+                </span>
+              </div>
 
-                {/* SEARCH + ADD */}
-                <div className="flex flex-col gap-2 md:flex-row">
-                  <div className="flex-1">
-                    <Input
-                      size={13}
-                      placeholder="Nhập nguyên liệu bạn đang có (vd: + Thêm đậu phụ, cà chua, nấm...)"
-                      value={form.name && showAddModal ? '' : search}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-                      leftIcon={<SearchIcon size={14} />}
-                      className="!h-10 !rounded-[12px]"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="md"
-                    leftIcon={<PlusIcon size={15} />}
-                    onClick={openAdd}
-                    className="rounded-[10px] !h-10 shrink-0"
-                  >
-                    + Thêm nguyên liệu
-                  </Button>
+              {/* SEARCH + ADD */}
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+                <div className="flex-1">
+                  <Input
+                    size={13}
+                    placeholder="Nhập nguyên liệu bạn đang có (vd: đậu phụ, cà chua, nấm...)"
+                    value={form.name && showAddModal ? '' : search}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                    leftIcon={<SearchIcon size={14} />}
+                    className="!h-10 !rounded-[12px]"
+                  />
                 </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  onClick={openAdd}
+                  className="!h-10 shrink-0 rounded-[10px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !text-white px-4 py-2 text-sm font-medium"
+                >
+                  Thêm nguyên liệu
+                </Button>
+              </div>
 
               {/* QUICK ADD CHIPS */}
               <div className="mt-4">
@@ -458,13 +531,13 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                       onClick={() => handleQuickAdd(c.name)}
                       className={`rounded-full !border !border-[#E5E7EB] !px-3 !py-1.5 !text-[12.5px] !font-semibold transition hover:-translate-y-[0.5px] hover:!border-[#2E7D32]/30 ${c.cls}`}
                     >
-                      <span>{c.emoji}</span> + {c.name}
+                      <span>{c.emoji}</span> {c.name}
                     </Button>
                   ))}
                 </div>
               </div>
 
-              {/* VEGAN CHECK SUMMARY */}
+              {/* DIET CHECK SUMMARY */}
               <div
                 className={`mt-4 rounded-[14px] border px-4 py-3 ${
                   stats.unsuit > 0
@@ -474,8 +547,8 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-[13.5px] font-bold text-[#121C2A]">
-                    <ShieldCheck size={16} className="text-[#22C55E]" />
-                    Kiểm tra vi phạm Vegan:
+                    <ShieldCheck size={16} className="text-[#2E7D32]" />
+                    <span>Kiểm tra vi phạm Chế độ {currentDiet}:</span>
                   </div>
                   <div className="flex items-center gap-2 text-[12.5px] font-bold">
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-[#166534]">
@@ -498,37 +571,34 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                         ? filteredItems.length
                         : filteredItems.filter((i) => i.category === c.key).length
                     const active = activeCategory === c.key
+                    const label = c.label || (c.key === 'all' ? 'Tất cả' : c.key)
                     return (
-                      <Button
+                      <button
                         key={c.key}
                         type="button"
-                        variant="ghost"
-                        className={[
-                          'rounded-full border !px-3 !py-1.5 !text-[12.5px] !font-semibold',
-                          active
-                            ? '!border-[#2E7D32] bg-[#2E7D32] !text-white hover:bg-[#1B5E20] !shadow-sm ring-2 ring-[#2E7D32]/20'
-                            : '!border-[#E5E7EB] !bg-white !text-[#4B5563] hover:!bg-[#F5FBF6] hover:!border-[#C8E6C9]',
-                        ].join(' ')}
-                        leftIcon={
-                          active ? (
-                            <Check size={14} />
-                          ) : (
-                            <span aria-hidden className="text-[13px] leading-none">
-                              {c.emoji}
-                            </span>
-                          )
-                        }
                         onClick={() => setActiveCategory(c.key)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-all select-none ${
+                          active
+                            ? 'border-[#2E7D32] bg-[#2E7D32] text-white shadow-sm ring-2 ring-[#2E7D32]/20'
+                            : 'border-[#E5E7EB] bg-white text-[#1F2937] hover:bg-[#F5FBF6] hover:border-[#C8E6C9]'
+                        }`}
                       >
-                        {c.label}
+                        {active ? (
+                          <Check size={14} className="text-white" />
+                        ) : (
+                          <span aria-hidden className="text-[13px] leading-none">
+                            {c.emoji}
+                          </span>
+                        )}
+                        <span>{label}</span>
                         <span
                           className={`ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold ${
-                            active ? 'bg-white/20 text-white' : 'bg-[#F3F4F6] text-[#6B7280]'
+                            active ? 'bg-white/20 text-white' : 'bg-[#F3F4F6] text-[#374151]'
                           }`}
                         >
                           {count}
                         </span>
-                      </Button>
+                      </button>
                     )
                   })}
                 </div>
@@ -548,7 +618,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                     <EmptyState
                       title="Tủ bếp của bạn đang trống"
                       description="Bắt đầu thêm vài nguyên liệu phổ biến như đậu phụ, nấm, cà chua, rau cải để AI gợi ý món ngon chuẩn dinh dưỡng hôm nay."
-                      actionLabel="+ Thêm nguyên liệu đầu tiên"
+                      actionLabel="Thêm nguyên liệu đầu tiên"
                       onAction={openAdd}
                       icon={<UtensilsIcon size={40} className="text-[#2E7D32]" />}
                     />
@@ -558,108 +628,12 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                         key={cat}
                         cat={cat as PantryCategory}
                         list={list}
+                        currentDiet={currentDiet}
                         onDelete={handleDelete}
                       />
                     ))
                   )}
                 </div>
-              </div>
-            </div>
-
-            {/* =============== SUITABLE RESULTS =============== */}
-            <div
-              className="rounded-[16px] border border-[#C8E6C9] bg-gradient-to-br from-white to-[#F0FDF4] p-5 shadow-xs"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
-            >
-              <div className="mb-3 flex items-start gap-2">
-                <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#DCFCE7] text-[#166534]">
-                  <ShieldCheck size={16} />
-                </span>
-                <div>
-                  <h3
-                    className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
-                    style={{ fontSize: '17px', lineHeight: '24px' }}
-                  >
-                    Kết quả kiểm tra theo hồ sơ Vegan
-                  </h3>
-                  <p className="mt-1 text-[13px] leading-[20px] text-[#4B5563]">
-                    Hệ thống AI tự động phân tích từng nguồn gốc nguyên liệu đối chiếu với chế độ
-                    Thuần chay (Vegan).
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between rounded-[12px] border border-[#86EFAC] bg-white px-3 py-2 text-[13px] font-semibold">
-                <div className="flex items-center gap-1.5 text-[#166534]">
-                  <BadgeCheck size={15} /> Nguyên liệu hợp lệ ({stats.suit} nguyên liệu)
-                </div>
-                <span className="font-bold text-[#16A34A]">100% An toàn</span>
-              </div>
-              <div className="mt-3 space-y-2">
-                {filteredItems
-                  .filter((i) => i.isSuitable === 'suitable')
-                  .slice(0, 3)
-                  .map((i) => (
-                    <SuitableRow
-                      key={i.id}
-                      item={i}
-                      onDelete={() => handleDelete(i.id)}
-                    />
-                  ))}
-                {filteredItems.filter((i) => i.isSuitable === 'suitable').length === 0 && (
-                  <div className="rounded-[12px] border border-dashed border-[#C8E6C9] bg-[#F0FDF4]/50 px-3 py-3 text-[12.5px] text-[#166534]">
-                    Chưa có nguyên liệu hợp lệ nào, hãy bắt đầu thêm từ danh mục trên.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* =============== WARNING / UNSUITABLE =============== */}
-            <div
-              className="rounded-[16px] border border-[#FECDD3] bg-gradient-to-br from-white to-[#FFF1F2] p-5 shadow-xs"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
-            >
-              <div className="mb-3 flex items-start gap-2">
-                <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#FFE4E6] text-[#9F1239]">
-                  <TriangleAlertIcon size={16} />
-                </span>
-                <div className="flex-1">
-                  <h3
-                    className="font-extrabold tracking-[-0.005em] text-[#9F1239]"
-                    style={{ fontSize: '17px', lineHeight: '24px' }}
-                  >
-                    Cảnh báo vi phạm chế độ ăn ({stats.unsuit + stats.warn} nguyên liệu)
-                  </h3>
-                  <p className="mt-1 text-[13px] leading-[20px] text-[#4B5563]">
-                    Cần loại trừ
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {filteredItems
-                  .filter((i) => i.isSuitable === 'unsuitable')
-                  .map((i) => (
-                    <WarnRow
-                      key={i.id}
-                      item={i}
-                      tone="danger"
-                      onDelete={() => handleDelete(i.id)}
-                    />
-                  ))}
-                {filteredItems
-                  .filter((i) => i.isSuitable === 'warning')
-                  .map((i) => (
-                    <WarnRow
-                      key={i.id}
-                      item={i}
-                      tone="warn"
-                      onDelete={() => handleDelete(i.id)}
-                    />
-                  ))}
-                {stats.unsuit + stats.warn === 0 && (
-                  <div className="rounded-[12px] border border-dashed border-[#FECDD3] bg-[#FFF1F2]/50 px-3 py-3 text-[12.5px] text-[#9F1239]">
-                    🎉 Chưa có cảnh báo nào - Tủ bếp của bạn đang rất thuần chay!
-                  </div>
-                )}
               </div>
             </div>
 
@@ -678,35 +652,48 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                       className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
                       style={{ fontSize: '17px', lineHeight: '24px' }}
                     >
-                      Gợi ý thay thế thuần thực vật từ AI
+                      Gợi ý thay thế theo chế độ {currentDiet}
                     </h3>
                   </div>
                 </div>
                 <span className="inline-flex items-center rounded-full bg-[#DCFCE7] px-2.5 py-1 text-[11.5px] font-bold text-[#166534] ring-1 ring-[#86EFAC]">
-                  100% Thuần chay
+                  {dietBadgeText}
                 </span>
               </div>
-              <div className="space-y-2.5">
-                <ReplacementRow
-                  icon="🥛"
-                  from="Đậu hào----"
-                  fromLabel="Sốt đậu hào"
-                  to="Sốt đậu hào thuần chay (Vegan)"
-                  onApply={() => showToast('✨ Đã áp dụng thay thế: Sốt đậu hào → Vegan')}
-                />
-                <ReplacementRow
-                  icon="🥚"
-                  from="Trứng gà"
-                  fromLabel="Trứng gà thường"
-                  to="Đậu hũ non tán nhuyễn xào bột nghiện (Tofu Scramble)"
-                  onApply={() => showToast('✨ Đã áp dụng thay thế: Trứng → Đậu hũ non')}
-                />
-              </div>
+
+              {suggestedReplacements.length === 0 ? (
+                <div className="rounded-[14px] border border-[#86EFAC] bg-white p-3.5 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[22px]" aria-hidden>🌱</span>
+                    <div>
+                      <div className="text-[13.5px] font-bold text-[#166534]">
+                        Tủ bếp 100% phù hợp chế độ {currentDiet}
+                      </div>
+                      <div className="text-[12px] text-[#4B5563]">
+                        Không phát hiện nguyên liệu nào vi phạm quy tắc. Khi bạn thêm nguyên liệu chưa phù hợp, AI sẽ tự động gợi ý thay thế tại đây.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {suggestedReplacements.map(({ item, replacementName, category, icon, description }) => (
+                    <ReplacementRow
+                      key={item.id}
+                      icon={icon}
+                      from={item.name}
+                      to={replacementName}
+                      description={description}
+                      onApply={() => handleApplyReplacement(item, replacementName, category)}
+                    />
+                  ))}
+                </div>
+              )}
+
               <p className="mt-3 flex items-start gap-1.5 text-[12.5px] font-medium text-[#166534]">
-                <ShieldCheck size={14} className="mt-0.5" />
+                <ShieldCheck size={14} className="mt-0.5 shrink-0" />
                 <span>
-                  Tự động thay thế tất cả nguyên liệu vi phạm bằng phiên bản thuần thực vật an toàn
-                  khi gợi ý công thức.
+                  Tự động gợi ý và thay thế các nguyên liệu vi phạm bằng phiên bản an toàn phù hợp theo hồ sơ dinh dưỡng của bạn.
                 </span>
               </p>
             </div>
@@ -740,12 +727,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                     đã kiểm duyệt an toàn.
                   </p>
                 </div>
-                <div className="flex items-center gap-2 text-[12.5px] font-semibold text-[#6B7280]">
-                  <span className="text-[#6B7280]">Sắp xếp:</span>
-                  <div className="rounded-[10px] border border-[#E5E7EB] bg-[#FAFBFA] px-3 py-1.5 shadow-xs">
-                    Khớp nguyên liệu cao nhất (100%)
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -764,7 +745,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                         <EmptyState
                           title="Chưa có gợi ý món nào phù hợp"
                           description="Thêm vài nguyên liệu phổ biến như đậu phụ, cà chua, nấm vào tủ bếp để AI bắt đầu gợi ý món nhé."
-                          actionLabel="+ Thêm nguyên liệu"
+                          actionLabel="Thêm nguyên liệu"
                           onAction={openAdd}
                           icon={<SparklesIcon size={40} className="text-[#2E7D32]" />}
                         />
@@ -774,6 +755,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                       <MatchCard
                         key={m.id}
                         m={m}
+                        currentDiet={currentDiet}
                         onViewRecipe={() => {
                           showToast(`🍲 Đang mở công thức: ${m.title}`)
                           onNavigate?.(`/recipes/${encodeURIComponent(m.id)}`)
@@ -781,58 +763,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                         onSave={() => showToast(`📌 Đã lưu: ${m.title} vào kế hoạch tuần`)}
                       />
                     ))}
-            </div>
-
-            {/* =============== EXPERT NUTRITION PANEL =============== */}
-            <div
-              className="mt-6 rounded-[16px] border border-[#2E7D32]/30 bg-white p-5 shadow-sm"
-              style={{
-                background:
-                  'linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 60%, #DCFCE7 100%)',
-                boxShadow: '0 6px 18px 0 rgba(21,128,61,0.12)',
-              }}
-            >
-              <div className="grid gap-4 md:grid-cols-12 md:items-start">
-                <div className="md:col-span-1">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#2E7D32] text-white shadow-md ring-4 ring-[#2E7D32]/20">
-                    <Stethoscope size={22} />
-                  </div>
-                </div>
-                <div className="md:col-span-11">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <h3
-                      className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
-                      style={{ fontSize: '18px', lineHeight: '26px' }}
-                    >
-                      Góc chuyên gia dinh dưỡng thực vật AI
-                    </h3>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#D9F99D] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.02em] text-[#3F6212]">
-                      <Leaf size={10} /> Chỉ số hấp thu tối ưu
-                    </span>
-                  </div>
-                  <p
-                    className="font-medium leading-[24px] text-[#1F2937]"
-                    style={{ fontSize: '14px' }}
-                  >
-                    Trợ lý AI đánh giá: Bộ 3 nguyên liệu <strong className="text-[#166534]">Đậu hũ</strong> +{' '}
-                    <strong className="text-[#166534]">Nấm hương</strong> +{' '}
-                    <strong className="text-[#166534]">Cà chua</strong> là sự kết hợp hoàn hảo giữa
-                    <strong> Đạm thực vật hoàn chỉnh</strong> (Đậu hũ chứa 9 axit amin thiết yếu)
-                    , <strong>Beta-glucan nâng đề kháng thể</strong> (từ Nấm hương) và{' '}
-                    <strong>Lycopene chống oxy hóa</strong> được hoạt hóa tốt nhất khi nấu cùng dầu
-                    thực vật như của chua chin. Bạn hoàn toàn có thể nấu một bữa ăn thuần chay cân
-                    bằng, ngon miệng mà không lo thiếu hụt vi chất.
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-[12.5px] font-semibold text-[#166534]">
-                    <span className="inline-flex items-center gap-1">
-                      <CheckCircle2 size={13} /> Phù hợp cho chế độ giữ dáng & kiểm soát BMI
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <CheckCircle2 size={13} /> Chỉ số đường huyết (GI) thấp
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -849,7 +779,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
             Thêm nguyên liệu vào Tủ bếp AI
           </span>
         }
-        description="Nhập đầy đủ tên, số lượng và danh mục. Hệ thống sẽ tự động phân tích mức độ phù hợp Thuần chay (Vegan) dựa trên tên gọi."
+        description={`Nhập đầy đủ tên, số lượng và danh mục. Hệ thống sẽ tự động phân tích mức độ phù hợp ${currentDiet} dựa trên tên gọi.`}
         footer={
           <>
             <Button
@@ -956,10 +886,12 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
 function GroupBlock({
   cat,
   list,
+  currentDiet,
   onDelete,
 }: {
   cat: PantryCategory
   list: PantryItem[]
+  currentDiet?: CoreDietType
   onDelete: (id: string) => void
 }) {
   const meta = CATEGORY_ORDER.find((c) => c.key === cat)
@@ -977,7 +909,7 @@ function GroupBlock({
       </div>
       <div className="space-y-2">
         {list.map((i) => (
-          <ItemRow key={i.id} item={i} onDelete={() => onDelete(i.id)} />
+          <ItemRow key={i.id} item={i} currentDiet={currentDiet} onDelete={() => onDelete(i.id)} />
         ))}
       </div>
     </div>
@@ -986,12 +918,14 @@ function GroupBlock({
 
 function ItemRow({
   item,
+  currentDiet,
   onDelete,
 }: {
   item: PantryItem
+  currentDiet?: CoreDietType
   onDelete: () => void
 }) {
-  const t = suitabilityTone(item.isSuitable)
+  const t = suitabilityTone(item.isSuitable, currentDiet)
   const d = new Date(item.addedAt)
   const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`
   return (
@@ -1035,157 +969,62 @@ function ItemRow({
   )
 }
 
-function SuitableRow({
-  item,
-  onDelete,
-}: {
-  item: PantryItem
-  onDelete: () => void
-}) {
-  const t = suitabilityTone('suitable')
-  return (
-    <div
-      className={`flex items-center justify-between gap-3 rounded-[12px] border ${t.border} bg-white px-3 py-2.5 transition hover:shadow-sm`}
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#DCFCE7]">
-          {t.icon}
-        </span>
-        <div className="min-w-0">
-          <div className="line-clamp-1 text-[13.5px] font-bold text-[#166534]">
-            ✅ {item.name} ({item.quantity} {item.unit})
-          </div>
-        </div>
-      </div>
-      <Button
-        type="button"
-        variant="ghost"
-        aria-label={`Xóa ${item.name}`}
-        onClick={onDelete}
-        className="!p-0 !h-auto !min-h-0 !bg-transparent !border-0 !shadow-none !text-[13px] !font-semibold !text-[#2E7D32] hover:!underline"
-      >
-        ×
-      </Button>
-    </div>
-  )
-}
-
-function WarnRow({
-  item,
-  tone,
-  onDelete,
-}: {
-  item: PantryItem
-  tone: 'warn' | 'danger'
-  onDelete: () => void
-}) {
-  const isDanger = tone === 'danger'
-  return (
-    <div
-      className={`flex items-start gap-3 rounded-[12px] border ${
-        isDanger ? 'border-[#FECDD3] bg-[#FFF1F2]' : 'border-[#FDE68A] bg-[#FFFBEB]'
-      } px-3 py-2.5`}
-    >
-      <div
-        className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isDanger ? 'bg-[#FFE4E6]' : 'bg-[#FEF3C7]'
-        }`}
-      >
-        <TriangleAlertIcon size={15} className={isDanger ? 'text-[#DC2626]' : 'text-[#D97706]'} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
-              isDanger
-                ? 'bg-[#FECDD3] text-[#9F1239]'
-                : 'bg-[#FDE68A] text-[#92400E]'
-            }`}
-          >
-            ⚠️ {item.name}
-            {isDanger ? ' (Hàu oyster)' : ''}
-          </span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
-              isDanger
-                ? 'bg-[#FECDD3] text-[#9F1239]'
-                : 'bg-[#DBEAFE] text-[#1E3A8A]'
-            }`}
-          >
-            {isDanger ? 'Món mặn / Góc đóng vật' : 'Không hợp với Vegan'}
-          </span>
-        </div>
-        <p className="mt-1 text-[12.5px] leading-[20px] text-[#4B5563]">
-          {isDanger
-            ? 'Chứa chiết xuất hàu biển động vật. Không phù hợp với người ăn chay ở bất kỳ hình thức nào.'
-            : `Tồn tại nguồn gốc động vật (hoặc trứng). Chỉ phù hợp với chế độ Ovo hoặc Lacto-ovo vegetarian.`}
-        </p>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <StatusBadge
-            status="info"
-            size="sm"
-            label={isDanger ? 'Cần loại trừ' : 'Cần lưu ý'}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onDelete}
-            className="!p-0 !h-auto !min-h-0 !bg-transparent !border-0 !shadow-none !text-[12.5px] !font-semibold !text-[#DC2626] hover:!underline"
-          >
-            Xoá ×
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function ReplacementRow({
   icon,
   from,
-  fromLabel,
   to,
+  description,
   onApply,
 }: {
   icon: string
   from: string
-  fromLabel: string
   to: string
+  description?: string
   onApply: () => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-[#86EFAC] bg-white px-3.5 py-2.5">
-      <span className="text-[20px]" aria-hidden>{icon}</span>
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[13px]">
-        <span className="line-through decoration-red-400 decoration-2 text-[#9F1239]">
-          Dâu hào—→{from}
-        </span>
-        <ChevronRight size={14} className="text-[#22C55E]" />
-        <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11.5px] font-bold text-[#166534]">
-          {fromLabel}
-        </span>
-        <span className="font-semibold text-[#1F2937]">→ {to}</span>
+    <div className="rounded-[14px] border border-[#86EFAC] bg-white p-3.5 shadow-xs transition hover:border-[#22C55E]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span className="text-[20px]" aria-hidden>{icon}</span>
+          <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
+            <span className="font-semibold text-[#9F1239] line-through decoration-red-500 decoration-2">
+              {from}
+            </span>
+            <span className="font-bold text-[#9CA3AF]">→</span>
+            <span className="inline-flex items-center rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-[12px] font-bold text-[#166534] ring-1 ring-[#86EFAC]">
+              {to}
+            </span>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          rightIcon={<ArrowRight size={13} />}
+          onClick={onApply}
+          className="!h-8 shrink-0 !rounded-[10px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !px-3.5 !text-[12.5px] !font-medium"
+        >
+          Áp dụng thay thế
+        </Button>
       </div>
-      <Button
-        type="button"
-        variant="primary"
-        size="sm"
-        rightIcon={<ArrowRight size={13} />}
-        onClick={onApply}
-        className="!h-8 !rounded-[10px] !px-3 !text-[12.5px]"
-      >
-        Áp dụng thay thế
-      </Button>
+      {description && (
+        <p className="mt-2 pl-[34px] text-[12px] text-[#4B5563]">
+          {description}
+        </p>
+      )}
     </div>
   )
 }
 
 function MatchCard({
   m,
+  currentDiet = 'Thuần chay (Vegan)',
   onViewRecipe,
   onSave,
 }: {
   m: RecipeMatch
+  currentDiet?: CoreDietType
   onViewRecipe: () => void
   onSave: () => void
 }) {
@@ -1230,7 +1069,7 @@ function MatchCard({
                 : 'bg-[#FEF9C3] text-[#854D0E]'
             }`}
           >
-            ✅ 100% Thuần Chay (Vegan)
+            ✅ Chuẩn {currentDiet}
           </span>
         </div>
         <div className="absolute right-3 top-3 flex items-center gap-2">

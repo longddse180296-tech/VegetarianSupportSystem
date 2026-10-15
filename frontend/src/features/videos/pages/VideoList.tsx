@@ -55,7 +55,6 @@ export default function VideoList({ onNavigate }: Props) {
         <div>
           <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800"><VideoIcon size={15} /> KHO VIDEO CỘNG ĐỒNG</span>
           <h1 className="mt-3 text-3xl font-bold">Video nấu ăn chay</h1>
-          <p className="mt-2 text-slate-600">Video đã được Admin duyệt và công khai.</p>
         </div>
         <Button variant="primary" leftIcon={<Upload size={16} />} onClick={() => onNavigate?.(getStoredToken() ? '/profile/my-videos' : '/login?returnUrl=%2Fprofile%2Fmy-videos')}>Đăng video</Button>
       </div>
@@ -79,7 +78,14 @@ export default function VideoList({ onNavigate }: Props) {
               <span className="absolute inset-0 flex items-center justify-center"><span className="rounded-full bg-white p-3 text-emerald-700 shadow-lg"><Play size={22} fill="currentColor" /></span></span>
             </button>
             <div className="p-4">
-              <span className="text-xs font-semibold text-emerald-700">{categoryName(video.categoryId)}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-emerald-700">{categoryName(video.categoryId)}</span>
+                {video.dietType && (
+                  <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]">
+                    {video.dietType}
+                  </span>
+                )}
+              </div>
               <h2 className="mt-1 line-clamp-2 text-lg font-bold"><button onClick={() => onNavigate?.(`/videos/${video.id}`)} className="text-left hover:text-emerald-700">{video.title}</button></h2>
               <p className="mt-2 line-clamp-2 text-sm text-slate-600">{video.description}</p>
               <p className="mt-4 text-xs text-slate-500">{video.viewCount.toLocaleString()} lượt xem · {new Date(video.createdAtUtc).toLocaleDateString('vi-VN')}</p>
