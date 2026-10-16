@@ -12,11 +12,10 @@ import {
   Send as SendIcon,
   ShieldAlert,
   Sparkles,
-  TriangleAlert,
   User as UserIcon,
 } from 'lucide-react'
 
-import { Button, Modal } from '../../../shared/components'
+import { AlertError, Button, Modal } from '../../../shared/components'
 import { useAuth } from '../../auth'
 import {
   buildUserMessage,
@@ -59,6 +58,10 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
 
   // Sidebar data from API
   const [profileFields, setProfileFields] = useState<PersonalProfileField[]>([])
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+  const profileRequest = useRef(0)
+  const profileController = useRef<AbortController | null>(null)
   const [faqs, setFaqs] = useState<FaqItem[]>([])
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
   const [isLoadingInit, setIsLoadingInit] = useState(true)
@@ -68,36 +71,56 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
 
   // Reactive reload of user profile fields
   const refreshProfileFields = useCallback(async () => {
+    const sequence = ++profileRequest.current
+    profileController.current?.abort()
+    setProfileFields([])
+    setProfileError(null)
+    if (appRole === 'Guest' || !user?.id) { setProfileLoading(false); return }
+    profileController.current = new AbortController()
+    const signal = profileController.current.signal
+    setProfileLoading(true)
     try {
-      const fields = await getUserProfileFields()
+      const fields = await getUserProfileFields(signal)
+      if (sequence !== profileRequest.current || signal.aborted) return
       setProfileFields(fields)
-    } catch {
-      // offline / guest
+    } catch (reason) {
+      if (sequence !== profileRequest.current || signal.aborted) return
+      setProfileError(reason instanceof Error ? reason.message : 'Không thể tải hồ sơ.')
+    } finally {
+      if (sequence === profileRequest.current && !signal.aborted) setProfileLoading(false)
     }
+  }, [appRole, user?.id])
+
+  const cancelProfileRequest = useCallback(() => {
+    profileRequest.current++
+    profileController.current?.abort()
   }, [])
 
   useEffect(() => {
     const handleProfileUpdate = () => {
       void refreshProfileFields()
     }
+    const initialLoad = window.setTimeout(() => void refreshProfileFields(), 0)
     window.addEventListener('vegetarian_user_updated', handleProfileUpdate)
+    window.addEventListener('focus', handleProfileUpdate)
     return () => {
+      window.clearTimeout(initialLoad)
+      cancelProfileRequest()
       window.removeEventListener('vegetarian_user_updated', handleProfileUpdate)
+      window.removeEventListener('focus', handleProfileUpdate)
     }
-  }, [refreshProfileFields])
+  }, [refreshProfileFields, cancelProfileRequest])
 
   // Load Initial Data
   useEffect(() => {
     let alive = true
     void (async () => {
       setIsLoadingInit(true)
-      const [fields, faqsData, historyData] = await Promise.all([
-        getUserProfileFields(),
+      const [faqsData, historyData] = await Promise.all([
         getFaqsFigma(),
         getChatHistoryFigma(),
       ])
       if (!alive) return
-      setProfileFields(fields)
       setFaqs(faqsData)
       setHistoryItems(historyData)
 
@@ -241,7 +264,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                     </h2>
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-semibold text-[#2E7D32]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-                      Đang hoạt động
+                      AI
                     </span>
                   </div>
                   <p className="text-[12px] text-[#6B7280]">
@@ -464,7 +487,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                 <div className="flex items-center gap-2 text-[14px] font-bold text-[#1F2937]">
                   <span>Chế độ trải nghiệm</span>
                   <span className="rounded-full bg-[#2E7D32] px-2 py-0.5 text-[10px] font-bold text-white">
-                    {appRole === 'Guest' ? `${guestState.questionsRemaining}/3` : 'VIP'}
+                    {appRole === 'Guest' ? `${guestState.questionsRemaining}/3` : 'Đã đăng nhập'}
                   </span>
                 </div>
                 <p className="text-[12px] text-[#6B7280] mt-0.5">
@@ -491,38 +514,23 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                 </button>
               </div>
 
-              <div className="space-y-3 text-[13px]">
-                {profileFields.map((f) => (
-                  <div key={f.key} className="flex items-center justify-between">
-                    <span className="text-[#6B7280]">{f.label}</span>
-                    {f.key === 'diet' ? (
-                      <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
-                        {f.value}
-                      </span>
-                    ) : f.key === 'bmi' ? (
-                      <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
-                        {f.value}
-                      </span>
-                    ) : f.key === 'allergy' ? (
-                      f.value !== 'Không có' ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
-                          <TriangleAlert size={11} />
-                          {f.value}
-                        </span>
-                      ) : (
-                        <span className="font-semibold text-[#1F2937]">Không có</span>
-                      )
-                    ) : (
-                      <span className="font-semibold text-[#1F2937]">{f.value}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 rounded-[10px] bg-[#E8F5E9] p-3 text-[11px] text-[#2E7D32] flex items-start gap-2">
-                <Sparkles size={14} className="shrink-0 mt-0.5" />
-                <span>AI tự động đối chiếu thông tin này để đưa ra gợi ý chuẩn xác nhất cho bạn.</span>
-              </div>
+              {appRole === 'Guest' ? (
+                <p className="text-sm text-text-muted">Đăng nhập để sử dụng hồ sơ đã lưu. Khách chỉ cung cấp thông tin trong cuộc trò chuyện.</p>
+              ) : (
+                <>
+                  {profileLoading && <p role="status" className="text-sm text-text-muted">Đang tải hồ sơ đã lưu...</p>}
+                  {profileError && <div className="space-y-3"><AlertError title="Không thể tải hồ sơ cá nhân" message={profileError} /><Button size="sm" variant="outline" onClick={() => void refreshProfileFields()}>Tải lại hồ sơ</Button></div>}
+                  {!profileLoading && !profileError && <dl className="space-y-3 text-[13px]" aria-label="Hồ sơ AI đang tham khảo">
+                    {profileFields.map(field => (
+                      <div key={field.key} className="grid grid-cols-2 items-start gap-3">
+                        <dt className="min-w-0 text-text-muted">{field.label}</dt>
+                        <dd className={'min-w-0 [overflow-wrap:anywhere] text-right font-semibold ' + (field.tone === 'warn' ? 'text-amber-700' : 'text-text-main')}>{field.value}</dd>
+                      </div>
+                    ))}
+                  </dl>}
+                  <p className="mt-4 rounded-[10px] bg-primary-light p-3 text-xs text-primary">Đây là dữ liệu Profile đã lưu. Khi gửi câu hỏi, backend đọc lại hồ sơ hiện tại; chỉ số thiếu không được suy đoán.</p>
+                </>
+              )}
             </div>
 
             {/* Card 3: Câu hỏi thường gặp */}
@@ -558,6 +566,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
               </div>
 
               <div className="space-y-2.5">
+                {!isLoadingInit && historyItems.length === 0 && <p className="text-sm text-text-muted">Chưa có hội thoại đã lưu.</p>}
                 {historyItems.map((item) => (
                   <button
                     key={item.id}
@@ -569,7 +578,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                       {item.title}
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-[#6B7280] mt-1">
-                      <span>{item.messages} tin nhắn</span>
+                      <span>{item.messages === null ? 'Hội thoại đã lưu' : `${item.messages} tin nhắn`}</span>
                       <span>{item.dateLabel}</span>
                     </div>
                   </button>

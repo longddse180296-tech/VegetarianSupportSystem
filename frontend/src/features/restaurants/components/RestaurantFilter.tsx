@@ -109,6 +109,8 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
               <Button
                 type="button"
                 key={opt.value}
+                disabled={opt.km > 0 && (filter.latitude === null || filter.longitude === null)}
+                title={opt.km > 0 && (filter.latitude === null || filter.longitude === null) ? 'Cần vị trí để lọc khoảng cách' : undefined}
                 variant="ghost"
                 size="sm"
                 onClick={() =>

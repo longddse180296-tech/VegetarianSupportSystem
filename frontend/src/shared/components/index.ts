@@ -1,4 +1,5 @@
 export * from './AlertError'
+export { default as AlertError } from './AlertError'
 export * from './Button'
 export * from './EmptyState'
 export * from './Input'

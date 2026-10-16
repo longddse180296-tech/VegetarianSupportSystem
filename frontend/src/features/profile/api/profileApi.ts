@@ -142,7 +142,7 @@ const EMPTY_RULES: HiddenIngredientRules = {
   gelatinHoney: false,
 }
 
-function ageOn(birthDate: string | null): number {
+export function ageOn(birthDate: string | null): number {
   if (!birthDate) return 0
   const today = new Date()
   const [year, month, day] = birthDate.split('-').map(Number)
@@ -153,15 +153,6 @@ function ageOn(birthDate: string | null): number {
   )
     age--
   return Math.max(0, age)
-}
-
-export function birthDateForAge(age: number): string | null {
-  if (!Number.isInteger(age) || age <= 0) return null
-  const today = new Date()
-  const year = today.getUTCFullYear() - age
-  const month = String(today.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(today.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 function readUiExtras(): Pick<
@@ -207,7 +198,7 @@ function mapProfile(data: BackendProfile): UserProfile {
     email: data.email,
     phoneNumber: data.phoneNumber ?? undefined,
     preferredRegion: data.restaurantArea ?? undefined,
-    dietaryType: data.diet ? dietFromBackend[data.diet] : '',
+    dietaryType: data.diet ? dietFromBackend[data.diet] ?? '' : '',
     allergies: data.allergies.map((item) => item.name),
     allergyItems: data.allergies,
     avoidedFoods: data.avoidedFoods,
@@ -238,8 +229,8 @@ function bodyRequest(metrics: BodyMetrics) {
 }
 
 export const profileApi = {
-  async getProfile(): Promise<UserProfile> {
-    const data = await apiClient.get<BackendProfile>('/api/profile/me')
+  async getProfile(signal?: AbortSignal): Promise<UserProfile> {
+    const data = await apiClient.get<BackendProfile>('/api/profile/me', { signal })
     try {
       localStorage.removeItem('vegetarian_mock_user_profile')
     } catch {
@@ -286,45 +277,32 @@ export const profileApi = {
     }
     await apiClient.put<BackendProfile>('/api/profile/me', request)
 
-    if (allergies) {
-      const wanted = allergies
-      const wantedNames = new Set(
-        wanted.map((name) => name.toLocaleUpperCase()),
-      )
-      for (const item of current.allergies) {
-        if (!wantedNames.has(item.name.toLocaleUpperCase())) {
-          await apiClient.delete(`/api/profile/me/allergies/${item.id}`)
+    let refreshed: UserProfile
+    try {
+      for (const [segment, wanted, existing] of [
+        ['allergies', allergies, current.allergies],
+        ['avoided-foods', avoidedFoods, current.avoidedFoods],
+      ] as const) {
+        if (!wanted) continue
+        const existingNames = new Set(existing.map(item => item.name.toUpperCase()))
+        // Add first: a failed addition must not erase the previously saved list.
+        for (const name of wanted) {
+          if (!existingNames.has(name.toUpperCase())) {
+            await apiClient.post('/api/profile/me/' + segment, { name })
+          }
+        }
+        const wantedNames = new Set(wanted.map(name => name.toUpperCase()))
+        for (const item of existing) {
+          if (!wantedNames.has(item.name.toUpperCase())) {
+            await apiClient.delete('/api/profile/me/' + segment + '/' + item.id)
+          }
         }
       }
-      const existingNames = new Set(
-        current.allergies.map((item) => item.name.toLocaleUpperCase()),
-      )
-      for (const name of wanted) {
-        if (!existingNames.has(name.toLocaleUpperCase())) {
-          await apiClient.post('/api/profile/me/allergies', { name })
-        }
-      }
+      refreshed = await this.getProfile()
+    } catch (reason) {
+      const detail = reason instanceof Error ? reason.message : 'Không thể đồng bộ danh sách thực phẩm.'
+      throw new Error(detail + ' Thông tin chính đã được lưu nhưng chưa hoàn tất toàn bộ hồ sơ. Kiểm tra và lưu lại; các mục đã lưu sẽ không bị tạo trùng.')
     }
-
-    if (avoidedFoods) {
-      const wanted = avoidedFoods
-      const wantedNames = new Set(
-        wanted.map((name) => name.toLocaleUpperCase()),
-      )
-      for (const item of current.avoidedFoods) {
-        if (!wantedNames.has(item.name.toLocaleUpperCase()))
-          await apiClient.delete(`/api/profile/me/avoided-foods/${item.id}`)
-      }
-      const existingNames = new Set(
-        current.avoidedFoods.map((item) => item.name.toLocaleUpperCase()),
-      )
-      for (const name of wanted) {
-        if (!existingNames.has(name.toLocaleUpperCase()))
-          await apiClient.post('/api/profile/me/avoided-foods', { name })
-      }
-    }
-
-    const refreshed = await this.getProfile()
     window.dispatchEvent(
       new CustomEvent('vegetarian_user_updated', {
         detail: {

@@ -25,6 +25,17 @@ Không thay đổi role, không thêm chức năng ngoài MVP. Sau khi merge, á
 
 Migration dietary types của Articles là diff từ trước Phase 1, đã compile nhưng chưa áp dụng vào DB thật trong lượt này; phải nghiệm thu ở Phase 3.
 
+## Phase 2 — Profile và dữ liệu Profile cho AI
+
+- FE1/Profile: form dùng shared controls; nhập ngày sinh thực tế, giữ số đo thập phân, cho xóa thông tin tùy chọn; sửa lỗi preview BMI trễ ghi đè thông tin vừa nhập. BMI/TDEE vẫn lấy backend. Lưu/đọc lại hai danh sách dị ứng và thực phẩm tránh độc lập, chuẩn hóa tên và báo rõ khi chỉ lưu được một phần. Tổng quan/sidebar dùng cùng nhãn bốn chế độ ăn.
+- FE1/BE1/Profile: giữ nguyên `restaurantArea`/`preferredRegion` và cột DB theo quyết định cuối của người dùng. Chưa thực hiện xóa cột hay dữ liệu. Không đổi request/response hoặc logic Profile backend; cập nhật `contracts/profile.md` cho hành vi FE.
+- FE2/Restaurants: sửa chỗ chưa nhận trạng thái Auth nên không dùng được khu vực Profile. Khi thiếu GPS, đưa khu vực đã lưu vào tìm kiếm địa chỉ/quận; cho sửa/xóa trực tiếp. Có GPS thì bỏ phần khu vực tự điền, bật lọc km; không tính hoặc giả khoảng cách khi thiếu tọa độ.
+- FE2/AI: sidebar đọc `profileApi` chung, có loading/error/retry và cập nhật khi Profile đổi; Guest không đọc hồ sơ. Bỏ lịch sử/số tin nhắn mẫu và nhãn hoạt động/VIP tĩnh còn sót; giữ nguyên cơ chế gửi, quota, lưu/mở hội thoại và provider. Scan không thay đổi.
+- BE3/AI + BE1/Profile cần review: `AiChatContextRepository` dùng `IProfileContextReader` đã có, qua formatter `Application/Features/AiChat/AiChatProfileContext.cs`. Context thêm mục tiêu/BMI/TDEE/số đo/khu vực từ Profile, giữ null/danh sách rỗng đúng nghĩa; không gửi email/điện thoại/ID/ngày sinh đầy đủ sang provider. Không thêm API/migration, không thay Gemini adapter. Xem `contracts/moderation-aichat.md`.
+- Test: thêm `AiChatProfileContextTests` và chế độ `--profile-only` của IntegrationTests. Test provider chỉ nằm trong test host; không có phản hồi AI giả ở runtime. SQL test tạo/xóa database `CoreDataChecks_*`, không sửa database `VegetarianSupport`.
+
+Phase 2: 87 unit tests, 19 API/SQL checks, 18 browser checks đạt; xem `docs/phase-2-review.md`. Chưa test câu trả lời Gemini thực tế do không có key. Chưa bắt đầu Phase 3.
+
 ## Bổ sung Phase 1 sau review của người dùng
 
 - FE1 + FE2: thống nhất khung nội dung `ui-page-container` (1240px, padding 24px desktop / 16px mobile), gồm các màn hình danh sách, chi tiết, editor, profile, thực đơn, pantry, home và vỏ auth. Footer dùng cùng token; header giữ nguyên theo yêu cầu mới nhất. AI/Scan chỉ đổi class khung nội dung, không đổi luồng hay gọi Gemini. Admin giữ layout chung riêng có sidebar.

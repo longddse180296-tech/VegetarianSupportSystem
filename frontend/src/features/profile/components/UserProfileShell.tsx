@@ -259,18 +259,18 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                   <span>Dinh dưỡng chuẩn hóa</span>
                 </div>
                 <p className="text-[#6b7280] leading-relaxed text-[11px]">
-                  Chỉ số BMI và chế độ ăn chay của bạn được bảo vệ riêng tư và
-                  dùng để tối ưu gợi ý thực đơn, quét món ăn an toàn.
+                  Hồ sơ đã lưu cung cấp chế độ ăn, dị ứng và chỉ số tham khảo
+                  cho các chức năng cá nhân hóa khi bạn đăng nhập.
                 </p>
                 <div className="mt-3 pt-2.5 border-t border-emerald-200/50 flex items-center gap-1.5 text-[11px] font-medium text-[#2e7d32]">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#2e7d32]" />
-                  <span>Chuẩn khoa học Á Đông</span>
+                  <span>Theo thông tin bạn đã khai báo</span>
                 </div>
               </div>
             </aside>
 
             {/* Right Column: Dynamic Feature Content */}
-            <main className="lg:col-span-3">{children}</main>
+            <main className="min-w-0 lg:col-span-3">{children}</main>
           </div>
         </div>
       </div>

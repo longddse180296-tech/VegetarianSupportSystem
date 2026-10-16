@@ -4,7 +4,7 @@ Mục tiêu: hoàn thiện toàn bộ phạm vi FE 1 và FE 2 trước ngày 17/
 
 Quy trình bắt buộc theo xác nhận của người dùng: chỉ làm một phase tại một thời điểm; tự test và review cuối phase, báo cáo rồi dừng chờ xác nhận trước phase kế tiếp. Không coi việc xác nhận phase trước là cho phép tự chạy tất cả các phase còn lại.
 
-Trạng thái ngày 16/10/2026: Phase 1 đã hoàn tất phần source và kiểm tra, chờ người dùng xác nhận; báo cáo trong `docs/phase-1-review.md` ghi rõ dữ liệu lịch sử seed còn được giữ. Phase 2–5 chưa bắt đầu. Một số diff Articles/Profile/AI/Scan có sẵn từ lượt làm cũ; cần review ở đúng phase, không tính là đã nghiệm thu.
+Trạng thái ngày 16/10/2026: Phase 1 đã được người dùng cho phép chuyển tiếp. Phase 2 hoàn tất phạm vi được chốt lại: Profile và dữ liệu Profile cho AI; đang chờ người dùng xác nhận. Câu trả lời Gemini thực tế và toàn bộ Scan vẫn hoãn. Phase 3–5 chưa bắt đầu. Xem `docs/phase-2-review.md` cho kiểm thử/giới hạn và `docs/phase-1-review.md` cho dữ liệu seed lịch sử được giữ.
 
 Đã hoàn tất bổ sung Phase 1 theo review: sửa trắng trang bài viết, font sans-serif FE1/tiêu đề đậm, khung nội dung chung bên dưới header và breadcrumb thực đơn. Header giữ nguyên trong lượt căn độ rộng. Kiểm tra cuối: lint/build FE đạt, 39/39 browser checks đạt, gồm 21 route ở 3 cỡ màn hình. Luồng AI/Scan tiếp tục tạm hoãn do chưa có Gemini key.
 
@@ -20,7 +20,9 @@ Trạng thái ngày 16/10/2026: Phase 1 đã hoàn tất phần source và kiể
 
 ## Phase 2 — Hồ sơ, AI Chat và Food Scan
 
-Điều chỉnh theo người dùng: chưa có Gemini key nên tạm hoãn thay đổi luồng AI Chat và Food Scan. Chỉ tiếp tục khi có yêu cầu xác nhận mới. Các thay đổi typography/header thuần giao diện không làm thay đổi luồng AI/Scan.
+Điều chỉnh theo xác nhận mới của người dùng: chưa có Gemini key, nhưng cho phép nối dữ liệu Profile cho AI và kiểm thử độc lập. Chỉ sửa dữ liệu sidebar/context; giữ nguyên gửi tin nhắn, quota, lịch sử và provider. Food Scan tiếp tục tạm hoãn toàn bộ.
+
+Đã giữ lại `restaurantArea` theo quyết định cuối: không xóa cột/data; Profile lưu khu vực để tìm nhà hàng khi không có GPS. Đã bỏ fallback lịch sử mẫu, số tin nhắn giả và nhãn hoạt động/VIP tĩnh trong UI AI; không thay cơ chế gửi/lưu/mở hội thoại. Kiểm tra: 87 unit tests, 19 API/SQL checks và 18 browser checks đạt; lint/build FE/BE đạt. Dừng tại gate Phase 2.
 
 - Profile dùng nhãn “Khu vực tìm nhà hàng”, lưu và đọc profile thật.
 - Chuẩn hóa nhãn bốn chế độ ăn: Vegan, LactoVegetarian, OvoVegetarian, LactoOvoVegetarian.
@@ -28,7 +30,7 @@ Trạng thái ngày 16/10/2026: Phase 1 đã hoàn tất phần source và kiể
 - Food Scan cho người dùng sửa OCR, thêm/xóa/sửa nguyên liệu và chọn lại phân loại trước khi đánh giá.
 - Backend chỉ bổ sung profile context hoặc endpoint xác nhận scan nếu audit chứng minh còn thiếu.
 
-**Gate:** một User cập nhật profile, mở AI Chat và scan món; kết quả phản ánh thông tin đã lưu/xác nhận.
+**Gate hiện tại:** User lưu/đọc lại Profile, sidebar AI và context phía backend dùng đúng dữ liệu đã lưu; chưa khai báo/lỗi tải phải hiển thị rõ. Test bằng provider giả chỉ trong test, không gọi Gemini. Gate Scan và câu trả lời Gemini thực tế được hoãn, không đánh dấu đã nghiệm thu.
 
 ## Phase 3 — Nội dung, công thức, video và nhà hàng
 

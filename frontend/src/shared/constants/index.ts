@@ -17,9 +17,9 @@ export type DietaryType = (typeof DIETARY_TYPES)[number]
 
 export const DIETARY_TYPE_LABELS: Record<DietaryType, string> = {
   Vegan: 'Thuần chay (Vegan)',
-  'Lacto-vegetarian': 'Chay có sữa (Lacto-vegetarian)',
-  'Ovo-vegetarian': 'Chay có trứng (Ovo-vegetarian)',
-  'Lacto-ovo vegetarian': 'Chay trứng sữa (Lacto-ovo vegetarian)',
+  'Lacto-vegetarian': 'Chay có sữa (Lacto)',
+  'Ovo-vegetarian': 'Chay có trứng (Ovo)',
+  'Lacto-ovo vegetarian': 'Chay trứng sữa (Lacto-ovo)',
 }
 
 // Canonical API values used by recipes, restaurants and article tags. Keep UI
@@ -58,6 +58,11 @@ const dietaryTypeAliases: Record<string, BackendDietaryType> = {
 
 export function toBackendDietaryType(value: unknown): BackendDietaryType | null {
   return dietaryTypeAliases[String(value)] ?? null
+}
+
+export function getDietaryTypeLabel(value: unknown, fallback = 'Chưa chọn chế độ ăn'): string {
+  const diet = toBackendDietaryType(value)
+  return diet ? BACKEND_DIETARY_TYPE_LABELS[diet] : fallback
 }
 
 // Trạng thái AI Flag Check (tách bạch hoàn toàn với Admin)

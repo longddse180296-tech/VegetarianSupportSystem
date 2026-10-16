@@ -81,6 +81,8 @@ Khi chỉnh sửa nhưng chưa lưu, `POST /api/profile/me/body/estimate` nhận
 
 ## Dị ứng và thực phẩm cần tránh
 
+FE kiểm tra độ dài tên của cả hai danh sách trước khi ghi thông tin chính. Trong mỗi danh sách, FE thêm mục mới trước khi xóa mục cũ để lỗi thêm không làm mất các mục đã lưu. Các request không phải một transaction chung: nếu phần danh sách lỗi sau `PUT` chính thành công, UI nói rõ thông tin chính đã lưu nhưng chưa hoàn tất toàn bộ; giữ bản chỉnh sửa để thử lại, không hiển thị thành công toàn bộ. `restaurantArea` tiếp tục được lưu theo quyết định cuối của người dùng để tìm theo khu vực khi không có GPS; đây không phải tọa độ hay khoảng cách chính xác.
+
 | Thao tác | Dị ứng | Thực phẩm cần tránh | Kết quả |
 |---|---|---|---|
 | Thêm | `POST /api/profile/me/allergies` | `POST /api/profile/me/avoided-foods` | `201` và `{id, name}` |
@@ -93,10 +95,10 @@ Schema gốc có trong migration `UserAccountsAndProfiles`: `Users` 1–1 `UserP
 
 ## Mapping cho FE và các module backend
 
-FE giữ giao diện/profile model hiện tại và dùng `profileApi` để ánh xạ response `GET /api/profile/me` vào các tên đang hiển thị: `userId → id`, `restaurantArea → preferredRegion`, `diet → dietaryType`, `birthDate → metrics.age`, `sexForEnergyEstimate → metrics.gender`, `activityLevel → metrics.activityLevel`, `weightGoal → metrics.goal`, `memberSinceUtc → createdAt`, `updatedAtUtc → updatedAt`. Trước khi `PUT`, adapter chuyển các trường này về enum/tên backend, chỉ gửi các trường thuộc hợp đồng. FE đang nhập **tuổi**, nên khi tuổi thay đổi adapter quy đổi thành ngày sinh theo ngày hiện tại trừ số tuổi; đây là ngày quy đổi để tính toán, không phải ngày sinh chính xác do người dùng xác nhận. Nếu tuổi không đổi, giữ `birthDate` gốc. `allergies` được đối chiếu theo tên và gọi CRUD từng mục; `avoidedFoods` hiện được đọc và giữ nguyên.
+FE dùng `profileApi` để ánh xạ `userId → id`, `restaurantArea → preferredRegion`, `diet → dietaryType`, dữ liệu cơ thể vào `metrics`, `memberSinceUtc → createdAt`, `updatedAtUtc → updatedAt`. Profile dùng bốn giá trị API `Vegan/Lacto/Ovo/LactoOvo`; adapter giữ tương thích các giá trị UI cũ và dùng nhãn chung với AI. Người dùng nhập **ngày sinh thực tế** bằng ô date; FE giữ nguyên ngày này, không tạo ngày sinh từ tuổi. `allergies` và `avoidedFoods` đều được sửa qua CRUD từng mục, loại tên trống/trùng không phân biệt hoa thường trước khi gọi API.
 
 `bmi`, `adultBmiCategory` và `estimatedTdeeKcal` chỉ được đọc từ response backend. Khi chỉnh sửa số đo, giao diện cũ hiển thị kết quả xem trước từ `POST .../body/estimate`; sau `PUT` hiển thị kết quả hồ sơ đã lưu. FE dùng `0` nội bộ để biểu diễn kết quả `null` và hiển thị `—`/“Chưa đủ dữ liệu”, không dùng số mẫu. FE không tính BMR, TDEE, phân bổ đa lượng hoặc tự cộng/trừ calo theo mục tiêu. Nhãn BMI người lớn theo ngưỡng backend: 18.5, 25, 30. Luôn ghi rõ đây là ước tính tham khảo.
 
-Ảnh đại diện, quy tắc nguyên liệu ẩn, nguồn protein ưa thích, BMR và phân bổ đa lượng chưa thuộc hợp đồng profile. FE giữ một số lựa chọn UI chưa có backend trong localStorage theo `userId`, nhưng không gửi chúng trong `PUT /api/profile/me` và không mô tả chúng là dữ liệu sức khỏe đã đồng bộ. Thống kê bài viết/bình luận/video phải lấy từ module nội dung tương ứng khi có dữ liệu thật, không nằm trong response profile hiện tại.
+Ảnh đại diện, quy tắc nguyên liệu ẩn, nguồn protein ưa thích, BMR và phân bổ đa lượng chưa thuộc hợp đồng profile. Form hiện hành không cho chỉnh các trường chưa có backend và không mô tả chúng là dữ liệu đã đồng bộ. Khi không có ảnh đại diện, UI dùng ký tự đầu tên. Thống kê bài viết/bình luận/video lấy từ module nội dung tương ứng; không dùng số mẫu.
 
 Trong backend, `Application.Features.Profiles.IProfileContextReader.GetContextAsync(userId, ct)` cung cấp `ProfileContext` chỉ đọc cho chat, scan, thực đơn và tủ bếp. DTO gồm chế độ ăn, dữ liệu cơ thể, mục tiêu, BMI/TDEE, khu vực, tên dị ứng/thực phẩm tránh và thời điểm cập nhật; không gồm email, số điện thoại hoặc mật khẩu. Module gọi truyền ID người dùng đã xác thực và tự lưu bản sao các trường cần thiết vào snapshot của mình. Việc cập nhật hồ sơ sau đó không làm thay đổi snapshot đã lưu.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Compass,
   Navigation,
@@ -21,6 +21,7 @@ import type {
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
 import AlertError from '../../../shared/components/AlertError'
 import { profileApi } from '../../profile/api/profileApi'
+import { useAuth } from '../../auth'
 
 interface RestaurantsPageProps {
   onNavigate?: (path: string) => void
@@ -31,6 +32,9 @@ export default function RestaurantsPage({
   onNavigate,
   isLoggedIn = false,
 }: RestaurantsPageProps) {
+  const { isAuthenticated } = useAuth()
+  const canReadProfile = isLoggedIn || isAuthenticated
+  const savedArea = useRef('')
   const [filter, setFilter] = useState<RestaurantFilterState>(DEFAULT_RESTAURANT_FILTER)
   const [items, setItems] = useState<Restaurant[]>([])
   const [totalCount, setTotalCount] = useState(0)
@@ -55,6 +59,7 @@ export default function RestaurantsPage({
           ...current,
           latitude: coords.latitude,
           longitude: coords.longitude,
+          search: current.search === savedArea.current ? '' : current.search,
         }))
         showToast('Đã dùng vị trí hiện tại để tìm nhà hàng.')
       },
@@ -64,12 +69,16 @@ export default function RestaurantsPage({
   }
 
   useEffect(() => {
-    if (!isLoggedIn) return
+    if (!canReadProfile) return
+    let active = true
     void profileApi.getProfile().then((profile) => {
-      const district = profile.preferredRegion?.trim()
-      if (district) setFilter((current) => current.city === 'all' ? { ...current, city: district } : current)
+      if (!active) return
+      const area = profile.preferredRegion?.trim()
+      savedArea.current = area || ''
+      if (area) setFilter(current => current.latitude === null && current.longitude === null && !current.search && current.city === 'all' ? { ...current, search: area } : current)
     }).catch(() => undefined)
-  }, [isLoggedIn])
+    return () => { active = false }
+  }, [canReadProfile])
 
   // Debounced filter update
   useEffect(() => {
@@ -139,6 +148,7 @@ export default function RestaurantsPage({
         </div>
 
         {/* ===== Search + Filter bar ===== */}
+        {filter.latitude === null && <p className="mb-4 text-sm text-text-muted">Chưa có tọa độ: tìm theo tên hoặc khu vực, có thể dùng khu vực đã lưu trong hồ sơ. Khoảng cách chỉ được tính khi có vị trí.</p>}
         <div className="mb-6">
           <RestaurantFilterBar
             filter={filter}
