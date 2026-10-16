@@ -13,7 +13,7 @@ interface RecipeFilterBarProps {
   filter: RecipeListFilter
   onChange: (next: Partial<RecipeListFilter>) => void
   onReset: () => void
-  totalCount: number
+  totalCount?: number
   isLoading?: boolean
   category: string
   setCategory: (c: string) => void
@@ -23,8 +23,8 @@ interface RecipeFilterBarProps {
   setKcalTier: (c: string) => void
   dietPill: string
   setDietPill: (c: string) => void
-  matchProfile: boolean
-  setMatchProfile: (v: boolean) => void
+  matchProfile?: boolean
+  setMatchProfile?: (v: boolean) => void
   /** Not rendered in bar UI anymore (keep contract, parent still uses it for sorting client-side). */
   sort?: RecipeSortOption
   setSort?: (v: RecipeSortOption) => void
@@ -35,7 +35,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
   filter,
   onChange,
   onReset,
-  totalCount,
+  totalCount: _totalCount,
   isLoading = false,
   category,
   setCategory,
@@ -45,8 +45,6 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
   setKcalTier,
   dietPill,
   setDietPill,
-  matchProfile,
-  setMatchProfile,
   onOpenAI,
 }) => {
   const options = getRecipeFilterOptions()
@@ -73,12 +71,11 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="flex-1">
           <Input
-            size={14}
             placeholder="Tìm kiếm công thức theo tên món hoặc nguyên liệu (đậu hũ, nấm, hạt sen...)"
             value={filter.search}
             onChange={(e) => onChange({ search: e.target.value })}
             leftIcon={<Search size={16} className="text-[#6B7280]" />}
-            className="!h-11 !rounded-[14px] !px-4"
+            className="!h-11 !rounded-[14px] !pl-10 !pr-4"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -106,59 +103,35 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
       </div>
 
       {/* Diet pills row */}
-      <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-col gap-2">
-          <div className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#6B7280]">
-            DANH MỤC MÓN ĂN <span className="ml-1 text-[10px]">CHẾ ĐỘ ĂN CỦA BẠN:</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {DIET_PILLS.map((p) => {
-              const active = dietPill === p.value
-              return (
-                <Button
-                  key={p.value}
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDietPill(p.value)}
-                  className={`rounded-full ${
-                    active
-                      ? '!bg-[#2E7D32] !text-white hover:!bg-[#1B5E20]'
-                      : '!border !border-[#E5E7EB] !bg-white !text-[#4B5563] hover:!bg-[#F5FBF6]'
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full mr-1 ${
-                      active ? 'bg-white' : 'bg-[#2E7D32]'
-                    }`}
-                  />
-                  {p.label}
-                </Button>
-              )
-            })}
-          </div>
+      <div className="mt-5 flex flex-col gap-2">
+        <div className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#6B7280]">
+          DANH MỤC MÓN ĂN <span className="ml-1 text-[10px]">CHẾ ĐỘ ĂN CỦA BẠN:</span>
         </div>
-
-        {/* Match profile toggle */}
-        <div className="flex items-center gap-3">
-          <span className="text-[12px] font-semibold text-[#6B7280]">
-            Tự động lọc theo Hồ sơ của tôi
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={matchProfile}
-            onClick={() => setMatchProfile(!matchProfile)}
-            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
-              matchProfile ? 'bg-[#2E7D32]' : 'bg-[#D1D5DB]'
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                matchProfile ? 'translate-x-5' : 'translate-x-0.5'
-              }`}
-            />
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {DIET_PILLS.map((p) => {
+            const active = dietPill === p.value
+            return (
+              <Button
+                key={p.value}
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setDietPill(p.value)}
+                className={`rounded-full ${
+                  active
+                    ? '!bg-[#2E7D32] !text-white hover:!bg-[#1B5E20]'
+                    : '!border !border-[#E5E7EB] !bg-white !text-[#4B5563] hover:!bg-[#F5FBF6]'
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full mr-1 ${
+                    active ? 'bg-white' : 'bg-[#2E7D32]'
+                  }`}
+                />
+                {p.label}
+              </Button>
+            )
+          })}
         </div>
       </div>
 
@@ -232,11 +205,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
             <span className="text-[12px] font-semibold text-[#6B7280]">
               Đang tải...
             </span>
-          ) : (
-            <span className="text-[12px] font-semibold text-[#6B7280]">
-              {totalCount} công thức
-            </span>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

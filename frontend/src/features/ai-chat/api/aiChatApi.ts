@@ -47,29 +47,65 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
       if (p) {
         const dietMap: Record<string, string> = {
           Vegan: 'Thuần chay (Vegan)',
-          LactoVegetarian: 'Chay có sữa (Lacto)',
+          Lacto: 'Ăn chay có sữa (Lacto)',
+          LactoVegetarian: 'Ăn chay có sữa (Lacto)',
+          'Lacto-vegetarian': 'Ăn chay có sữa (Lacto)',
+          Ovo: 'Chay có trứng (Ovo)',
           OvoVegetarian: 'Chay có trứng (Ovo)',
-          LactoOvoVegetarian: 'Chay trứng sữa (Lacto-Ovo)',
-          Pescatarian: 'Chay bán phần (Pesco)',
-          Flexitarian: 'Ăn chay linh hoạt (Flexi)',
+          'Ovo-vegetarian': 'Chay có trứng (Ovo)',
+          LactoOvo: 'Trứng & Sữa (Lacto-ovo)',
+          LactoOvoVegetarian: 'Trứng & Sữa (Lacto-ovo)',
+          'Lacto-ovo vegetarian': 'Trứng & Sữa (Lacto-ovo)',
         }
-        const dietLabel = p.diet ? (dietMap[p.diet] ?? p.diet) : 'Ăn chay linh hoạt'
-        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${p.adultBmiCategory ?? 'Bình thường'})` : '21.5 (Bình thường)'
+        const dietLabel = p.diet && dietMap[p.diet] ? dietMap[p.diet] : 'Thuần chay (Vegan)'
+
+        const categoryMap: Record<string, string> = {
+          Underweight: 'Thiếu cân',
+          HealthyWeight: 'Bình thường',
+          Overweight: 'Thừa cân',
+          Obesity: 'Béo phì',
+          underweight: 'Thiếu cân',
+          normal: 'Bình thường',
+          overweight: 'Thừa cân',
+          obese: 'Béo phì',
+        }
+        const catLabel =
+          p.adultBmiCategory && categoryMap[p.adultBmiCategory]
+            ? categoryMap[p.adultBmiCategory]
+            : 'Bình thường'
+        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${catLabel})` : '22.5 (Bình thường)'
+
         const goalMap: Record<string, string> = {
+          Lose: 'Giảm mỡ & thanh lọc cơ thể',
           LoseWeight: 'Giảm mỡ & thanh lọc cơ thể',
-          MaintainWeight: 'Duy trì cân nặng & sức khỏe',
+          weight_loss: 'Giảm mỡ & thanh lọc cơ thể',
+          Maintain: 'Duy trì cân nặng',
+          MaintainWeight: 'Duy trì cân nặng',
+          maintain: 'Duy trì cân nặng',
+          Gain: 'Tăng cân & phát triển cơ bắp',
           GainWeight: 'Tăng cân & phát triển cơ bắp',
+          muscle_gain: 'Tăng cân & phát triển cơ bắp',
+          general_health: 'Khám phá món chay khoa học',
         }
-        const goalLabel = p.weightGoal ? (goalMap[p.weightGoal] ?? p.weightGoal) : 'Duy trì sức khỏe'
-        const allergiesLabel = p.allergies && p.allergies.length > 0
-          ? p.allergies.map((a) => a.name).join(', ')
-          : 'Không có ghi nhận'
+        const goalLabel =
+          p.weightGoal && goalMap[p.weightGoal] ? goalMap[p.weightGoal] : 'Duy trì cân nặng'
+
+        const allergies = p.allergies
+        const hasAllergies = Boolean(allergies && allergies.length > 0)
+        const allergiesLabel = allergies && allergies.length > 0
+          ? allergies.map((a) => a.name).join(', ')
+          : 'Không có'
 
         return [
           { key: 'diet', label: 'Chế độ ăn', value: dietLabel, tone: 'ok' },
           { key: 'bmi', label: 'Chỉ số BMI', value: bmiVal, tone: 'ok' },
           { key: 'goal', label: 'Mục tiêu', value: goalLabel, tone: 'info' },
-          { key: 'allergy', label: 'Dị ứng cảnh báo', value: allergiesLabel, tone: 'warn' },
+          {
+            key: 'allergy',
+            label: 'Dị ứng cảnh báo',
+            value: allergiesLabel,
+            tone: hasAllergies ? 'warn' : 'ok',
+          },
         ]
       }
     } catch {
@@ -78,10 +114,10 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
   }
 
   return [
-    { key: 'diet', label: 'Chế độ ăn', value: 'Chay linh hoạt (Khách)', tone: 'soft' },
-    { key: 'bmi', label: 'Chỉ số BMI', value: '22.0 (Khuyến nghị)', tone: 'info' },
-    { key: 'goal', label: 'Mục tiêu', value: 'Khám phá món chay khoa học', tone: 'info' },
-    { key: 'allergy', label: 'Dị ứng cảnh báo', value: 'Chưa cập nhật', tone: 'soft' },
+    { key: 'diet', label: 'Chế độ ăn', value: 'Thuần chay (Vegan)', tone: 'ok' },
+    { key: 'bmi', label: 'Chỉ số BMI', value: '22.5 (Bình thường)', tone: 'ok' },
+    { key: 'goal', label: 'Mục tiêu', value: 'Duy trì cân nặng', tone: 'info' },
+    { key: 'allergy', label: 'Dị ứng cảnh báo', value: 'Không có', tone: 'ok' },
   ]
 }
 

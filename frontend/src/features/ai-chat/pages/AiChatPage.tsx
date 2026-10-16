@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import {
   Clock,
   HelpCircle,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 
 import { Button, Modal } from '../../../shared/components'
+import { useAuth } from '../../auth'
 import {
   buildUserMessage,
   getChatHistoryFigma,
@@ -39,7 +40,8 @@ interface AiChatPageProps {
 }
 
 export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) {
-  const appRole: AppRole = isLoggedIn ? 'User' : 'Guest'
+  const { user } = useAuth()
+  const appRole: AppRole = isLoggedIn || !!user ? 'User' : 'Guest'
 
   // Guest quota: maximum 3 questions
   const [guestState, setGuestState] = useState<GuestChatState>({
@@ -62,6 +64,26 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const cancelStreamRef = useRef<(() => void) | null>(null)
+
+  // Reactive reload of user profile fields
+  const refreshProfileFields = useCallback(async () => {
+    try {
+      const fields = await getUserProfileFields()
+      setProfileFields(fields)
+    } catch {
+      // offline / guest
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      void refreshProfileFields()
+    }
+    window.addEventListener('vegetarian_user_updated', handleProfileUpdate)
+    return () => {
+      window.removeEventListener('vegetarian_user_updated', handleProfileUpdate)
+    }
+  }, [refreshProfileFields])
 
   // Load Initial Data
   useEffect(() => {
@@ -95,7 +117,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
       alive = false
       if (cancelStreamRef.current) cancelStreamRef.current()
     }
-  }, [appRole])
+  }, [appRole, user?.id])
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -213,15 +235,9 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
 
         {/* ============= PAGE HEADER ============= */}
         <header className="mb-6 flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-[#111827]">
-              Trợ lý dinh dưỡng AI
-            </h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C8E6C9] bg-[#E8F5E9] px-3 py-1 text-[12px] font-bold text-[#2E7D32]">
-              <Leaf size={13} className="fill-[#2E7D32]" />
-              Trợ lý ảo dinh dưỡng thực vật
-            </span>
-          </div>
+          <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-[#111827]">
+            Trợ lý dinh dưỡng AI
+          </h1>
           <p className="text-[14px] sm:text-[15px] text-[#6B7280] max-w-[720px]">
             Hỏi đáp về dinh dưỡng chay, nguyên liệu thay thế, BMI, calo và nhận gợi ý bữa ăn khoa học được cá nhân hóa cho bạn.
           </p>
@@ -500,15 +516,23 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                 {profileFields.map((f) => (
                   <div key={f.key} className="flex items-center justify-between">
                     <span className="text-[#6B7280]">{f.label}</span>
-                    {f.key === 'bmi' ? (
+                    {f.key === 'diet' ? (
+                      <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
+                        {f.value}
+                      </span>
+                    ) : f.key === 'bmi' ? (
                       <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
                         {f.value}
                       </span>
                     ) : f.key === 'allergy' ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
-                        <TriangleAlert size={11} />
-                        {f.value}
-                      </span>
+                      f.value !== 'Không có' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
+                          <TriangleAlert size={11} />
+                          {f.value}
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-[#1F2937]">Không có</span>
+                      )
                     ) : (
                       <span className="font-semibold text-[#1F2937]">{f.value}</span>
                     )}

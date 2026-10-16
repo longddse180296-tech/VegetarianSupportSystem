@@ -171,8 +171,8 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
           {/* Right: Info + 6-stat box */}
           <div className="flex flex-col justify-between lg:col-span-6">
             <div>
-              <span className="mb-3 inline-block rounded-full bg-[#E8F5E9] px-3.5 py-1 text-[12px] font-semibold text-[#2E7D32]">
-                {recipe.category || 'Món chính'}
+              <span className="mb-3 inline-block rounded-full bg-[#E8F5E9] px-3.5 py-1 text-xs font-semibold text-[#2E7D32]">
+                {recipe.dietType || 'Thuần chay (Vegan)'}
               </span>
 
               <h1 className="text-[28px] font-bold leading-[1.25] text-[#111827] sm:text-[34px]">

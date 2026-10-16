@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Clock, Flame, Heart, Leaf } from 'lucide-react'
+import { Clock, Heart, Leaf } from 'lucide-react'
 import { Button } from '../../../shared/components'
 import type { Recipe } from '../types/recipe.types'
 
@@ -49,24 +49,6 @@ function recipeCategory(r: Recipe): { label: string; cls: string } {
   return found ? { label: found.label, cls: found.cls } : { label: 'MÓN NỘP', cls: 'bg-[#E6F3EC] text-[#2E7D32]' }
 }
 
-function dietLabelClass(cat: Recipe['dietCategory']) {
-  if (cat === 'vegan')
-    return { label: '100% Vegan', cls: 'bg-[#E6F3EC] text-[#2E7D32]' }
-  if (cat === 'ovo-lacto')
-    return { label: 'Lacto-veg', cls: 'bg-[#EEF2FF] text-[#4F46E5]' }
-  if (cat === 'lacto')
-    return { label: 'Lacto', cls: 'bg-[#FEF3C7] text-[#92400E]' }
-  if (cat === 'ovo')
-    return { label: 'Ovo', cls: 'bg-[#FEF3C7] text-[#92400E]' }
-  if (cat === 'raw')
-    return { label: 'Raw food', cls: 'bg-[#DBEAFE] text-[#1E40AF]' }
-  if (cat === 'low-fat')
-    return { label: 'Ít béo', cls: 'bg-[#FCE7F3] text-[#9D174D]' }
-  if (cat === 'high-protein')
-    return { label: 'Cao đạm', cls: 'bg-[#FDF2F8] text-[#9A3412]' }
-  return { label: 'Nhanh', cls: 'bg-[#F3E8FF] text-[#6B21A8]' }
-}
-
 export const RecipeCard: React.FC<RecipeCardProps> = ({
   recipe,
   onSelect,
@@ -83,7 +65,6 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   }
   const activeHeart = recipe.isFavorite || hoverHeart
   const cat = recipeCategory(recipe)
-  const diet = dietLabelClass(recipe.dietCategory)
 
   const handleSelect = () => onSelect(recipe.id)
   const handleSelectKey = (e: React.KeyboardEvent) => {
@@ -121,18 +102,12 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
           className="h-[196px] w-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
 
-        {/* Category top-left badges */}
+        {/* Category top-left badge */}
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold tracking-[0.02em] ring-1 ring-white/70 backdrop-blur ${cat.cls}`}
           >
             {cat.label}
-          </span>
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold tracking-[0.02em] ring-1 ring-white/70 backdrop-blur ${diet.cls}`}
-          >
-            <Leaf size={11} />
-            {diet.label}
           </span>
         </div>
 
@@ -169,15 +144,11 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
           </Button>
         </div>
 
-        {/* Bottom overlay: time + kcal pills */}
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+        {/* Bottom overlay: cook time pill */}
+        <div className="absolute bottom-3 left-3 flex items-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-[12px] font-semibold text-[#1F2937] ring-1 ring-[#E5E7EB] backdrop-blur">
             <Clock size={13} className="text-[#2E7D32]" />
             {recipe.cookTimeMinutes} phút
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-[12px] font-semibold text-[#1F2937] ring-1 ring-[#E5E7EB] backdrop-blur">
-            <Flame size={13} className="text-[#F97316]" />
-            {recipe.nutrition.kcal} kcal
           </span>
         </div>
       </div>
@@ -197,31 +168,6 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         >
           {recipe.description}
         </p>
-
-        {/* Ingredient progress */}
-        <div className="mt-3 flex items-center justify-between text-[12px] font-medium text-[#2E7D32]">
-          <span className="inline-flex items-center gap-1 text-[#2E7D32]">
-            <Leaf size={11} /> Tỷ lệ thực vật
-          </span>
-          <span className="font-bold tabular-nums">
-            {recipe.dietCategory === 'ovo-lacto' || recipe.dietCategory === 'ovo' || recipe.dietCategory === 'lacto'
-              ? '95%'
-              : '100%'}
-          </span>
-        </div>
-        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E8F5E9]">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-[#4CAF50] to-[#2E7D32]"
-            style={{
-              width:
-                recipe.dietCategory === 'ovo-lacto' ||
-                recipe.dietCategory === 'ovo' ||
-                recipe.dietCategory === 'lacto'
-                  ? '95%'
-                  : '100%',
-            }}
-          />
-        </div>
 
         {/* Footer CTA */}
         <div className="mt-auto pt-4">
