@@ -367,6 +367,30 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Favorites", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.FeaturedContent", b =>
+                {
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("PinnedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("PinnedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ContentType", "ContentId");
+
+                    b.HasIndex("ContentType", "PinnedAt");
+
+                    b.ToTable("FeaturedContent", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.FoodScanRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1452,6 +1476,17 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Entities.ArticleDietaryType", b =>
+                {
+                    b.HasOne("Domain.Entities.Article", "Article")
+                        .WithMany("DietaryTypes")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+                });
+
             modelBuilder.Entity("Domain.Entities.ArticleVersion", b =>
                 {
                     b.HasOne("Domain.Entities.Article", null)
@@ -1467,17 +1502,6 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Submission");
-                });
-
-            modelBuilder.Entity("Domain.Entities.ArticleDietaryType", b =>
-                {
-                    b.HasOne("Domain.Entities.Article", "Article")
-                        .WithMany("DietaryTypes")
-                        .HasForeignKey("ArticleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Article");
                 });
 
             modelBuilder.Entity("Domain.Entities.ArticleVersionDietaryType", b =>

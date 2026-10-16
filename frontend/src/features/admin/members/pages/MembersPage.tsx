@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAuth } from '../../../auth/hooks/useAuth'
 import { getStoredToken } from '../../../../shared/api/apiClient'
 import { AdminLayout } from '../../../../app/layouts/AdminLayout'
@@ -18,9 +18,17 @@ interface MembersPageProps {
 }
 
 export default function MembersPage({ onNavigate }: MembersPageProps) {
-  const { user, login: loginShared, logout: logoutShared } = useAuth()
+  const { user, isLoading: authLoading, login: loginShared, logout: logoutShared } = useAuth()
   const [token, setToken] = useState(() => getStoredToken() ?? sessionStorage.getItem(TOKEN_KEY) ?? '')
-  const [admin, setAdmin] = useState<{ id: string; fullName: string } | null>(null)
+  const [verifiedLegacyAdmin, setVerifiedLegacyAdmin] = useState<{ token: string; id: string; fullName: string } | null>(null)
+  const [sessionError, setSessionError] = useState('')
+  const [sessionRetry, setSessionRetry] = useState(0)
+  const logoutRef = useRef(logoutShared)
+  const userRole = user?.role
+  const admin = userRole === 'Admin'
+    ? user
+    : !user && verifiedLegacyAdmin?.token === token ? verifiedLegacyAdmin : null
+  const adminId = admin?.id
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -40,34 +48,48 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
 
+  useEffect(() => { logoutRef.current = logoutShared }, [logoutShared])
+
   const signOut = useCallback(() => {
     sessionStorage.removeItem(TOKEN_KEY)
-    void logoutShared()
+    void logoutRef.current()
     setToken('')
-    setAdmin(null)
+    setVerifiedLegacyAdmin(null)
     setData(null)
     setMember(null)
     setSelectedId(null)
-  }, [logoutShared])
+    setAction(null)
+    setSessionError('')
+  }, [])
 
   useEffect(() => {
-    if (!token) return
+    // AuthProvider has already verified shared sessions with the backend.
+    if (!token || authLoading || userRole === 'Admin') return
     let active = true
-    currentUser(token).then(user => {
+    currentUser(token).then(verifiedUser => {
       if (!active) return
-      if (user.role !== 'Admin') { signOut(); setLoginError('Tài khoản này không có quyền Admin.'); return }
-      setAdmin({ id: user.id, fullName: user.fullName })
-    }).catch(() => { if (active) { signOut(); setLoginError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.') } })
+      if (verifiedUser.role !== 'Admin') { signOut(); setLoginError('Tài khoản này không có quyền Admin.'); return }
+      setSessionError('')
+      setVerifiedLegacyAdmin({ token, id: verifiedUser.id, fullName: verifiedUser.fullName })
+    }).catch((cause: unknown) => {
+      if (!active) return
+      if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) {
+        signOut()
+        setLoginError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
+      } else {
+        setSessionError('Không thể kiểm tra phiên đăng nhập. Vui lòng thử lại.')
+      }
+    })
     return () => { active = false }
-  }, [token, signOut])
+  }, [token, authLoading, userRole, sessionRetry, signOut])
 
   useEffect(() => {
-    if (!token || !admin) return
+    if (!token || !adminId) return
     let active = true
-    listMembers(token, search, status, page).then(result => { if (active) { setData(result); setListLoading(false) } })
-      .catch((cause: unknown) => { if (active) { setListLoading(false); if (cause instanceof ApiError && cause.status === 401) signOut(); else setError(cause instanceof Error ? cause.message : 'Không tải được danh sách.') } })
+    listMembers(token, search, status, page).then(result => { if (active) { setData(result); setListLoading(false); setError('') } })
+      .catch((cause: unknown) => { if (active) { setListLoading(false); if (cause instanceof ApiError && cause.status === 401) { signOut(); setLoginError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.') } else setError(cause instanceof Error ? cause.message : 'Không tải được danh sách.') } })
     return () => { active = false }
-  }, [token, admin, search, status, page, refresh, signOut])
+  }, [token, adminId, search, status, page, refresh, signOut])
 
   useEffect(() => {
     if (!selectedId || !token) return
@@ -81,6 +103,8 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
   async function submitLogin(event: FormEvent) {
     event.preventDefault()
     setLoginError('')
+    setSessionError('')
+    setListLoading(true)
     setLoginBusy(true)
     try {
       const user = await loginShared({ email, password })
@@ -102,6 +126,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
       await changeStatus(token, member.id, action, reason.trim())
       setAction(null)
       setReason('')
+      setListLoading(true)
       setRefresh(value => value + 1)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không cập nhật được trạng thái.') }
     finally { setBusy(false) }
@@ -136,7 +161,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     setError('')
   }
 
-  if (!token || !admin) return <div className="fe1-members"><main className="member-login-page"><form className="member-login" onSubmit={submitLogin}>
+  if (!token) return <div className="fe1-members"><main className="member-login-page"><form className="member-login" onSubmit={submitLogin}>
     <div className="brand-mark">✦</div><p className="eyebrow">VEGETARIAN SUPPORT · QUẢN TRỊ</p>
     <h1>Đăng nhập Admin</h1><p>Quản lý tài khoản thành viên và lịch sử khóa.</p>
     <label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} required autoComplete="username" /></label>
@@ -151,13 +176,20 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     activeMenu="members"
     pageTitle={selectedId ? 'Chi tiết thành viên' : 'Quản lý thành viên'}
     pageSubtitle="Tìm kiếm tài khoản, xem chi tiết và quản lý trạng thái truy cập."
-    adminName={admin.fullName}
+    adminName={admin?.fullName}
     adminEmail={user?.email ?? ''}
     onNavigate={onNavigate}
     onLogout={() => { signOut(); onNavigate?.('/auth/login') }}
   >
       <div className="fe1-members"><div className="admin-content">
-        {selectedId ? <>
+        {!admin ? (
+          <section className="member-session-state" aria-busy={!sessionError}>
+            <div className="brand-mark" aria-hidden="true">✦</div>
+            <h2>{sessionError ? 'Chưa thể tải thành viên' : 'Đang kiểm tra phiên đăng nhập'}</h2>
+            <p role={sessionError ? 'alert' : 'status'}>{sessionError || 'Vui lòng chờ trong khi hệ thống xác nhận quyền quản trị.'}</p>
+            {sessionError && <button type="button" className="fe1-btn fe1-btn-outline outline-button" onClick={() => { setSessionError(''); setSessionRetry(value => value + 1) }}>Thử lại</button>}
+          </section>
+        ) : selectedId ? <>
           <div className="page-heading"><div><p className="eyebrow">QUẢN LÝ THÀNH VIÊN</p><h1>Chi tiết thành viên</h1><p>Thông tin tài khoản và lịch sử khóa/mở khóa.</p></div><button className="fe1-btn fe1-btn-outline outline-button" onClick={() => { setSelectedId(null); setMember(null); setHistory(null); setError('') }}>← Quay lại danh sách</button></div>
           {member ? <>
             <section className="detail-hero"><div className="large-avatar">{member.fullName.slice(0, 1).toUpperCase()}</div><div className="detail-heading"><div><h2>{member.fullName}</h2><span className="role-tag">{member.role}</span><span className={`status-pill ${member.isLocked ? 'locked' : 'active'}`}>{member.isLocked ? 'Bị khóa' : 'Hoạt động'}</span></div><p>{member.email}</p></div><button className={`fe1-btn ${member.isLocked ? 'fe1-btn-primary primary-button' : 'fe1-btn-danger danger-button'}`} disabled={!member.isLocked && member.id === admin.id} onClick={() => { setAction(!member.isLocked); setReason(''); setError('') }}>{member.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button></section>

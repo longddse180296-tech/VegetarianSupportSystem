@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, Pencil, Plus, Power } from 'lucide-react'
+import { Eye, Pencil, Plus, Lock, Unlock, MapPin } from 'lucide-react'
 import {
   SharedDataTable,
   type ColumnDef,
@@ -27,13 +27,13 @@ export const AdminRestaurantsPage = ({
 }) => {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [district, setDistrict] = useState('')
   const result = useApiData<{ items: RestaurantSummary[]; totalCount: number }>(
-    `/api/admin/restaurants?pageNumber=${page}&pageSize=10&search=${encodeURIComponent(search)}&district=${encodeURIComponent(district)}`,
+    `/api/admin/restaurants?pageNumber=${page}&pageSize=10&search=${encodeURIComponent(search)}`,
   )
+  const total = result.data?.totalCount ?? 0
   const [editing, setEditing] = useState<RestaurantDetail | null | undefined>()
   const [viewing, setViewing] = useState<RestaurantDetail | null>(null)
-  const [deactivating, setDeactivating] = useState<RestaurantSummary | null>(
+  const [statusTarget, setStatusTarget] = useState<RestaurantSummary | null>(
     null,
   )
   const [busy, setBusy] = useState(false)
@@ -83,34 +83,60 @@ export const AdminRestaurantsPage = ({
     {
       key: 'isActive',
       header: 'Trạng thái',
-      render: (item) => (item.isActive ? 'Đang sử dụng' : 'Ngừng sử dụng'),
+      render: (item) => (
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${
+            item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+          }`}
+        >
+          {item.isActive ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+        </span>
+      ),
     },
     {
       key: 'actions',
       header: 'Thao tác',
       render: (item) => (
-        <div className="flex gap-3">
-          <button className="fe1-control"
+        <div className="flex gap-2">
+          <button
+            className="fe1-control p-1.5 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
             disabled={busy}
             title="Xem nhà hàng"
             onClick={() => void open(item.id, false)}
           >
-            <Eye size={17} />
+            <Eye className="w-4 h-4" />
           </button>
-          <button className="fe1-control"
+          <button
+            className="fe1-control p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-700 transition-colors"
             disabled={busy}
             title="Sửa nhà hàng"
             onClick={() => void open(item.id, true)}
           >
-            <Pencil size={17} />
+            <Pencil className="w-4 h-4" />
           </button>
-          {item.isActive && (
-            <button className="fe1-control"
+          {item.isActive ? (
+            <button
+              className="fe1-control p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-700 transition-colors"
               disabled={busy}
-              title="Ngừng sử dụng"
-              onClick={() => setDeactivating(item)}
+              title="Đang mở (Bấm để khóa / ngừng sử dụng)"
+              onClick={() => {
+                setError(null)
+                setStatusTarget(item)
+              }}
             >
-              <Power size={17} />
+              <Unlock className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              className="fe1-control p-1.5 rounded-lg hover:bg-amber-50 text-amber-700 transition-colors"
+              disabled={busy}
+              title="Đang khóa (Bấm để mở khóa / kích hoạt lại)"
+              onClick={() => {
+                setError(null)
+                setStatusTarget(item)
+              }}
+            >
+              <Lock className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -125,26 +151,19 @@ export const AdminRestaurantsPage = ({
       onNavigate={onNavigate}
     >
       <Feedback error={error} notice={notice} />
-      <div className="flex flex-wrap gap-3">
+      <div className="admin-filter-bar flex flex-wrap items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700">
+          <MapPin aria-hidden="true" className="h-4 w-4" />
+          <span className="text-sm font-semibold">{total} nhà hàng</span>
+        </div>
         <input
           aria-label="Tìm nhà hàng"
           maxLength={120}
           placeholder="Tên hoặc địa chỉ..."
-          className={`${fieldClass} max-w-sm`}
+          className={`${fieldClass} flex-1 basis-60`}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
-            setPage(1)
-          }}
-        />
-        <input
-          aria-label="Lọc khu vực"
-          maxLength={120}
-          placeholder="Quận / khu vực..."
-          className={`${fieldClass} max-w-xs`}
-          value={district}
-          onChange={(e) => {
-            setDistrict(e.target.value)
             setPage(1)
           }}
         />
@@ -226,37 +245,78 @@ export const AdminRestaurantsPage = ({
         )}
       </Modal>
       <Modal
-        isOpen={!!deactivating}
+        isOpen={!!statusTarget}
         onClose={() => {
-          if (!busy) setDeactivating(null)
+          if (!busy) setStatusTarget(null)
         }}
-        title="Ngừng sử dụng nhà hàng"
+        title={statusTarget?.isActive ? 'Khóa / Ngừng sử dụng nhà hàng' : 'Mở khóa / Kích hoạt lại nhà hàng'}
       >
-        <p className="mb-4 text-sm">
-          Ngừng hiển thị “{deactivating?.name}” trên danh sách công khai?
+        <p className="mb-4 text-sm text-slate-600">
+          {statusTarget?.isActive ? (
+            <>Ngừng hiển thị “<strong className="font-bold text-slate-900">{statusTarget?.name}</strong>” trên danh sách công khai?</>
+          ) : (
+            <>Mở khóa và kích hoạt lại nhà hàng “<strong className="font-bold text-slate-900">{statusTarget?.name}</strong>” trên danh sách công khai?</>
+          )}
         </p>
         <Feedback error={error} />
-        <button
-          className={`fe1-control ${primaryClass} mt-4`}
-          disabled={busy}
-          onClick={async () => {
-            if (!deactivating || busy) return
-            setBusy(true)
-            setError(null)
-            try {
-              await restaurantApi.deactivate(deactivating.id)
-              setDeactivating(null)
-              setNotice('Đã ngừng sử dụng nhà hàng.')
-              result.reload()
-            } catch (reason) {
-              setError(errorMessage(reason))
-            } finally {
-              setBusy(false)
-            }
-          }}
-        >
-          Xác nhận
-        </button>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+            onClick={() => setStatusTarget(null)}
+          >
+            Hủy
+          </button>
+          <button
+            disabled={busy}
+            className={`px-4 py-2 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-50 ${
+              statusTarget?.isActive
+                ? 'bg-amber-700 hover:bg-amber-800'
+                : 'bg-emerald-700 hover:bg-emerald-800'
+            }`}
+            onClick={async () => {
+              if (!statusTarget || busy) return
+              setBusy(true)
+              setError(null)
+              try {
+                if (statusTarget.isActive) {
+                  await restaurantApi.deactivate(statusTarget.id)
+                  result.setData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          items: prev.items.map((it) =>
+                            it.id === statusTarget.id ? { ...it, isActive: false } : it,
+                          ),
+                        }
+                      : prev,
+                  )
+                  setNotice(`Đã ngừng sử dụng nhà hàng “${statusTarget.name}”.`)
+                } else {
+                  result.setData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          items: prev.items.map((it) =>
+                            it.id === statusTarget.id ? { ...it, isActive: true } : it,
+                          ),
+                        }
+                      : prev,
+                  )
+                  setNotice(`Đã mở khóa và kích hoạt lại nhà hàng “${statusTarget.name}”.`)
+                }
+                setStatusTarget(null)
+              } catch (reason) {
+                setError(errorMessage(reason))
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
+            {busy ? 'Đang lưu...' : (statusTarget?.isActive ? 'Xác nhận khóa' : 'Xác nhận mở khóa')}
+          </button>
+        </div>
       </Modal>
     </AdminFrame>
   )

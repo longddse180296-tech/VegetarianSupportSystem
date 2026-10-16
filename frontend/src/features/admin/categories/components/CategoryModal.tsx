@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import { Check, LoaderCircle } from 'lucide-react'
 import { Modal } from '../../../../shared/components/Modal'
+import { fieldClass, primaryClass, secondaryClass } from '../../utils/apiUi'
 import type { AdminCategoryItem, CategoryFormData } from '../types/adminCategories.types'
 
 interface CategoryModalProps {
@@ -9,25 +11,109 @@ interface CategoryModalProps {
   onSubmit: (data: CategoryFormData) => Promise<void>
 }
 
-export const CategoryModal = ({ isOpen, onClose, categoryToEdit, onSubmit }: CategoryModalProps) => {
+export const CategoryModal = ({
+  isOpen,
+  onClose,
+  categoryToEdit,
+  onSubmit,
+}: CategoryModalProps) => {
+  const formId = useId()
   const [name, setName] = useState(categoryToEdit?.name || '')
   const [description, setDescription] = useState(categoryToEdit?.description || '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  return <Modal isOpen={isOpen} onClose={() => { if (!busy) onClose() }} title={categoryToEdit ? 'Chỉnh sửa danh mục' : 'Thêm danh mục'} description="Danh mục dùng để phân nhóm công thức nấu ăn.">
-    <form className="space-y-4" onSubmit={async event => {
-      event.preventDefault()
-      if (busy || !name.trim()) return
-      setBusy(true); setError(null)
-      try { await onSubmit({ name, description }); onClose() }
-      catch (err) { setError(err instanceof Error ? err.message : 'Không thể lưu danh mục.') }
-      finally { setBusy(false) }
-    }}>
-      <label className="block text-sm">Tên danh mục<input aria-label="Tên danh mục" required maxLength={120} value={name} onChange={event => setName(event.target.value)} disabled={busy} className="mt-2 w-full rounded-xl border border-slate-200 p-3" /></label>
-      <label className="block text-sm">Mô tả<textarea aria-label="Mô tả danh mục" maxLength={500} value={description} onChange={event => setDescription(event.target.value)} disabled={busy} className="mt-2 w-full rounded-xl border border-slate-200 p-3" /></label>
-      {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-      <div className="flex justify-end gap-2"><button type="button" disabled={busy} onClick={onClose} className="fe1-btn fe1-btn-outline rounded-xl border px-4 py-2 text-sm">Hủy</button><button type="submit" disabled={busy || !name.trim()} className="fe1-btn fe1-btn-primary rounded-xl bg-[#184d28] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Đang lưu...' : 'Lưu danh mục'}</button></div>
-    </form>
-  </Modal>
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={() => { if (!busy) onClose() }}
+      title={categoryToEdit ? 'Chỉnh sửa danh mục' : 'Thêm danh mục'}
+      description="Phân nhóm công thức để dễ tìm kiếm và quản lý."
+      footer={
+        <>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onClose}
+            className={secondaryClass}
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            disabled={busy || !name.trim()}
+            className={`${primaryClass} inline-flex items-center justify-center gap-2`}
+          >
+            {busy ? (
+              <LoaderCircle size={16} className="motion-safe:animate-spin" aria-hidden="true" />
+            ) : (
+              <Check size={16} aria-hidden="true" />
+            )}
+            {busy ? 'Đang lưu...' : 'Lưu danh mục'}
+          </button>
+        </>
+      }
+    >
+      <form
+        id={formId}
+        className="admin-content-form space-y-5"
+        aria-busy={busy}
+        onSubmit={async event => {
+          event.preventDefault()
+          if (busy || !name.trim()) return
+          setBusy(true)
+          setError(null)
+          try {
+            await onSubmit({ name, description })
+            onClose()
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Không thể lưu danh mục.')
+          } finally {
+            setBusy(false)
+          }
+        }}
+      >
+        <label className="block text-sm font-semibold text-slate-700">
+          Tên danh mục <span className="text-rose-500" aria-hidden="true">*</span>
+          <input
+            aria-label="Tên danh mục"
+            required
+            maxLength={120}
+            value={name}
+            onChange={event => setName(event.target.value)}
+            disabled={busy}
+            placeholder="Ví dụ: Món chính, món canh..."
+            className={fieldClass}
+          />
+        </label>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700">
+            <span className="flex items-center justify-between gap-3">
+              Mô tả
+              <span className="text-xs font-normal text-slate-400">Không bắt buộc</span>
+            </span>
+            <textarea
+              aria-label="Mô tả danh mục"
+              maxLength={500}
+              rows={3}
+              value={description}
+              onChange={event => setDescription(event.target.value)}
+              disabled={busy}
+              placeholder="Mô tả ngắn về nhóm công thức này..."
+              className={`${fieldClass} resize-y font-normal`}
+            />
+          </label>
+          <p className="mt-1.5 text-right text-xs text-slate-400">
+            {description.length}/500 ký tự
+          </p>
+        </div>
+        {error && (
+          <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">
+            {error}
+          </p>
+        )}
+      </form>
+    </Modal>
+  )
 }
 export default CategoryModal

@@ -1,9 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
-  Calendar,
   Check,
-  ChevronRight,
   Clock,
   Flame,
   Leaf,
@@ -11,11 +9,10 @@ import {
   Play,
   Search,
   Sparkles,
-  User,
 } from 'lucide-react'
-import { listVideos, type VideoDetails } from '../../videos/api/backendVideos'
 import { BACKEND_DIETARY_TYPE_LABELS, toBackendDietaryType } from '../../../shared/constants'
 import { apiClient } from '../../../shared/api/apiClient'
+import { getPublicFeaturedContent, type FeaturedContentItem } from '../../../shared/api/featuredContentApi'
 import { Badge, EmptyState, SkeletonLoader } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 
@@ -42,50 +39,45 @@ interface HomeRecipeItem {
   imageUrl: string
 }
 
-interface HomeRestaurantItem {
-  id: string
-  name: string
-  address: string
-  dietType: string
-  imageUrl: string
+type HomeSection = 'recipes' | 'restaurants' | 'videos' | 'articles'
+
+const SECTION_LABELS: Record<HomeSection, string> = {
+  recipes: 'công thức',
+  restaurants: 'nhà hàng nổi bật',
+  videos: 'video nổi bật',
+  articles: 'bài viết nổi bật',
 }
 
-interface HomeArticleItem {
-  id: string
-  title: string
-  author: string
-  date: string
-  excerpt: string
-  imageUrl: string
+function publishedDate(value: string | null) {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString('vi-VN')
 }
 
 export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [recipes, setRecipes] = useState<HomeRecipeItem[]>([])
-  const [videos, setVideos] = useState<VideoDetails[]>([])
-  const [restaurants, setRestaurants] = useState<HomeRestaurantItem[]>([])
-  const [articles, setArticles] = useState<HomeArticleItem[]>([])
+  const [videos, setVideos] = useState<FeaturedContentItem[]>([])
+  const [restaurants, setRestaurants] = useState<FeaturedContentItem[]>([])
+  const [articles, setArticles] = useState<FeaturedContentItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadErrors, setLoadErrors] = useState<string[]>([])
+  const [loadErrors, setLoadErrors] = useState<HomeSection[]>([])
+  const [loadRevision, setLoadRevision] = useState(0)
 
   // Load real data from services
   useEffect(() => {
-    let isMounted = true
+    const controller = new AbortController()
     void (async () => {
         const results = await Promise.allSettled([
           apiClient.get<{ items: Array<{
             id: string; name: string; categoryName: string; cookTimeMinutes: number
             caloriesPerServing: number | null; imageUrl: string | null
-          }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false }),
-          apiClient.get<{ items: Array<{
-            id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null; dietaryTypes?: Array<string | number>
-          }> }>('/api/restaurants?pageNumber=1&pageSize=3', { requiresAuth: false }),
-          listVideos(),
-          apiClient.get<{ items: Array<{
-            id: string; title: string; category: string; publishedAt: string; coverImageUrl: string | null
-          }> }>('/api/articles?page=1&pageSize=3', { requiresAuth: false }),
+          }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false, signal: controller.signal }),
+          getPublicFeaturedContent('Restaurant', controller.signal),
+          getPublicFeaturedContent('Video', controller.signal),
+          getPublicFeaturedContent('Article', controller.signal),
         ])
-        if (!isMounted) return
+        if (controller.signal.aborted) return
         const [recipeResult, restaurantResult, videoResult, articleResult] = results
 
         if (recipeResult.status === 'fulfilled') {
@@ -102,45 +94,37 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
         }
 
         if (restaurantResult.status === 'fulfilled') {
-          setRestaurants(
-            restaurantResult.value.items.map((res) => {
-              const firstDiet = toBackendDietaryType(res.dietaryTypes?.[0])
-              const dietLabel = firstDiet ? BACKEND_DIETARY_TYPE_LABELS[firstDiet] : 'Chưa cập nhật chế độ ăn'
-              return {
-                id: res.id,
-                name: res.name,
-                address: res.address,
-                dietType: dietLabel,
-                imageUrl: res.imageUrl || '',
-              }
-            }),
-          )
+          setRestaurants(restaurantResult.value)
         }
 
         if (videoResult.status === 'fulfilled') {
-          setVideos(videoResult.value.slice(0, 3))
+          setVideos(videoResult.value)
         }
 
         if (articleResult.status === 'fulfilled') {
-            setArticles(
-              articleResult.value.items.map((a) => ({
-                id: a.id,
-                title: a.title,
-                author: 'Thành viên',
-                date: new Date(a.publishedAt).toLocaleDateString('vi-VN'),
-                excerpt: a.category,
-                imageUrl: a.coverImageUrl || '',
-              })),
-            )
+          setArticles(articleResult.value)
         }
-        const labels = ['công thức', 'nhà hàng', 'video', 'bài viết']
-        setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [labels[index]] : []))
+        const sections: HomeSection[] = ['recipes', 'restaurants', 'videos', 'articles']
+        setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [sections[index]] : []))
         setLoading(false)
     })()
     return () => {
-      isMounted = false
+      controller.abort()
     }
-  }, [])
+  }, [loadRevision])
+
+  function retryContent() {
+    setLoading(true)
+    setLoadErrors([])
+    setLoadRevision(revision => revision + 1)
+  }
+
+  function sectionState(section: HomeSection, count: number) {
+    if (loading && count === 0) return <SkeletonLoader count={3} variant="card" />
+    if (loadErrors.includes(section)) return <AlertError title={`Chưa tải được ${SECTION_LABELS[section]}`} message="Vui lòng thử lại để xem nội dung mới nhất." onRetry={retryContent} />
+    if (!loading && count === 0) return <EmptyState title={`Chưa có ${SECTION_LABELS[section]}`} description={section === 'recipes' ? 'Công thức sẽ xuất hiện khi được cập nhật và công khai.' : 'Nội dung sẽ xuất hiện khi được quản trị viên ghim và vẫn đang công khai.'} />
+    return null
+  }
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -179,7 +163,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               </h1>
 
               <p className="text-[16px] text-[#4B5563] leading-relaxed max-w-[540px]">
-                Khám phá hàng trăm công thức thuần chay, thực đơn cá nhân hóa và nhận trợ giúp từ trợ lý AI dinh dưỡng.
+                Khám phá công thức chay, thực đơn cá nhân hóa và nhận trợ giúp từ trợ lý AI dinh dưỡng.
               </p>
 
               {/* Cặp nút CTA */}
@@ -207,19 +191,19 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
                     <Check size={12} strokeWidth={3} />
                   </span>
-                  <span>100% Thuần thực vật</span>
+                  <span>Khám phá công thức chay</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
                     <Check size={12} strokeWidth={3} />
                   </span>
-                  <span>Chuẩn khoa học dinh dưỡng</span>
+                  <span>Thông tin dinh dưỡng tham khảo</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
                     <Check size={12} strokeWidth={3} />
                   </span>
-                  <span>Hơn 10.000+ người dùng</span>
+                  <span>Thực đơn cá nhân hóa</span>
                 </div>
               </div>
             </div>
@@ -256,7 +240,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm món ăn, bài viết, video..."
+                placeholder="Tìm kiếm công thức theo tên món ăn..."
                 className="w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] pl-10 pr-4 py-3 text-[14px] text-[#1F2937] placeholder:text-[#9CA3AF] focus:border-[#2E7D32] focus:bg-white focus:outline-none transition"
               />
             </div>
@@ -288,14 +272,6 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       {/* =========================================================================
        * 3. SECTION: CÔNG THỨC NỔI BẬT
        * ========================================================================= */}
-      <div className="ui-page-container pt-8">
-        {loading && <SkeletonLoader count={3} variant="card" />}
-        {loadErrors.length > 0 && <AlertError title="Một số nội dung chưa tải được" message={`Không thể tải ${loadErrors.join(', ')}. Hãy tải lại trang để thử lại.`} />}
-        {!loading && loadErrors.length === 0 && recipes.length + videos.length + articles.length + restaurants.length === 0 && (
-          <EmptyState title="Chưa có nội dung công khai" description="Nội dung sẽ xuất hiện khi được cập nhật và công khai." />
-        )}
-      </div>
-      {recipes.length > 0 && (
         <section className="ui-page-container py-16">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -303,7 +279,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 Công thức nổi bật
               </h2>
               <p className="mt-1 text-[14px] text-[#6B7280]">
-                Được chuyên gia dinh dưỡng chọn lọc, cân bằng dưỡng chất và dễ nấu tại nhà.
+                Tham khảo công thức trong hệ thống và lựa chọn món phù hợp với bạn.
               </p>
             </div>
             <button
@@ -316,6 +292,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             </button>
           </div>
 
+          {sectionState('recipes', recipes.length)}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {recipes.map((recipe) => (
               <article
@@ -370,103 +347,19 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             ))}
           </div>
         </section>
-      )}
 
-      {/* =========================================================================
-       * 4. SECTION: BÀI VIẾT MỚI NHẤT
-       * ========================================================================= */}
-      {articles.length > 0 && (
-        <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
-          <div className="ui-page-container">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                  Bài viết mới nhất
-                </h2>
-                <p className="mt-1 text-[14px] text-[#6B7280]">
-                  Cẩm nang khoa học dinh dưỡng và kinh nghiệm thực hành từ các chuyên gia.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onNavigate?.('/articles')}
-                className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
-              >
-                Xem tất cả bài viết
-                <ArrowRight size={15} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              {articles.map((article) => (
-                <article
-                  key={article.id}
-                  className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
-                >
-                  <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                    {article.imageUrl ? <img
-                      src={article.imageUrl}
-                      alt={article.title}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                    /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh bìa</div>}
-                  </div>
-
-                  <div className="flex flex-1 flex-col justify-between p-5">
-                    <div>
-                      <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-2 font-medium">
-                        <span className="flex items-center gap-1 text-[#2E7D32] font-semibold">
-                          <User size={12} />
-                          {article.author}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          {article.date}
-                        </span>
-                      </div>
-
-                      <h3
-                        onClick={() => onNavigate?.(`/articles/${article.id}`)}
-                        className="text-[16px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
-                      >
-                        {article.title}
-                      </h3>
-
-                      <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">
-                        {article.excerpt}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
-                      <button
-                        type="button"
-                        onClick={() => onNavigate?.(`/articles/${article.id}`)}
-                        className="inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
-                      >
-                        Đọc thêm
-                        <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* =========================================================================
        * 5. SECTION: VIDEO NẤU ĂN NỔI BẬT
        * ========================================================================= */}
-      {videos.length > 0 && (
         <section className="ui-page-container py-16">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                Video nấu ăn nổi bật
+                Video nổi bật
               </h2>
               <p className="mt-1 text-[14px] text-[#6B7280]">
-                Hướng dẫn trực quan từng bước giúp bạn tự tay chuẩn bị món chay thơm ngon.
+                Video được quản trị viên chọn để giới thiệu tới cộng đồng.
               </p>
             </div>
             <button
@@ -479,6 +372,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             </button>
           </div>
 
+          {sectionState('videos', videos.length)}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {videos.map((vid) => (
               <article
@@ -486,8 +380,8 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
               >
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
-                  {vid.thumbnailUrl ? <img
-                    src={vid.thumbnailUrl}
+                  {vid.imageUrl ? <img
+                    src={vid.imageUrl}
                     alt={vid.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
                   /> : <div className="flex h-full items-center justify-center text-sm text-white">Chưa có ảnh bìa</div>}
@@ -495,8 +389,8 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   {/* Center Play Button */}
                   <button
                     type="button"
-                    onClick={() => onNavigate?.(`/videos/${vid.id}`)}
-                    aria-label="Xem video"
+                    onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)}
+                    aria-label={`Xem video ${vid.title}`}
                     className="absolute inset-0 flex items-center justify-center cursor-pointer"
                   >
                     <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-[#2E7D32] shadow-xl group-hover:scale-110 transition duration-200">
@@ -506,35 +400,35 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 </div>
 
                 <div className="p-4">
-                  <h3
-                    onClick={() => onNavigate?.(`/videos/${vid.id}`)}
-                    className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
-                  >
-                    {vid.title}
+                  <h3 className="text-[15px] font-bold text-[#111827] leading-snug">
+                    <button type="button" onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)} className="text-left hover:text-[#2E7D32] transition line-clamp-2">
+                      {vid.title}
+                    </button>
                   </h3>
-                  <div className="mt-2 text-[12px] text-[#6B7280] font-medium">
-                    {vid.viewCount.toLocaleString('vi-VN')} lượt xem
-                  </div>
+                  {vid.authorName && <p className="mt-2 text-[12px] text-[#2E7D32] font-semibold">{vid.authorName}</p>}
+                  {vid.description && <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">{vid.description}</p>}
+                  {(vid.viewCount != null || publishedDate(vid.publishedAt)) && <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B7280] font-medium">
+                    {vid.viewCount != null && <span>{vid.viewCount.toLocaleString('vi-VN')} lượt xem</span>}
+                    {publishedDate(vid.publishedAt) && <span>{publishedDate(vid.publishedAt)}</span>}
+                  </div>}
                 </div>
               </article>
             ))}
           </div>
         </section>
-      )}
 
       {/* =========================================================================
        * 6. SECTION: NHÀ HÀNG CHAY
        * ========================================================================= */}
-      {restaurants.length > 0 && (
         <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
           <div className="ui-page-container">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                  Nhà hàng chay
+                  Nhà hàng nổi bật
                 </h2>
                 <p className="mt-1 text-[14px] text-[#6B7280]">
-                  Khám phá địa điểm và thông tin nhà hàng trong hệ thống.
+                  Khám phá các nhà hàng được quản trị viên giới thiệu.
                 </p>
               </div>
               <button
@@ -547,6 +441,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               </button>
             </div>
 
+            {sectionState('restaurants', restaurants.length)}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {restaurants.map((res) => (
                 <article
@@ -557,7 +452,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                     {res.imageUrl ? (
                       <img
                         src={res.imageUrl}
-                        alt={res.name}
+                        alt={res.title}
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                       />
                     ) : (
@@ -569,25 +464,28 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
                   <div className="flex flex-1 flex-col justify-between p-4">
                     <div>
-                      <h3
-                        onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
-                        className="text-[16px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-1"
-                      >
-                        {res.name}
+                      <h3 className="text-[16px] font-bold text-[#111827]">
+                        <button type="button" onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)} className="text-left hover:text-[#2E7D32] transition line-clamp-1">
+                          {res.title}
+                        </button>
                       </h3>
-                      <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-[#6B7280] line-clamp-2 leading-relaxed">
+                      {res.address && <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-[#6B7280] line-clamp-2 leading-relaxed">
                         <MapPin size={13} className="text-[#2E7D32] shrink-0 mt-0.5" />
                         <span>{res.address}</span>
-                      </p>
+                      </p>}
+                      {res.description && <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">{res.description}</p>}
                     </div>
 
                     <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#F3F4F6]">
-                      <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-1 text-xs font-semibold text-[#2E7D32]">
-                        {res.dietType}
-                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {res.dietaryTypes.map(diet => {
+                          const dietaryType = toBackendDietaryType(diet)
+                          return <span key={diet} className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-1 text-xs font-semibold text-[#2E7D32]">{dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}</span>
+                        })}
+                      </div>
                       <button
                         type="button"
-                        onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
+                        onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)}
                         className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
                       >
                         Xem chi tiết
@@ -599,7 +497,85 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             </div>
           </div>
         </section>
-      )}
+
+      {/* =========================================================================
+       * 6b. SECTION: BÀI VIẾT NỔI BẬT
+       * ========================================================================= */}
+      <section className="ui-page-container my-16">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+              Bài viết nổi bật
+            </h2>
+            <p className="mt-1 text-[14px] text-[#6B7280]">
+              Chia sẻ kiến thức, kinh nghiệm và lối sống ăn chay khoa học từ cộng đồng.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate?.('/articles')}
+            className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline cursor-pointer"
+          >
+            Xem tất cả bài viết
+            <ArrowRight size={15} />
+          </button>
+        </div>
+
+        {sectionState('articles', articles.length)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {articles.map((art) => (
+            <article
+              key={art.id}
+              onClick={() => onNavigate?.(`/articles/${encodeURIComponent(art.id)}`)}
+              className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200 cursor-pointer"
+            >
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+                {art.imageUrl ? (
+                  <img
+                    src={art.imageUrl}
+                    alt={art.title}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center bg-emerald-50 text-emerald-700">
+                    <Leaf size={32} />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-1 flex-col justify-between p-5 space-y-3">
+                <div>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {art.dietaryTypes?.map(diet => {
+                      const dietaryType = toBackendDietaryType(diet)
+                      return (
+                        <span key={diet} className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]">
+                          {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
+                        </span>
+                      )
+                    })}
+                  </div>
+
+                  <h3 className="text-[16px] font-bold text-[#111827] line-clamp-2 group-hover:text-[#2E7D32] transition">
+                    {art.title}
+                  </h3>
+
+                  {art.description && (
+                    <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 leading-relaxed">
+                      {art.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span>{art.authorName || 'Tác giả ẩn danh'}</span>
+                  {publishedDate(art.publishedAt) && <span>{publishedDate(art.publishedAt)}</span>}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
 
       {/* =========================================================================
        * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI

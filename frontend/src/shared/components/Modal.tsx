@@ -55,19 +55,19 @@ export const Modal: React.FC<ModalProps> = ({
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200"
+        className="ui-modal-backdrop fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Modal Dialog Card */}
       <div
-        className={`relative w-full ${maxWidthClass} bg-white rounded-[var(--radius-modal)] shadow-[var(--shadow-dialog)] border border-border-subtle flex flex-col overflow-hidden transition-all duration-200 transform scale-100 z-10 ${className}`}
+        className={`ui-modal-panel relative w-full ${maxWidthClass} bg-white rounded-[var(--radius-modal)] shadow-[var(--shadow-dialog)] border border-border-subtle flex flex-col overflow-hidden transition-all duration-200 transform scale-100 z-10 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         {(title || description) && (
-          <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+          <div className="ui-modal-header px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
             <div>
               {title && (
                 <h3 className="text-lg font-bold text-text-main leading-snug tracking-tight">
@@ -93,13 +93,13 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Body */}
-        <div className="px-6 py-5 overflow-y-auto max-h-[75vh] text-sm text-text-main">
+        <div className="ui-modal-body px-6 py-5 overflow-y-auto max-h-[75vh] text-sm text-text-main">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-3">
+          <div className="ui-modal-footer px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-3">
             {footer}
           </div>
         )}

@@ -59,7 +59,7 @@ export function SharedDataTable<T>({
   const endIdx = Math.min(currentPage * pageSize, totalItems)
 
   return (
-    <div className="ui-card overflow-hidden flex flex-col">
+    <div className="ui-data-table ui-card overflow-hidden flex flex-col">
       {/* Table Header Bar */}
       {(title || updatedAtText || actionsHeader) && (
         <div className="p-6 pb-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

@@ -52,6 +52,7 @@ public sealed class ArticleDietaryTypeConfiguration : IEntityTypeConfiguration<A
     {
         builder.ToTable("ArticleDietaryTypes");
         builder.HasKey(x => new { x.ArticleId, x.DietaryType });
+        builder.HasIndex(x => x.ArticleId);
     }
 }
 
@@ -61,5 +62,6 @@ public sealed class ArticleVersionDietaryTypeConfiguration : IEntityTypeConfigur
     {
         builder.ToTable("ArticleVersionDietaryTypes");
         builder.HasKey(x => new { x.ArticleVersionId, x.DietaryType });
+        builder.HasIndex(x => x.ArticleVersionId);
     }
 }
