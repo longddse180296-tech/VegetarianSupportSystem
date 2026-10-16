@@ -4,10 +4,10 @@ import {
   ArrowRight,
   Clock,
   Coffee,
-  Compass,
   Heart,
   MapPin,
   Map as MapIcon,
+  Navigation,
   Phone,
   PlayCircle,
   Share2,
@@ -104,6 +104,15 @@ export default function RestaurantDetail({
   const showToast = (msg: string) => {
     setToast(msg)
     window.setTimeout(() => setToast(null), 1500)
+  }
+
+  const openDirections = () => {
+    if (!restaurant) return
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`,
+      '_blank',
+      'noopener,noreferrer',
+    )
   }
 
   const openGoogleMaps = () => {
@@ -423,8 +432,8 @@ export default function RestaurantDetail({
               <Button
                 type="button"
                 variant="primary"
-                leftIcon={<Compass size={15} />}
-                onClick={openGoogleMaps}
+                leftIcon={<Navigation size={15} />}
+                onClick={openDirections}
                 className="flex-1 !h-11 !rounded-[14px] !bg-emerald-700 hover:!bg-emerald-800 !font-bold text-xs sm:text-sm shadow-sm"
               >
                 Chỉ đường

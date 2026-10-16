@@ -386,9 +386,9 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
             </div>
 
             {/* ================= 2. THÔNG TIN & TƯƠNG TÁC (INFO & ACTIONS) ================= */}
-            {/* Tiêu đề video: line-clamp 3 trên Mobile, 2 trên Desktop */}
+            {/* Tiêu đề video chuẩn Desktop */}
             <h1
-              className="mt-5 text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 leading-snug line-clamp-3 sm:line-clamp-2"
+              className="mt-5 text-2xl lg:text-3xl font-extrabold text-slate-900 leading-snug line-clamp-2"
               title={titleCleaned}
             >
               {titleCleaned}

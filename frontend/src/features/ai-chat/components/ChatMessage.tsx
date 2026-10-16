@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import Markdown from 'react-markdown'
-import { Bot, User as UserIcon } from 'lucide-react'
+import { Bot, Check, Copy, User as UserIcon } from 'lucide-react'
 import type { ChatMessage } from '../types/aiChat.types'
 import { SuggestionCard } from './SuggestionCard'
 
@@ -24,6 +25,17 @@ export const ChatMessageView: React.FC<ChatMessageViewProps> = ({
   isStreaming = false,
 }) => {
   const isUser = message.role === 'user'
+  const [isCopied, setIsCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000)
+    } catch {
+      // fallback
+    }
+  }
 
   if (isUser) {
     return (
@@ -57,8 +69,22 @@ export const ChatMessageView: React.FC<ChatMessageViewProps> = ({
           <span className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#2e7d32] shadow-sm ring-1 ring-[#c8e6c9]">
             <Bot size={15} />
           </span>
-          <div className="bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none px-4 py-3 text-[14px] leading-6 shadow-sm ring-1 ring-[#c8e6c9] max-w-[85%]">
-            <div className="prose prose-sm max-w-none text-[#1F2937] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic">
+          <div className="relative group bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none px-4 py-3 text-[14px] leading-6 shadow-sm ring-1 ring-[#c8e6c9] max-w-[85%]">
+            {/* Copy button */}
+            <button
+              type="button"
+              onClick={handleCopy}
+              title={isCopied ? 'Đã sao chép' : 'Sao chép tin nhắn'}
+              aria-label="Sao chép tin nhắn"
+              className="absolute top-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-white/80 transition shadow-2xs"
+            >
+              {isCopied ? (
+                <Check size={14} className="text-emerald-700 font-bold" />
+              ) : (
+                <Copy size={14} />
+              )}
+            </button>
+            <div className="pr-7 prose prose-sm max-w-none text-[#1F2937] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic">
               <Markdown>{message.content}</Markdown>
             </div>
             {isStreaming && (

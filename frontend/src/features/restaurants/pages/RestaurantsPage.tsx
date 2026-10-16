@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
 import {
   Compass,
-  List,
-  Map as MapIcon,
   MapPin,
   RotateCcw,
   Sparkles,
 } from 'lucide-react'
-import { EmptyState, SkeletonLoader } from '../../../shared/components'
+import { EmptyState, SkeletonCard } from '../../../shared/components'
 import {
   filterRestaurants,
   getRestaurantDetail,
@@ -52,9 +50,6 @@ export default function RestaurantsPage({
   const [isError, setIsError] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [selectedMapRestaurant, setSelectedMapRestaurant] = useState<Restaurant | null>(null)
-
-  // Mobile View Toggle: 'list' | 'map'
-  const [mobileView, setMobileView] = useState<'list' | 'map'>('list')
 
   // Location Permission State: 'prompt' | 'granted' | 'denied'
   const [locationState, setLocationState] = useState<'prompt' | 'granted' | 'denied'>('prompt')
@@ -304,42 +299,11 @@ export default function RestaurantsPage({
           />
         </div>
 
-        {/* ===== Mobile View Switcher (List vs Map) ===== */}
-        <div className="mb-4 flex sm:hidden rounded-xl bg-slate-200/80 p-1">
-          <button
-            type="button"
-            onClick={() => setMobileView('list')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              mobileView === 'list'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <List size={14} />
-            <span>Danh sách ({items.length})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileView('map')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              mobileView === 'map'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <MapIcon size={14} />
-            <span>Bản đồ</span>
-          </button>
-        </div>
 
         {/* ===== MAIN LAYOUT: ĐẢO NGƯỢC TỈ LỆ (Danh sách 2/3, Bản đồ 1/3) ===== */}
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
           {/* ================= CỘT TRÁI (2/3 = 8 CỘT): Danh sách nhà hàng ================= */}
-          <div
-            className={`flex flex-col gap-4 lg:col-span-8 ${
-              mobileView === 'map' ? 'hidden sm:flex' : 'flex'
-            }`}
-          >
+          <div className="flex flex-col gap-4 lg:col-span-8">
             {/* Nút xóa bộ lọc khi có tiêu chí đang lọc */}
             {(filter.search || filter.diet !== 'all' || filter.distanceMaxKm > 0 || filter.city !== 'all') && (
               <div className="flex items-center justify-end text-xs sm:text-sm text-slate-500">
@@ -353,10 +317,12 @@ export default function RestaurantsPage({
               </div>
             )}
 
-            {/* Restaurant List / SkeletonLoader / EmptyState */}
+            {/* Restaurant List / SkeletonCard Grid / EmptyState */}
             {isLoading ? (
-              <div className="flex flex-col gap-4">
-                <SkeletonLoader count={4} variant="card" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
               </div>
             ) : isError ? (
               <EmptyState
@@ -398,11 +364,7 @@ export default function RestaurantsPage({
           </div>
 
           {/* ================= CỘT PHẢI (1/3 = 4 CỘT): BẢN ĐỒ THỰC TẾ LEAFLET ================= */}
-          <div
-            className={`sticky top-20 flex flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white shadow-xs lg:col-span-4 ${
-              mobileView === 'list' ? 'hidden sm:flex' : 'flex'
-            }`}
-          >
+          <div className="sticky top-20 flex flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white shadow-xs lg:col-span-4">
             <div className="h-[580px] w-full">
               <RestaurantRealMap
                 restaurants={items}

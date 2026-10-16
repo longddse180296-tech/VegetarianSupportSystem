@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, ChefHat, Sparkles, UtensilsCrossed } from 'lucide-react'
-import { EmptyState, SkeletonLoader } from '../../../shared/components'
+import { EmptyState, SkeletonCard } from '../../../shared/components'
 import { getRecipes, toggleFavorite } from '../api/recipeApi'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeFilterBar } from '../components/RecipeFilterBar'
@@ -338,7 +338,9 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
 
           {isLoading ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <SkeletonLoader count={8} variant="card" />
+              {Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           ) : isError ? (
             <EmptyState

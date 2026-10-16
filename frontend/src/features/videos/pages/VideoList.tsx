@@ -10,7 +10,7 @@ import {
   Video as VideoIcon,
   X,
 } from 'lucide-react'
-import { Button, EmptyState } from '../../../shared/components'
+import { Button, EmptyState, SkeletonCard } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 import { getStoredToken } from '../../../shared/api/apiClient'
 import {
@@ -389,9 +389,10 @@ export default function VideoList({ onNavigate }: Props) {
           {/* CỘT CHÍNH (8 CỘT) */}
           <div className="lg:col-span-8">
             {loading && (
-              <div className="py-20 text-center">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-                <p className="mt-3 text-sm text-slate-500">Đang tải danh sách video chay...</p>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
               </div>
             )}
 

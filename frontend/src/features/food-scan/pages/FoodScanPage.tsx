@@ -108,15 +108,12 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     setSourceType(next)
   }
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
+  const processFile = (file: File) => {
     const validExtensions = /\.(jpe?g|png|webp)$/i
     const validMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
     const isValidType = validMimes.includes(file.type) || validExtensions.test(file.name)
     if (!isValidType || file.size === 0 || file.size > 5 * 1024 * 1024) {
-      setScanError('Chỉ hỗ trợ file ảnh định dạng JPG hoặc PNG với kích thước tối đa 5MB.')
+      setScanError('Chỉ hỗ trợ file ảnh định dạng JPG, PNG hoặc WEBP với kích thước tối đa 5MB.')
       return
     }
     const reader = new FileReader()
@@ -132,6 +129,13 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     }
     reader.onerror = () => setScanError('Không đọc được ảnh đã chọn.')
     reader.readAsDataURL(file)
+  }
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    processFile(file)
   }
 
   const handleAnalyze = async () => {
@@ -249,7 +253,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
           <p className="flex items-center gap-1 text-xs font-semibold text-[#2e7d32]"><ScanLine size={13} /> Quét & phân tích thực phẩm</p>
           <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">Kiểm tra món ăn & thành phần</h1>
           <p className="mt-2 text-sm text-[#6b7280]">
-            Chọn ảnh món ăn hoặc ảnh nhãn. BE gợi ý dữ kiện; bạn xác nhận trước khi hệ thống đánh giá theo hồ sơ.
+            Tải lên ảnh món ăn hoặc nhãn thành phần để phân tích và đối chiếu mức độ phù hợp với chế độ ăn chay của bạn.
           </p>
         </header>
 
@@ -280,31 +284,34 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
                   onSourceTypeChange={changeSourceType}
                   onPickFile={() => fileInputRef.current?.click()}
                   onFileChange={handleFileChange}
+                  onFileDrop={processFile}
                   onClearImage={clearImage}
                 />
                 <aside className="space-y-5">
                   <section className="rounded-[16px] border border-[#e5e7eb] bg-white p-5 shadow-xs">
-                    <h2 className="text-sm font-bold">Luồng xử lý của BE</h2>
-                    <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
-                      <li>{sourceType === 'Dish' ? 'AI gợi ý món và nguyên liệu nhìn thấy.' : 'OCR chép phần chữ đọc được trên nhãn.'}</li>
-                      <li>Bạn sửa và xác nhận nguyên liệu, bổ sung điều còn chưa rõ.</li>
-                      <li>BE đánh giá bốn chế độ ăn và lưu bản ghi vào lịch sử.</li>
-                    </ol>
-                    <p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-                      Ảnh không chứng minh được thành phần ẩn. Kết quả không thay thế việc đọc nhãn hay kiểm tra dị ứng.
-                    </p>
-                  </section>
-                  <section className="rounded-[16px] border border-[#e5e7eb] bg-white p-5 shadow-xs">
-                    <h2 className="text-sm font-bold">Hành động</h2>
+                    <h2 className="text-sm font-bold text-[#1f2937]">Hành động</h2>
                     <div className="mt-3 space-y-2">
-                      <Button type="button" fullWidth onClick={() => void handleAnalyze()} isLoading={isScanning} disabled={!imageFile || isScanning}>
+                      <Button
+                        type="button"
+                        fullWidth
+                        onClick={() => void handleAnalyze()}
+                        isLoading={isScanning}
+                        disabled={!imageFile || isScanning}
+                      >
                         Bắt đầu phân tích ảnh
                       </Button>
-                      <Button type="button" fullWidth variant="outline" onClick={resetScan} disabled={isScanning}>Đặt lại</Button>
-                      <Button type="button" fullWidth variant="ghost" onClick={() => void handleLoadHistory(1)} disabled={historyState === 'loading'} leftIcon={<HistoryIcon size={14} />}>
+                      <Button
+                        type="button"
+                        fullWidth
+                        variant="ghost"
+                        onClick={() => void handleLoadHistory(1)}
+                        disabled={historyState === 'loading'}
+                        leftIcon={<HistoryIcon size={14} />}
+                      >
                         Xem lịch sử quét của bạn
                       </Button>
                     </div>
+
                     <ScanHistoryList
                       historyState={historyState}
                       history={history}
@@ -314,6 +321,11 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
                       onLoadMore={() => void handleLoadHistory(historyPage + 1)}
                       onSelect={(id) => void handleSelectHistory(id)}
                     />
+
+                    {/* Hộp cảnh báo màu vàng chuẩn AGENTS.md ở dưới cùng card bên phải */}
+                    <p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-900 border border-amber-200/70 leading-relaxed">
+                      Ảnh không chứng minh được thành phần ẩn. Kết quả không thay thế việc đọc nhãn hay kiểm tra dị ứng.
+                    </p>
                   </section>
                 </aside>
               </div>

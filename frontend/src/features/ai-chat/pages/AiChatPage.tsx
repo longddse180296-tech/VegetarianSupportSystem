@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import {
   AlertCircle,
+  Check,
   ChevronDown,
   Clock,
+  Copy,
   HelpCircle,
   History as HistoryIcon,
   Leaf,
@@ -21,6 +23,50 @@ import {
 import { Button, Modal } from '../../../shared/components'
 import Markdown from 'react-markdown'
 import { useAuth } from '../../auth'
+
+function AiMessageBubble({
+  content,
+  isStreaming,
+}: {
+  content: string
+  isStreaming: boolean
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback
+    }
+  }
+
+  return (
+    <div className="relative group rounded-[16px] rounded-tl-none bg-[#E8F5E9] border border-[#C8E6C9] p-4 text-[14px] leading-relaxed text-[#1F2937]">
+      <button
+        type="button"
+        onClick={handleCopy}
+        title={copied ? 'Đã sao chép' : 'Sao chép tin nhắn'}
+        aria-label="Sao chép tin nhắn"
+        className="absolute top-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-white/80 transition shadow-2xs"
+      >
+        {copied ? (
+          <Check size={14} className="text-emerald-700 font-bold" />
+        ) : (
+          <Copy size={14} />
+        )}
+      </button>
+      <div className="pr-7 prose prose-sm max-w-none text-[#1F2937] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-bold">
+        <Markdown>{content}</Markdown>
+      </div>
+      {isStreaming && (
+        <span className="inline-block h-3.5 w-1.5 animate-pulse bg-[#2E7D32] ml-1 align-middle" />
+      )}
+    </div>
+  )
+}
 import {
   buildUserMessage,
   getChatHistoryFigma,
@@ -73,7 +119,13 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
   const [isLoadingInit, setIsLoadingInit] = useState(true)
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const cancelStreamRef = useRef<(() => void) | null>(null)
+
+  // Auto-scroll to bottom whenever messages update or bot finishes/streams
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isBotBusy, streamingMessageId])
 
   // Reactive reload of user profile fields
   const refreshProfileFields = useCallback(async () => {
@@ -333,15 +385,11 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                         <Leaf size={16} className="fill-white" />
                       </div>
                       <div className="flex-1 space-y-3.5 max-w-[90%]">
-                        {/* Text bubble */}
-                        <div className="rounded-[16px] rounded-tl-none bg-[#E8F5E9] border border-[#C8E6C9] p-4 text-[14px] leading-relaxed text-[#1F2937]">
-                          <div className="prose prose-sm max-w-none text-[#1F2937] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-bold">
-                            <Markdown>{m.content}</Markdown>
-                          </div>
-                          {streamingMessageId === m.id && (
-                            <span className="inline-block h-3.5 w-1.5 animate-pulse bg-[#2E7D32] ml-1 align-middle" />
-                          )}
-                        </div>
+                        {/* Text bubble with copy button */}
+                        <AiMessageBubble
+                          content={m.content}
+                          isStreaming={streamingMessageId === m.id}
+                        />
 
                         {/* Quick action chips under welcome message */}
                         {idx === 0 && (
@@ -487,6 +535,8 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                   </div>
                 </div>
               )}
+              {/* Ref to smoothly scroll to bottom */}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input & Control Footer */}
