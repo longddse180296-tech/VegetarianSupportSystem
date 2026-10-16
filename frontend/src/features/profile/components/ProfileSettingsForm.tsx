@@ -100,7 +100,7 @@ export const ProfileSettingsForm = ({
             />
           </label>
           <label className="block text-sm">
-            Khu vực ẩm thực
+            Khu vực tìm nhà hàng
             <input
               maxLength={200}
               className={fieldClass}
@@ -109,6 +109,7 @@ export const ProfileSettingsForm = ({
                 setForm({ ...form, preferredRegion: e.target.value })
               }
             />
+            <span className="mt-1 block text-xs text-slate-500">Ví dụ: Quận 1, TP. Hồ Chí Minh. Dùng để gợi ý nhà hàng; không phải sở thích ẩm thực.</span>
           </label>
           <label className="block text-sm">
             Chế độ ăn

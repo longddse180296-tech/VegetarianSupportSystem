@@ -118,8 +118,7 @@ const categoryFromBackend: Record<
   Obesity: 'obese',
 }
 
-const DEFAULT_AVATAR =
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
+const DEFAULT_AVATAR = ''
 
 function normalizedNames(names: string[]): string[] {
   const result = new Map<string, string>()

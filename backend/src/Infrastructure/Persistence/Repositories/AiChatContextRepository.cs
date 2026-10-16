@@ -7,11 +7,12 @@ public sealed class AiChatContextRepository(AppDbContext db) : IAiChatContextRep
 {
     public async Task<string?> GetProfileContextAsync(string userId, CancellationToken ct)
     {
-        var profile = await db.UserProfiles.AsNoTracking().Include(x => x.Allergies)
+        var profile = await db.UserProfiles.AsNoTracking().Include(x => x.Allergies).Include(x => x.AvoidedFoods)
             .FirstOrDefaultAsync(x => x.UserId == userId, ct);
         if (profile is null) return null;
         return $"Chế độ ăn: {profile.Diet?.ToString() ?? "chưa khai báo"}; " +
             $"dị ứng do người dùng khai báo: {string.Join(", ", profile.Allergies.Select(x => x.Name))}. " +
+            $"thực phẩm cần tránh do người dùng khai báo: {string.Join(", ", profile.AvoidedFoods.Select(x => x.Name))}. " +
             "Không suy đoán các chỉ số chưa khai báo.";
     }
 

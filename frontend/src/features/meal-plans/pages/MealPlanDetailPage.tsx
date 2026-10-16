@@ -3,6 +3,7 @@ import { Calendar, Check, FileDown, Loader2, Plus, RefreshCw, ShoppingCart, X } 
 import { addPlanDays, formatPlanDate, mealNutrition, mealPlanApi, nextMonday, PLAN_DIET_LABELS } from '../api/mealPlanApi'
 import type { PlanPage, ReplacementRecipe, SavedPlan, SavedPlanMeal } from '../types/mealPlanBackend.types'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
+import { Breadcrumb } from '../../../shared/components'
 
 const slotLabels = { Breakfast: 'Bữa sáng', Lunch: 'Bữa trưa', Dinner: 'Bữa tối' }
 const slots = ['Breakfast', 'Lunch', 'Dinner'] as const
@@ -94,7 +95,7 @@ export const MealPlanDetailPage = ({ planId, onNavigate }: { planId?: string; on
     })
   }
 
-  if (loading) return <MealPlanSkeleton />
+  if (loading) return <div className="ui-page-container py-8"><Breadcrumb items={[{ label: 'Trang chủ', onClick: () => onNavigate?.('/') }, { label: 'Thực đơn' }]} /><MealPlanSkeleton /></div>
   const meals = plan?.meals.filter(meal => meal.dayNumber === day) || []
   const sum = (key: 'caloriesPerServing' | 'proteinGramPerServing' | 'carbohydrateGramPerServing' | 'fatGramPerServing') =>
     meals.some(meal => meal[key] === null) ? null : meals.reduce((total, meal) => total + (meal[key] ?? 0) * meal.servings, 0)
@@ -102,7 +103,11 @@ export const MealPlanDetailPage = ({ planId, onNavigate }: { planId?: string; on
     plan?.meals.some(meal => meal[key] === null) ? 'Chưa đầy đủ' : mealNutrition(total, 1)
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 space-y-7">
+    <div className="ui-page-container py-8 space-y-7">
+      <Breadcrumb items={[
+        { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+        ...(planId ? [{ label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') }, { label: 'Chi tiết thực đơn' }] : [{ label: 'Thực đơn' }]),
+      ]} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="text-3xl font-black text-slate-900">Thực đơn của bạn</h1><p className="mt-2 text-sm text-slate-500">7 ngày · 3 bữa mỗi ngày · Lưu theo tài khoản</p></div>
         <button className={primaryButtonClass} disabled={busy} onClick={() => onNavigate?.('/meal-plans/setup')}><Plus className="w-4 h-4" />Tạo thực đơn mới</button>

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Calendar, ChevronRight, Loader2, Sparkles } from 'lucide-react'
+import { Calendar, Loader2, Sparkles } from 'lucide-react'
 import { profileApi } from '../../profile/api/profileApi'
 import type { UserProfile } from '../../profile/types'
 import { mealPlanApi, nextMonday } from '../api/mealPlanApi'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
+import { Breadcrumb } from '../../../shared/components'
 
 interface PersonalizationSetupPageProps { onNavigate?: (path: string) => void }
 
@@ -35,12 +36,14 @@ export const PersonalizationSetupPage = ({ onNavigate }: PersonalizationSetupPag
     } finally { setBusy(false) }
   }
 
-  if (loading) return <MealPlanSkeleton />
+  if (loading) return <div className="ui-page-container py-8"><Breadcrumb items={[{ label: 'Trang chủ', onClick: () => onNavigate?.('/') }, { label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') }, { label: 'Tạo thực đơn' }]} /><MealPlanSkeleton /></div>
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 space-y-7">
-      <nav className="flex items-center gap-2 text-xs text-slate-500">
-        <button className="fe1-control" onClick={() => onNavigate?.('/meal-plans/my-plan')}>Thực đơn của tôi</button><ChevronRight className="w-3 h-3" /><span>Tạo thực đơn</span>
-      </nav>
+    <div className="ui-page-container py-8 space-y-7">
+      <Breadcrumb items={[
+        { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+        { label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') },
+        { label: 'Tạo thực đơn' },
+      ]} />
       <section className="rounded-3xl bg-gradient-to-br from-[#0f4a24] to-[#22874a] p-8 text-white space-y-3">
         <Sparkles className="w-7 h-7 text-emerald-200" />
         <h1 className="text-3xl font-black">Thực đơn cá nhân hóa 7 ngày</h1>

@@ -2,8 +2,7 @@
   min-height: 100vh;
   background: #f9fbf9;
   color: #1e3b26;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
-    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-family: var(--font-sans);
   padding: 24px 0 56px;
 }
 

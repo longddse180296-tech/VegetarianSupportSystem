@@ -1,4 +1,5 @@
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
+import { BACKEND_DIETARY_TYPE_LABELS, toBackendDietaryType } from '../../../shared/constants'
 import type {
   AppRole,
   BMIResult,
@@ -45,19 +46,8 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
         allergies: Array<{ name: string }> | null
       }>('/api/profile/me')
       if (p) {
-        const dietMap: Record<string, string> = {
-          Vegan: 'Thuần chay (Vegan)',
-          Lacto: 'Ăn chay có sữa (Lacto)',
-          LactoVegetarian: 'Ăn chay có sữa (Lacto)',
-          'Lacto-vegetarian': 'Ăn chay có sữa (Lacto)',
-          Ovo: 'Chay có trứng (Ovo)',
-          OvoVegetarian: 'Chay có trứng (Ovo)',
-          'Ovo-vegetarian': 'Chay có trứng (Ovo)',
-          LactoOvo: 'Trứng & Sữa (Lacto-ovo)',
-          LactoOvoVegetarian: 'Trứng & Sữa (Lacto-ovo)',
-          'Lacto-ovo vegetarian': 'Trứng & Sữa (Lacto-ovo)',
-        }
-        const dietLabel = p.diet && dietMap[p.diet] ? dietMap[p.diet] : 'Thuần chay (Vegan)'
+        const dietaryType = toBackendDietaryType(p.diet)
+        const dietLabel = dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : 'Chưa khai báo'
 
         const categoryMap: Record<string, string> = {
           Underweight: 'Thiếu cân',
@@ -72,8 +62,8 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
         const catLabel =
           p.adultBmiCategory && categoryMap[p.adultBmiCategory]
             ? categoryMap[p.adultBmiCategory]
-            : 'Bình thường'
-        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${catLabel})` : '22.5 (Bình thường)'
+            : 'Chưa khai báo'
+        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${catLabel})` : 'Chưa khai báo'
 
         const goalMap: Record<string, string> = {
           Lose: 'Giảm mỡ & thanh lọc cơ thể',
@@ -88,7 +78,7 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
           general_health: 'Khám phá món chay khoa học',
         }
         const goalLabel =
-          p.weightGoal && goalMap[p.weightGoal] ? goalMap[p.weightGoal] : 'Duy trì cân nặng'
+          p.weightGoal && goalMap[p.weightGoal] ? goalMap[p.weightGoal] : 'Chưa khai báo'
 
         const allergies = p.allergies
         const hasAllergies = Boolean(allergies && allergies.length > 0)
@@ -114,10 +104,10 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
   }
 
   return [
-    { key: 'diet', label: 'Chế độ ăn', value: 'Thuần chay (Vegan)', tone: 'ok' },
-    { key: 'bmi', label: 'Chỉ số BMI', value: '22.5 (Bình thường)', tone: 'ok' },
-    { key: 'goal', label: 'Mục tiêu', value: 'Duy trì cân nặng', tone: 'info' },
-    { key: 'allergy', label: 'Dị ứng cảnh báo', value: 'Không có', tone: 'ok' },
+    { key: 'diet', label: 'Chế độ ăn', value: 'Chưa khai báo', tone: 'info' },
+    { key: 'bmi', label: 'Chỉ số BMI', value: 'Chưa khai báo', tone: 'info' },
+    { key: 'goal', label: 'Mục tiêu', value: 'Chưa khai báo', tone: 'info' },
+    { key: 'allergy', label: 'Dị ứng cảnh báo', value: 'Chưa khai báo', tone: 'info' },
   ]
 }
 

@@ -13,40 +13,8 @@ interface RecipeCardProps {
   isTogglingFavorite?: boolean
 }
 
-const CATEGORY_PATTERNS: Array<{
-  label: string
-  cls: string
-  match: (r: Recipe) => boolean
-}> = [
-  {
-    label: 'MÓN CHÍNH',
-    cls: 'bg-[#E6F3EC] text-[#2E7D32]',
-    match: (r) =>
-      /(gạo|cơm|xào|kho|rang|kế|hầm|đậu phụ|thập cẩm|hạt sen|dấm|ộp|lẩu|riêu)/.test(
-        r.title.toLowerCase(),
-      ) ||
-      r.tags.some((t) => /(món chính|cơm nhà|bữa trưa|bữa tối)/.test(t)),
-  },
-  {
-    label: 'MÓN NƯỚC',
-    cls: 'bg-[#E6F3EC] text-[#2E7D32]',
-    match: (r) => /(canh|cháo|nước|phở|hủ tiếu|bún|mì|riêu|chè|súp|cơm tấm)/.test(r.title.toLowerCase()),
-  },
-  {
-    label: 'SALAD',
-    cls: 'bg-[#E6F3EC] text-[#2E7D32]',
-    match: (r) => /salad/.test(r.title.toLowerCase()),
-  },
-  {
-    label: 'MÓN NHANH',
-    cls: 'bg-[#E6F3EC] text-[#2E7D32]',
-    match: (r) => r.cookTimeMinutes <= 20,
-  },
-]
-
-function recipeCategory(r: Recipe): { label: string; cls: string } {
-  const found = CATEGORY_PATTERNS.find((c) => c.match(r))
-  return found ? { label: found.label, cls: found.cls } : { label: 'MÓN NỘP', cls: 'bg-[#E6F3EC] text-[#2E7D32]' }
+function recipeCategory(recipe: Recipe): { label: string; cls: string } {
+  return { label: recipe.category || 'Chưa phân loại', cls: 'bg-primary-light text-primary' }
 }
 
 export const RecipeCard: React.FC<RecipeCardProps> = ({
@@ -83,8 +51,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
   return (
     <article
-      className="group relative flex h-full flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white transition-all duration-200 hover:-translate-y-[1px] hover:border-[#2E7D32]/30"
-      style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+      className="ui-card ui-content-card group relative flex h-full flex-col overflow-hidden"
     >
       {/* Cover */}
       <div
@@ -95,17 +62,16 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         className="relative block w-full cursor-pointer text-left focus:outline-none"
         aria-label={`Mở chi tiết món ${recipe.title}`}
       >
-        <img
-          src={recipe.coverImage}
-          alt={recipe.title}
-          loading="lazy"
-          className="h-[196px] w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-        />
+        {recipe.coverImage ? (
+          <img src={recipe.coverImage} alt={recipe.title} loading="lazy" className="h-[196px] w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+        ) : (
+          <div className="grid h-[196px] w-full place-items-center bg-primary-light text-sm text-text-muted">Chưa có ảnh công thức</div>
+        )}
 
         {/* Category top-left badge */}
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold tracking-[0.02em] ring-1 ring-white/70 backdrop-blur ${cat.cls}`}
+            className="ui-badge ui-badge-green"
           >
             {cat.label}
           </span>
@@ -156,8 +122,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
       {/* Body */}
       <div className="flex flex-1 flex-col px-4 pb-4 pt-4">
         <h3
-          className="line-clamp-2 font-semibold tracking-[-0.005em] text-[#1F2937] transition-colors group-hover:text-[#2E7D32]"
-          style={{ fontSize: '17px', lineHeight: '24px' }}
+          className="ui-card-title line-clamp-2 transition-colors group-hover:text-primary"
           title={recipe.title}
         >
           {recipe.title}

@@ -3,15 +3,14 @@ import {
   Compass,
   Navigation,
   Sparkles,
-  Utensils,
 } from 'lucide-react'
 import {
+  PageHeading,
   EmptyState,
   SkeletonLoader,
 } from '../../../shared/components'
 import {
   filterRestaurants,
-  getRestaurantDetail,
 } from '../api/restaurantApi'
 import { RestaurantCard } from '../components/RestaurantCard'
 import { RestaurantFilterBar } from '../components/RestaurantFilter'
@@ -20,6 +19,8 @@ import type {
   RestaurantFilter as RestaurantFilterState,
 } from '../types/restaurant.types'
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
+import AlertError from '../../../shared/components/AlertError'
+import { profileApi } from '../../profile/api/profileApi'
 
 interface RestaurantsPageProps {
   onNavigate?: (path: string) => void
@@ -28,12 +29,13 @@ interface RestaurantsPageProps {
 
 export default function RestaurantsPage({
   onNavigate,
-  isLoggedIn: _isLoggedIn,
+  isLoggedIn = false,
 }: RestaurantsPageProps) {
   const [filter, setFilter] = useState<RestaurantFilterState>(DEFAULT_RESTAURANT_FILTER)
   const [items, setItems] = useState<Restaurant[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [selectedMapRestaurant, setSelectedMapRestaurant] = useState<Restaurant | null>(null)
 
@@ -42,27 +44,32 @@ export default function RestaurantsPage({
     window.setTimeout(() => setToast(null), 1800)
   }
 
-  // Initial load
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setIsLoading(true)
-      try {
-        const res = await filterRestaurants(DEFAULT_RESTAURANT_FILTER)
-        if (cancelled) return
-        setItems(res.items)
-        setTotalCount(res.totalCount)
-        if (res.items.length > 0) {
-          setSelectedMapRestaurant(res.items[0])
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      showToast('Trình duyệt này không hỗ trợ định vị.')
+      return
     }
-  }, [])
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setFilter((current) => ({
+          ...current,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        }))
+        showToast('Đã dùng vị trí hiện tại để tìm nhà hàng.')
+      },
+      () => showToast('Không lấy được vị trí. Bạn vẫn có thể tìm theo khu vực.'),
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+    )
+  }
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    void profileApi.getProfile().then((profile) => {
+      const district = profile.preferredRegion?.trim()
+      if (district) setFilter((current) => current.city === 'all' ? { ...current, city: district } : current)
+    }).catch(() => undefined)
+  }, [isLoggedIn])
 
   // Debounced filter update
   useEffect(() => {
@@ -70,12 +77,19 @@ export default function RestaurantsPage({
     const t = window.setTimeout(() => {
       ;(async () => {
         setIsLoading(true)
+        setLoadError(null)
         try {
           const res = await filterRestaurants(filter)
           if (cancelled) return
           setItems(res.items)
           setTotalCount(res.totalCount)
-          setSelectedMapRestaurant((prev) => prev ?? (res.items.length > 0 ? res.items[0] : null))
+          setSelectedMapRestaurant((prev) => res.items.find((item) => item.id === prev?.id) ?? res.items[0] ?? null)
+        } catch (error) {
+          if (!cancelled) {
+            setItems([])
+            setSelectedMapRestaurant(null)
+            setLoadError(error instanceof Error ? error.message : 'Không thể tải nhà hàng.')
+          }
         } finally {
           if (!cancelled) setIsLoading(false)
         }
@@ -100,39 +114,14 @@ export default function RestaurantsPage({
     onNavigate?.(`/restaurants/${encodeURIComponent(id)}`)
   }
 
-  const handleBook = async (id: string) => {
-    const r = await getRestaurantDetail(id)
-    if (!r) return
-    showToast(`📞 Đặt chỗ tại ${r.name}: ${r.phoneNumber}`)
-  }
-
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-[#121C2A] font-['Inter']">
-      <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">
-        {/* ===== Breadcrumbs ===== */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="breadcrumb" className="flex items-center gap-1.5 text-[12px] text-[#4E6558] font-semibold">
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/')}
-              className="text-[#2E7D32] hover:underline font-semibold"
-            >
-              Trang chủ
-            </button>
-            <span className="text-[#B3C4B8]">›</span>
-            <span className="font-bold text-[#0A1F14]">Nhà hàng chay</span>
-          </nav>
-        </div>
-
-        {/* ===== Header ===== */}
-        <header className="mb-5">
-          <h1 className="text-[32px] sm:text-[36px] font-bold tracking-tight text-[#0A1F14] leading-[1.2]">
-            Nhà hàng chay gần bạn
-          </h1>
-          <p className="mt-1.5 text-[15px] sm:text-[16px] text-[#6B7280] max-w-[760px] leading-relaxed">
-            Khám phá các nhà hàng và quán ăn chay thanh tịnh, dinh dưỡng phù hợp gần vị trí hiện tại của bạn.
-          </p>
-        </header>
+    <div className="min-h-screen bg-[#F8FAF8] text-[#121C2A] font-sans">
+      <div className="ui-page-container py-6">
+        <PageHeading
+          title="Nhà hàng chay gần bạn"
+          description="Khám phá các nhà hàng và quán ăn chay gần vị trí hiện tại của bạn."
+          breadcrumbs={[{label:'Trang chủ', onClick: () => onNavigate?.('/')}, {label:'Nhà hàng chay'}]}
+        />
 
         {/* ===== Location permission banner ===== */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-[#C9E5D0] bg-gradient-to-r from-[#E7F7EB] to-[#F2FBF4] px-4 py-3 sm:px-5">
@@ -142,7 +131,7 @@ export default function RestaurantsPage({
           </div>
           <button
             type="button"
-            onClick={() => showToast('✅ Đã cấp phép định vị chính xác.')}
+            onClick={useCurrentLocation}
             className="rounded-[10px] bg-[#2E7D32] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#1B5E20]"
           >
             Cho phép vị trí
@@ -165,7 +154,7 @@ export default function RestaurantsPage({
           {/* ================= CỘT TRÁI: Danh sách nhà hàng ================= */}
           <div className="flex flex-col gap-4">
             {/* Restaurant List / SkeletonLoader / EmptyState */}
-            {isLoading ? (
+            {loadError ? <AlertError title="Không thể tải nhà hàng" message={loadError} onRetry={() => setFilter((current) => ({ ...current }))} /> : isLoading ? (
               <div className="flex flex-col gap-3.5">
                 <SkeletonLoader count={6} variant="card" />
               </div>
@@ -189,7 +178,6 @@ export default function RestaurantsPage({
                       restaurant={r}
                       featured={idx === 0}
                       onSelect={handleSelect}
-                      onBook={handleBook}
                       variant="horizontal"
                       onNavigate={onNavigate}
                     />
@@ -201,156 +189,30 @@ export default function RestaurantsPage({
 
           {/* ================= CỘT PHẢI: BẢN ĐỒ TƯƠNG TÁC ĐƠN GIẢN, SẠCH SẼ ================= */}
           <div className="sticky top-20 flex flex-col overflow-hidden rounded-[16px] border border-[#DCE7DF] bg-white shadow-[0_8px_24px_rgba(31,122,63,0.06)]">
-            {/* Stylized SVG Interactive Map Canvas */}
-            <div className="relative h-[560px] w-full bg-[#E5F2E8] overflow-hidden select-none">
-              <svg
-                viewBox="0 0 600 600"
-                className="h-full w-full"
-              >
-                {/* Background lake water */}
-                <path
-                  d="M0,0 L320,0 C300,100 380,180 340,260 C300,320 220,300 180,380 C140,460 200,520 180,600 L0,600 Z"
-                  fill="#CFE8F3"
-                  opacity="0.85"
+            <div className="p-5">
+              <h2 className="text-lg font-semibold">Vị trí &amp; chỉ đường</h2>
+              {filter.latitude !== null && filter.longitude !== null && (
+                <iframe
+                  title="Bản đồ vị trí tìm kiếm"
+                  className="mt-4 h-64 w-full rounded-xl border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${filter.longitude - 0.02},${filter.latitude - 0.02},${filter.longitude + 0.02},${filter.latitude + 0.02}&layer=mapnik&marker=${filter.latitude},${filter.longitude}`}
                 />
-                {/* Park green patches */}
-                <path
-                  d="M260,80 C310,60 380,90 370,150 C360,200 300,210 270,180 C240,150 220,100 260,80 Z"
-                  fill="#BDE4C7"
-                  opacity="0.9"
-                />
-                <path
-                  d="M420,320 C490,300 560,340 550,420 C540,480 470,500 430,470 C390,440 370,360 420,320 Z"
-                  fill="#BDE4C7"
-                  opacity="0.8"
-                />
-
-                {/* Major streets & arterial roads */}
-                <path d="M-20,160 L620,240" stroke="#FFFFFF" strokeWidth="18" fill="none" />
-                <path d="M-20,160 L620,240" stroke="#F1C40F" strokeWidth="2.5" fill="none" strokeDasharray="8 6" />
-
-                <path d="M120,-20 L380,620" stroke="#FFFFFF" strokeWidth="16" fill="none" />
-                <path d="M380,-20 L160,620" stroke="#FFFFFF" strokeWidth="14" fill="none" />
-                <path d="M-20,380 L620,320" stroke="#FFFFFF" strokeWidth="14" fill="none" />
-                <path d="M220,100 C340,220 420,360 540,520" stroke="#E2ECE5" strokeWidth="10" fill="none" />
-
-                {/* Street names text */}
-                <text x="70" y="145" fontSize="11" fontWeight="bold" fill="#758B7D" letterSpacing="1">
-                  ĐƯỜNG HOÀNG HOA THÁM
-                </text>
-                <text x="310" y="225" fontSize="10" fontWeight="bold" fill="#758B7D" letterSpacing="0.8">
-                  PHỐ LIỄU GIAI
-                </text>
-                <text x="180" y="440" fontSize="10" fontWeight="bold" fill="#758B7D" letterSpacing="0.8">
-                  ĐỘI CẤN
-                </text>
-                <text x="360" y="340" fontSize="10" fontWeight="bold" fill="#758B7D" letterSpacing="0.8">
-                  KIM MÃ
-                </text>
-
-                {/* Current user location marker (pulsing blue dot) */}
-                <g transform="translate(280, 240)">
-                  <circle r="22" fill="#3B82F6" opacity="0.2">
-                    <animate attributeName="r" values="10;26;10" dur="2s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.4;0.05;0.4" dur="2s" repeatCount="indefinite" />
-                  </circle>
-                  <circle r="9" fill="#2563EB" stroke="#FFFFFF" strokeWidth="3" />
-                  <circle r="3" fill="#FFFFFF" />
-                </g>
-              </svg>
-
-              {/* Pin 1: An Nhiên Vegetarian (Selected pin) */}
-              <div
-                className="absolute top-[28%] left-[45%] -translate-x-1/2 -translate-y-1/2 cursor-pointer z-20 group"
-                onClick={() => {
-                  const r = items.find((x) => x.id === 'an-nhien') || items[0]
-                  if (r) setSelectedMapRestaurant(r)
-                }}
-              >
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-1.5 rounded-full bg-[#2E7D32] px-3 py-1.5 text-white shadow-lg ring-2 ring-white transition-transform group-hover:scale-105">
-                    <Utensils size={13} className="text-white" />
-                    <span className="text-xs font-bold whitespace-nowrap">An Nhiên</span>
-                  </div>
-                  <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#2E7D32]" />
+              )}
+              {selectedMapRestaurant ? (
+                <div className="mt-4 space-y-3">
+                  <h3 className="font-semibold">{selectedMapRestaurant.name}</h3>
+                  <p className="text-sm text-text-muted">{selectedMapRestaurant.address}</p>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedMapRestaurant.name + ', ' + selectedMapRestaurant.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                  ><Navigation size={16} /> Mở địa chỉ trên bản đồ</a>
                 </div>
-              </div>
-
-              {/* Pin 2: The Fernery */}
-              <div
-                className="absolute top-[18%] left-[72%] -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 group"
-                onClick={() => {
-                  const r = items.find((x) => x.id === 'the-fernery') || items[1]
-                  if (r) setSelectedMapRestaurant(r)
-                }}
-              >
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[#2E7D32] shadow-md border border-[#C9E5D0] transition-transform group-hover:scale-105">
-                    <span className="h-2 w-2 rounded-full bg-[#2E7D32]" />
-                    <span className="text-[11px] font-bold whitespace-nowrap">The Fernery</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pin 3: Sen Vàng */}
-              <div
-                className="absolute top-[52%] left-[68%] -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 group"
-                onClick={() => {
-                  const r = items.find((x) => x.id === 'sen-vang') || items[3]
-                  if (r) setSelectedMapRestaurant(r)
-                }}
-              >
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[#2E7D32] shadow-md border border-[#C9E5D0] transition-transform group-hover:scale-105">
-                    <span className="h-2 w-2 rounded-full bg-[#2E7D32]" />
-                    <span className="text-[11px] font-bold whitespace-nowrap">Sen Vàng</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pin 4: An Lạc */}
-              <div
-                className="absolute top-[68%] left-[48%] -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 group"
-                onClick={() => {
-                  const r = items.find((x) => x.id === 'an-lac') || items[2]
-                  if (r) setSelectedMapRestaurant(r)
-                }}
-              >
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[#2E7D32] shadow-md border border-[#C9E5D0] transition-transform group-hover:scale-105">
-                    <span className="h-2 w-2 rounded-full bg-[#2E7D32]" />
-                    <span className="text-[11px] font-bold whitespace-nowrap">An Lạc</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Selected Restaurant Popup Card */}
-              {selectedMapRestaurant && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-[340px] z-30 rounded-[16px] bg-white p-3 shadow-[0_12px_28px_rgba(0,0,0,0.18)] border border-slate-100 transition-all">
-                  <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[12px] bg-slate-100 mb-2.5">
-                    <img
-                      src={selectedMapRestaurant.imageUrl}
-                      alt={selectedMapRestaurant.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <h4 className="text-[15px] font-bold text-[#0A1F14] leading-tight line-clamp-1">
-                    {selectedMapRestaurant.name}
-                  </h4>
-                  <div className="mt-1 flex items-center justify-between text-xs text-[#55695D]">
-                    <span className="flex items-center gap-1 font-semibold text-[#2E7D32]">
-                      <Navigation size={12} />
-                      {selectedMapRestaurant.district}, {selectedMapRestaurant.city}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleSelect(selectedMapRestaurant.id)}
-                    className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-[#2E7D32] py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#1B5E20]"
-                  >
-                    Xem chi tiết →
-                  </button>
-                </div>
+              ) : (
+                <p className="mt-4 text-sm text-text-muted">Chọn một nhà hàng trong danh sách để xem địa chỉ và mở chỉ đường.</p>
               )}
             </div>
           </div>

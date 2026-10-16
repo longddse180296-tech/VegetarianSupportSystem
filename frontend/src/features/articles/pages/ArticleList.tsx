@@ -1,52 +1,43 @@
+import { PageHeading, Badge, Button, Input, Select } from '../../../shared/components'
 import { useState } from 'react'
 import { Leaf, Plus, Search } from 'lucide-react'
 import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
-import { primaryClass, fieldClass, formatDate } from '../../admin/utils/apiUi'
+import { primaryClass, formatDate } from '../../admin/utils/apiUi'
 import {
   articleCategories,
   type ContentPage,
   type PublicArticleSummary,
 } from '../api/articles.api'
+import { BACKEND_DIETARY_TYPE_LABELS, BACKEND_DIETARY_TYPES, type BackendDietaryType } from '../../../shared/constants'
 interface Props {
   onSelectArticle: (id: string) => void
   onCreateArticle?: () => void
   onNavigateHome?: () => void
   onOpenAiChat?: () => void
 }
-export const ArticleList = ({ onSelectArticle, onCreateArticle }: Props) => {
+export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }: Props) => {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
+  const [dietaryType, setDietaryType] = useState<BackendDietaryType | ''>('')
   const [page, setPage] = useState(1)
   const result = useApiData<ContentPage<PublicArticleSummary>>(
-    `/api/articles?page=${page}&pageSize=9&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`,
+    `/api/articles?page=${page}&pageSize=9&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&dietaryType=${encodeURIComponent(dietaryType)}`,
   )
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-      <div className="rounded-3xl bg-[#EAF5EE] p-6 sm:p-9 flex flex-wrap items-center justify-between gap-5">
-        <div>
-          <p className="text-sm text-emerald-800 flex items-center gap-2">
-            <Leaf size={17} />
-            Kiến thức & cộng đồng
-          </p>
-          <h1 className="text-3xl font-extrabold text-[#184d28] mt-2">
-            Bài viết về lối sống chay
-          </h1>
-          <p className="mt-3 text-sm text-slate-600">
-            Khám phá kiến thức và trải nghiệm đã được kiểm duyệt.
-          </p>
-        </div>
-        <button className={primaryClass} onClick={onCreateArticle}>
-          <Plus className="inline w-4 h-4 mr-2" />
-          Viết bài
-        </button>
-      </div>
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Bài viết về lối sống chay"
+        description="Khám phá kiến thức và trải nghiệm đã được kiểm duyệt."
+        breadcrumbs={[{ label: 'Trang chủ', onClick: onNavigateHome }, { label: 'Bài viết' }]}
+        eyebrow={<Badge icon={<Leaf />}>Kiến thức &amp; cộng đồng</Badge>}
+        actions={<Button leftIcon={<Plus size={16} />} onClick={onCreateArticle}>Viết bài</Button>}
+      />
       <div className="flex flex-wrap gap-3">
-        <label className="flex items-center gap-2 flex-1">
-          <Search size={18} />
-          <input
+        <div className="min-w-[220px] flex-1">
+          <Input
             aria-label="Tìm bài viết"
-            className={fieldClass}
+            leftIcon={<Search size={16} />}
             maxLength={120}
             placeholder="Tìm tiêu đề hoặc nội dung..."
             value={search}
@@ -55,10 +46,11 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle }: Props) => {
               setPage(1)
             }}
           />
-        </label>
-        <select
+        </div>
+        <Select
           aria-label="Danh mục bài viết"
-          className="rounded-xl border p-3 text-sm"
+          className="min-w-[180px]"
+          fullWidth={false}
           value={category}
           onChange={(e) => {
             setCategory(e.target.value)
@@ -69,7 +61,20 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle }: Props) => {
           {articleCategories.map((item) => (
             <option key={item}>{item}</option>
           ))}
-        </select>
+        </Select>
+        <Select
+          aria-label="Chế độ ăn áp dụng"
+          className="min-w-[180px]"
+          fullWidth={false}
+          value={dietaryType}
+          onChange={(event) => {
+            setDietaryType(event.target.value as BackendDietaryType | '')
+            setPage(1)
+          }}
+        >
+          <option value="">Tất cả chế độ ăn</option>
+          {BACKEND_DIETARY_TYPES.map((type) => <option key={type} value={type}>{BACKEND_DIETARY_TYPE_LABELS[type]}</option>)}
+        </Select>
       </div>
       <Feedback error={result.error} />
       {result.error && (
@@ -85,7 +90,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle }: Props) => {
             <button
               key={item.id}
               onClick={() => onSelectArticle(item.id)}
-              className="fe1-control overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-xs hover:border-emerald-300 transition-colors"
+              className="ui-card ui-content-card overflow-hidden text-left transition-colors"
             >
               {item.coverImageUrl ? (
                 <img
@@ -99,10 +104,11 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle }: Props) => {
                 </div>
               )}
               <div className="p-5 space-y-3">
-                <span className="text-xs font-bold text-emerald-800">
+                <span className="ui-badge ui-badge-green">
                   {item.category}
                 </span>
-                <h2 className="text-lg font-bold text-slate-900">
+                {!!item.dietaryTypes?.length && <div className="flex flex-wrap gap-1">{item.dietaryTypes.map((type) => <span key={type} className="ui-badge ui-badge-green">{BACKEND_DIETARY_TYPE_LABELS[type]}</span>)}</div>}
+                <h2 className="ui-card-title">
                   {item.title}
                 </h2>
                 <p className="text-xs text-slate-500">

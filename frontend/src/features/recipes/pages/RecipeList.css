@@ -2,8 +2,7 @@
   min-height: 100vh;
   background: #f6f9f7;
   color: #1e3b26;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
-    'Noto Sans', sans-serif;
+  font-family: var(--font-sans);
   padding: 24px 24px 72px;
   max-width: 1240px;
   margin: 0 auto;

@@ -124,9 +124,9 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     catch { viewRecorded.current = false }
   }
 
-  if (loading) return <div className="mx-auto max-w-[1240px] px-4 py-8"><SkeletonLoader count={3} variant="card" /></div>
-  if (error) return <div className="mx-auto max-w-[1200px] px-4 py-12"><AlertError title="Không thể tải video" message={error} /></div>
-  if (!video) return <div className="mx-auto max-w-[1200px] px-4 py-12"><EmptyState title="Không tìm thấy video" description="Video chưa được công khai hoặc đã bị gỡ." actionLabel="Về kho video" onAction={() => onNavigate?.('/videos')} /></div>
+  if (loading) return <div className="ui-page-container py-8"><SkeletonLoader count={3} variant="card" /></div>
+  if (error) return <div className="ui-page-container py-12"><AlertError title="Không thể tải video" message={error} /></div>
+  if (!video) return <div className="ui-page-container py-12"><EmptyState title="Không tìm thấy video" description="Video chưa được công khai hoặc đã bị gỡ." actionLabel="Về kho video" onAction={() => onNavigate?.('/videos')} /></div>
 
   const renderComment = (comment: Comment, isReply = false) => (
     <div key={comment.id} className={`border-t border-slate-100 pt-4 ${isReply ? 'ml-6' : ''}`}>
@@ -140,7 +140,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
   )
 
   return <div className="min-h-screen bg-[#F8FAF8] text-slate-900">
-    <main className="mx-auto max-w-[1240px] px-4 py-7 sm:px-6">
+    <main className="ui-page-container py-7">
       <button type="button" onClick={() => onNavigate?.('/videos')} className="mb-5 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-emerald-700"><ArrowLeft size={16} /> Quay lại kho video</button>
       <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_320px]">
         <article className="min-w-0">
@@ -152,7 +152,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold sm:text-3xl">{video.title}</h1>
             <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-3 py-1 text-xs font-semibold text-[#2E7D32]">
-              {video.dietType || 'Thuần chay (Vegan)'}
+              {video.dietType || 'Chưa có thông tin chế độ ăn'}
             </span>
           </div>
           <p className="mt-2 text-sm text-slate-500">{video.viewCount.toLocaleString('vi-VN')} lượt xem · {new Date(video.createdAtUtc).toLocaleDateString('vi-VN')}</p>

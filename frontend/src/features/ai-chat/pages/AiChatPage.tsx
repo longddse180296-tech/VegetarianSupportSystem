@@ -1,3 +1,4 @@
+import { PageHeading } from '../../../shared/components'
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import {
   Clock,
@@ -213,35 +214,13 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
-      <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">
-        {/* ============= BREADCRUMBS ============= */}
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-2 text-[14px] text-[#6B7280]"
-        >
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/')}
-            className="hover:text-[#2E7D32] transition"
-          >
-            Trang chủ
-          </button>
-          <span className="text-[#9CA3AF]" aria-hidden>
-            ›
-          </span>
-          <span className="text-[#1F2937] font-medium">Trợ lý AI</span>
-        </nav>
-
-        {/* ============= PAGE HEADER ============= */}
-        <header className="mb-6 flex flex-col gap-2">
-          <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-[#111827]">
-            Trợ lý dinh dưỡng AI
-          </h1>
-          <p className="text-[14px] sm:text-[15px] text-[#6B7280] max-w-[720px]">
-            Hỏi đáp về dinh dưỡng chay, nguyên liệu thay thế, BMI, calo và nhận gợi ý bữa ăn khoa học được cá nhân hóa cho bạn.
-          </p>
-        </header>
+    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-sans">
+      <div className="ui-page-container py-6">
+        <PageHeading
+          title="Trợ lý dinh dưỡng AI"
+          description="Hỏi đáp về dinh dưỡng chay và nguyên liệu theo thông tin bạn cung cấp."
+          breadcrumbs={[{label:'Trang chủ', onClick: () => onNavigate?.('/')}, {label:'Trợ lý AI'}]}
+        />
 
         {/* ============= MAIN 2 COLUMNS ============= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

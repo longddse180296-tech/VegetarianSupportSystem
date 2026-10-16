@@ -62,7 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Dialog Card */}
       <div
-        className={`relative w-full ${maxWidthClass} bg-white rounded-[20px] shadow-2xl border border-[#e5e7eb] flex flex-col overflow-hidden transition-all duration-200 transform scale-100 z-10 ${className}`}
+        className={`relative w-full ${maxWidthClass} bg-white rounded-[var(--radius-modal)] shadow-[var(--shadow-dialog)] border border-border-subtle flex flex-col overflow-hidden transition-all duration-200 transform scale-100 z-10 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -70,12 +70,12 @@ export const Modal: React.FC<ModalProps> = ({
           <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
             <div>
               {title && (
-                <h3 className="text-lg font-bold text-[#1f2937] leading-snug tracking-tight">
+                <h3 className="text-lg font-bold text-text-main leading-snug tracking-tight">
                   {title}
                 </h3>
               )}
               {description && (
-                <p className="text-xs text-[#6b7280] mt-1 leading-relaxed">{description}</p>
+                <p className="text-xs text-text-muted mt-1 leading-relaxed">{description}</p>
               )}
             </div>
 
@@ -93,7 +93,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Body */}
-        <div className="px-6 py-5 overflow-y-auto max-h-[75vh] text-sm text-[#1f2937]">
+        <div className="px-6 py-5 overflow-y-auto max-h-[75vh] text-sm text-text-main">
           {children}
         </div>
 

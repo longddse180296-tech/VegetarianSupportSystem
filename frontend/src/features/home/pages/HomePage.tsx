@@ -10,13 +10,13 @@ import {
   MapPin,
   Play,
   Search,
-  Send,
   Sparkles,
   User,
 } from 'lucide-react'
 import { listVideos, type VideoDetails } from '../../videos/api/backendVideos'
+import { BACKEND_DIETARY_TYPE_LABELS, toBackendDietaryType } from '../../../shared/constants'
 import { apiClient } from '../../../shared/api/apiClient'
-import { EmptyState, SkeletonLoader } from '../../../shared/components'
+import { Badge, EmptyState, SkeletonLoader } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 
 interface HomePageProps {
@@ -32,12 +32,6 @@ const AI_SAMPLE_QUESTIONS = [
   'Gợi ý thực đơn hôm nay',
 ]
 
-const RESTAURANT_DIET_MAP: Record<number, string> = {
-  1: 'Thuần chay (Vegan)',
-  2: 'Ăn chay có sữa (Lacto)',
-  3: 'Chay có trứng (Ovo)',
-  4: 'Trứng & Sữa (Lacto-ovo)',
-}
 
 interface HomeRecipeItem {
   id: string
@@ -84,7 +78,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             caloriesPerServing: number | null; imageUrl: string | null
           }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false }),
           apiClient.get<{ items: Array<{
-            id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null; dietaryTypes?: number[]
+            id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null; dietaryTypes?: Array<string | number>
           }> }>('/api/restaurants?pageNumber=1&pageSize=3', { requiresAuth: false }),
           listVideos(),
           apiClient.get<{ items: Array<{
@@ -110,8 +104,8 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
         if (restaurantResult.status === 'fulfilled') {
           setRestaurants(
             restaurantResult.value.items.map((res) => {
-              const firstDiet = res.dietaryTypes && res.dietaryTypes.length > 0 ? res.dietaryTypes[0] : 1
-              const dietLabel = RESTAURANT_DIET_MAP[firstDiet] ?? 'Thuần chay (Vegan)'
+              const firstDiet = toBackendDietaryType(res.dietaryTypes?.[0])
+              const dietLabel = firstDiet ? BACKEND_DIETARY_TYPE_LABELS[firstDiet] : 'Chưa cập nhật chế độ ăn'
               return {
                 id: res.id,
                 name: res.name,
@@ -168,21 +162,18 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFDFB] text-[#1F2937] font-['Inter']">
+    <div className="min-h-screen bg-[#FBFDFB] text-[#1F2937] font-sans">
       {/* =========================================================================
        * 1. HERO SECTION & THỐNG KÊ (TOP BANNER)
        * ========================================================================= */}
       <section className="relative overflow-hidden bg-gradient-to-b from-[#E8F5E9]/60 via-[#F8FAF8] to-[#FBFDFB] border-b border-[#E8F5E9] py-12 lg:py-16">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+        <div className="ui-page-container">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
             {/* Cột trái */}
             <div className="lg:col-span-7 flex flex-col items-start gap-5">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#C8E6C9] bg-white px-3.5 py-1.5 text-[12px] font-bold tracking-wider text-[#2E7D32] shadow-xs">
-                <Leaf size={14} className="fill-[#2E7D32]" />
-                NỀN TẢNG ẨM THỰC &amp; DINH DƯỠNG THỰC VẬT
-              </span>
+              <Badge icon={<Leaf />}>NỀN TẢNG ẨM THỰC &amp; DINH DƯỠNG THỰC VẬT</Badge>
 
-              <h1 className="text-[36px] sm:text-[46px] lg:text-[50px] font-extrabold tracking-tight text-[#111827] leading-[1.15]">
+              <h1 className="ui-hero-title">
                 Ăn chay lành mạnh, <br className="hidden sm:inline" />
                 đơn giản hơn mỗi ngày
               </h1>
@@ -253,7 +244,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       {/* =========================================================================
        * 2. THANH TÌM KIẾM NHANH TOÀN HỆ THỐNG
        * ========================================================================= */}
-      <section className="mx-auto max-w-[1240px] px-4 sm:px-6 -mt-7 relative z-20">
+      <section className="ui-page-container -mt-7 relative z-20">
         <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-4 sm:p-5 shadow-lg">
           <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
@@ -297,7 +288,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       {/* =========================================================================
        * 3. SECTION: CÔNG THỨC NỔI BẬT
        * ========================================================================= */}
-      <div className="mx-auto max-w-[1240px] px-4 pt-8 sm:px-6">
+      <div className="ui-page-container pt-8">
         {loading && <SkeletonLoader count={3} variant="card" />}
         {loadErrors.length > 0 && <AlertError title="Một số nội dung chưa tải được" message={`Không thể tải ${loadErrors.join(', ')}. Hãy tải lại trang để thử lại.`} />}
         {!loading && loadErrors.length === 0 && recipes.length + videos.length + articles.length + restaurants.length === 0 && (
@@ -305,7 +296,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
         )}
       </div>
       {recipes.length > 0 && (
-        <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
+        <section className="ui-page-container py-16">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
@@ -386,7 +377,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
        * ========================================================================= */}
       {articles.length > 0 && (
         <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
-          <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+          <div className="ui-page-container">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
@@ -468,7 +459,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
        * 5. SECTION: VIDEO NẤU ĂN NỔI BẬT
        * ========================================================================= */}
       {videos.length > 0 && (
-        <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
+        <section className="ui-page-container py-16">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
@@ -536,7 +527,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
        * ========================================================================= */}
       {restaurants.length > 0 && (
         <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
-          <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+          <div className="ui-page-container">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
@@ -611,9 +602,9 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       )}
 
       {/* =========================================================================
-       * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI (DEMO / PREVIEW)
+       * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI
        * ========================================================================= */}
-      <section className="mx-auto max-w-[1240px] px-4 sm:px-6 my-12">
+      <section className="ui-page-container my-12">
         <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F0FDF4] p-6 sm:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Cột trái: Thông tin & điều hướng */}
@@ -630,7 +621,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 Giải đáp thắc mắc dinh dưỡng, nguyên liệu thay thế, tính toán calo và nhận gợi ý bữa ăn phù hợp cho bạn trong tích tắc.
               </p>
 
-              {/* 3 Nút câu hỏi mẫu (dạng pill clickable/demo) */}
+              {/* Câu hỏi gợi ý để bắt đầu cuộc trò chuyện */}
               <div className="flex flex-wrap gap-2 pt-4">
                 {AI_SAMPLE_QUESTIONS.map((q) => (
                   <button
@@ -655,62 +646,12 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               </button>
             </div>
 
-            {/* Cột phải: Mô phỏng khung chat demo */}
-            <div
-              onClick={() => handleGoToAiChat()}
-              className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm p-5 cursor-pointer hover:border-[#C8E6C9] transition"
-            >
-              {/* Header mini */}
-              <div className="flex items-center justify-between border-b border-[#F3F4F6] pb-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
-                    <Leaf size={14} className="fill-[#2E7D32]" />
-                  </span>
-                  <span className="text-[14px] font-bold text-[#111827]">
-                    Vegetarian AI Assistant
-                  </span>
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#2E7D32]">
-                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
-                  Đang hoạt động
-                </span>
-              </div>
-
-              {/* Tin nhắn người dùng mẫu */}
-              <div className="flex justify-end">
-                <div className="bg-[#2E7D32] text-white rounded-[16px] rounded-tr-none p-3 text-sm ml-auto max-w-[85%] shadow-xs leading-relaxed">
-                  Bữa sáng đơn giản, 10 phút nấu nhanh và giàu đạm thực vật?
-                </div>
-              </div>
-
-              {/* Tin nhắn AI trả lời mẫu */}
-              <div className="bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none p-4 text-sm mt-3 leading-relaxed space-y-1 border border-[#C8E6C9]/60">
-                <p className="font-semibold text-[#2E7D32]">
-                  Chào bạn! Gợi ý bữa sáng nhanh &amp; giàu đạm cho bạn:
-                </p>
-                <p>• Smoothie chuối, yến mạch &amp; bơ đậu phộng (~22g protein)</p>
-                <p>• Đậu hũ non xào nấm ăn kèm bánh mì nguyên cám (~18g protein)</p>
-                <p className="text-[12px] text-[#6B7280] pt-1">
-                  Thời gian thực hiện chỉ khoảng 8 – 10 phút, cung cấp năng lượng dồi dào cho ngày mới!
-                </p>
-              </div>
-
-              {/* Input giả lập ở dưới */}
-              <div className="mt-4 pt-3 border-t border-[#F3F4F6] flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  placeholder="Nhập câu hỏi của bạn..."
-                  className="flex-1 rounded-[8px] border border-[#E5E7EB] bg-[#F9FAFB] px-3.5 py-2 text-sm text-[#9CA3AF] cursor-pointer focus:outline-none"
-                />
-                <button
-                  type="button"
-                  aria-label="Gửi câu hỏi sang trợ lý AI"
-                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#2E7D32] text-white hover:bg-[#1B5E20] transition cursor-pointer"
-                >
-                  <Send size={14} />
-                </button>
-              </div>
+            <div className="ui-card p-6">
+              <h3 className="text-lg font-semibold text-primary">Trao đổi cùng trợ lý AI</h3>
+              <p className="mt-3 text-sm leading-relaxed text-text-muted">
+                Mở cuộc trò chuyện để hỏi về nguyên liệu và chế độ ăn. Khi đăng nhập, trợ lý tham khảo hồ sơ bạn đã khai báo.
+              </p>
+              <p className="mt-3 text-xs text-text-muted">Câu trả lời được tải khi bạn gửi câu hỏi. Thông tin dinh dưỡng mang tính tham khảo.</p>
             </div>
           </div>
         </div>

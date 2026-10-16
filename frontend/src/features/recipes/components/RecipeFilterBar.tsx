@@ -69,7 +69,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
     >
       {/* Search + Search/AI btns */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <Input
             placeholder="Tìm kiếm công thức theo tên món hoặc nguyên liệu (đậu hũ, nấm, hạt sen...)"
             value={filter.search}
@@ -78,7 +78,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
             className="!h-11 !rounded-[14px] !pl-10 !pr-4"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant="primary"
@@ -166,7 +166,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
       {/* Cook time + Kcal selectors */}
       <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-end md:gap-4">
-          <div className="flex-1 min-w-[220px]">
+          <div className="min-w-0 flex-1 md:min-w-[180px]">
             <div className="mb-1.5 text-[12px] font-semibold text-[#6B7280]">
               Thời gian nấu
             </div>
@@ -177,7 +177,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
               className="!rounded-[12px]"
             />
           </div>
-          <div className="flex-1 min-w-[220px]">
+          <div className="min-w-0 flex-1 md:min-w-[180px]">
             <div className="mb-1.5 text-[12px] font-semibold text-[#6B7280]">
               Mức Calo (Kcal / Khẩu phần)
             </div>

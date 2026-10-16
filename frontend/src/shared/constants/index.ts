@@ -22,6 +22,44 @@ export const DIETARY_TYPE_LABELS: Record<DietaryType, string> = {
   'Lacto-ovo vegetarian': 'Chay trứng sữa (Lacto-ovo vegetarian)',
 }
 
+// Canonical API values used by recipes, restaurants and article tags. Keep UI
+// labels in one place so every feature describes the same four diets.
+export const BACKEND_DIETARY_TYPES = [
+  'Vegan',
+  'LactoVegetarian',
+  'OvoVegetarian',
+  'LactoOvoVegetarian',
+] as const
+export type BackendDietaryType = (typeof BACKEND_DIETARY_TYPES)[number]
+
+export const BACKEND_DIETARY_TYPE_LABELS: Record<BackendDietaryType, string> = {
+  Vegan: 'Thuần chay (Vegan)',
+  LactoVegetarian: 'Chay có sữa (Lacto)',
+  OvoVegetarian: 'Chay có trứng (Ovo)',
+  LactoOvoVegetarian: 'Chay trứng sữa (Lacto-ovo)',
+}
+
+const dietaryTypeAliases: Record<string, BackendDietaryType> = {
+  '1': 'Vegan',
+  Vegan: 'Vegan',
+  '2': 'LactoVegetarian',
+  Lacto: 'LactoVegetarian',
+  LactoVegetarian: 'LactoVegetarian',
+  'Lacto-vegetarian': 'LactoVegetarian',
+  '3': 'OvoVegetarian',
+  Ovo: 'OvoVegetarian',
+  OvoVegetarian: 'OvoVegetarian',
+  'Ovo-vegetarian': 'OvoVegetarian',
+  '4': 'LactoOvoVegetarian',
+  LactoOvo: 'LactoOvoVegetarian',
+  LactoOvoVegetarian: 'LactoOvoVegetarian',
+  'Lacto-ovo vegetarian': 'LactoOvoVegetarian',
+}
+
+export function toBackendDietaryType(value: unknown): BackendDietaryType | null {
+  return dietaryTypeAliases[String(value)] ?? null
+}
+
 // Trạng thái AI Flag Check (tách bạch hoàn toàn với Admin)
 export const AI_FLAG_STATUSES = [
   'NotSubmitted',

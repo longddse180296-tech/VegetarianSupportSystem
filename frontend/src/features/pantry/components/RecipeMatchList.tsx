@@ -118,7 +118,7 @@ export const RecipeMatchList: React.FC<RecipeMatchListProps> = ({
             {/* Kcal / time pills */}
             <div className="mt-4 flex flex-wrap gap-2" style={{ fontSize: '12px', lineHeight: '16px' }}>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF7ED] px-2.5 py-1 font-semibold text-[#C2410C]">
-                <Flame size={12} /> {m.kcal.toLocaleString('vi-VN')} kcal
+                <Flame size={12} /> {m.kcal == null ? 'Chưa có dữ liệu calo' : `${m.kcal.toLocaleString('vi-VN')} kcal`}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EFF6FF] px-2.5 py-1 font-semibold text-[#1D4ED8]">
                 <Clock size={12} /> {m.timeMin} phút

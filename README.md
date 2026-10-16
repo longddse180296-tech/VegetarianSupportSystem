@@ -32,7 +32,7 @@ npm run dev
 - Thử scan ảnh món ăn: lấy token role `User` ở `POST /api/dev-auth/token`, bấm Authorize trong Swagger, rồi gửi ảnh ở `POST /api/food-scans/dish-image`. Xác nhận nguyên liệu và gọi `POST /api/food-scans/evaluate`. Xem [hợp đồng scan](contracts/food-scanning.md).
 - Dừng mỗi tiến trình bằng Ctrl+C trong terminal tương ứng.
 
-Để thêm dữ liệu demo nguyên liệu, danh mục, công thức và nhà hàng sau khi áp dụng migration: `dotnet run --project backend/src/Api --launch-profile http -- --seed-demo-data`. Bộ demo gồm 8 danh mục, 36 nguyên liệu, 32 công thức và 12 nhà hàng giả lập có nhãn `[Demo]`; không tạo thực đơn. Chạy lại giữ nguyên dữ liệu đã chỉnh sửa. Xem [hướng dẫn demo Core Data](backend/CORE_DATA.md#bộ-dữ-liệu-demo-danh-mục-nguyên-liệu-và-công-thức).
+Dữ liệu mẫu/demo chỉ dùng trong `backend/tests/IntegrationTests/Fixtures/` cho database kiểm thử riêng. API không còn hỗ trợ `--seed-core-data` hoặc `--seed-demo-data`. Nhập dữ liệu thật qua các trang Admin; thiếu dữ liệu sẽ hiển thị trạng thái trống.
 
 Vite chuyển tiếp `/api` sang backend nên không cần cấu hình CORS để chạy local theo cách này. Có thể sao chép `frontend/.env.example` thành `frontend/.env.local` để đổi đích proxy; không đặt secrets vào frontend. Nếu cổng 5173 đã có ứng dụng khác, Vite báo lỗi thay vì âm thầm đổi cổng.
 

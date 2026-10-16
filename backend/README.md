@@ -1,6 +1,6 @@
 # Backend
 
-ASP.NET Core Web API, C#, .NET 10 của Vegetarian Support. Nền Moderation và AiChat đã có entity, repository, controller và migration ban đầu. Gemini thật chưa được cấu hình hoặc gọi; Development dùng câu trả lời chat mẫu từ backend.
+ASP.NET Core Web API, C#, .NET 10 của Vegetarian Support. Nền Moderation và AiChat đã có entity, repository, controller và migration ban đầu. Chat luôn gọi Gemini từ backend; thiếu key hoặc lỗi provider trả trạng thái Unavailable, không tạo câu trả lời giả.
 
 Solution `Backend.sln` gồm bốn project Clean Architecture: `Api`, `Application`, `Domain`, `Infrastructure`. Api tham chiếu Application/Infrastructure; Infrastructure tham chiếu Application; Application tham chiếu Domain. File `Backend.csproj` ở thư mục này là launcher phát triển, để chạy API bằng lệnh ngắn `dotnet run` mà không sao chép startup code.
 
@@ -16,7 +16,7 @@ Connection string mẫu nằm trong `src/Api/appsettings.json`. Khi làm thật 
 
 Để thử API cần quyền trước khi BE 1 làm đăng nhập: trong Swagger UI gọi `POST /api/dev-auth/token` với body `{ "userId": "local-user", "role": "User" }` (hoặc `Admin`), sao chép `accessToken` rồi dán vào **Authorize**. Endpoint cấp token mẫu chỉ tồn tại trong Development, token sống 1 giờ và có thể hết hiệu lực khi restart backend. Các endpoint lưu dữ liệu vẫn cần SQL Server và migration phù hợp.
 
-Gemini chat đọc `Gemini:ApiKey` và `Gemini:Model` từ cấu hình backend, gửi key trong header `x-goog-api-key` và dùng model `gemini-3.8-flash` mặc định. Để bật lời gọi thật ở máy local, cấu hình `Gemini` trong file bị ignore `src/Api/appsettings.Local.json` và đặt `AiChat:UseMockResponses` thành `false`; không đưa key vào frontend. Câu hỏi Guest/User khi đó sẽ gửi tới Gemini và có thể dùng quota của key.
+Gemini chat đọc `Gemini:ApiKey` và `Gemini:Model` từ cấu hình backend, gửi key trong header `x-goog-api-key` và dùng model `gemini-3.8-flash` mặc định. Để bật lời gọi thật ở máy local, cấu hình `Gemini__ApiKey` qua user secrets hoặc biến môi trường backend; không đưa key vào frontend. Câu hỏi Guest/User khi đó sẽ gửi tới Gemini và có thể dùng quota của key.
 
 HTTP local giúp chạy profile phát triển không cần cài chứng chỉ. Môi trường ngoài Development bật chuyển hướng HTTPS; cần cấu hình HTTPS trên host triển khai.
 

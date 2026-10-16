@@ -47,7 +47,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="bg-white rounded-[16px] border border-[#e5e7eb] overflow-hidden flex flex-col p-4 shadow-xs animate-pulse"
+          className="bg-white rounded-[16px] border border-border-subtle overflow-hidden flex flex-col p-4 shadow-xs animate-pulse"
         >
           <div className="w-full h-44 bg-slate-200 rounded-xl mb-4" />
           <div className="h-4 bg-slate-200 rounded w-1/3 mb-2.5" />

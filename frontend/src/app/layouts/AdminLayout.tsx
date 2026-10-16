@@ -31,7 +31,7 @@ const nav = [
     path: '/admin/dashboard',
     icon: LayoutDashboard,
   },
-  { id: 'categories', label: 'Danh mục', path: '/admin/categories', icon: Tag },
+  { id: 'categories', label: 'Danh mục công thức', path: '/admin/categories', icon: Tag },
   {
     id: 'ingredients',
     label: 'Nguyên liệu',

@@ -10,8 +10,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
-using Infrastructure.Persistence;
-using Infrastructure.Persistence.Seeding;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -130,24 +128,10 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
-var seedCoreData = args.Contains("--seed-core-data", StringComparer.Ordinal);
-var seedDemoData = args.Contains("--seed-demo-data", StringComparer.Ordinal);
-if (seedCoreData || seedDemoData)
+if (args.Contains("--seed-core-data", StringComparer.Ordinal) ||
+    args.Contains("--seed-demo-data", StringComparer.Ordinal))
 {
-    if (!app.Environment.IsDevelopment())
-    {
-        throw new InvalidOperationException("Sample data can only be seeded in Development.");
-    }
-
-    if (seedCoreData)
-        await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
-
-    await using var scope = app.Services.CreateAsyncScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    if (seedCoreData) await CoreDataSeeder.SeedAsync(db);
-    if (seedDemoData) await DemoDataSeeder.SeedAsync(db);
-    app.Logger.LogInformation("Sample seed completed. Demo catalog: {DemoCatalog}.", seedDemoData);
-    return;
+    throw new InvalidOperationException("Sample seeding is disabled in the application. Use isolated test fixtures instead.");
 }
 
 await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);

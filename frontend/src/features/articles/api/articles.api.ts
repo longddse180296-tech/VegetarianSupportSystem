@@ -1,4 +1,5 @@
 import { apiClient } from '../../../shared/api/apiClient'
+import type { BackendDietaryType } from '../../../shared/constants'
 import type {
   AdminStatus,
   AiStatus,
@@ -14,6 +15,7 @@ export interface PublicArticleSummary {
   id: string
   title: string
   category: string
+  dietaryTypes: BackendDietaryType[]
   coverImageUrl: string | null
   authorId: string
   version: number
@@ -28,6 +30,7 @@ export interface MyArticleRecord {
   title: string
   content: string
   category: string
+  dietaryTypes: BackendDietaryType[]
   coverImageUrl: string | null
   createdAt: string
   updatedAt: string
@@ -48,6 +51,7 @@ export interface ArticleInput {
   content: string
   category: string
   coverImageUrl: string | null
+  dietaryTypes: BackendDietaryType[]
 }
 export interface CommentRecord {
   id: string
