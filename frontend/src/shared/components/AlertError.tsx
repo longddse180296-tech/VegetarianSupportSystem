@@ -8,7 +8,7 @@ interface AlertErrorProps {
 
 export default function AlertError({
   title = 'Đã có lỗi xảy ra',
-  message = 'Không thể tải danh sách công thức vào lúc này. Vui lòng thử lại sau.',
+  message = 'Không thể tải dữ liệu vào lúc này. Vui lòng thử lại.',
   onRetry,
 }: AlertErrorProps) {
   return (

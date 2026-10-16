@@ -1,5 +1,7 @@
 # Cấu trúc thư mục Vegetarian Support
 
+Phase 1 (16/10/2026): dữ liệu seed mẫu/demo chỉ còn tại `backend/tests/IntegrationTests/Fixtures/`, không được biên dịch trong Infrastructure hoặc gọi từ API. Runtime không cung cấp seed mẫu hay phản hồi AI giả.
+
 Core Data BE 2 đã triển khai: mỗi feature Categories/Ingredients/Recipes có thư mục `Dtos/` và các file Service/Validation/Mapping/Repository interface riêng. Repository implementation nằm tại `Infrastructure/Persistence/Repositories/`; quy tắc phân loại ở `Domain/Rules/`; seed ở `Persistence/Seeding/`. Kiểm thử nằm trong `backend/tests/IntegrationTests/`. Xem [bản đồ code và cách chạy](backend/CORE_DATA.md).
 
 Khung hiện tại dùng monorepo với frontend và backend tách thư mục. Backend theo Clean Architecture, dùng tên project ngắn để dễ nhìn trong Visual Studio: `Api`, `Application`, `Domain`, `Infrastructure`.

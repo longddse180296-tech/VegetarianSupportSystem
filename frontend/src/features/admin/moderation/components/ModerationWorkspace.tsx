@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react'
 import {
+  ArrowUpRight,
+  FileText,
+  RefreshCw,
+  ShieldCheck,
+  Video,
+} from 'lucide-react'
+import {
   SharedDataTable,
   type ColumnDef,
 } from '../../../../shared/components/SharedDataTable'
 import { Modal } from '../../../../shared/components/Modal'
+import { Select } from '../../../../shared/components/Select'
 import { getStoredToken } from '../../../../shared/api/apiClient'
 import { RichContentRenderer } from '../../../articles/components/RichContentRenderer'
 import { AdminFrame, Feedback } from '../../components/ApiWorkspace'
@@ -11,7 +19,6 @@ import { useApiData } from '../../hooks/useApiData'
 import {
   fieldClass,
   primaryClass,
-  secondaryClass,
   errorMessage,
   formatDate,
 } from '../../utils/apiUi'
@@ -24,6 +31,21 @@ import {
   type Decision,
   type AdminStatus,
 } from '../api/adminModerationApi'
+
+const adminStatusStyles: Record<AdminStatus, string> = {
+  Draft: 'border-slate-200 bg-slate-50 text-slate-600',
+  Submitted: 'border-sky-200 bg-sky-50 text-sky-700',
+  PendingAdminReview: 'border-amber-200 bg-amber-50 text-amber-800',
+  Published: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  RevisionRequested: 'border-orange-200 bg-orange-50 text-orange-800',
+  Rejected: 'border-rose-200 bg-rose-50 text-rose-700',
+  Removed: 'border-slate-200 bg-slate-100 text-slate-600',
+}
+
+
+
+const statusBadgeClass =
+  'inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap'
 
 export function AiReview({ submission }: { submission: Submission }) {
   if (submission.contentType === 'Video')
@@ -168,14 +190,14 @@ export function ModerationWorkspace({
   onNavigate?: (path: string) => void
 }) {
   const [page, setPage] = useState(1)
-  const [status, setStatus] = useState('queue')
-  const [aiStatus, setAiStatus] = useState('')
+  const [status, setStatus] = useState<'' | 'PendingAdminReview' | 'Rejected'>(
+    'PendingAdminReview',
+  )
   const query = new URLSearchParams({ page: String(page), pageSize: '10' })
   query.set('contentType', contentType)
-  if (status !== 'queue' && status) query.set('adminStatus', status)
-  if (aiStatus && contentType === 'Article') query.set('aiStatus', aiStatus)
+  if (status) query.set('adminStatus', status)
   const result = useApiData<{ items: Submission[]; totalCount: number }>(
-    `/api/admin/moderation/submissions${status === 'queue' ? '/queue' : ''}?${query}`,
+    `/api/admin/moderation/submissions?${query}`,
   )
   const [selected, setSelected] = useState<Submission | null>(null)
   const [decision, setDecision] = useState<Decision | ''>('')
@@ -185,6 +207,7 @@ export function ModerationWorkspace({
   const [notice, setNotice] = useState<string | null>(null)
   const title =
     contentType === 'Article' ? 'Quản lý bài viết' : 'Quản lý video'
+  const ContentIcon = contentType === 'Article' ? FileText : Video
   async function open(id: string) {
     setBusy(true)
     setError(null)
@@ -203,8 +226,10 @@ export function ModerationWorkspace({
       key: 'title',
       header: 'Nội dung',
       render: (item) => (
-        <div>
-          <strong>{item.title}</strong>
+        <div className="min-w-48 max-w-sm space-y-1.5">
+          <strong className="text-sm font-semibold leading-relaxed text-slate-900">
+            {item.title}
+          </strong>
           <p className="text-xs text-slate-500">
             {item.contentType === 'Article' ? 'Bài viết' : 'Video'} · Phiên bản{' '}
             {item.version}
@@ -221,17 +246,15 @@ export function ModerationWorkspace({
       ),
     },
     {
-      key: 'aiFlagStatus',
-      header: 'AI',
-      render: (item) =>
-        item.contentType === 'Video'
-          ? 'Admin xem trực tiếp'
-          : aiStatusLabels[item.aiFlagStatus],
-    },
-    {
       key: 'adminReviewStatus',
-      header: 'Admin',
-      render: (item) => adminStatusLabels[item.adminReviewStatus],
+      header: 'Trạng thái duyệt',
+      render: (item) => (
+        <span
+          className={`${statusBadgeClass} ${adminStatusStyles[item.adminReviewStatus]}`}
+        >
+          {adminStatusLabels[item.adminReviewStatus]}
+        </span>
+      ),
     },
     {
       key: 'submittedAt',
@@ -243,13 +266,13 @@ export function ModerationWorkspace({
       header: 'Thao tác',
       render: (item) => (
         <button
+          type="button"
           disabled={busy}
-          className="fe1-link text-sm font-bold text-emerald-800"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-wait disabled:opacity-50"
           onClick={() => void open(item.id)}
         >
-          {item.contentType === 'Article' && item.aiFlagStatus === 'Failed'
-            ? 'Xem trước / duyệt thủ công'
-            : 'Xem / kiểm duyệt'}
+          Xem / kiểm duyệt
+          <ArrowUpRight size={14} className="shrink-0" aria-hidden="true" />
         </button>
       ),
     },
@@ -258,53 +281,75 @@ export function ModerationWorkspace({
     <AdminFrame
       menu={contentType === 'Article' ? 'articles' : 'videos'}
       title={title}
-      subtitle="Xem đúng phiên bản đã gửi, kết quả kiểm tra và lịch sử quyết định."
+      subtitle="Xem đúng phiên bản đã gửi và lịch sử quyết định duyệt."
       onNavigate={onNavigate}
     >
       <Feedback error={error} notice={notice} />
-      <div className="flex flex-wrap gap-3">
-        <select
-          aria-label="Trạng thái kiểm duyệt"
-          className="rounded-xl border p-3 text-sm"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value)
-            setPage(1)
-          }}
-        >
-          <option value="queue">Hàng đợi Admin</option>
-          <option value="">Tất cả phiên bản</option>
-          {Object.entries(adminStatusLabels)
-            .filter(([key]) => key !== 'Draft')
-            .map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-        </select>
-        {contentType === 'Article' && (
-          <select
-            aria-label="Trạng thái AI"
-            className="rounded-xl border p-3 text-sm"
-            value={aiStatus}
+      <section className="flex flex-col gap-5 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="flex items-start gap-3.5">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+            <ShieldCheck size={22} aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900">
+              Duyệt nội dung cộng đồng
+            </h2>
+            <p className="mt-1 max-w-xl text-sm leading-relaxed text-slate-500">
+              {contentType === 'Article'
+                ? 'Xem trực tiếp bài viết và kiểm tra nội dung trước khi đưa ra quyết định xuất bản.'
+                : 'Xem trực tiếp video và kiểm tra nội dung trước khi xuất bản.'}
+            </p>
+          </div>
+        </div>
+        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+          <ContentIcon size={14} aria-hidden="true" />
+          {contentType === 'Article' ? 'Bài viết' : 'Video'}
+        </span>
+      </section>
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-end sm:justify-between sm:p-6">
+        <div className="w-full sm:max-w-xs">
+          <Select
+            label="Trạng thái kiểm duyệt"
+            aria-label="Trạng thái kiểm duyệt"
+            value={status}
             onChange={(e) => {
-              setAiStatus(e.target.value)
+              setStatus(e.target.value as typeof status)
               setPage(1)
             }}
-          >
-            <option value="">Tất cả trạng thái AI</option>
-            {Object.entries(aiStatusLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        )}
-        <button className={secondaryClass} onClick={result.reload}>
+            options={[
+              { value: '', label: 'Tất cả' },
+              { value: 'PendingAdminReview', label: 'Chờ Admin duyệt' },
+              { value: 'Rejected', label: 'Đã từ chối' },
+            ]}
+          />
+        </div>
+        <button
+          type="button"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-wait disabled:opacity-50"
+          disabled={result.loading}
+          onClick={result.reload}
+        >
+          <RefreshCw
+            size={16}
+            className={result.loading ? 'motion-safe:animate-spin' : ''}
+            aria-hidden="true"
+          />
           Làm mới
         </button>
       </div>
       <SharedDataTable
+        title={
+          status === 'PendingAdminReview'
+            ? 'Nội dung chờ duyệt'
+            : status === 'Rejected'
+              ? 'Nội dung đã từ chối'
+              : 'Tất cả nội dung'
+        }
+        totalCountBadge={
+          result.loading || result.error
+            ? undefined
+            : result.data?.totalCount ?? 0
+        }
         columns={columns}
         data={result.data?.items || []}
         keyExtractor={(item) => item.id}
@@ -333,7 +378,6 @@ export function ModerationWorkspace({
               {adminStatusLabels[selected.adminReviewStatus]} ·{' '}
               {formatDate(selected.submittedAt)}
             </p>
-            <AiReview submission={selected} />
             {selected.contentType === 'Article' ? (
               <ArticleSubmissionPreview submission={selected} />
             ) : (
@@ -393,27 +437,24 @@ export function ModerationWorkspace({
                   }
                 }}
               >
-                <label className="block">
-                  Quyết định
-                  <select
-                    aria-label="Quyết định"
-                    required
-                    disabled={busy}
-                    className={fieldClass}
-                    value={decision}
-                    onChange={(e) => setDecision(e.target.value as Decision)}
-                  >
-                    <option value="">Chọn quyết định</option>
-                    {(selected.adminReviewStatus === 'Published'
+                <Select
+                  label="Quyết định"
+                  aria-label="Quyết định"
+                  required
+                  disabled={busy}
+                  value={decision}
+                  onChange={(e) => setDecision(e.target.value as Decision)}
+                  options={[
+                    { value: '', label: 'Chọn quyết định' },
+                    ...(selected.adminReviewStatus === 'Published'
                       ? ['Remove']
                       : ['Approve', 'RequestRevision', 'Reject']
-                    ).map((value) => (
-                      <option key={value} value={value}>
-                        {decisionLabels[value as Decision]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    ).map((value) => ({
+                      value,
+                      label: decisionLabels[value as Decision],
+                    })),
+                  ]}
+                />
                 <label className="block">
                   Lý do
                   <textarea

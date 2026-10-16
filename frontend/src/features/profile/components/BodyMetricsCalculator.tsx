@@ -1,127 +1,44 @@
-import React from 'react'
-import {
-  Activity,
-  Flame,
-  Target,
-  Scale,
-  Ruler,
-  HeartPulse,
-  Dumbbell,
-  UserCheck,
-  Check,
-} from 'lucide-react'
-import type { BodyMetrics, GoalType, GenderType, ActivityLevel } from '../types'
-import { birthDateForAge, profileApi } from '../api/profileApi'
-import { Select } from '../../../shared/components'
+import { useEffect, useRef, useState } from 'react'
+import type { BodyMetrics } from '../types'
+import { ageOn, profileApi } from '../api/profileApi'
+import { AlertError, Input, Select } from '../../../shared/components'
 
 interface BodyMetricsCalculatorProps {
   metrics: BodyMetrics
   onChange: (metrics: BodyMetrics) => void
-  preferredProteins: string[]
+  preferredProteins?: string[]
   disabled?: boolean
 }
 
-const ACTIVITY_OPTIONS: {
-  value: ActivityLevel
-  label: string
-  desc: string
-}[] = [
-  {
-    value: 'sedentary',
-    label: 'Ít vận động (Hệ số x1.2)',
-    desc: 'Làm việc văn phòng, ít hoặc hầu như không tập thể dục',
-  },
-  {
-    value: 'light',
-    label: 'Vận động nhẹ (Hệ số x1.375)',
-    desc: 'Tập thể thao nhẹ nhàng 1 - 3 buổi mỗi tuần',
-  },
-  {
-    value: 'moderate',
-    label: 'Vừa phải (Hệ số x1.55)',
-    desc: 'Luyện tập thể dục thể thao 3 - 5 buổi mỗi tuần',
-  },
-  {
-    value: 'active',
-    label: 'Năng động (Hệ số x1.725)',
-    desc: 'Vận động cường độ cao 6 - 7 ngày mỗi tuần',
-  },
-  {
-    value: 'very_active',
-    label: 'Rất năng động (Hệ số x1.9)',
-    desc: 'Vận động viên hoặc lao động thể lực nặng 2 lần/ngày',
-  },
-]
+const BMI_LABELS = {
+  underweight: 'Thiếu cân',
+  normal: 'Cân nặng phù hợp',
+  overweight: 'Thừa cân',
+  obese: 'Béo phì',
+  unknown: 'Chưa đủ dữ liệu để phân loại BMI người lớn',
+}
 
-const GOAL_OPTIONS: { value: GoalType; label: string; desc: string }[] = [
-  {
-    value: 'maintain',
-    label: 'Duy trì cân nặng',
-    desc: 'Lưu mục tiêu duy trì cân nặng trong hồ sơ',
-  },
-  {
-    value: 'weight_loss',
-    label: 'Giảm cân',
-    desc: 'Lưu mục tiêu giảm cân trong hồ sơ',
-  },
-  {
-    value: 'muscle_gain',
-    label: 'Tăng cân',
-    desc: 'Lưu mục tiêu tăng cân trong hồ sơ',
-  },
-]
+export function BodyMetricsCalculator({ metrics, onChange, disabled = false }: BodyMetricsCalculatorProps) {
+  const requestSequence = useRef(0)
+  const timer = useRef<number | undefined>(undefined)
+  const controller = useRef<AbortController | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+  const [latestBirthDate] = useState(() => new Date().toISOString().slice(0, 10))
 
-export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
-  metrics,
-  onChange,
-  disabled = false,
-}) => {
-  const currentAge = metrics.age
-  const currentGender = metrics.gender
-  const currentActivity = metrics.activityLevel
-  const currentHeight = metrics.heightCm
-  const currentWeight = metrics.weightKg
-  const currentGoal = metrics.goal
-  const requestSequence = React.useRef(0)
-  const timer = React.useRef<number | undefined>(undefined)
-  const controller = React.useRef<AbortController | null>(null)
-  const [previewError, setPreviewError] = React.useState<string | null>(null)
-  const [previewing, setPreviewing] = React.useState(false)
+  useEffect(() => () => {
+    window.clearTimeout(timer.current)
+    controller.current?.abort()
+    requestSequence.current++
+  }, [])
 
-  React.useEffect(
-    () => () => {
-      window.clearTimeout(timer.current)
-      controller.current?.abort()
-    },
-    [],
-  )
-
-  const updateMetrics = (
-    newAge: number,
-    newGender: GenderType,
-    newHeight: number,
-    newWeight: number,
-    newActivity: ActivityLevel,
-    newGoal: GoalType,
-  ) => {
+  const update = (changes: Partial<BodyMetrics>) => {
     const updated: BodyMetrics = {
-      ...metrics,
-      age: newAge,
-      birthDate:
-        newAge === metrics.age ? metrics.birthDate : birthDateForAge(newAge),
-      gender: newGender,
-      heightCm: newHeight,
-      weightKg: newWeight,
-      activityLevel: newActivity,
-      goal: newGoal,
-      bmi: 0,
-      bmiCategory: 'unknown',
-      bmrKcal: 0,
-      tdeeKcal: 0,
-      dailyProteinGrams: 0,
-      dailyCarbsGrams: 0,
-      dailyFatGrams: 0,
+      ...metrics, ...changes,
+      bmi: 0, bmiCategory: 'unknown', tdeeKcal: 0,
+      bmrKcal: 0, dailyProteinGrams: 0, dailyCarbsGrams: 0, dailyFatGrams: 0,
     }
+    if ('birthDate' in changes) updated.age = ageOn(updated.birthDate || null)
     onChange(updated)
     setPreviewError(null)
     setPreviewing(true)
@@ -131,597 +48,80 @@ export const BodyMetricsCalculator: React.FC<BodyMetricsCalculatorProps> = ({
     controller.current = new AbortController()
     const signal = controller.current.signal
     timer.current = window.setTimeout(() => {
-      profileApi
-        .previewMetrics(updated, signal)
-        .then((result) => {
-          if (sequence !== requestSequence.current) return
-          onChange({ ...updated, ...result })
-          setPreviewing(false)
-        })
-        .catch((error) => {
-          if (sequence !== requestSequence.current || signal.aborted) return
-          setPreviewError(
-            error instanceof Error ? error.message : 'Không thể tính chỉ số.',
-          )
-          setPreviewing(false)
-        })
+      void profileApi.previewMetrics(updated, signal).then(result => {
+        if (sequence !== requestSequence.current || signal.aborted) return
+        onChange({ ...updated, ...result })
+        setPreviewing(false)
+      }).catch(error => {
+        if (sequence !== requestSequence.current || signal.aborted) return
+        setPreviewError(error instanceof Error ? error.message : 'Không thể tải chỉ số ước tính.')
+        setPreviewing(false)
+      })
     }, 350)
   }
 
-  const getBMIBadge = () => {
-    switch (metrics.bmiCategory) {
-      case 'underweight':
-        return {
-          label: 'Thiếu cân (< 18.5)',
-          color: 'bg-amber-100 text-amber-900 border-amber-200',
-          advice:
-            'Khuyến nghị bổ sung các bữa phụ giàu hạt dinh dưỡng và đạm thực vật mật độ cao.',
-        }
-      case 'normal':
-        return {
-          label: 'Cân nặng phù hợp (18.5 - 24.9)',
-          color: 'bg-[#e8f5e9] text-[#1b5e20] border-emerald-300',
-          advice:
-            'Đây là nhóm BMI người lớn theo ngưỡng backend; chỉ số mang tính tham khảo.',
-        }
-      case 'overweight':
-        return {
-          label: 'Thừa cân (25.0 - 29.9)',
-          color: 'bg-orange-100 text-orange-900 border-orange-200',
-          advice:
-            'Nên ưu tiên thực đơn thanh đạm, giảm dầu mỡ và tăng cường vận động nhẹ.',
-        }
-      case 'obese':
-        return {
-          label: 'Béo phì (≥ 30.0)',
-          color: 'bg-rose-100 text-rose-900 border-rose-200',
-          advice:
-            'Khuyến nghị áp dụng thực đơn thâm hụt calo khoa học và theo dõi chỉ số định kỳ.',
-        }
-      default:
-        return {
-          label: 'Chưa đủ dữ liệu',
-          color: 'bg-slate-100 text-slate-600 border-slate-200',
-          advice:
-            'Khai báo chiều cao và cân nặng để xem BMI; người dưới 20 tuổi không có nhãn BMI người lớn.',
-        }
-    }
-  }
-
-  const bmiBadge = getBMIBadge()
-  const clampedBMI = Math.min(Math.max(metrics.bmi, 15), 35)
-  const bmiPercentage = ((clampedBMI - 15) / 20) * 100
-
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-[10px] bg-[#e8f5e9] text-[#2e7d32] flex items-center justify-center">
-            <Activity className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-[#1f2937] leading-none">
-              Chỉ số Thể trạng &amp; Nhu cầu Năng lượng Cá nhân
-            </h3>
-            <p className="text-[11px] text-[#6b7280] mt-0.5">
-              BMI và năng lượng ước tính từ hồ sơ đã khai báo
-            </p>
-          </div>
-        </div>
-        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#e8f5e9] text-[#2e7d32] border border-emerald-200 flex items-center gap-1.5 shadow-2xs">
-          <HeartPulse className="w-3.5 h-3.5" />
-          <span>Mifflin-St Jeor Formula</span>
-        </span>
+    <section className="ui-card p-5 sm:p-8 space-y-5" aria-labelledby="profile-body-title">
+      <div>
+        <h2 id="profile-body-title" className="ui-card-title">Chỉ số cơ thể &amp; mục tiêu</h2>
+        <p className="mt-2 text-sm text-text-muted">Các thông tin này là tùy chọn. BMI và năng lượng ước tính được trả về từ hồ sơ, không phải chẩn đoán y khoa.</p>
       </div>
-
-      <p className="text-xs text-[#6b7280] leading-relaxed">
-        BMI và TDEE được backend ước tính từ dữ liệu bạn nhập. Kết quả chỉ để
-        tham khảo, không phải chẩn đoán y khoa.
-      </p>
-
-      {/* Primary Input Grid (Gender, Age, Height, Weight, Activity, Goal) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5 rounded-[16px] bg-[#f8faf8] border border-[#e5e7eb]">
-        {/* Gender Selection */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-[#1f2937] flex items-center gap-1">
-            <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-            <span>Giới tính sinh học</span>
-            <span className="text-rose-500">*</span>
-          </label>
-          <div className="grid grid-cols-2 gap-2 h-11">
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() =>
-                updateMetrics(
-                  currentAge,
-                  'male',
-                  currentHeight,
-                  currentWeight,
-                  currentActivity,
-                  currentGoal,
-                )
-              }
-              className={`fe1-control rounded-[10px] text-xs font-bold transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
-                currentGender === 'male'
-                  ? 'bg-[#2e7d32] text-white border-[#2e7d32] shadow-sm'
-                  : 'bg-white text-[#1f2937] border-[#e5e7eb] hover:bg-slate-50'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span>Nam</span>
-            </button>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() =>
-                updateMetrics(
-                  currentAge,
-                  'female',
-                  currentHeight,
-                  currentWeight,
-                  currentActivity,
-                  currentGoal,
-                )
-              }
-              className={`fe1-control rounded-[10px] text-xs font-bold transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
-                currentGender === 'female'
-                  ? 'bg-[#2e7d32] text-white border-[#2e7d32] shadow-sm'
-                  : 'bg-white text-[#1f2937] border-[#e5e7eb] hover:bg-slate-50'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span>Nữ</span>
-            </button>
-          </div>
-          <span className="text-[10px] text-[#6b7280]">
-            Hiệu chỉnh công thức BMR
-          </span>
-        </div>
-
-        {/* Age Input */}
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="user-age"
-            className="text-xs font-semibold text-[#1f2937]"
-          >
-            Tuổi của bạn <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative flex items-center">
-            <input
-              id="user-age"
-              type="number"
-              min={15}
-              max={100}
-              value={currentAge || ''}
-              disabled={disabled}
-              onChange={(e) => {
-                const val = e.target.value === '' ? 0 : Number(e.target.value)
-                updateMetrics(
-                  val,
-                  currentGender,
-                  currentHeight,
-                  currentWeight,
-                  currentActivity,
-                  currentGoal,
-                )
-              }}
-              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-[#1f2937] border border-[#e5e7eb] rounded-[10px] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9]"
-            />
-            <span className="absolute right-3.5 text-xs text-[#6b7280] font-semibold pointer-events-none">
-              tuổi
-            </span>
-          </div>
-          <span className="text-[10px] text-[#6b7280]">
-            Tuổi dùng cho ước tính; khi đổi tuổi, hệ thống quy đổi ra ngày sinh
-            tương ứng. TDEE chỉ áp dụng trong khoảng 19–78 tuổi.
-          </span>
-        </div>
-
-        {/* Height Input */}
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="user-height"
-            className="text-xs font-semibold text-[#1f2937] flex items-center gap-1"
-          >
-            <Ruler className="w-3.5 h-3.5 text-slate-400" />
-            <span>Chiều cao</span>
-            <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative flex items-center">
-            <input
-              id="user-height"
-              type="number"
-              min={100}
-              max={230}
-              value={currentHeight || ''}
-              disabled={disabled}
-              onChange={(e) => {
-                const val = Number(e.target.value)
-                updateMetrics(
-                  currentAge,
-                  currentGender,
-                  val,
-                  currentWeight,
-                  currentActivity,
-                  currentGoal,
-                )
-              }}
-              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-[#1f2937] border border-[#e5e7eb] rounded-[10px] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9]"
-            />
-            <span className="absolute right-3.5 text-xs text-[#6b7280] font-semibold pointer-events-none">
-              cm
-            </span>
-          </div>
-          <span className="text-[10px] text-[#6b7280]">Ví dụ: 165 cm</span>
-        </div>
-
-        {/* Weight Input */}
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="user-weight"
-            className="text-xs font-semibold text-[#1f2937] flex items-center gap-1"
-          >
-            <Scale className="w-3.5 h-3.5 text-slate-400" />
-            <span>Cân nặng</span>
-            <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative flex items-center">
-            <input
-              id="user-weight"
-              type="number"
-              min={30}
-              max={200}
-              value={currentWeight || ''}
-              disabled={disabled}
-              onChange={(e) => {
-                const val = Number(e.target.value)
-                updateMetrics(
-                  currentAge,
-                  currentGender,
-                  currentHeight,
-                  val,
-                  currentActivity,
-                  currentGoal,
-                )
-              }}
-              className="h-11 px-3.5 pr-12 w-full bg-white text-sm font-semibold text-[#1f2937] border border-[#e5e7eb] rounded-[10px] focus:outline-none focus:border-[#2e7d32] focus:ring-2 focus:ring-[#e8f5e9]"
-            />
-            <span className="absolute right-3.5 text-xs text-[#6b7280] font-semibold pointer-events-none">
-              kg
-            </span>
-          </div>
-          <span className="text-[10px] text-[#6b7280]">Ví dụ: 55 kg</span>
-        </div>
-
-        {/* Activity Level Selector */}
-        <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <Select
-            label="Mức độ vận động thể chất hàng tuần"
-            value={currentActivity}
-            disabled={disabled}
-            onChange={(e) =>
-              updateMetrics(
-                currentAge,
-                currentGender,
-                currentHeight,
-                currentWeight,
-                e.target.value as ActivityLevel,
-                currentGoal,
-              )
-            }
-            options={[
-              { value: '', label: 'Chưa chọn' },
-              ...ACTIVITY_OPTIONS.map((opt) => ({
-                value: opt.value,
-                label: `${opt.label} - ${opt.desc}`,
-              })),
-            ]}
-            helperText="Quyết định hệ số nhân hoạt động thể chất (1.2 đến 1.9)"
-          />
-        </div>
-
-        {/* Goal Selector */}
-        <div className="flex flex-col gap-1.5 lg:col-span-3">
-          <Select
-            label="Mục tiêu dinh dưỡng & thể hình cá nhân"
-            value={currentGoal}
-            disabled={disabled}
-            onChange={(e) =>
-              updateMetrics(
-                currentAge,
-                currentGender,
-                currentHeight,
-                currentWeight,
-                currentActivity,
-                e.target.value as GoalType,
-              )
-            }
-            options={[
-              { value: '', label: 'Chưa chọn' },
-              ...GOAL_OPTIONS.map((g) => ({
-                value: g.value,
-                label: `${g.label} (${g.desc})`,
-              })),
-            ]}
-            helperText="Mục tiêu không tự thay đổi TDEE; đây là năng lượng tiêu hao ước tính."
-          />
-        </div>
-      </div>
-
-      {/* Calculated Results Dashboard (4 Cards with 16px radius) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* BMI Card */}
-        <div className="p-4 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#6b7280]">
-              Chỉ số BMI
-            </span>
-            <div className="w-8 h-8 rounded-[10px] bg-[#e8f5e9] text-[#2e7d32] flex items-center justify-center">
-              <Activity className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-black text-[#1f2937] tracking-tight tabular-nums">
-              {metrics.bmi || '—'}
-            </div>
-            <div className="mt-2">
-              <span
-                className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${bmiBadge.color}`}
-              >
-                {bmiBadge.label}
-              </span>
-            </div>
-          </div>
-          <p className="text-[11px] text-[#6b7280] leading-tight pt-2 border-t border-slate-100">
-            {bmiBadge.advice}
-          </p>
-        </div>
-
-        {/* TDEE Energy Card */}
-        <div className="p-4 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#6b7280]">
-              Nhu cầu Năng lượng (TDEE)
-            </span>
-            <div className="w-8 h-8 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Flame className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-black text-[#1f2937] tracking-tight tabular-nums">
-              {metrics.tdeeKcal ? metrics.tdeeKcal.toLocaleString() : '—'}{' '}
-              <span className="text-sm font-semibold text-[#6b7280]">
-                kcal/ngày
-              </span>
-            </div>
-            <div className="mt-2">
-              <span className="inline-block text-[11px] font-semibold text-[#6b7280] bg-[#f8faf8] border border-[#e5e7eb] px-2 py-0.5 rounded-[6px]">
-                {previewing
-                  ? 'Đang tính từ backend...'
-                  : previewError || 'TDEE theo Mifflin–St Jeor'}
-              </span>
-            </div>
-          </div>
-          <p className="text-[11px] text-[#6b7280] leading-tight pt-2 border-t border-slate-100">
-            Ước tính tham khảo; chưa cộng hoặc trừ calo theo mục tiêu.
-          </p>
-        </div>
-
-        {/* Daily Protein Target */}
-        <div className="p-4 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#6b7280]">
-              Mục tiêu Đạm thực vật
-            </span>
-            <div className="w-8 h-8 rounded-[10px] bg-sky-50 text-sky-600 flex items-center justify-center">
-              <Dumbbell className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-black text-[#1f2937] tracking-tight tabular-nums">
-              —
-            </div>
-            <div className="mt-2">
-              <span className="inline-block text-[11px] font-semibold text-[#1b5e20] bg-[#e8f5e9] border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                Chưa có mục tiêu đạm từ backend
-              </span>
-            </div>
-          </div>
-          <p className="text-[11px] text-[#6b7280] leading-tight pt-2 border-t border-slate-100">
-            Chỉ số này cần dữ liệu dinh dưỡng và kế hoạch ăn riêng.
-          </p>
-        </div>
-
-        {/* Goal Indicator Card */}
-        <div className="p-4 rounded-[16px] bg-[#e8f5e9]/50 border border-emerald-200 shadow-2xs flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#1b5e20]">
-              Chiến lược Dinh dưỡng
-            </span>
-            <div className="w-8 h-8 rounded-[10px] bg-[#2e7d32] text-white flex items-center justify-center">
-              <Target className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-sm font-bold text-[#1b5e20] leading-snug">
-              {GOAL_OPTIONS.find((g) => g.value === currentGoal)?.label}
-            </div>
-            <p className="text-xs text-[#2e7d32] mt-1">
-              Mục tiêu được lưu cùng hồ sơ để các tính năng khác tham khảo.
-            </p>
-          </div>
-          <div className="text-[11px] font-bold text-[#2e7d32] flex items-center gap-1.5 pt-2 border-t border-emerald-200/80">
-            <Check className="w-3.5 h-3.5" />
-            <span>
-              {previewing ? 'Đang tính chỉ số...' : 'Ước tính tham khảo'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Visual BMI Bar Gauge (DESIGN.md #255: 8px linear track, floating 16px circular pin) */}
-      <div className="flex flex-col gap-3 p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)]">
-        <div className="flex items-center justify-between text-xs text-[#1f2937] flex-wrap gap-2">
-          <span className="font-bold">Thang đo BMI người lớn</span>
-          <span className="font-bold text-[#2e7d32] bg-[#e8f5e9] px-3 py-1 rounded-full border border-emerald-200">
-            BMI của bạn: {metrics.bmi || '—'} ({bmiBadge.label})
-          </span>
-        </div>
-
-        {/* Gauge Bar */}
-        <div className="relative pt-6 pb-2">
-          {/* Floating Pin Indicator */}
-          {metrics.bmi > 0 && metrics.bmiCategory !== 'unknown' && (
-            <div
-              className="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-all duration-300 z-10"
-              style={{ left: `${bmiPercentage}%` }}
-            >
-              <div className="bg-[#1b5e20] text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm whitespace-nowrap mb-1">
-                {metrics.bmi || '—'}
-              </div>
-              <div className="w-4 h-4 rounded-full bg-[#2e7d32] border-2 border-white ring-2 ring-emerald-300 shadow-sm" />
-            </div>
-          )}
-
-          <div className="w-full h-2 rounded-full flex overflow-hidden shadow-inner bg-slate-100">
-            <div
-              className="h-full bg-amber-400 flex-[3.5]"
-              title="Thiếu cân (< 18.5)"
-            />
-            <div
-              className="h-full bg-[#2e7d32] flex-[6.5]"
-              title="Cân nặng phù hợp (18.5 - 24.9)"
-            />
-            <div
-              className="h-full bg-orange-400 flex-[5]"
-              title="Thừa cân (25.0 - 29.9)"
-            />
-            <div
-              className="h-full bg-rose-500 flex-[5]"
-              title="Béo phì (≥ 30.0)"
-            />
-          </div>
-        </div>
-
-        {/* Labels under bar */}
-        <div className="grid grid-cols-4 text-[10px] sm:text-[11px] text-[#6b7280] text-center font-medium pt-1">
-          <span>Thiếu cân (&lt; 18.5)</span>
-          <span className="text-[#1b5e20] font-bold">
-            Phù hợp (18.5 - 24.9)
-          </span>
-          <span>Thừa cân (25 - 29.9)</span>
-          <span>Béo phì (≥ 30)</span>
-        </div>
-      </div>
-
-      {/* Macronutrient Distribution Card */}
-      <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[#1f2937]">
-            Phân bổ 3 nhóm chất đa lượng trong ngày
-          </span>
-          <span className="text-[11px] text-[#6b7280] font-medium">
-            Cần kế hoạch dinh dưỡng riêng
-          </span>
-        </div>
-
-        {metrics.dailyProteinGrams > 0 && metrics.tdeeKcal > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            {/* Protein */}
-            <div className="p-4 rounded-[12px] bg-[#e8f5e9]/60 border border-emerald-200">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-[#1b5e20]">
-                  Đạm thực vật (Protein)
-                </span>
-                <span className="text-xs font-bold text-[#2e7d32]">
-                  {Math.round(
-                    ((metrics.dailyProteinGrams * 4) / metrics.tdeeKcal) * 100,
-                  )}
-                  %
-                </span>
-              </div>
-              <div className="text-xl font-black text-[#1f2937] mt-1 tabular-nums">
-                {metrics.dailyProteinGrams}g{' '}
-                <span className="text-xs font-normal text-[#6b7280]">
-                  ({metrics.dailyProteinGrams * 4} kcal)
-                </span>
-              </div>
-              <div className="w-full bg-emerald-200/60 h-2 rounded-full mt-2.5 overflow-hidden">
-                <div
-                  className="bg-[#2e7d32] h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(100, Math.round(((metrics.dailyProteinGrams * 4) / metrics.tdeeKcal) * 100))}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Carbs */}
-            <div className="p-4 rounded-[12px] bg-amber-50/60 border border-amber-200">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-amber-900">
-                  Tinh bột phức (Carbs)
-                </span>
-                <span className="text-xs font-bold text-amber-700">
-                  {Math.round(
-                    ((metrics.dailyCarbsGrams * 4) / metrics.tdeeKcal) * 100,
-                  )}
-                  %
-                </span>
-              </div>
-              <div className="text-xl font-black text-[#1f2937] mt-1 tabular-nums">
-                {metrics.dailyCarbsGrams}g{' '}
-                <span className="text-xs font-normal text-[#6b7280]">
-                  ({metrics.dailyCarbsGrams * 4} kcal)
-                </span>
-              </div>
-              <div className="w-full bg-amber-200/60 h-2 rounded-full mt-2.5 overflow-hidden">
-                <div
-                  className="bg-amber-500 h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(100, Math.round(((metrics.dailyCarbsGrams * 4) / metrics.tdeeKcal) * 100))}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Fats */}
-            <div className="p-4 rounded-[12px] bg-sky-50/60 border border-sky-200">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-sky-900">
-                  Chất béo tốt (Healthy Fats)
-                </span>
-                <span className="text-xs font-bold text-sky-700">
-                  {Math.round(
-                    ((metrics.dailyFatGrams * 9) / metrics.tdeeKcal) * 100,
-                  )}
-                  %
-                </span>
-              </div>
-              <div className="text-xl font-black text-[#1f2937] mt-1 tabular-nums">
-                {metrics.dailyFatGrams}g{' '}
-                <span className="text-xs font-normal text-[#6b7280]">
-                  ({metrics.dailyFatGrams * 9} kcal)
-                </span>
-              </div>
-              <div className="w-full bg-sky-200/60 h-2 rounded-full mt-2.5 overflow-hidden">
-                <div
-                  className="bg-sky-500 h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(100, Math.round(((metrics.dailyFatGrams * 9) / metrics.tdeeKcal) * 100))}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs text-[#6b7280]">
-            Backend hồ sơ chỉ ước tính BMI/TDEE. Mục tiêu protein, carb và chất
-            béo cần dữ liệu thực đơn; chưa có số liệu để hiển thị.
-          </p>
-        )}
-      </div>
-    </div>
+      <fieldset disabled={disabled} className="grid sm:grid-cols-2 gap-4">
+        <Input
+          label="Ngày sinh" type="date" value={metrics.birthDate || ''}
+          max={latestBirthDate}
+          onChange={event => update({ birthDate: event.target.value || null })}
+          helperText="Nhập ngày sinh thực tế; có thể để trống nếu chưa muốn khai báo."
+        />
+        <Select
+          label="Giới tính dùng để ước tính năng lượng"
+          value={metrics.gender}
+          onChange={event => update({ gender: event.target.value as BodyMetrics['gender'] })}
+          options={[{ value: '', label: 'Chưa khai báo' }, { value: 'male', label: 'Nam' }, { value: 'female', label: 'Nữ' }]}
+        />
+        <Input
+          label="Chiều cao (cm)" type="number" min={0.01} max={300} step="0.01"
+          value={metrics.heightCm || ''}
+          onChange={event => update({ heightCm: Number(event.target.value) })}
+          helperText="Để trống để xóa chiều cao đã lưu."
+        />
+        <Input
+          label="Cân nặng (kg)" type="number" min={0.01} max={1000} step="0.01"
+          value={metrics.weightKg || ''}
+          onChange={event => update({ weightKg: Number(event.target.value) })}
+          helperText="Để trống để xóa cân nặng đã lưu."
+        />
+        <Select
+          label="Mức độ vận động" value={metrics.activityLevel}
+          onChange={event => update({ activityLevel: event.target.value as BodyMetrics['activityLevel'] })}
+          options={[
+            { value: '', label: 'Chưa khai báo' },
+            { value: 'sedentary', label: 'Ít vận động' },
+            { value: 'light', label: 'Vận động nhẹ' },
+            { value: 'moderate', label: 'Vận động vừa phải' },
+            { value: 'active', label: 'Vận động nhiều' },
+            { value: 'very_active', label: 'Vận động rất nhiều' },
+          ]}
+        />
+        <Select
+          label="Mục tiêu cân nặng" value={metrics.goal}
+          onChange={event => update({ goal: event.target.value as BodyMetrics['goal'] })}
+          options={[
+            { value: '', label: 'Chưa khai báo' },
+            { value: 'maintain', label: 'Duy trì cân nặng' },
+            { value: 'weight_loss', label: 'Giảm cân' },
+            { value: 'muscle_gain', label: 'Tăng cân' },
+          ]}
+        />
+      </fieldset>
+      {previewing && <p role="status" className="text-sm text-text-muted">Đang tải chỉ số ước tính...</p>}
+      {previewError && <AlertError title="Chưa thể xem trước chỉ số" message={previewError} />}
+      <dl className="grid sm:grid-cols-2 gap-4 rounded-xl bg-primary-light p-4" aria-label="Chỉ số tham khảo">
+        <div><dt className="text-sm text-text-muted">BMI</dt><dd className="mt-1 text-xl font-bold">{metrics.bmi || '—'}</dd><dd className="text-sm">{BMI_LABELS[metrics.bmiCategory]}</dd></div>
+        <div><dt className="text-sm text-text-muted">Năng lượng ước tính (TDEE)</dt><dd className="mt-1 text-xl font-bold">{metrics.tdeeKcal > 0 ? metrics.tdeeKcal.toLocaleString('vi-VN') + ' kcal/ngày' : 'Chưa đủ dữ liệu'}</dd></div>
+      </dl>
+      <p className="text-xs text-text-muted">Xem trước không lưu hồ sơ. Các chỉ số phụ thuộc dữ liệu đã khai báo; phân loại BMI người lớn chỉ có khi đủ điều kiện.</p>
+    </section>
   )
 }
 

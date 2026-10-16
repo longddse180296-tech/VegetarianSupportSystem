@@ -88,6 +88,8 @@ Khong dat controller o `Infrastructure`.
 
 ### Tests
 
+Dữ liệu seed mẫu/demo đặt tại `backend/tests/IntegrationTests/Fixtures/` và chỉ phục vụ database kiểm thử riêng. Không đưa fixture vào project production hoặc thêm lệnh seed mẫu vào API.
+
 Test backend hien dat trong `backend/tests/Domain.Tests/`; kiem tra cac quy tac chuyen trang thai nghiep vu bang `dotnet test backend/Backend.sln -c Release`. Khong dua test vao cac tang production.
 
 ## 3. Kien truc frontend

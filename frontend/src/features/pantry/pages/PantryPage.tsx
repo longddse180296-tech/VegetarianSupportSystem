@@ -16,6 +16,7 @@ import {
   UtensilsCrossed as UtensilsIcon,
 } from 'lucide-react'
 import {
+  PageHeading,
   Button,
   EmptyState,
   Input,
@@ -28,15 +29,15 @@ import {
   CATEGORY_ORDER,
   type CoreDietType,
   deletePantryItem,
-  evaluateIngredientForDiet,
   getPantryCategories,
   getPantryItems,
   getQuickAddChips,
   getRecipeMatches,
-  getSubstitutionForIngredient,
+  getSubstitutionCandidates,
   QUICK_ADD_CHIPS,
   updatePantryItem,
 } from '../api/pantryApi'
+import AlertError from '../../../shared/components/AlertError'
 import { profileApi } from '../../profile/api/profileApi'
 import type {
   AddIngredientFormState,
@@ -118,8 +119,10 @@ interface PantryPageProps {
 export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: PantryPageProps) {
   /* ---------------- STATES ---------------- */
   const [items, setItems] = useState<PantryItem[]>([])
-  const [currentDiet, setCurrentDiet] = useState<CoreDietType>('Thuần chay (Vegan)')
+  const [currentDiet, setCurrentDiet] = useState<CoreDietType | undefined>(undefined)
   const [matches, setMatches] = useState<RecipeMatch[]>([])
+  const [itemsError, setItemsError] = useState<string | null>(null)
+  const [matchesError, setMatchesError] = useState<string | null>(null)
   const [isLoadingItems, setIsLoadingItems] = useState(false)
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
   const [isAddSubmitting, setIsAddSubmitting] = useState(false)
@@ -203,9 +206,12 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
   /* ---------------- LOADERS ---------------- */
   const loadItems = async () => {
     setIsLoadingItems(true)
+    setItemsError(null)
     try {
       const data = await getPantryItems(activeCategory)
       setItems(data)
+    } catch (error) {
+      setItemsError(error instanceof Error ? error.message : 'Không thể tải tủ bếp.')
     } finally {
       setIsLoadingItems(false)
     }
@@ -220,9 +226,15 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     let cancelled = false
     void (async () => {
       setIsLoadingMatches(true)
+      setMatchesError(null)
       try {
         const data = await getRecipeMatches(items)
         if (!cancelled) setMatches(data)
+      } catch (error) {
+        if (!cancelled) {
+          setMatches([])
+          setMatchesError(error instanceof Error ? error.message : 'Không thể tải gợi ý công thức.')
+        }
       } finally {
         if (!cancelled) setIsLoadingMatches(false)
       }
@@ -233,16 +245,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
   }, [items])
 
   /* ---------------- ITEMS WITH DIET SUITABILITY ---------------- */
-  const itemsWithDiet = useMemo(() => {
-    return items.map((it) => {
-      const evalRes = evaluateIngredientForDiet(it.name, currentDiet)
-      return {
-        ...it,
-        isSuitable: evalRes.isSuitable,
-        suitableNote: evalRes.note,
-      }
-    })
-  }, [items, currentDiet])
+  const itemsWithDiet = items
 
   /* ---------------- STATS ---------------- */
   const stats = useMemo(() => {
@@ -279,15 +282,20 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     return itemsWithDiet.filter((i) => i.isSuitable === 'unsuitable')
   }, [itemsWithDiet])
 
-  const suggestedReplacements = useMemo(() => {
-    return violatingItems.map((item) => {
-      const sub = getSubstitutionForIngredient(item.name, currentDiet)
-      return {
-        item,
-        ...sub,
-      }
-    })
-  }, [violatingItems, currentDiet])
+  const [suggestedReplacements, setSuggestedReplacements] = useState<Array<{
+    item: PantryItem; replacementName: string; category: PantryCategory; icon: string; description: string
+  }>>([])
+  useEffect(() => {
+    let active = true
+    void Promise.all(violatingItems.map(async (item) => {
+      const candidates = await getSubstitutionCandidates(item.id)
+      return candidates.map((candidate) => ({
+        item, replacementName: candidate.name, category: item.category, icon: '🌱',
+        description: [...candidate.allergenWarnings, ...candidate.avoidedFoodWarnings].join('; '),
+      }))
+    })).then((groups) => { if (active) setSuggestedReplacements(groups.flat()) })
+    return () => { active = false }
+  }, [violatingItems])
 
   const dietBadgeText = useMemo(() => {
     switch (currentDiet) {
@@ -300,7 +308,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
       case 'Trứng & Sữa (Lacto-ovo)':
         return 'Phù hợp Trứng & Sữa'
       default:
-        return 'Phù hợp Ăn chay'
+        return 'Chưa khai báo chế độ ăn'
     }
   }, [currentDiet])
 
@@ -336,30 +344,12 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     if (!validateForm()) return
     setIsAddSubmitting(true)
     try {
-      try {
-        const item = await addPantryItem({ ...form, name: form.name.trim() })
-        setItems((prev) => [item, ...prev])
-        const evalRes = evaluateIngredientForDiet(item.name, currentDiet)
-        const t = suitabilityTone(evalRes.isSuitable, currentDiet)
-        showToast(`Đã thêm ${item.name} · ${t.label}`)
-      } catch {
-        // Fallback for guest/offline
-        const localItem: PantryItem = {
-          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          name: form.name.trim(),
-          quantity: Number(form.quantity) || 1,
-          unit: form.unit || 'g',
-          category: form.category as PantryCategory,
-          isSuitable: 'suitable',
-          suitableNote: 'Đã thêm vào tủ bếp',
-          addedAt: new Date().toISOString(),
-        }
-        setItems((prev) => [localItem, ...prev])
-        const evalRes = evaluateIngredientForDiet(localItem.name, currentDiet)
-        const t = suitabilityTone(evalRes.isSuitable, currentDiet)
-        showToast(`Đã thêm ${localItem.name} · ${t.label}`)
-      }
+      const item = await addPantryItem({ ...form, name: form.name.trim() })
+      setItems((prev) => [item, ...prev])
+      showToast(`Đã thêm ${item.name}`)
       closeAdd()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể thêm nguyên liệu. Vui lòng thử lại.')
     } finally {
       setIsAddSubmitting(false)
     }
@@ -377,9 +367,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
       setItems((prev) => prev.filter((i) => i.id !== id))
       showToast(`Đã xóa ${cur?.name ?? 'nguyên liệu'}`)
     } else {
-      // Local fallback
-      setItems((prev) => prev.filter((i) => i.id !== id))
-      showToast(`Đã xóa ${cur?.name ?? 'nguyên liệu'}`)
+      showToast('Không thể xóa nguyên liệu. Dữ liệu chưa được thay đổi.')
     }
   }
 
@@ -389,30 +377,17 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     newCategory: PantryCategory,
   ) => {
     try {
-      await updatePantryItem(item.id, {
+      const updated = await updatePantryItem(item.id, {
         name: newIngredientName,
         quantity: item.quantity,
         unit: item.unit,
       })
-    } catch {
-      // Local state fallback
+      if (!updated) throw new Error('Không thể lưu thay thế nguyên liệu.')
+      setItems((prev) => prev.map((existing) => existing.id === item.id ? { ...updated, category: newCategory } : existing))
+      showToast(`Đã thay thế "${item.name}" bằng "${updated.name}"`)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể lưu thay thế nguyên liệu.')
     }
-
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === item.id
-          ? {
-              ...i,
-              name: newIngredientName,
-              category: newCategory,
-              isSuitable: 'suitable' as const,
-              suitableNote: `Đã thay thế an toàn theo hồ sơ ${currentDiet}.`,
-            }
-          : i,
-      ),
-    )
-
-    showToast(`✨ Đã thay thế "${item.name}" bằng "${newIngredientName}"`)
   }
 
   /* ============================================================
@@ -420,58 +395,20 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
      ============================================================ */
   return (
     <div
-      className="min-h-screen text-[#1F2937] font-['Inter']"
+      className="min-h-screen text-[#1F2937] font-sans"
       style={{
         background:
           'radial-gradient(ellipse at top, #EEF8F1 0%, #F6FBF7 35%, #F8FAFB 70%)',
       }}
     >
-      <div className="mx-auto w-full max-w-[1248px] px-[24px] pb-14 pt-6 sm:px-[16px]">
-        {/* ================= BREADCRUMB / TITLE ================= */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 text-[12.5px] font-medium text-[#6B7280]">
-            <Button
-              type="button"
-              variant="ghost"
-              className="hover:!text-[#2E7D32] !p-0 !h-auto !min-h-0 !bg-transparent !border-0 !shadow-none"
-              onClick={() => onNavigate?.('/')}
-            >
-              🏠 Trang chủ
-            </Button>
-            <span className="text-[#9CA3AF]">/</span>
-            <Button
-              type="button"
-              variant="ghost"
-              className="hover:!text-[#2E7D32] !p-0 !h-auto !min-h-0 !bg-transparent !border-0 !shadow-none"
-              onClick={() => onNavigate?.('/recipes')}
-            >
-              Công thức
-            </Button>
-            <span className="text-[#9CA3AF]">/</span>
-            <span className="font-bold text-[#1F2937]">Gợi ý món từ Tủ bếp AI</span>
-          </div>
-        </div>
-
-        {/* ================= HERO ================= */}
-        <section className="mb-7 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="max-w-[780px] flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1
-                className="font-extrabold tracking-[-0.015em] text-[#121C2A]"
-                style={{ fontSize: '36px', lineHeight: '44px' }}
-              >
-                Gợi ý Món Chay Từ Tủ Bếp AI
-              </h1>
-            </div>
-            <p
-              className="mt-2 font-normal text-[#6B7280]"
-              style={{ fontSize: '15px', lineHeight: '24px' }}
-            >
-              Khám phá các món ăn ngon, chuẩn dinh dưỡng từ nguyên liệu sẵn có gian bếp của bạn cùng
-              Trợ lý AI thông minh.
-            </p>
-          </div>
-        </section>
+      <div className="ui-page-container pb-14 pt-6">
+        {itemsError && <AlertError title="Không thể tải tủ bếp" message={itemsError} onRetry={() => void loadItems()} />}
+        {matchesError && <AlertError title="Không thể tải gợi ý công thức" message={matchesError} />}
+        <PageHeading
+          title="Tủ bếp cá nhân"
+          description="Quản lý nguyên liệu sẵn có và khám phá công thức từ tủ bếp của bạn."
+          breadcrumbs={[{label:'Trang chủ', onClick: () => onNavigate?.('/')}, {label:'Tủ bếp'}]}
+        />
 
         {/* ================= MAIN 2 COLUMNS ================= */}
         <section className="grid gap-6 lg:grid-cols-12">
@@ -667,10 +604,10 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                     <span className="text-[22px]" aria-hidden>🌱</span>
                     <div>
                       <div className="text-[13.5px] font-bold text-[#166534]">
-                        Tủ bếp 100% phù hợp chế độ {currentDiet}
+                        Chưa có gợi ý thay thế
                       </div>
                       <div className="text-[12px] text-[#4B5563]">
-                        Không phát hiện nguyên liệu nào vi phạm quy tắc. Khi bạn thêm nguyên liệu chưa phù hợp, AI sẽ tự động gợi ý thay thế tại đây.
+                        Gợi ý chỉ xuất hiện khi hệ thống có nguyên liệu thay thế từ danh mục. Không có gợi ý không có nghĩa mọi nguyên liệu đều phù hợp.
                       </div>
                     </div>
                   </div>
@@ -693,7 +630,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               <p className="mt-3 flex items-start gap-1.5 text-[12.5px] font-medium text-[#166534]">
                 <ShieldCheck size={14} className="mt-0.5 shrink-0" />
                 <span>
-                  Tự động gợi ý và thay thế các nguyên liệu vi phạm bằng phiên bản an toàn phù hợp theo hồ sơ dinh dưỡng của bạn.
+                  Chỉ thay nguyên liệu sau khi bạn chọn và backend lưu thành công. Kiểm tra riêng cảnh báo dị ứng và nguồn gốc nguyên liệu.
                 </span>
               </p>
             </div>
@@ -760,7 +697,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                           showToast(`🍲 Đang mở công thức: ${m.title}`)
                           onNavigate?.(`/recipes/${encodeURIComponent(m.id)}`)
                         }}
-                        onSave={() => showToast(`📌 Đã lưu: ${m.title} vào kế hoạch tuần`)}
+                        onSave={() => onNavigate?.('/meal-plans')}
                       />
                     ))}
             </div>
@@ -1019,7 +956,7 @@ function ReplacementRow({
 
 function MatchCard({
   m,
-  currentDiet = 'Thuần chay (Vegan)',
+  currentDiet,
   onViewRecipe,
   onSave,
 }: {
@@ -1036,11 +973,7 @@ function MatchCard({
         fn()
       }
     }
-  const veganOk = m.matchPercent >= 60
-  const match3of =
-    m.totalIngredients > 0 &&
-    (m.matchedIngredients.length === Math.min(3, m.totalIngredients) ||
-      m.matchedIngredients.length >= 3)
+
 
   return (
     <div
@@ -1063,27 +996,19 @@ function MatchCard({
         {/* Top badges */}
         <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-white/70 backdrop-blur ${
-              veganOk
-                ? 'bg-[#166534] text-white'
-                : 'bg-[#FEF9C3] text-[#854D0E]'
-            }`}
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-white/70 backdrop-blur bg-primary-light text-primary`}
           >
-            ✅ Chuẩn {currentDiet}
+            {currentDiet ? `Gợi ý cho ${currentDiet}` : 'Gợi ý từ tủ bếp'}
           </span>
         </div>
         <div className="absolute right-3 top-3 flex items-center gap-2">
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-white/70 backdrop-blur ${
-              match3of
-                ? 'bg-[#86EFAC] text-[#14532D]'
-                : 'bg-white/95 text-[#166534]'
-            }`}
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-white/70 backdrop-blur bg-white text-primary`}
           >
             <span className="flex h-3 w-3 items-center justify-center rounded-full bg-white text-[#166534]">
               ✓
             </span>{' '}
-            Khớp {m.matchedIngredients.length}/{Math.min(3, m.totalIngredients)} nguyên liệu sẵn có
+            Khớp {m.matchedIngredients.length}/{m.totalIngredients} nguyên liệu sẵn có
           </span>
         </div>
         <div className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-[11px] font-bold text-white ring-1 ring-white/10 backdrop-blur">
@@ -1119,10 +1044,7 @@ function MatchCard({
                 {m.missingList.slice(0, 2).map((x) => `(${x})`).join(' · ')}
               </span>{' '}
               <span className="text-[#1F2937]">
-                Giá phụ: Bột ngũ hương, hành boa-rô, một{' '}
-                <span className="font-semibold">
-                  chút dầu nành tươi xào (Gia vị cơ bản).
-                </span>
+                Cần bổ sung các nguyên liệu còn thiếu theo công thức.
               </span>
             </span>
           )}
@@ -1132,13 +1054,13 @@ function MatchCard({
         <div className="grid grid-cols-4 gap-1.5 rounded-[10px] border border-[#E5E7EB] bg-[#F8FAFB] p-2">
           <NutriBox
             label="Calo"
-            value={`${m.kcal}`}
+            value={m.kcal == null ? 'Chưa có' : `${m.kcal}`}
             unit=""
             tone="amber"
           />
-          <NutriBox label="Đạm" value={`${Math.round(m.kcal * 0.18 / 4)}`} unit="g" tone="green" />
-          <NutriBox label="Carb" value={`${Math.round(m.kcal * 0.5 / 4)}`} unit="g" tone="blue" />
-          <NutriBox label="Béo tối" value={`${Math.round(m.kcal * 0.3 / 9)}`} unit="g" tone="rose" />
+          <NutriBox label="Đạm" value="Chưa có" unit="g" tone="green" />
+          <NutriBox label="Carb" value="Chưa có" unit="g" tone="blue" />
+          <NutriBox label="Béo tối" value="Chưa có" unit="g" tone="rose" />
         </div>
 
         {/* MATCH % PROGRESS BAR bg-[#2E7D32] fill */}
@@ -1175,7 +1097,7 @@ function MatchCard({
             leftIcon={<Calendar size={14} />}
             onClick={onSave}
             className="!h-10 !w-10 !rounded-[12px] !p-0"
-            aria-label="Lưu vào kế hoạch tuần"
+            aria-label="Mở trang lập thực đơn"
           />
         </div>
       </div>

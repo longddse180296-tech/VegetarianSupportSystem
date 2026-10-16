@@ -147,7 +147,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm kiếm theo tên hoặc email..."
-            className="w-full pl-10 pr-14 py-2.5 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="admin-member-search-input w-full pl-10 pr-14 py-2.5 text-xs rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <button type="submit" className="fe1-link absolute right-3 text-xs font-semibold text-[#1E6531]">Tìm</button>
         </form>

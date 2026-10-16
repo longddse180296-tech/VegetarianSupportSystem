@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
+import { Select } from '../../../shared/components/Select'
 import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
 import {
@@ -47,23 +48,24 @@ export const MyArticlesPage = ({
             Viết bài mới
           </button>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <select
-            aria-label="Trạng thái bài viết"
-            className="rounded-xl border p-3 text-sm"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value)
-              setPage(1)
-            }}
-          >
-            <option value="">Tất cả trạng thái</option>
-            {Object.entries(adminStatusLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-56">
+            <Select
+              aria-label="Trạng thái bài viết"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value)
+                setPage(1)
+              }}
+              options={[
+                { value: '', label: 'Tất cả trạng thái' },
+                ...Object.entries(adminStatusLabels).map(([value, label]) => ({
+                  value,
+                  label,
+                })),
+              ]}
+            />
+          </div>
           <button className={secondaryClass} onClick={result.reload}>
             Làm mới
           </button>

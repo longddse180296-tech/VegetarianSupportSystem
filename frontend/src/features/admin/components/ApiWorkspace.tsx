@@ -2,6 +2,7 @@ import { useApiData } from '../hooks/useApiData'
 import { fieldClass, secondaryClass } from '../utils/apiUi'
 import { useState, type ReactNode } from 'react'
 import { AdminLayout } from '../../../app/layouts/AdminLayout'
+import { Select } from '../../../shared/components/Select'
 import { useAuth } from '../../auth'
 
 export function Feedback({
@@ -103,72 +104,83 @@ export function Pager({
   )
 }
 
-export type LookupItem = { id: string; name: string; isActive?: boolean }
+export type LookupItem = {
+  id: string
+  name: string
+  isActive?: boolean
+  defaultUnit?: string | null
+}
 export function RecordPicker({
   resource,
   label,
   value,
   selectedName,
+  hideSearch,
   onChange,
 }: {
   resource: 'categories' | 'ingredients' | 'recipes'
   label: string
   value: string
   selectedName?: string
+  hideSearch?: boolean
   onChange: (item: LookupItem) => void
 }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const pageSize = hideSearch ? 100 : 10
   const result = useApiData<{ items: LookupItem[]; totalCount: number }>(
-    `/api/admin/${resource}?pageNumber=${page}&pageSize=10&search=${encodeURIComponent(search)}`,
+    `/api/admin/${resource}?pageNumber=${page}&pageSize=${pageSize}&search=${encodeURIComponent(hideSearch ? '' : search)}`,
   )
   return (
-    <div className="rounded-xl border border-slate-200 p-3 space-y-2">
-      <label className="text-sm font-semibold">
-        {label}
-        <input
-          aria-label={`Tìm ${label.toLowerCase()}`}
-          className={fieldClass}
-          value={search}
-          maxLength={120}
-          onChange={(event) => {
-            setSearch(event.target.value)
-            setPage(1)
-          }}
-          placeholder="Tìm theo tên..."
-        />
-      </label>
-      <select
-        aria-label={label}
-        className={fieldClass}
-        value={value}
-        onChange={(event) => {
-          const item = result.data?.items.find(
-            (item) => item.id === event.target.value,
-          )
-          if (item) onChange(item)
-        }}
-      >
-        <option value="">Chọn {label.toLowerCase()}</option>
-        {value && !result.data?.items.some((item) => item.id === value) && (
-          <option value={value}>{selectedName || value}</option>
+    <div className="admin-record-picker space-y-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-slate-700">{label}</span>
+        {result.loading && <span role="status" className="text-xs text-slate-400">Đang tìm...</span>}
+      </div>
+      <div className={hideSearch ? 'w-full' : 'grid gap-2.5 sm:grid-cols-2'}>
+        {!hideSearch && (
+          <input
+            aria-label={`Tìm ${label.toLowerCase()}`}
+            className={`${fieldClass} mt-0`}
+            value={search}
+            maxLength={120}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setPage(1)
+            }}
+            placeholder="Tìm theo tên..."
+          />
         )}
-        {result.data?.items
-          .filter((item) => item.isActive || item.id === value)
-          .map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-              {item.isActive === false ? ' (đã ngừng)' : ''}
-            </option>
-          ))}
-      </select>
-      {result.loading && <p className="text-xs text-slate-500">Đang tải...</p>}
+        <Select
+          aria-label={label}
+          className="!h-[46px]"
+          value={value}
+          onChange={(event) => {
+            const item = result.data?.items.find(
+              (item) => item.id === event.target.value,
+            )
+            if (item) onChange(item)
+          }}
+          options={[
+            { value: '', label: `Chọn ${label.toLowerCase()}` },
+            ...(value && !result.data?.items.some((item) => item.id === value)
+              ? [{ value, label: selectedName || value }]
+              : []),
+            ...(result.data?.items || [])
+              .filter((item) => item.isActive || item.id === value)
+              .map((item) => ({
+                value: item.id,
+                label: `${item.name}${item.isActive === false ? ' (đã ngừng)' : ''}`,
+              })),
+          ]}
+        />
+      </div>
       <Feedback error={result.error} />
-      <Pager
+      {!hideSearch && (result.data?.totalCount ?? 0) > 10 && <Pager
         page={page}
         total={result.data?.totalCount || 0}
         onChange={setPage}
-      />
+      />}
     </div>
   )
 }

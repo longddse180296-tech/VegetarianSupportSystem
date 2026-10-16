@@ -64,13 +64,11 @@ function mapBackendToUserVideo(d: BackendVideoDetails): UserVideoItem {
     id: d.id,
     title: d.title,
     description: d.description,
-    category: 'main',
-    categoryLabel: 'Món chính',
-    duration: '10:00',
+    category: d.categoryId ?? '',
+    categoryLabel: '',
+    duration: '',
     thumbnailUrl:
-      d.thumbnailUrl ||
-      `/api/videos/${d.id}/thumbnail` ||
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+      d.thumbnailUrl ?? '',
     status,
     statusLabel,
     publishedAt: isPublished ? createdDate : undefined,
@@ -93,12 +91,10 @@ export async function fetchVideos(): Promise<HomeVideoSummary[]> {
       return res.items.map((v) => ({
         id: v.id,
         title: v.title,
-        duration: '15:00',
+        duration: '',
         thumbnailUrl:
-          v.thumbnailUrl ||
-          `/api/videos/${v.id}/thumbnail` ||
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-        channelName: 'Bếp Chay An Nhiên',
+          v.thumbnailUrl ?? '',
+        channelName: '',
       }));
     }
   } catch {

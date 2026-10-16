@@ -1,5 +1,6 @@
 // ---------- Enums ----------
 export type RecipeDietCategory =
+  | 'unknown'
   | 'vegan'
   | 'ovo-lacto'
   | 'ovo'
@@ -19,6 +20,7 @@ export type RecipeSortOption =
 
 // ---------- Labels ----------
 export const DIET_CATEGORY_LABELS: Record<RecipeDietCategory, string> = {
+  unknown: 'Chưa đủ thông tin',
   vegan: 'Thuần thực vật',
   'ovo-lacto': 'Lạc trứng sữa',
   ovo: 'Lạc trứng',
@@ -62,10 +64,10 @@ export interface RecipeStep {
 }
 
 export interface RecipeNutrition {
-  kcal: number
-  proteinG: number
-  carbsG: number
-  fatG: number
+  kcal: number | null
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
   fiberG?: number
 }
 
@@ -94,7 +96,7 @@ export interface RelatedRestaurantCard {
   id: string
   name: string
   address: string
-  distanceKm: number
+  distanceKm: number | null
   imageUrl: string
 }
 
@@ -126,10 +128,10 @@ export interface Recipe {
   cookTime?: number | string
   totalTime?: number | string
   servings?: number
-  calories?: number
-  protein?: number
-  carbs?: number
-  fat?: number
+  calories?: number | null
+  protein?: number | null
+  carbs?: number | null
+  fat?: number | null
   plantRatio?: number | string
   imageUrl?: string
   coverImage: string

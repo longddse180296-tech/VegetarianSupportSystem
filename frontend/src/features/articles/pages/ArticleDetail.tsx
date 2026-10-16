@@ -18,6 +18,7 @@ import {
   type Reaction,
 } from '../api/articles.api'
 import { RichContentRenderer } from '../components/RichContentRenderer'
+import { BACKEND_DIETARY_TYPE_LABELS } from '../../../shared/constants'
 
 function CommentLike({
   comment,
@@ -107,7 +108,7 @@ export const ArticleDetail = ({
     }
   }
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div className="ui-page-container py-8 space-y-6">
       <button
         className="fe1-link font-bold text-sm text-emerald-800"
         onClick={onBackToList}
@@ -135,6 +136,7 @@ export const ArticleDetail = ({
               <p className="text-sm font-bold text-emerald-800">
                 {article.data.category}
               </p>
+              {!!article.data.dietaryTypes?.length && <div className="flex flex-wrap gap-2">{article.data.dietaryTypes.map((type) => <span key={type} className="ui-badge ui-badge-green">{BACKEND_DIETARY_TYPE_LABELS[type]}</span>)}</div>}
               <h1 className="text-3xl font-extrabold text-[#184d28]">
                 {article.data.title}
               </h1>
@@ -349,7 +351,7 @@ export const ArticleDetail = ({
               onChange={setPage}
             />
           </section>
-          {!!article.data.relatedArticles.length && (
+          {!!article.data.relatedArticles?.length && (
             <section className="space-y-3">
               <h2 className="font-bold text-xl text-[#184d28]">
                 Bài viết liên quan

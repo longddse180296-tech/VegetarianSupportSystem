@@ -90,7 +90,7 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
           variant="primary"
           leftIcon={<Search size={14} />}
           onClick={runSearch}
-          className="!bg-[#2E7D32] hover:!bg-[#1B5E20]"
+          className="shrink-0 whitespace-nowrap !bg-[#2E7D32] hover:!bg-[#1B5E20]"
         >
           Tìm kiếm
         </Button>
@@ -109,6 +109,8 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
               <Button
                 type="button"
                 key={opt.value}
+                disabled={opt.km > 0 && (filter.latitude === null || filter.longitude === null)}
+                title={opt.km > 0 && (filter.latitude === null || filter.longitude === null) ? 'Cần vị trí để lọc khoảng cách' : undefined}
                 variant="ghost"
                 size="sm"
                 onClick={() =>
@@ -135,7 +137,7 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
         {/* Row 2: Tiện ích diet pills */}
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
           <span className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#3E5146] min-w-[96px]">
-            Tiện ích:
+            Chế độ ăn:
           </span>
           {DIET_PILL_OPTIONS.map((opt) => {
             const active = filter.diet === opt.value

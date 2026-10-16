@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { UserProfile, ProfileStats, RecentPost } from '../types'
 import { Button } from '../../../shared/components'
+import { getDietaryTypeLabel } from '../../../shared/constants'
 
 interface ProfileOverviewProps {
   profile: UserProfile
@@ -107,7 +108,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
               </div>
               <p className="text-[11px] text-[#6b7280] mt-0.5">
                 Tham khảo hồ sơ thể trạng &amp; chế độ{' '}
-                {profile.dietaryType || 'chưa chọn'}
+                {getDietaryTypeLabel(profile.dietaryType)}
               </p>
             </div>
           </div>
@@ -156,7 +157,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
             onClick={() => onNavigate?.('/food-scan')}
             className="fe1-btn fe1-btn-outline h-8 px-3 rounded-full text-xs font-semibold bg-white border border-[#e5e7eb] text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer"
           >
-            <span>Quét nhãn thực phẩm an toàn</span>
+            <span>Kiểm tra nhãn thực phẩm</span>
           </button>
         </div>
       </div>
@@ -242,7 +243,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </div>
           <div>
             <div className="text-base font-bold text-[#1f2937] leading-snug">
-              {profile.dietaryType || 'Chưa chọn'}
+              {getDietaryTypeLabel(profile.dietaryType)}
             </div>
             <p className="text-[11px] text-[#6b7280] mt-1">
               Đồng bộ toàn bộ công thức
@@ -299,7 +300,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
         <div className="p-4 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">
-              Bảo vệ Dị ứng
+              Dị ứng đã khai báo
             </span>
             <div className="w-8 h-8 rounded-[10px] bg-rose-50 text-rose-600 flex items-center justify-center">
               <ShieldAlert className="w-4 h-4" />
@@ -313,7 +314,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-[#6b7280] mt-0.5">
-              Tự động cảnh báo khi quét
+              Danh sách trong hồ sơ
             </p>
           </div>
         </div>
@@ -325,7 +326,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-[#2e7d32]" />
             <span>
-              Khu vực ẩm thực ưu tiên:{' '}
+              Khu vực tìm nhà hàng:{' '}
               <strong className="text-[#1f2937] font-semibold">
                 {profile.preferredRegion}
               </strong>
@@ -341,6 +342,13 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </button>
         </div>
       )}
+
+      <section className="ui-card p-5 sm:p-6" aria-label="Thực phẩm trong hồ sơ">
+        <dl className="grid sm:grid-cols-2 gap-5 text-sm">
+          <div className="min-w-0"><dt className="font-semibold">Dị ứng đã khai báo</dt><dd className="mt-2 text-text-muted [overflow-wrap:anywhere]">{profile.allergies.join(', ') || 'Chưa khai báo mục nào'}</dd></div>
+          <div className="min-w-0"><dt className="font-semibold">Thực phẩm cần tránh</dt><dd className="mt-2 text-text-muted [overflow-wrap:anywhere]">{profile.avoidedFoods?.map(item => item.name).join(', ') || 'Chưa khai báo mục nào'}</dd></div>
+        </dl>
+      </section>
 
       {/* 4. Three Activity Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
+import { Select } from '../../../shared/components/Select'
 import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
 import {
@@ -37,7 +38,7 @@ export const MyCommentsPage = ({
     >
       <div className="rounded-2xl border bg-white p-5 sm:p-8 space-y-5">
         <h1 className="font-bold text-2xl text-[#184d28]">Bình luận của tôi</h1>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <input
             aria-label="Tìm bình luận của tôi"
             placeholder="Tìm nội dung..."
@@ -49,19 +50,21 @@ export const MyCommentsPage = ({
               setPage(1)
             }}
           />
-          <select
-            aria-label="Nguồn bình luận"
-            className="rounded-xl border p-3 text-sm"
-            value={type}
-            onChange={(e) => {
-              setType(e.target.value)
-              setPage(1)
-            }}
-          >
-            <option value="">Tất cả</option>
-            <option value="Article">Bài viết</option>
-            <option value="Video">Video</option>
-          </select>
+          <div className="min-w-44">
+            <Select
+              aria-label="Nguồn bình luận"
+              value={type}
+              onChange={(e) => {
+                setType(e.target.value)
+                setPage(1)
+              }}
+              options={[
+                { value: '', label: 'Tất cả nguồn' },
+                { value: 'Article', label: 'Bài viết' },
+                { value: 'Video', label: 'Video' },
+              ]}
+            />
+          </div>
         </div>
         <Feedback error={error || result.error} />
         {result.error && (

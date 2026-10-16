@@ -12,7 +12,7 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
             throw new ArticleException(ArticleError.Validation, "A valid owner is required.");
         Validate(request);
         var article = new Article(ownerId, request.Title.Trim(), request.Content.Trim(), request.Category.Trim(),
-            request.CoverImageUrl?.Trim(), DateTimeOffset.UtcNow);
+            request.CoverImageUrl?.Trim(), DietaryTypes(request), DateTimeOffset.UtcNow);
         await repository.AddAsync(article, ct);
         await repository.SaveAsync(ct);
         return ToMine(article);
@@ -24,7 +24,7 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         var article = await GetOwnedAsync(id, ownerId, ct);
         EnsureEditable(article);
         article.SetDraft(request.Title.Trim(), request.Content.Trim(), request.Category.Trim(),
-            request.CoverImageUrl?.Trim(), DateTimeOffset.UtcNow);
+            request.CoverImageUrl?.Trim(), DietaryTypes(request), DateTimeOffset.UtcNow);
         await repository.SaveAsync(ct);
         return ToMine(article);
     }
@@ -70,7 +70,8 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
     public async Task<ArticlePage<ArticleSummary>> ListPublicAsync(ArticleListQuery query, CancellationToken ct)
     {
         ValidatePage(query.Page, query.PageSize);
-        if (query.Search?.Length > 120 || query.Category?.Length > 120)
+        if (query.Search?.Length > 120 || query.Category?.Length > 120 ||
+            (query.DietaryType is { } dietaryType && !Enum.IsDefined(dietaryType)))
             throw new ArticleException(ArticleError.Validation, "Search and category must be at most 120 characters.");
         var page = await repository.ListPublicAsync(query, ct);
         return new(page.Items.Select(ToSummary).ToArray(), page.TotalCount, page.Page, page.PageSize);
@@ -81,7 +82,7 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         var version = await repository.GetPublicAsync(id, ct)
             ?? throw new ArticleException(ArticleError.NotFound, "Article was not found.");
         var related = await repository.GetRelatedAsync(id, version.Category, 4, ct);
-        return new(version.ArticleId, version.Title, version.Content, version.Category,
+        return new(version.ArticleId, version.Title, version.Content, version.Category, ToDietaryTypes(version.DietaryTypes),
             version.CoverImageUrl, version.Submission.OwnerUserId, version.Version,
             PublishedAt(version), related.Select(ToSummary).ToArray());
     }
@@ -108,7 +109,7 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         var versions = article.Versions.OrderByDescending(x => x.Version).ToArray();
         var published = versions.FirstOrDefault(x => x.Submission.AdminReviewStatus == AdminReviewStatus.Published
             && x.Submission.IsCurrentPublished);
-        return new(article.Id, article.DraftTitle, article.DraftContent, article.DraftCategory,
+        return new(article.Id, article.DraftTitle, article.DraftContent, article.DraftCategory, ToDietaryTypes(article.DietaryTypes),
             article.DraftCoverImageUrl, article.CreatedAt, article.UpdatedAt,
             versions.FirstOrDefault()?.Submission.AdminReviewStatus ?? AdminReviewStatus.Draft,
             published is null ? null : ToSummary(published),
@@ -119,7 +120,7 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
     }
 
     private static ArticleSummary ToSummary(ArticleVersion version) =>
-        new(version.ArticleId, version.Title, version.Category, version.CoverImageUrl,
+        new(version.ArticleId, version.Title, version.Category, ToDietaryTypes(version.DietaryTypes), version.CoverImageUrl,
             version.Submission.OwnerUserId, version.Version, PublishedAt(version));
 
     private static DateTimeOffset PublishedAt(ArticleVersion version) =>
@@ -135,7 +136,24 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
             || (request.CoverImageUrl is { Length: > 0 } image &&
                 (!Uri.TryCreate(image, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))))
             throw new ArticleException(ArticleError.Validation, "Title, content, category and cover image URL are invalid.");
+
+        _ = DietaryTypes(request);
     }
+
+    private static IReadOnlyList<DietaryType> DietaryTypes(ArticleDraftRequest request)
+    {
+        var dietaryTypes = request.DietaryTypes ?? [];
+        if (dietaryTypes.Count > 4 || dietaryTypes.Distinct().Count() != dietaryTypes.Count ||
+            dietaryTypes.Any(type => !Enum.IsDefined(type)))
+            throw new ArticleException(ArticleError.Validation, "Dietary types are invalid.");
+        return dietaryTypes.OrderBy(type => type).ToArray();
+    }
+
+    private static IReadOnlyList<DietaryType> ToDietaryTypes(IEnumerable<ArticleDietaryType> source) =>
+        source.Select(x => x.DietaryType).OrderBy(x => x).ToArray();
+
+    private static IReadOnlyList<DietaryType> ToDietaryTypes(IEnumerable<ArticleVersionDietaryType> source) =>
+        source.Select(x => x.DietaryType).OrderBy(x => x).ToArray();
 
     private static void ValidatePage(int page, int pageSize)
     {

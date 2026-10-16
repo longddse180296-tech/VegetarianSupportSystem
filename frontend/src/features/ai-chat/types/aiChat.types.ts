@@ -102,7 +102,7 @@ export interface FaqItem {
 export interface HistoryItem {
   id: string
   title: string
-  messages: number
+  messages: number | null
   dateLabel: string
   tone: 'recent' | 'mid' | 'old'
 }

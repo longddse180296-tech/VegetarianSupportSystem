@@ -86,8 +86,8 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
       isLoggedIn={!!user}
       userName={user?.fullName}
     >
-      <div className="w-full max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 sm:p-10">
+      <div className="ui-page-container py-10 sm:py-16">
+        <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 p-8 sm:p-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 mb-4">
               <KeyRound className="w-8 h-8" />
