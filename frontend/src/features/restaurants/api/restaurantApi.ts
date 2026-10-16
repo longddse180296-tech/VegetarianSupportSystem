@@ -175,8 +175,9 @@ export async function getRestaurants(
   params.set('pageNumber', '1')
   params.set('pageSize', '50')
 
+  const url = `/api/restaurants?${params.toString()}`
   try {
-    const res = await apiClient.get<BackendRestaurantPage>(`/api/restaurants?${params.toString()}`, {
+    const res = await apiClient.get<BackendRestaurantPage>(url, {
       requiresAuth: false,
     })
     if (res && Array.isArray(res.items)) {
@@ -187,23 +188,26 @@ export async function getRestaurants(
         appliedFilter: applied,
       }
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[restaurantApi.getRestaurants] Lỗi khi gọi API: ' + url, err)
+    throw err
   }
 
   return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
 export async function getRestaurantDetail(id: string): Promise<Restaurant | null> {
+  const url = `/api/restaurants/${id}`
   try {
-    const res = await apiClient.get<BackendRestaurantResponse>(`/api/restaurants/${id}`, {
+    const res = await apiClient.get<BackendRestaurantResponse>(url, {
       requiresAuth: false,
     })
     if (res && res.id) {
       return mapDetailToRestaurant(res)
     }
-  } catch {
-    // Not found
+  } catch (err) {
+    console.error('[restaurantApi.getRestaurantDetail] Lỗi khi gọi API: ' + url, err)
+    return null
   }
 
   return null
@@ -235,8 +239,9 @@ export async function getMapPins(): Promise<MapPinMarker[]> {
 }
 
 export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
+  const url = `/api/restaurants/${id}`
   try {
-    const res = await apiClient.get<BackendRestaurantResponse>(`/api/restaurants/${id}`, {
+    const res = await apiClient.get<BackendRestaurantResponse>(url, {
       requiresAuth: false,
     })
     if (res?.relatedRecipes && res.relatedRecipes.length > 0) {
@@ -250,49 +255,11 @@ export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
         imgSeed: r.name,
       }))
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[restaurantApi.getRestaurantMenu] Lỗi khi gọi API: ' + url, err)
   }
 
-  // Fallback signature vegetarian dishes for the restaurant
-  return [
-    {
-      id: 'd1',
-      name: 'Đậu hũ sốt nấm hương',
-      desc: 'Đậu hũ non chiên vàng giòn rụm kết hợp sốt nấm hương đậm đà, thơm thảo mộc.',
-      priceVND: 55000,
-      tag: 'Bán chạy',
-      tagColor: 'bg-[#1F7A3F] text-white',
-      imgSeed: 'tofu mushroom vietnamese',
-    },
-    {
-      id: 'd2',
-      name: 'Lẩu nấm dưỡng sinh',
-      desc: 'Nước dùng rau củ hầm ngọt thanh tự nhiên, dùng kèm 5 loại nấm tươi hữu cơ.',
-      priceVND: 180000,
-      tag: 'Đặc sản',
-      tagColor: 'bg-[#EF6C00] text-white',
-      imgSeed: 'vietnamese hotpot vegan mushroom',
-    },
-    {
-      id: 'd3',
-      name: 'Gỏi ngó sen ngũ sắc',
-      desc: 'Ngó sen giòn ngọt, cà rốt, dưa leo, đậu phộng rang giòn sốt chua ngọt thanh tao.',
-      priceVND: 45000,
-      tag: 'Khai vị',
-      tagColor: 'bg-[#2E7D32] text-white',
-      imgSeed: 'lotus root salad vegan',
-    },
-    {
-      id: 'd4',
-      name: 'Cơm chiên hạt sen lá cẩm',
-      desc: 'Cơm gạo thơm xào hạt sen bùi béo, nấm hương và rau củ hạt lựu sắc tím tự nhiên.',
-      priceVND: 65000,
-      tag: 'Món chính',
-      tagColor: 'bg-[#1F7A3F] text-white',
-      imgSeed: 'fried rice lotus seeds vegan',
-    },
-  ]
+  return []
 }
 
 export async function getWeekHours(id: string): Promise<WeekHour[]> {
@@ -329,24 +296,7 @@ export async function getWeekHours(id: string): Promise<WeekHour[]> {
 }
 
 export async function getReviewComments(_id: string): Promise<ReviewComment[]> {
-  return [
-    {
-      id: 'c1',
-      userName: 'Nguyễn Minh Anh',
-      avatarSeed: 'vietnamese young smiling girl avatar',
-      rating: 5,
-      content: 'Không gian thanh tịnh, nhạc thiền êm dịu. Món ăn nêm nếm rất vừa vị, không dùng mì chính nên ăn xong nhẹ bụng.',
-      timeAgo: '2 ngày trước',
-    },
-    {
-      id: 'c2',
-      userName: 'Trần Văn Hoàng',
-      avatarSeed: 'vietnamese man smiling glasses portrait',
-      rating: 5,
-      content: 'Nhân viên phục vụ nhanh và lễ phép. Lẩu nấm nước dùng ngọt thanh từ rau củ tự nhiên, gia đình mình rất thích!',
-      timeAgo: '1 tuần trước',
-    },
-  ]
+  return []
 }
 
 export async function getRelatedContent(_id: string): Promise<RelatedContentCard[]> {

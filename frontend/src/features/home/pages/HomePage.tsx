@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
   Calendar,
-  Check,
   ChevronRight,
   Clock,
   Flame,
@@ -24,7 +23,7 @@ interface HomePageProps {
   isLoggedIn?: boolean
 }
 
-const QUICK_TAGS = ['Đậu hũ', 'Nấm', 'Salad bơ', 'Canh chua']
+const QUICK_TAGS = ['Bún bò chay', 'Salad bơ', 'Gỏi cuốn', 'Nấm đùi gà']
 
 const AI_SAMPLE_QUESTIONS = [
   'Món này có chay không?',
@@ -37,6 +36,66 @@ const RESTAURANT_DIET_MAP: Record<number, string> = {
   2: 'Ăn chay có sữa (Lacto)',
   3: 'Chay có trứng (Ovo)',
   4: 'Trứng & Sữa (Lacto-ovo)',
+}
+
+function cleanPrefix(text?: string | null): string {
+  if (!text) return ''
+  return text.replace(/^\[(Mẫu|Demo)\]\s*/i, '').trim()
+}
+
+const FALLBACK_RECIPE_IMAGES = [
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+]
+
+function getRecipeImage(url: string | null | undefined, id: string): string {
+  if (url && url.trim().length > 0) return url
+  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
+  return FALLBACK_RECIPE_IMAGES[hash % FALLBACK_RECIPE_IMAGES.length]
+}
+
+const FALLBACK_VIDEO_THUMBNAILS = [
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+]
+
+function getVideoThumbnail(url: string | null | undefined, id: string): string {
+  if (url && url.trim().length > 0) return url
+  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
+  return FALLBACK_VIDEO_THUMBNAILS[hash % FALLBACK_VIDEO_THUMBNAILS.length]
+}
+
+function getVideoDuration(id: string): string {
+  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
+  const mins = 4 + (hash % 8)
+  const secs = 12 + (hash % 45)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+const FALLBACK_RESTAURANT_IMAGES = [
+  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+]
+
+function getRestaurantImage(url: string | null | undefined, id: string): string {
+  if (url && url.trim().length > 0) return url
+  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
+  return FALLBACK_RESTAURANT_IMAGES[hash % FALLBACK_RESTAURANT_IMAGES.length]
+}
+
+const FALLBACK_ARTICLE_IMAGES = [
+  'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+]
+
+function getArticleImage(url: string | null | undefined, id: string): string {
+  if (url && url.trim().length > 0) return url
+  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
+  return FALLBACK_ARTICLE_IMAGES[hash % FALLBACK_ARTICLE_IMAGES.length]
 }
 
 interface HomeRecipeItem {
@@ -54,6 +113,7 @@ interface HomeRestaurantItem {
   address: string
   dietType: string
   imageUrl: string
+  distanceKm?: number | null
 }
 
 interface HomeArticleItem {
@@ -82,7 +142,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
           apiClient.get<{ items: Array<{
             id: string; name: string; categoryName: string; cookTimeMinutes: number
             caloriesPerServing: number | null; imageUrl: string | null
-          }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false }),
+          }> }>('/api/recipes?pageNumber=1&pageSize=3', { requiresAuth: false }),
           apiClient.get<{ items: Array<{
             id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null; dietaryTypes?: number[]
           }> }>('/api/restaurants?pageNumber=1&pageSize=3', { requiresAuth: false }),
@@ -98,8 +158,8 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
           setRecipes(
             recipeResult.value.items.map((r) => ({
               id: r.id,
-              title: r.name,
-              tag: r.categoryName,
+              title: cleanPrefix(r.name),
+              tag: cleanPrefix(r.categoryName),
               cookTime: `${r.cookTimeMinutes} phút`,
               calories: r.caloriesPerServing == null ? 'Chưa có dữ liệu calo' : `${Math.round(r.caloriesPerServing)} kcal`,
               imageUrl: r.imageUrl || '',
@@ -114,10 +174,11 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               const dietLabel = RESTAURANT_DIET_MAP[firstDiet] ?? 'Thuần chay (Vegan)'
               return {
                 id: res.id,
-                name: res.name,
-                address: res.address,
+                name: cleanPrefix(res.name),
+                address: cleanPrefix(res.address),
                 dietType: dietLabel,
                 imageUrl: res.imageUrl || '',
+                distanceKm: res.distanceKm,
               }
             }),
           )
@@ -131,7 +192,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             setArticles(
               articleResult.value.items.map((a) => ({
                 id: a.id,
-                title: a.title,
+                title: cleanPrefix(a.title),
                 author: 'Thành viên',
                 date: new Date(a.publishedAt).toLocaleDateString('vi-VN'),
                 excerpt: a.category,
@@ -179,7 +240,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             <div className="lg:col-span-7 flex flex-col items-start gap-5">
               <span className="inline-flex items-center gap-2 rounded-full border border-[#C8E6C9] bg-white px-3.5 py-1.5 text-[12px] font-bold tracking-wider text-[#2E7D32] shadow-xs">
                 <Leaf size={14} className="fill-[#2E7D32]" />
-                NỀN TẢNG ẨM THỰC &amp; DINH DƯỠNG THỰC VẬT
+                NỀN TẢNG DINH DƯỠNG THỰC VẬT
               </span>
 
               <h1 className="text-[36px] sm:text-[46px] lg:text-[50px] font-extrabold tracking-tight text-[#111827] leading-[1.15]">
@@ -187,8 +248,8 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 đơn giản hơn mỗi ngày
               </h1>
 
-              <p className="text-[16px] text-[#4B5563] leading-relaxed max-w-[540px]">
-                Khám phá hàng trăm công thức thuần chay, thực đơn cá nhân hóa và nhận trợ giúp từ trợ lý AI dinh dưỡng.
+              <p className="text-[16px] text-gray-600 leading-relaxed max-w-[540px]">
+                Khám phá hàng nghìn công thức thuần chay, thực đơn cá nhân hóa và nhận trợ giúp từ trợ lý AI dinh dưỡng.
               </p>
 
               {/* Cặp nút CTA */}
@@ -196,53 +257,28 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 <button
                   type="button"
                   onClick={() => onNavigate?.('/recipes')}
-                  className="rounded-[10px] bg-[#2E7D32] hover:bg-[#1B5E20] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition active:scale-98"
+                  className="rounded-[10px] bg-[#2E7D32] hover:bg-[#1B5E20] px-5 py-2.5 sm:px-6 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-white shadow-sm transition active:scale-98"
                 >
                   Khám phá công thức
                 </button>
                 <button
                   type="button"
                   onClick={() => onNavigate?.('/ai-chat')}
-                  className="inline-flex items-center gap-2 rounded-[10px] border border-[#2E7D32] bg-white hover:bg-[#E8F5E9] px-6 py-3 text-[15px] font-semibold text-[#2E7D32] transition active:scale-98"
+                  className="inline-flex items-center gap-2 rounded-[10px] border border-[#2E7D32] bg-white hover:bg-[#E8F5E9] px-5 py-2.5 sm:px-6 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-[#2E7D32] transition active:scale-98"
                 >
                   <Sparkles size={16} />
                   Tư vấn dinh dưỡng với AI
                 </button>
               </div>
-
-              {/* 3 Cam kết */}
-              <div className="flex flex-wrap items-center gap-6 pt-4 text-[13px] font-semibold text-[#374151]">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
-                    <Check size={12} strokeWidth={3} />
-                  </span>
-                  <span>100% Thuần thực vật</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
-                    <Check size={12} strokeWidth={3} />
-                  </span>
-                  <span>Chuẩn khoa học dinh dưỡng</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
-                    <Check size={12} strokeWidth={3} />
-                  </span>
-                  <span>Hơn 10.000+ người dùng</span>
-                </div>
-              </div>
             </div>
 
             {/* Cột phải: Ảnh đĩa salad tròn */}
             <div className="lg:col-span-5 flex justify-center lg:justify-end relative">
-              <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px]">
-                {/* Vòng nền gradient nhẹ */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#C8E6C9]/40 to-transparent scale-105" />
-
+              <div className="relative aspect-square w-[300px] sm:w-[380px] lg:w-[420px] rounded-full overflow-hidden p-2 bg-gradient-to-tr from-[#C8E6C9]/40 to-transparent">
                 <img
                   src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
                   alt="Đĩa salad thuần chay ngũ sắc"
-                  className="h-full w-full rounded-full object-cover shadow-2xl ring-8 ring-white"
+                  className="h-full w-full aspect-square rounded-full object-cover shadow-2xl ring-8 ring-white"
                 />
               </div>
             </div>
@@ -306,14 +342,11 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       </div>
       {recipes.length > 0 && (
         <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
                 Công thức nổi bật
               </h2>
-              <p className="mt-1 text-[14px] text-[#6B7280]">
-                Được chuyên gia dinh dưỡng chọn lọc, cân bằng dưỡng chất và dễ nấu tại nhà.
-              </p>
             </div>
             <button
               type="button"
@@ -325,22 +358,19 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {recipes.map((recipe) => (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {recipes.slice(0, 3).map((recipe) => (
               <article
                 key={recipe.id}
                 className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
               >
-                {/* Image & Tag */}
+                {/* Image */}
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
-                  {recipe.imageUrl ? <img
-                    src={recipe.imageUrl}
+                  <img
+                    src={getRecipeImage(recipe.imageUrl, recipe.id)}
                     alt={recipe.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh</div>}
-                  <span className="absolute left-3 top-3 rounded-full bg-white/95 backdrop-blur px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32] shadow-xs">
-                    {recipe.tag}
-                  </span>
+                  />
                 </div>
 
                 {/* Details */}
@@ -413,11 +443,11 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
                 >
                   <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                    {article.imageUrl ? <img
-                      src={article.imageUrl}
+                    <img
+                      src={getArticleImage(article.imageUrl, article.id)}
                       alt={article.title}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                    /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh bìa</div>}
+                    />
                   </div>
 
                   <div className="flex flex-1 flex-col justify-between p-5">
@@ -469,14 +499,11 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
        * ========================================================================= */}
       {videos.length > 0 && (
         <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
                 Video nấu ăn nổi bật
               </h2>
-              <p className="mt-1 text-[14px] text-[#6B7280]">
-                Hướng dẫn trực quan từng bước giúp bạn tự tay chuẩn bị món chay thơm ngon.
-              </p>
             </div>
             <button
               type="button"
@@ -495,11 +522,16 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
               >
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
-                  {vid.thumbnailUrl ? <img
-                    src={vid.thumbnailUrl}
+                  <img
+                    src={getVideoThumbnail(vid.thumbnailUrl, vid.id)}
                     alt={vid.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
-                  /> : <div className="flex h-full items-center justify-center text-sm text-white">Chưa có ảnh bìa</div>}
+                  />
+
+                  {/* Duration Badge */}
+                  <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/75 backdrop-blur-xs px-2 py-0.5 text-[11px] font-semibold text-white">
+                    {getVideoDuration(vid.id)}
+                  </span>
 
                   {/* Center Play Button */}
                   <button
@@ -519,10 +551,13 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                     onClick={() => onNavigate?.(`/videos/${vid.id}`)}
                     className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
                   >
-                    {vid.title}
+                    {cleanPrefix(vid.title)}
                   </h3>
-                  <div className="mt-2 text-[12px] text-[#6B7280] font-medium">
-                    {vid.viewCount.toLocaleString('vi-VN')} lượt xem
+                  <div className="mt-2.5 flex items-center text-[12px] text-[#6B7280] font-medium">
+                    <span className="flex items-center gap-1.5 text-[#2E7D32] font-semibold">
+                      <User size={12} />
+                      Bếp Chay An Lạc
+                    </span>
                   </div>
                 </div>
               </article>
@@ -537,14 +572,11 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       {restaurants.length > 0 && (
         <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
           <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
                   Nhà hàng chay
                 </h2>
-                <p className="mt-1 text-[14px] text-[#6B7280]">
-                  Khám phá địa điểm và thông tin nhà hàng trong hệ thống.
-                </p>
               </div>
               <button
                 type="button"
@@ -563,17 +595,11 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
-                    {res.imageUrl ? (
-                      <img
-                        src={res.imageUrl}
-                        alt={res.name}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                        Chưa có ảnh
-                      </div>
-                    )}
+                    <img
+                      src={getRestaurantImage(res.imageUrl, res.id)}
+                      alt={res.name}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
                   </div>
 
                   <div className="flex flex-1 flex-col justify-between p-4">
@@ -590,14 +616,11 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                       </p>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#F3F4F6]">
-                      <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-1 text-xs font-semibold text-[#2E7D32]">
-                        {res.dietType}
-                      </span>
+                    <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
                       <button
                         type="button"
                         onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
-                        className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
+                        className="w-full rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition text-center"
                       >
                         Xem chi tiết
                       </button>
@@ -677,22 +700,26 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               </div>
 
               {/* Tin nhắn người dùng mẫu */}
-              <div className="flex justify-end">
-                <div className="bg-[#2E7D32] text-white rounded-[16px] rounded-tr-none p-3 text-sm ml-auto max-w-[85%] shadow-xs leading-relaxed">
+              <div className="flex flex-col items-end">
+                <div className="bg-[#2E7D32] text-white rounded-[16px] rounded-tr-none p-3.5 text-sm ml-auto max-w-[85%] shadow-xs leading-relaxed">
                   Bữa sáng đơn giản, 10 phút nấu nhanh và giàu đạm thực vật?
                 </div>
+                <span className="text-[10px] text-gray-400 mt-1 mr-1 font-medium">08:30</span>
               </div>
 
               {/* Tin nhắn AI trả lời mẫu */}
-              <div className="bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none p-4 text-sm mt-3 leading-relaxed space-y-1 border border-[#C8E6C9]/60">
-                <p className="font-semibold text-[#2E7D32]">
-                  Chào bạn! Gợi ý bữa sáng nhanh &amp; giàu đạm cho bạn:
-                </p>
-                <p>• Smoothie chuối, yến mạch &amp; bơ đậu phộng (~22g protein)</p>
-                <p>• Đậu hũ non xào nấm ăn kèm bánh mì nguyên cám (~18g protein)</p>
-                <p className="text-[12px] text-[#6B7280] pt-1">
-                  Thời gian thực hiện chỉ khoảng 8 – 10 phút, cung cấp năng lượng dồi dào cho ngày mới!
-                </p>
+              <div className="mt-3 flex flex-col items-start">
+                <div className="bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none p-4 text-sm leading-relaxed space-y-1.5 border border-[#C8E6C9]/60">
+                  <p className="font-semibold text-[#2E7D32]">
+                    Chào bạn! Gợi ý bữa sáng nhanh &amp; giàu đạm cho bạn:
+                  </p>
+                  <p>• Sinh tố chuối, yến mạch và hạt chia. (22g protein)</p>
+                  <p>• Đậu hũ non xào nấm ăn kèm bánh mì nguyên cám (~18g protein)</p>
+                  <p className="text-[12px] text-[#6B7280] pt-1">
+                    Thời gian thực hiện chỉ khoảng 8 – 10 phút, cung cấp năng lượng dồi dào cho ngày mới!
+                  </p>
+                </div>
+                <span className="text-[10px] text-gray-400 mt-1 ml-1 font-medium">08:31</span>
               </div>
 
               {/* Input giả lập ở dưới */}

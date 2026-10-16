@@ -40,8 +40,8 @@ export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlog
         tags: ['Ăn chay', 'Sức khỏe'],
       }))
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[recipeApi.getRelatedArticles] Lỗi khi gọi /api/articles?pageSize=3', err);
   }
   return []
 }
@@ -66,8 +66,8 @@ export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoC
         channel: 'Bếp Chay An Nhiên',
       }))
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[recipeApi.getRelatedVideos] Lỗi khi gọi /api/videos?pageSize=3', err);
   }
   return []
 }
@@ -94,8 +94,8 @@ export async function getRelatedRestaurants(_recipeId: string): Promise<RelatedR
         distanceKm: r.distanceKm ? Number(r.distanceKm) : 1.5,
       }))
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[recipeApi.getRelatedRestaurants] Lỗi khi gọi /api/restaurants?pageSize=2', err);
   }
   return []
 }
@@ -269,14 +269,39 @@ interface BackendRecipePage {
   totalCount: number
 }
 
+const DIVERSE_RECIPE_IMAGES = [
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80',
+]
+
+function getFallbackRecipeImage(id: string, name?: string): string {
+  const str = `${id}-${name || ''}`
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i)
+    hash |= 0
+  }
+  return DIVERSE_RECIPE_IMAGES[Math.abs(hash) % DIVERSE_RECIPE_IMAGES.length]
+}
+
 function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   const cookMin = summary.cookTimeMinutes || 20
   const prepMin = summary.prepTimeMinutes || 10
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
   const { dietType, dietCategory } = resolveDietType(summary.dietaryAssessments, summary.name)
-  const fallbackImg =
-    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'
-  const img = summary.imageUrl || fallbackImg
+  const img =
+    summary.imageUrl && !summary.imageUrl.includes('photo-1546069901-ba9599a7e63c')
+      ? summary.imageUrl
+      : getFallbackRecipeImage(summary.id, summary.name)
 
   return {
     id: summary.id,
@@ -323,9 +348,10 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   const prepMin = detail.prepTimeMinutes || 10
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
   const { dietType, dietCategory } = resolveDietType(detail.dietaryAssessments, detail.name)
-  const fallbackImg =
-    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'
-  const img = detail.imageUrl || fallbackImg
+  const img =
+    detail.imageUrl && !detail.imageUrl.includes('photo-1546069901-ba9599a7e63c')
+      ? detail.imageUrl
+      : getFallbackRecipeImage(detail.id, detail.name)
 
   const rawSteps = detail.instructions
     ? detail.instructions
@@ -349,10 +375,18 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
     note: ing.note || '',
   }))
 
+  const rawDesc = detail.description || ''
+  const isMockDesc =
+    rawDesc.includes('minh họa để kiểm thử') ||
+    rawDesc.includes('không phải dữ liệu dinh dưỡng đã xác minh')
+  const description = isMockDesc
+    ? `Công thức ${detail.name} thanh đạm, dinh dưỡng cân bằng.`
+    : rawDesc || `Công thức ${detail.name} thanh đạm, dinh dưỡng cân bằng.`
+
   return {
     id: detail.id,
     title: detail.name,
-    description: detail.description || `Công thức ${detail.name} thanh đạm, dinh dưỡng cân bằng.`,
+    description,
     category: detail.categoryName,
     dietType,
     prepTime: `${prepMin} phút`,
@@ -393,393 +427,6 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   }
 }
 
-// ---------- Mock Recipes Fallback Data (4 Core Diet Types) ----------
-export const MOCK_RECIPES: Recipe[] = [
-  {
-    id: '10000000-0000-0000-0000-000000000201',
-    title: 'Cơm đậu hũ sốt nấm hương',
-    description: 'Món ăn thuần chay đậm đà từ đậu hũ non mềm mịn sốt cùng nấm hương tươi và tiêu đen cay nhẹ.',
-    category: 'Món chính',
-    dietType: 'Thuần chay (Vegan)',
-    dietCategory: 'vegan',
-    difficulty: 'easy',
-    prepTimeMinutes: 10,
-    cookTimeMinutes: 20,
-    prepTime: '10 phút',
-    cookTime: '20 phút',
-    totalTime: '30 phút',
-    servings: 2,
-    servingSize: 2,
-    calories: 320,
-    protein: 18,
-    carbs: 35,
-    fat: 9,
-    plantRatio: '100%',
-    imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-    coverImage: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-    isFavorite: false,
-    favoriteCount: 128,
-    viewCount: 1420,
-    authorName: 'Bếp Chay An Yên',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    tags: ['Món chính', 'Thuần chay (Vegan)', 'Giàu đạm thực vật'],
-    ingredients: [
-      { id: '1', name: 'Đậu hũ non', amount: 300, unit: 'g', note: 'cắt miếng vuông vừa ăn' },
-      { id: '2', name: 'Nấm hương tươi', amount: 100, unit: 'g', note: 'rửa sạch, cắt lát' },
-      { id: '3', name: 'Hành boaro', amount: 20, unit: 'g', note: 'băm nhỏ' },
-      { id: '4', name: 'Nước tương chay', amount: 2, unit: 'muỗng canh', note: 'loại ngon' },
-      { id: '5', name: 'Dầu hào chay', amount: 1, unit: 'muỗng canh' },
-      { id: '6', name: 'Dầu mè', amount: 1, unit: 'muỗng cà phê' },
-    ],
-    steps: [
-      {
-        stepNo: 1,
-        title: 'Sơ chế nguyên liệu',
-        description: 'Đậu hũ ngâm nước muối loãng 5 phút, vớt ra thấm ráo nước rồi áp chảo vàng nhẹ các mặt.',
-      },
-      {
-        stepNo: 2,
-        title: 'Xào nấm và làm sốt',
-        description: 'Phi thơm hành boaro với chút dầu ăn, cho nấm hương vào xào chín tới trong 3 phút, sau đó cho nước tương và dầu hào chay vào đảo đều.',
-      },
-      {
-        stepNo: 3,
-        title: 'Rim đậu hũ',
-        description: 'Cho đậu hũ vào chảo sốt nấm, hạ nhỏ lửa rim 5-7 phút cho ngấm gia vị. Rắc thêm chút tiêu và rưới dầu mè trước khi tắt bếp.',
-      },
-    ],
-    nutrition: {
-      kcal: 320,
-      proteinG: 18,
-      carbsG: 35,
-      fatG: 9,
-      fiberG: 5,
-    },
-    publishedAt: '2026-03-15T08:00:00Z',
-    relatedBlogs: [],
-    relatedVideos: [],
-    relatedRestaurants: [],
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000203',
-    title: 'Cháo sữa yến mạch hạt sen',
-    description: 'Cháo sữa ấm áp bổ dưỡng kết hợp yến mạch thơm bùi, hạt sen ngọt mát và sữa tươi thanh nhẹ.',
-    category: 'Món phụ',
-    dietType: 'Ăn chay có sữa (Lacto)',
-    dietCategory: 'lacto',
-    difficulty: 'easy',
-    prepTimeMinutes: 5,
-    cookTimeMinutes: 25,
-    prepTime: '5 phút',
-    cookTime: '25 phút',
-    totalTime: '30 phút',
-    servings: 2,
-    servingSize: 2,
-    calories: 250,
-    protein: 12,
-    carbs: 42,
-    fat: 6,
-    plantRatio: '95%',
-    imageUrl: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80',
-    coverImage: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80',
-    isFavorite: false,
-    favoriteCount: 94,
-    viewCount: 890,
-    authorName: 'Bếp Chay An Yên',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    tags: ['Món phụ', 'Ăn chay có sữa (Lacto)', 'Yến mạch'],
-    ingredients: [
-      { id: '1', name: 'Yến mạch cán dẹt', amount: 80, unit: 'g' },
-      { id: '2', name: 'Sữa tươi thanh trùng', amount: 200, unit: 'ml', note: 'không đường hoặc ít đường' },
-      { id: '3', name: 'Hạt sen tươi', amount: 50, unit: 'g', note: 'bỏ tâm sen' },
-      { id: '4', name: 'Nước lọc', amount: 250, unit: 'ml' },
-      { id: '5', name: 'Muối hồng', amount: 1, unit: 'nhúm nhỏ' },
-    ],
-    steps: [
-      {
-        stepNo: 1,
-        title: 'Nấu mềm hạt sen',
-        description: 'Cho hạt sen và nước lọc vào nồi đun sôi, hạ lửa nhỏ hầm 15 phút cho đến khi hạt sen chín mềm bùi.',
-      },
-      {
-        stepNo: 2,
-        title: 'Nấu yến mạch',
-        description: 'Cho yến mạch vào nồi hạt sen, khuấy đều trên lửa vừa trong 5 phút đến khi cháo sánh mịn.',
-      },
-      {
-        stepNo: 3,
-        title: 'Hòa quyện sữa tươi',
-        description: 'Rót sữa tươi vào cháo, nêm nhúm muối nhỏ, đun liu riu thêm 2 phút rồi múc ra bát thưởng thức khi còn ấm.',
-      },
-    ],
-    nutrition: {
-      kcal: 250,
-      proteinG: 12,
-      carbsG: 42,
-      fatG: 6,
-      fiberG: 4,
-    },
-    publishedAt: '2026-03-20T08:00:00Z',
-    relatedBlogs: [],
-    relatedVideos: [],
-    relatedRestaurants: [],
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000202',
-    title: 'Cơm trứng cuộn rong biển',
-    description: 'Món ăn chay có trứng thơm lừng, lớp trứng vàng óng cuộn cùng rong biển giòn tan và cơm dẻo thơm.',
-    category: 'Món chính',
-    dietType: 'Chay có trứng (Ovo)',
-    dietCategory: 'ovo',
-    difficulty: 'easy',
-    prepTimeMinutes: 5,
-    cookTimeMinutes: 15,
-    prepTime: '5 phút',
-    cookTime: '15 phút',
-    totalTime: '20 phút',
-    servings: 1,
-    servingSize: 1,
-    calories: 350,
-    protein: 16,
-    carbs: 45,
-    fat: 11,
-    plantRatio: '85%',
-    imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-    coverImage: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-    isFavorite: false,
-    favoriteCount: 112,
-    viewCount: 1100,
-    authorName: 'Bếp Chay An Yên',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    tags: ['Món chính', 'Chay có trứng (Ovo)', 'Tiện lợi'],
-    ingredients: [
-      { id: '1', name: 'Trứng gà', amount: 2, unit: 'quả' },
-      { id: '2', name: 'Cơm trắng', amount: 1, unit: 'chén nhỏ' },
-      { id: '3', name: 'Lá rong biển nướng', amount: 2, unit: 'lá' },
-      { id: '4', name: 'Hành hoa', amount: 10, unit: 'g', note: 'thái nhỏ' },
-      { id: '5', name: 'Gia vị chay', amount: 1, unit: 'chút xíu' },
-    ],
-    steps: [
-      {
-        stepNo: 1,
-        title: 'Đánh trứng',
-        description: 'Đập trứng ra bát, cho hành hoa và chút hạt nêm chay vào đánh đều tay.',
-      },
-      {
-        stepNo: 2,
-        title: 'Rán và cuộn',
-        description: 'Quét dầu vào chảo chống dính, đổ một lớp trứng mỏng rồi đặt lá rong biển lên trên và cuộn tròn khéo léo.',
-      },
-      {
-        stepNo: 3,
-        title: 'Hoàn thiện đĩa cơm',
-        description: 'Cắt cuộn trứng thành từng khoanh đều tay và xếp bên cạnh chén cơm nóng.',
-      },
-    ],
-    nutrition: {
-      kcal: 350,
-      proteinG: 16,
-      carbsG: 45,
-      fatG: 11,
-      fiberG: 2,
-    },
-    publishedAt: '2026-03-25T08:00:00Z',
-    relatedBlogs: [],
-    relatedVideos: [],
-    relatedRestaurants: [],
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000204',
-    title: 'Trứng sữa hấp nấm phô mai',
-    description: 'Sự kết hợp hoàn hảo giữa vị béo ngậy của sữa tươi, độ mịn mượt của trứng hấp và hương thơm nấm tươi.',
-    category: 'Món phụ',
-    dietType: 'Trứng & Sữa (Lacto-ovo)',
-    dietCategory: 'ovo-lacto',
-    difficulty: 'easy',
-    prepTimeMinutes: 5,
-    cookTimeMinutes: 15,
-    prepTime: '5 phút',
-    cookTime: '15 phút',
-    totalTime: '20 phút',
-    servings: 2,
-    servingSize: 2,
-    calories: 200,
-    protein: 14,
-    carbs: 8,
-    fat: 12,
-    plantRatio: '60%',
-    imageUrl: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=800&q=80',
-    coverImage: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=800&q=80',
-    isFavorite: false,
-    favoriteCount: 76,
-    viewCount: 650,
-    authorName: 'Bếp Chay An Yên',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    tags: ['Món phụ', 'Trứng & Sữa (Lacto-ovo)', 'Mềm mịn'],
-    ingredients: [
-      { id: '1', name: 'Trứng gà', amount: 2, unit: 'quả' },
-      { id: '2', name: 'Sữa tươi không đường', amount: 150, unit: 'ml' },
-      { id: '3', name: 'Nấm đùi gà baby', amount: 50, unit: 'g', note: 'xắt hạt lựu' },
-      { id: '4', name: 'Phô mai sợi', amount: 20, unit: 'g' },
-    ],
-    steps: [
-      {
-        stepNo: 1,
-        title: 'Khuấy hỗn hợp trứng sữa',
-        description: 'Đánh tan trứng cùng sữa tươi, lọc qua rây để trứng mịn mượt không bị bọt khí.',
-      },
-      {
-        stepNo: 2,
-        title: 'Thêm nấm và phô mai',
-        description: 'Xếp nấm vào thố chịu nhiệt, rót hỗn hợp trứng sữa vào rồi rắc phô mai lên trên mặt.',
-      },
-      {
-        stepNo: 3,
-        title: 'Hấp cách thủy',
-        description: 'Đậy nắp thố và hấp lửa vừa trong 12-15 phút đến khi trứng đông mịn như thạch.',
-      },
-    ],
-    nutrition: {
-      kcal: 200,
-      proteinG: 14,
-      carbsG: 8,
-      fatG: 12,
-      fiberG: 1,
-    },
-    publishedAt: '2026-03-28T08:00:00Z',
-    relatedBlogs: [],
-    relatedVideos: [],
-    relatedRestaurants: [],
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000205',
-    title: 'Sữa ấm mật ong quế',
-    description: 'Thức uống an thần nhẹ nhàng giúp thư giãn buổi tối với sữa tươi ấm béo ngậy và mật ong ngọt thanh.',
-    category: 'Đồ uống',
-    dietType: 'Ăn chay có sữa (Lacto)',
-    dietCategory: 'lacto',
-    difficulty: 'easy',
-    prepTimeMinutes: 5,
-    cookTimeMinutes: 5,
-    prepTime: '5 phút',
-    cookTime: '5 phút',
-    totalTime: '10 phút',
-    servings: 1,
-    servingSize: 1,
-    calories: 150,
-    protein: 8,
-    carbs: 22,
-    fat: 5,
-    plantRatio: '70%',
-    imageUrl: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=800&q=80',
-    coverImage: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=800&q=80',
-    isFavorite: false,
-    favoriteCount: 65,
-    viewCount: 540,
-    authorName: 'Bếp Chay An Yên',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    tags: ['Đồ uống', 'Ăn chay có sữa (Lacto)', 'Thư giãn'],
-    ingredients: [
-      { id: '1', name: 'Sữa tươi nguyên kem', amount: 200, unit: 'ml' },
-      { id: '2', name: 'Mật ong nguyên chất', amount: 1, unit: 'muỗng canh' },
-      { id: '3', name: 'Bột quế', amount: 1, unit: 'nhúm nhỏ' },
-    ],
-    steps: [
-      {
-        stepNo: 1,
-        title: 'Hâm nóng sữa',
-        description: 'Cho sữa vào nồi nhỏ đun trên lửa liu riu đến khoảng 60 độ C (không để sôi sùng sục).',
-      },
-      {
-        stepNo: 2,
-        title: 'Khuấy mật ong',
-        description: 'Rót sữa ra ly, cho mật ong vào khuấy đều cho tan hoàn toàn.',
-      },
-      {
-        stepNo: 3,
-        title: 'Thưởng thức',
-        description: 'Rắc một chút bột quế lên trên lớp bọt sữa và thưởng thức ngay khi còn ấm.',
-      },
-    ],
-    nutrition: {
-      kcal: 150,
-      proteinG: 8,
-      carbsG: 22,
-      fatG: 5,
-      fiberG: 0,
-    },
-    publishedAt: '2026-03-30T08:00:00Z',
-    relatedBlogs: [],
-    relatedVideos: [],
-    relatedRestaurants: [],
-  },
-  {
-    id: 'dau-hu-sot-nam',
-    title: 'Đậu hũ sốt nấm hương',
-    description: 'Món ăn thuần chay đậm đà từ đậu hũ non mềm mịn sốt cùng nấm hương tươi và tiêu đen cay nhẹ.',
-    category: 'Món chính',
-    dietType: 'Thuần chay (Vegan)',
-    dietCategory: 'vegan',
-    difficulty: 'easy',
-    prepTimeMinutes: 10,
-    cookTimeMinutes: 20,
-    prepTime: '10 phút',
-    cookTime: '20 phút',
-    totalTime: '30 phút',
-    servings: 2,
-    servingSize: 2,
-    calories: 320,
-    protein: 18,
-    carbs: 35,
-    fat: 9,
-    plantRatio: '100%',
-    imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-    coverImage: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-    isFavorite: false,
-    favoriteCount: 128,
-    viewCount: 1420,
-    authorName: 'Bếp Chay An Yên',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    tags: ['Món chính', 'Thuần chay (Vegan)', 'Giàu đạm thực vật'],
-    ingredients: [
-      { id: '1', name: 'Đậu hũ non', amount: 300, unit: 'g', note: 'cắt miếng vuông vừa ăn' },
-      { id: '2', name: 'Nấm hương tươi', amount: 100, unit: 'g', note: 'rửa sạch, cắt lát' },
-      { id: '3', name: 'Hành boaro', amount: 20, unit: 'g', note: 'băm nhỏ' },
-      { id: '4', name: 'Nước tương chay', amount: 2, unit: 'muỗng canh' },
-      { id: '5', name: 'Dầu hào chay', amount: 1, unit: 'muỗng canh' },
-      { id: '6', name: 'Dầu mè', amount: 1, unit: 'muỗng cà phê' },
-    ],
-    steps: [
-      {
-        stepNo: 1,
-        title: 'Sơ chế nguyên liệu',
-        description: 'Đậu hũ ngâm nước muối loãng 5 phút, vớt ra thấm ráo nước rồi áp chảo vàng nhẹ các mặt.',
-      },
-      {
-        stepNo: 2,
-        title: 'Xào nấm và làm sốt',
-        description: 'Phi thơm hành boaro với chút dầu ăn, cho nấm hương vào xào chín tới trong 3 phút, sau đó cho nước tương và dầu hào chay vào đảo đều.',
-      },
-      {
-        stepNo: 3,
-        title: 'Rim đậu hũ',
-        description: 'Cho đậu hũ vào chảo sốt nấm, hạ nhỏ lửa rim 5-7 phút cho ngấm gia vị. Rắc thêm chút tiêu và rưới dầu mè trước khi tắt bếp.',
-      },
-    ],
-    nutrition: {
-      kcal: 320,
-      proteinG: 18,
-      carbsG: 35,
-      fatG: 9,
-      fiberG: 5,
-    },
-    publishedAt: '2026-03-15T08:00:00Z',
-    relatedBlogs: [],
-    relatedVideos: [],
-    relatedRestaurants: [],
-  },
-]
-
 // ---------- Public API ----------
 export async function getRecipes(
   inputFilter: Partial<RecipeListFilter> = {},
@@ -801,11 +448,12 @@ export async function getRecipes(
   params.set('pageNumber', '1')
   params.set('pageSize', '50')
 
+  const url = `/api/recipes?${params.toString()}`
   try {
-    const res = await apiClient.get<BackendRecipePage>(`/api/recipes?${params.toString()}`, {
+    const res = await apiClient.get<BackendRecipePage>(url, {
       requiresAuth: false,
     })
-    if (res && Array.isArray(res.items) && res.items.length > 0) {
+    if (res && Array.isArray(res.items)) {
       const items = res.items.map(mapSummaryToRecipe)
       return {
         items,
@@ -813,50 +461,33 @@ export async function getRecipes(
         appliedFilter: applied,
       }
     }
-  } catch {
-    // API error
-  }
-
-  // Fallback to MOCK_RECIPES
-  let filtered = [...MOCK_RECIPES]
-  if (applied.search?.trim()) {
-    const q = applied.search.toLowerCase()
-    filtered = filtered.filter((r) => r.title.toLowerCase().includes(q))
-  }
-  if (applied.diet !== 'all') {
-    filtered = filtered.filter((r) => r.dietCategory === applied.diet)
+  } catch (err) {
+    console.error(`[recipeApi.getRecipes] Lỗi khi gọi API: ${url}`, err)
+    throw err
   }
 
   return {
-    items: filtered,
-    totalCount: filtered.length,
+    items: [],
+    totalCount: 0,
     appliedFilter: applied,
   }
 }
 
 export async function getRecipeDetail(id: string): Promise<Recipe | null> {
+  const url = `/api/recipes/${id}`
   try {
-    const detail = await apiClient.get<BackendRecipeResponse>(`/api/recipes/${id}`, {
+    const detail = await apiClient.get<BackendRecipeResponse>(url, {
       requiresAuth: false,
     })
     if (detail && detail.id) {
       return mapDetailToRecipe(detail)
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error(`[recipeApi.getRecipeDetail] Lỗi khi gọi API: ${url}`, err)
+    return null
   }
 
-  // Fallback to mock recipes by id, suffix or title
-  const cleanId = id.toLowerCase()
-  const matched =
-    MOCK_RECIPES.find(
-      (m) =>
-        m.id.toLowerCase() === cleanId ||
-        cleanId.endsWith(m.id.toLowerCase()) ||
-        m.id.toLowerCase().endsWith(cleanId),
-    ) || MOCK_RECIPES[0]
-
-  return matched ? { ...matched } : null
+  return null
 }
 
 export async function toggleFavorite(

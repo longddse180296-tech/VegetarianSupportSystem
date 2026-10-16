@@ -30,10 +30,6 @@ import {
   uploadVideo,
 } from './api/videoApi'
 
-/* ---------- Unified 500 ms delay helper (AGENTS §3 rule) ---------- */
-const delay = <T,>(data: T, ms = 500): Promise<T> =>
-  new Promise((resolve) => window.setTimeout(() => resolve(data), ms))
-
 /* ====================================================================== */
 /* Legacy names used by the `release` branch (VideoList.tsx import path). */
 /* ====================================================================== */
@@ -45,10 +41,7 @@ const delay = <T,>(data: T, ms = 500): Promise<T> =>
 export async function fetchVideos(
   filter: Partial<VideoListFilter> = {},
 ): Promise<VideoListResponse> {
-  // Ensure minimum async latency even if upstream helper changes default later.
-  const result = await getVideos(filter)
-  await new Promise<void>((resolve) => window.setTimeout(resolve, 500))
-  return result
+  return getVideos(filter)
 }
 
 /**
@@ -72,8 +65,7 @@ export async function generateAiPlaylist(
   }
   // Keep playlist size proportional to `t` clamped.
   const take = Math.max(1, Math.min(mix.length, Math.ceil(Math.max(0, t) / 60) || 6))
-  const chosen = mix.slice(0, take)
-  return delay(chosen, 500)
+  return mix.slice(0, take)
 }
 
 /* ====================================================================== */

@@ -26,11 +26,11 @@ export const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
       case 'vegan':
         return 'Thuần chay (Vegan)'
       case 'lacto':
-        return 'Chay có sữa (Lacto-Vegetarian)'
+        return 'Ăn chay có sữa (Lacto)'
       case 'ovo':
-        return 'Chay có trứng (Ovo-Vegetarian)'
+        return 'Chay có trứng (Ovo)'
       case 'lacto-ovo':
-        return 'Trứng & Sữa (Lacto-Ovo Vegetarian)'
+        return 'Trứng & Sữa (Lacto-ovo)'
       default:
         return 'Ăn chay'
     }

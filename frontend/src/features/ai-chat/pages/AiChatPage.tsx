@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import {
+  AlertCircle,
+  ChevronDown,
   Clock,
   HelpCircle,
   History as HistoryIcon,
   Leaf,
   Lock,
   LogIn,
+  Pencil,
   RefreshCw,
   Scan,
   Send as SendIcon,
@@ -16,6 +19,7 @@ import {
 } from 'lucide-react'
 
 import { Button, Modal } from '../../../shared/components'
+import Markdown from 'react-markdown'
 import { useAuth } from '../../auth'
 import {
   buildUserMessage,
@@ -39,6 +43,11 @@ interface AiChatPageProps {
   isLoggedIn?: boolean
 }
 
+const EXTRA_FAQS: FaqItem[] = [
+  { id: 'f-4', icon: 'HelpCircle', question: 'Cách bổ sung Vitamin B12 cho người ăn chay?' },
+  { id: 'f-5', icon: 'HelpCircle', question: 'Gợi ý các loại hạt giàu Omega-3?' },
+]
+
 export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) {
   const { user } = useAuth()
   const appRole: AppRole = isLoggedIn || !!user ? 'User' : 'Guest'
@@ -55,6 +64,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
   const [isBotBusy, setIsBotBusy] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showMoreFaqs, setShowMoreFaqs] = useState(false)
 
   // Sidebar data from API
   const [profileFields, setProfileFields] = useState<PersonalProfileField[]>([])
@@ -189,9 +199,24 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
         20,
       )
       cancelStreamRef.current = stopStream
-    } catch {
+    } catch (err: unknown) {
+      console.error('[AiChatPage] Send error:', err)
       setIsBotBusy(false)
       setStreamingMessageId(null)
+      const errorMsg =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại.'
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-error-${Date.now()}`,
+          sender: 'assistant',
+          role: 'assistant',
+          content: `⚠️ ${errorMsg}`,
+          timestamp: new Date().toISOString(),
+        },
+      ])
     }
   }
 
@@ -238,7 +263,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
           <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-[#111827]">
             Trợ lý dinh dưỡng AI
           </h1>
-          <p className="text-[14px] sm:text-[15px] text-[#6B7280] max-w-[720px]">
+          <p className="text-[14px] sm:text-[15px] text-gray-600 max-w-[720px] font-normal leading-relaxed">
             Hỏi đáp về dinh dưỡng chay, nguyên liệu thay thế, BMI, calo và nhận gợi ý bữa ăn khoa học được cá nhân hóa cho bạn.
           </p>
         </header>
@@ -292,7 +317,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                   <div className="h-28 w-5/6 bg-slate-100 animate-pulse rounded-[12px]" />
                 </div>
               ) : (
-                messages.map((m) =>
+                messages.map((m, idx) =>
                   m.role === 'user' ? (
                     <div key={m.id} className="flex justify-end items-start gap-2.5">
                       <div className="rounded-[16px] rounded-tr-none bg-[#2E7D32] px-4 py-3 text-[14px] text-white shadow-sm max-w-[82%] leading-relaxed">
@@ -310,11 +335,35 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                       <div className="flex-1 space-y-3.5 max-w-[90%]">
                         {/* Text bubble */}
                         <div className="rounded-[16px] rounded-tl-none bg-[#E8F5E9] border border-[#C8E6C9] p-4 text-[14px] leading-relaxed text-[#1F2937]">
-                          <p className="whitespace-pre-wrap">{m.content}</p>
+                          <div className="prose prose-sm max-w-none text-[#1F2937] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-bold">
+                            <Markdown>{m.content}</Markdown>
+                          </div>
                           {streamingMessageId === m.id && (
                             <span className="inline-block h-3.5 w-1.5 animate-pulse bg-[#2E7D32] ml-1 align-middle" />
                           )}
                         </div>
+
+                        {/* Quick action chips under welcome message */}
+                        {idx === 0 && (
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            <span className="text-[12px] font-medium text-slate-500">Gợi ý nhanh:</span>
+                            {[
+                              'Tạo thực đơn hôm nay',
+                              'Phân tích món này',
+                              'Tính BMI cho tôi',
+                            ].map((chip) => (
+                              <button
+                                key={chip}
+                                type="button"
+                                onClick={() => void handleSend(chip)}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-800 shadow-2xs hover:border-emerald-500 hover:bg-emerald-50 hover:shadow-xs transition-all active:scale-95 cursor-pointer"
+                              >
+                                <Sparkles size={12} className="text-emerald-600 shrink-0" />
+                                <span>{chip}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Special Rich Component: Thước đo chuẩn Châu Á */}
                         {m.bmiAnalysis && (
@@ -421,6 +470,23 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                   ),
                 )
               )}
+
+              {/* Bot thinking / typing indicator */}
+              {isBotBusy && !streamingMessageId && (
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2E7D32] text-white shadow-sm">
+                    <Leaf size={16} className="fill-white" />
+                  </div>
+                  <div className="rounded-[16px] rounded-tl-none bg-[#E8F5E9] border border-[#C8E6C9] px-4 py-3 text-[14px] text-[#1F2937] flex items-center gap-2.5">
+                    <span className="text-xs text-emerald-800 font-medium">Trợ lý AI đang suy nghĩ...</span>
+                    <span className="flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Input & Control Footer */}
@@ -451,23 +517,31 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                   <Scan size={18} />
                 </button>
 
-                {/* Send Button */}
+                {/* Send Button with anti-spam disabled and loading state */}
                 <button
                   type="button"
                   disabled={isBotBusy || !draft.trim() || guestState.locked}
                   onClick={() => void handleSend()}
-                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#2E7D32] hover:bg-[#1B5E20] text-white disabled:opacity-50 transition"
+                  aria-label="Gửi câu hỏi"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#2E7D32] hover:bg-[#1B5E20] text-white disabled:opacity-50 transition cursor-pointer disabled:cursor-not-allowed"
                 >
-                  <SendIcon size={16} />
+                  {isBotBusy ? (
+                    <RefreshCw size={15} className="animate-spin" />
+                  ) : (
+                    <SendIcon size={16} />
+                  )}
                 </button>
               </div>
 
               {/* Footnote */}
-              <div className="mt-2.5 flex flex-wrap items-center justify-between text-[11px] text-[#6B7280]">
-                <span>
-                  ⓘ AI chỉ cung cấp kiến thức dinh dưỡng thực vật thường thức, không thay thế chẩn đoán hay điều trị y khoa.
-                </span>
-                <span className="font-medium text-[#4B5563]">Nhấn Enter để gửi</span>
+              <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[12px] text-gray-500">
+                <div className="flex items-center gap-1.5 font-medium text-gray-600">
+                  <AlertCircle size={14} className="text-amber-600 shrink-0" />
+                  <span>
+                    AI chỉ cung cấp kiến thức dinh dưỡng thực vật thường thức, không thay thế chẩn đoán hay điều trị y khoa.
+                  </span>
+                </div>
+                <span className="font-medium text-gray-500 text-[11px]">Nhấn Enter để gửi</span>
               </div>
             </div>
           </section>
@@ -475,9 +549,9 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
           {/* =========================================================
            * CỘT PHẢI (SIDEBAR THÔNG TIN): lg:col-span-4
            * ========================================================= */}
-          <aside className="lg:col-span-4 flex flex-col gap-5">
+          <aside className="lg:col-span-4 flex flex-col gap-6">
             {/* Card 1: Chế độ trải nghiệm */}
-            <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F4F9F5] p-4 flex items-center gap-3.5 shadow-xs">
+            <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F4F9F5] p-4 flex items-start gap-3.5 shadow-xs">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-white text-[#2E7D32] shadow-xs border border-[#C8E6C9]">
                 <Clock size={20} />
               </div>
@@ -485,14 +559,23 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                 <div className="flex items-center gap-2 text-[14px] font-bold text-[#1F2937]">
                   <span>Chế độ trải nghiệm</span>
                   <span className="rounded-full bg-[#2E7D32] px-2 py-0.5 text-[10px] font-bold text-white">
-                    {appRole === 'Guest' ? `${guestState.questionsRemaining}/3` : 'VIP'}
+                    {appRole === 'Guest' ? `${guestState.questionsRemaining}/3` : 'Không giới hạn'}
                   </span>
                 </div>
                 <p className="text-[12px] text-[#6B7280] mt-0.5">
                   {appRole === 'Guest'
                     ? `Bạn còn ${guestState.questionsRemaining} lượt hỏi thử miễn phí hôm nay`
-                    : 'Trò chuyện không giới hạn'}
+                    : 'Trò chuyện không giới hạn lượt dùng'}
                 </p>
+                {appRole === 'Guest' && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate?.('/login')}
+                    className="mt-2 text-sm font-semibold text-[#2E7D32] hover:underline text-left block"
+                  >
+                    Đăng nhập để dùng không giới hạn
+                  </button>
+                )}
               </div>
             </div>
 
@@ -506,22 +589,23 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                 <button
                   type="button"
                   onClick={() => onNavigate?.('/profile')}
-                  className="text-[12px] font-bold text-[#2E7D32] hover:underline"
+                  className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#2E7D32] hover:underline"
                 >
-                  Chỉnh sửa
+                  <Pencil size={13} />
+                  <span>Chỉnh sửa</span>
                 </button>
               </div>
 
               <div className="space-y-3 text-[13px]">
                 {profileFields.map((f) => (
-                  <div key={f.key} className="flex items-center justify-between">
-                    <span className="text-[#6B7280]">{f.label}</span>
+                  <div key={f.key} className="flex items-center justify-between gap-2">
+                    <span className="text-[#6B7280] font-medium">{f.label}</span>
                     {f.key === 'diet' ? (
-                      <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
+                      <span className="rounded-full bg-[#E8F5E9] border border-[#C8E6C9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
                         {f.value}
                       </span>
                     ) : f.key === 'bmi' ? (
-                      <span className="rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
+                      <span className="rounded-full bg-[#E8F5E9] border border-[#C8E6C9] px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32]">
                         {f.value}
                       </span>
                     ) : f.key === 'allergy' ? (
@@ -531,10 +615,14 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                           {f.value}
                         </span>
                       ) : (
-                        <span className="font-semibold text-[#1F2937]">Không có</span>
+                        <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                          Không có
+                        </span>
                       )
                     ) : (
-                      <span className="font-semibold text-[#1F2937]">{f.value}</span>
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                        {f.value}
+                      </span>
                     )}
                   </div>
                 ))}
@@ -554,7 +642,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
               </div>
 
               <div className="space-y-2">
-                {faqs.map((faq) => (
+                {(showMoreFaqs ? [...faqs, ...EXTRA_FAQS] : faqs).map((faq) => (
                   <button
                     key={faq.id}
                     type="button"
@@ -566,6 +654,20 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                   </button>
                 ))}
               </div>
+
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowMoreFaqs((prev) => !prev)}
+                  className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#2E7D32] hover:underline transition-colors cursor-pointer"
+                >
+                  <span>{showMoreFaqs ? 'Thu gọn' : 'Xem thêm'}</span>
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform duration-200 ${showMoreFaqs ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              </div>
             </div>
 
             {/* Card 4: Lịch sử gần đây */}
@@ -575,26 +677,36 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
                   <HistoryIcon size={17} className="text-[#2E7D32]" />
                   <span>Lịch sử gần đây</span>
                 </div>
-                <span className="text-[11px] font-normal text-[#6B7280]">3 hội thoại</span>
+                <span className="text-[11px] font-normal text-[#6B7280]">
+                  {historyItems.length} hội thoại
+                </span>
               </div>
 
               <div className="space-y-2.5">
-                {historyItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => void handleSend(item.title)}
-                    className="w-full text-left p-2.5 rounded-[10px] hover:bg-[#F9FAFB] transition group"
-                  >
-                    <div className="text-[13px] font-bold text-[#1F2937] group-hover:text-[#2E7D32] line-clamp-1">
-                      {item.title}
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-[#6B7280] mt-1">
-                      <span>{item.messages} tin nhắn</span>
-                      <span>{item.dateLabel}</span>
-                    </div>
-                  </button>
-                ))}
+                {historyItems.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-slate-400">
+                    Chưa có lịch sử hội thoại nào.
+                  </div>
+                ) : (
+                  historyItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => void handleSend(item.title)}
+                      className="w-full text-left p-2.5 rounded-[10px] hover:bg-[#F9FAFB] transition group"
+                    >
+                      <div className="text-[13px] font-bold text-[#1F2937] group-hover:text-[#2E7D32] truncate max-w-full">
+                        {item.title}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-[#6B7280] mt-1">
+                        <span>{item.messages} tin nhắn</span>
+                        {item.dateLabel && item.dateLabel !== 'Mẫu gợi ý' ? (
+                          <span>{item.dateLabel}</span>
+                        ) : null}
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </aside>

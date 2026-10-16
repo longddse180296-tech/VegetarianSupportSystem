@@ -317,15 +317,16 @@ function mapBackendPantryItem(backendItem: BackendPantryItem): PantryItem {
 }
 
 export async function getPantryItems(category: PantryCategory | 'all' = 'all'): Promise<PantryItem[]> {
+  const url = '/api/pantry/items'
   try {
-    const backendItems = await apiClient.get<BackendPantryItem[]>('/api/pantry/items')
+    const backendItems = await apiClient.get<BackendPantryItem[]>(url)
     if (backendItems && Array.isArray(backendItems)) {
       const mapped = backendItems.map(mapBackendPantryItem)
       if (category === 'all') return mapped
       return mapped.filter((p) => p.category === category)
     }
-  } catch {
-    // Return empty list if not logged in or error
+  } catch (err) {
+    console.error('[pantryApi.getPantryItems] Lỗi khi gọi API: ' + url, err)
   }
 
   return []
@@ -350,10 +351,12 @@ export async function addPantryItem(form: AddIngredientFormState): Promise<Pantr
 }
 
 export async function deletePantryItem(id: string): Promise<{ deleted: boolean; remaining: number }> {
+  const url = `/api/pantry/items/${id}`
   try {
-    await apiClient.delete(`/api/pantry/items/${id}`)
+    await apiClient.delete(url)
     return { deleted: true, remaining: 0 }
-  } catch {
+  } catch (err) {
+    console.error('[pantryApi.deletePantryItem] Lỗi khi gọi API: ' + url, err)
     return { deleted: false, remaining: 0 }
   }
 }
@@ -362,8 +365,9 @@ export async function updatePantryItem(
   id: string,
   data: { name: string; quantity?: number; unit?: string },
 ): Promise<PantryItem | null> {
+  const url = `/api/pantry/items/${id}`
   try {
-    const updated = await apiClient.put<BackendPantryItem>(`/api/pantry/items/${id}`, {
+    const updated = await apiClient.put<BackendPantryItem>(url, {
       name: data.name.trim(),
       quantity: data.quantity ?? 1,
       unit: data.unit?.trim() || 'g',
@@ -372,16 +376,16 @@ export async function updatePantryItem(
       return mapBackendPantryItem(updated)
     }
     return null
-  } catch {
+  } catch (err) {
+    console.error('[pantryApi.updatePantryItem] Lỗi khi gọi API: ' + url, err)
     return null
   }
 }
 
 export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMatch[]> {
+  const url = '/api/pantry/recipe-suggestions'
   try {
-    const suggestions = await apiClient.get<BackendPantryRecipeSuggestion[]>(
-      '/api/pantry/recipe-suggestions',
-    )
+    const suggestions = await apiClient.get<BackendPantryRecipeSuggestion[]>(url)
     if (suggestions && Array.isArray(suggestions) && suggestions.length > 0) {
       return suggestions.map((s) => ({
         id: s.recipeId,
@@ -399,8 +403,8 @@ export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMat
         matchPercent: Math.round(Number(s.matchPercent)),
       }))
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[pantryApi.getRecipeMatches] Lỗi khi gọi API: ' + url, err)
   }
 
   return []
@@ -418,13 +422,12 @@ export interface PantrySubstitutionCandidate {
 export async function getSubstitutionCandidates(
   pantryItemId: string,
 ): Promise<PantrySubstitutionCandidate[]> {
+  const url = `/api/pantry/items/${pantryItemId}/substitution-candidates`
   try {
-    const res = await apiClient.get<PantrySubstitutionCandidate[]>(
-      `/api/pantry/items/${pantryItemId}/substitution-candidates`,
-    )
+    const res = await apiClient.get<PantrySubstitutionCandidate[]>(url)
     if (res && Array.isArray(res)) return res
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[pantryApi.getSubstitutionCandidates] Lỗi khi gọi API: ' + url, err)
   }
   return []
 }

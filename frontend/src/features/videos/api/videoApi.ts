@@ -197,139 +197,17 @@ function sortVideos(list: VideoItem[], sort: VideoSortOption): VideoItem[] {
 }
 
 // ---------- Public API ----------
-export const MOCK_VIDEOS: Video[] = [
-  {
-    id: 'vid-1',
-    title: 'Salad bơ đậu gà sốt mè rang tươi mát cho bữa trưa',
-    description:
-      'Món salad thanh đạm với sốt mè rang thơm béo, đậu gà bùi bùi giàu protein và xà lách tươi giòn.',
-    category: 'cooking-tutorial',
-    dietType: 'Thuần chay (Vegan)',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    thumbnailUrl:
-      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-    duration: '12:30',
-    durationSeconds: 750,
-    views: '1.5K',
-    viewCount: 1540,
-    author: {
-      name: 'Bếp Chay Tuệ Đức',
-      role: 'Đầu bếp chay',
-      avatar:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    },
-    creatorName: 'Bếp Chay Tuệ Đức',
-    creatorAvatar:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    createdAt: '2026-03-10',
-    likes: 120,
-    likeCount: 120,
-    shares: 24,
-    moderationStatus: 'approved',
-    tags: ['salad', 'đậu gà', 'sốt mè', 'thuần chay'],
-  },
-  {
-    id: 'vid-2',
-    title: 'Cà ri rau củ phô mai Paneer béo ngậy chuẩn vị Ấn',
-    description:
-      'Công thức cà ri rau củ kết hợp phô mai tươi Paneer béo ngậy, thảo mộc thơm lừng cho bữa tối ấm cúng.',
-    category: 'cooking-tutorial',
-    dietType: 'Ăn chay có sữa (Lacto)',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    thumbnailUrl:
-      'https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=800&q=80',
-    duration: '18:45',
-    durationSeconds: 1125,
-    views: '2.1K',
-    viewCount: 2100,
-    author: {
-      name: 'Minh An Chay',
-      role: 'Chuyên gia dinh dưỡng',
-      avatar:
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    },
-    creatorName: 'Minh An Chay',
-    creatorAvatar:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    createdAt: '2026-03-12',
-    likes: 185,
-    likeCount: 185,
-    shares: 31,
-    moderationStatus: 'approved',
-    tags: ['cà ri', 'paneer', 'phô mai', 'lacto'],
-  },
-  {
-    id: 'vid-3',
-    title: 'Cơm chiên hạt sen trứng vàng ươm tơi xốp thơm ngậy',
-    description:
-      'Cách làm cơm chiên chay kết hợp hạt sen tươi bùi bùi và trứng gà đánh tơi vàng ruộm chuẩn vị.',
-    category: 'cooking-tutorial',
-    dietType: 'Chay có trứng (Ovo)',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    thumbnailUrl:
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80',
-    duration: '14:20',
-    durationSeconds: 860,
-    views: '3.4K',
-    viewCount: 3400,
-    author: {
-      name: 'Cô Ba Nấu Chay',
-      role: 'Bếp gia đình',
-      avatar:
-        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
-    },
-    creatorName: 'Cô Ba Nấu Chay',
-    creatorAvatar:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
-    createdAt: '2026-03-14',
-    likes: 240,
-    likeCount: 240,
-    shares: 45,
-    moderationStatus: 'approved',
-    tags: ['cơm chiên', 'hạt sen', 'trứng', 'ovo'],
-  },
-  {
-    id: 'vid-4',
-    title: 'Bánh mì sandwich bơ trứng phô mai nướng giòn rụm',
-    description:
-      'Bữa sáng đầy đủ năng lượng với sandwich bơ nướng phô mai tan chảy và trứng ốp la béo ngậy.',
-    category: 'quick-recipe',
-    dietType: 'Trứng & Sữa (Lacto-ovo)',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    thumbnailUrl:
-      'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80',
-    duration: '10:15',
-    durationSeconds: 615,
-    views: '4.2K',
-    viewCount: 4200,
-    author: {
-      name: 'Bếp Chay Tuệ Đức',
-      role: 'Đầu bếp chay',
-      avatar:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    },
-    creatorName: 'Bếp Chay Tuệ Đức',
-    creatorAvatar:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    createdAt: '2026-03-15',
-    likes: 310,
-    likeCount: 310,
-    shares: 60,
-    moderationStatus: 'approved',
-    tags: ['sandwich', 'phô mai', 'trứng', 'lacto-ovo'],
-  },
-]
-
 export async function getVideos(
   inputFilter: Partial<VideoListFilter> = {},
 ): Promise<VideoListResponse> {
   const applied: VideoListFilter = { ...DEFAULT_VIDEO_FILTER, ...inputFilter }
+  const url = '/api/videos?page=1&pageSize=50'
 
   try {
-    const res = await apiClient.get<BackendVideoPage>('/api/videos?page=1&pageSize=50', {
+    const res = await apiClient.get<BackendVideoPage>(url, {
       requiresAuth: false,
     })
-    if (res && Array.isArray(res.items) && res.items.length > 0) {
+    if (res && Array.isArray(res.items)) {
       const mapped = res.items.map(mapBackendVideo)
       const items = applyFilter(mapped, applied)
       return {
@@ -338,27 +216,28 @@ export async function getVideos(
         appliedFilter: applied,
       }
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[videoApi.getVideos] Lỗi khi gọi API: ' + url, err)
   }
 
-  const fallbackItems = applyFilter(MOCK_VIDEOS, applied)
-  return { items: fallbackItems, totalCount: fallbackItems.length, appliedFilter: applied }
+  return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
 export async function getVideoDetail(id: string): Promise<Video | null> {
+  const url = `/api/videos/${id}`
   try {
-    const res = await apiClient.get<BackendVideoDetails>(`/api/videos/${id}`, {
+    const res = await apiClient.get<BackendVideoDetails>(url, {
       requiresAuth: false,
     })
     if (res && res.id) {
       return mapBackendVideo(res)
     }
-  } catch {
-    // Not found
+  } catch (err) {
+    console.error('[videoApi.getVideoDetail] Lỗi khi gọi API: ' + url, err)
+    return null
   }
 
-  return MOCK_VIDEOS.find((v) => v.id === id) ?? null
+  return null
 }
 
 export async function uploadVideo(form: UploadVideoFormState): Promise<Video> {

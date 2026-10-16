@@ -64,7 +64,7 @@ export default function ScanUploadPanel({
           2. Tải {isDish ? 'ảnh món ăn' : 'ảnh nhãn thành phần'}
         </h2>
         <p className="mt-1 text-xs text-[#6b7280]">
-          JPG, PNG hoặc WEBP, tối đa 10 MB. {isDish
+          JPG, PNG hoặc WEBP, tối đa 5 MB. {isDish
             ? 'Ảnh rõ món ăn giúp AI gợi ý nguyên liệu nhìn thấy.'
             : 'Chụp rõ toàn bộ bảng thành phần để OCR đọc được chữ.'}
         </p>

@@ -1,3 +1,4 @@
+import Markdown from 'react-markdown'
 import { Bot, User as UserIcon } from 'lucide-react'
 import type { ChatMessage } from '../types/aiChat.types'
 import { SuggestionCard } from './SuggestionCard'
@@ -57,7 +58,9 @@ export const ChatMessageView: React.FC<ChatMessageViewProps> = ({
             <Bot size={15} />
           </span>
           <div className="bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none px-4 py-3 text-[14px] leading-6 shadow-sm ring-1 ring-[#c8e6c9] max-w-[85%]">
-            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            <div className="prose prose-sm max-w-none text-[#1F2937] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic">
+              <Markdown>{message.content}</Markdown>
+            </div>
             {isStreaming && (
               <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-[#2e7d32]/60 align-[-2px]" />
             )}

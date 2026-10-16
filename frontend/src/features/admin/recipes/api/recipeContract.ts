@@ -5,10 +5,10 @@ export type DietaryType =
   | 'OvoVegetarian'
   | 'LactoOvoVegetarian'
 export const dietLabels: Record<DietaryType, string> = {
-  Vegan: 'Thuần chay',
-  LactoVegetarian: 'Chay có sữa',
-  OvoVegetarian: 'Chay có trứng',
-  LactoOvoVegetarian: 'Chay trứng sữa',
+  Vegan: 'Thuần chay (Vegan)',
+  LactoVegetarian: 'Ăn chay có sữa (Lacto)',
+  OvoVegetarian: 'Chay có trứng (Ovo)',
+  LactoOvoVegetarian: 'Trứng & Sữa (Lacto-ovo)',
 }
 export interface RecipeInput {
   categoryId: string

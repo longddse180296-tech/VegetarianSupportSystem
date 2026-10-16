@@ -141,16 +141,12 @@ export async function getChatHistoryFigma(): Promise<HistoryItem[]> {
           tone: idx === 0 ? 'recent' : idx === 1 ? 'mid' : 'old',
         }))
       }
-    } catch {
-      // offline
+    } catch (err) {
+      console.error('[aiChatApi.getChatHistoryFigma] Lỗi khi gọi /api/ai-chat/conversations?page=1&pageSize=5', err);
     }
   }
 
-  return [
-    { id: 'h-1', title: 'Thực đơn chay 7 ngày đủ protein', messages: 6, dateLabel: 'Mẫu gợi ý', tone: 'recent' },
-    { id: 'h-2', title: 'Món chay thay thế thịt cho người mới', messages: 4, dateLabel: 'Mẫu gợi ý', tone: 'mid' },
-    { id: 'h-3', title: 'Cách tính calo bữa ăn thuần thực vật', messages: 5, dateLabel: 'Mẫu gợi ý', tone: 'old' },
-  ]
+  return []
 }
 
 export async function getDefaultBmi(): Promise<BMIResult | null> {
@@ -281,40 +277,52 @@ export async function sendMessageToAi(
     }
 
     if (convId) {
-      const sub = await apiClient.post<{
-        userMessage: { id: string; content: string; createdAtUtc: string }
-        assistantMessage: { id: string; content: string; createdAtUtc: string } | null
-        answerStatus: string
-      }>(`/api/ai-chat/conversations/${convId}/messages`, { content })
+      const userMsgUrl = `/api/ai-chat/conversations/${convId}/messages`
+      try {
+        const sub = await apiClient.post<{
+          userMessage: { id: string; content: string; createdAtUtc: string }
+          assistantMessage: { id: string; content: string; createdAtUtc: string } | null
+          answerStatus: string
+        }>(userMsgUrl, { content })
 
-      if (sub?.assistantMessage?.content) {
-        return {
-          id: sub.assistantMessage.id || makeId(),
-          sender: 'assistant',
-          role: 'assistant',
-          content: sub.assistantMessage.content,
-          timestamp: sub.assistantMessage.createdAtUtc || new Date().toISOString(),
+        if (sub?.assistantMessage?.content) {
+          return {
+            id: sub.assistantMessage.id || makeId(),
+            sender: 'assistant',
+            role: 'assistant',
+            content: sub.assistantMessage.content,
+            timestamp: sub.assistantMessage.createdAtUtc || new Date().toISOString(),
+          }
         }
+      } catch (err) {
+        console.error('[aiChatApi.sendChatMessage] Lỗi khi gọi API: ' + userMsgUrl, err)
+        throw err
       }
     }
     throw new Error('Không thể nhận phản hồi từ AI lúc này. Vui lòng thử lại sau.')
   }
 
   // 2. Try real Guest message if guest
-  const guestRes = await apiClient.post<{
-    status: string
-    answer: string | null
-    remainingQuestions: number
-  }>('/api/ai-chat/guest/messages', { content }, { requiresAuth: false, credentials: 'include' })
+  const guestUrl = '/api/ai-chat/guest/messages'
+  try {
+    const guestRes = await apiClient.post<{
+      status: string
+      answer: string | null
+      remainingQuestions: number
+    }>(guestUrl, { content }, { requiresAuth: false, credentials: 'include' })
 
-  if (guestRes?.answer) {
-    return {
-      id: makeId(),
-      sender: 'assistant',
-      role: 'assistant',
-      content: guestRes.answer,
-      timestamp: new Date().toISOString(),
+    if (guestRes?.answer) {
+      return {
+        id: makeId(),
+        sender: 'assistant',
+        role: 'assistant',
+        content: guestRes.answer,
+        timestamp: new Date().toISOString(),
+      }
     }
+  } catch (err) {
+    console.error('[aiChatApi.sendChatMessage] Lỗi khi gọi API: ' + guestUrl, err)
+    throw err
   }
 
   throw new Error('Đã hết lượt câu hỏi của khách hoặc xảy ra lỗi kết nối AI.')
@@ -351,6 +359,7 @@ export async function getConversationMessages(
   const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)
   if (!isGuid || !getStoredToken()) return []
 
+  const convMsgsUrl = `/api/ai-chat/conversations/${conversationId}/messages?page=1&pageSize=50`
   try {
     const res = await apiClient.get<{
       items: Array<{
@@ -359,7 +368,7 @@ export async function getConversationMessages(
         content: string
         createdAtUtc: string
       }>
-    }>(`/api/ai-chat/conversations/${conversationId}/messages?page=1&pageSize=50`)
+    }>(convMsgsUrl)
 
     if (res && Array.isArray(res.items)) {
       return res.items.map((m) => {
@@ -373,8 +382,8 @@ export async function getConversationMessages(
         }
       })
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error("[aiChatApi.getConversationMessages] Lỗi khi gọi API: " + convMsgsUrl, err);
   }
-  return []
+  return [];
 }

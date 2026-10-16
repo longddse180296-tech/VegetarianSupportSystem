@@ -112,8 +112,11 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size === 0 || file.size > 10 * 1024 * 1024) {
-      setScanError('Chọn ảnh JPG, PNG hoặc WEBP tối đa 10 MB.')
+    const validExtensions = /\.(jpe?g|png|webp)$/i
+    const validMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
+    const isValidType = validMimes.includes(file.type) || validExtensions.test(file.name)
+    if (!isValidType || file.size === 0 || file.size > 5 * 1024 * 1024) {
+      setScanError('Chỉ hỗ trợ file ảnh định dạng JPG hoặc PNG với kích thước tối đa 5MB.')
       return
     }
     const reader = new FileReader()
@@ -161,7 +164,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
       }
       setTab('confirm')
     } catch (error) {
-      setScanError(error instanceof Error ? error.message : 'Không phân tích được ảnh.')
+      setScanError(error instanceof Error ? error.message : 'Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại.')
     } finally {
       setIsScanning(false)
     }
@@ -196,7 +199,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
       setResult(saved)
       setTab('result')
     } catch (error) {
-      setScanError(error instanceof Error ? error.message : 'Không lưu được kết quả quét.')
+      setScanError(error instanceof Error ? error.message : 'Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại.')
     } finally {
       setIsScanning(false)
     }

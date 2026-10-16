@@ -55,6 +55,10 @@ export const RecipeMatchList: React.FC<RecipeMatchListProps> = ({
               src={m.cover}
               alt={m.title}
               loading="lazy"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80'
+              }}
               className="h-full w-full object-cover transition duration-300 hover:scale-[1.03]"
             />
             <span

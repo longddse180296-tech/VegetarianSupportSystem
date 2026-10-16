@@ -18,12 +18,12 @@ export type RestaurantSortOption =
 
 // ---------- Labels ----------
 export const DIET_TYPE_LABELS: Record<RestaurantDietType, string> = {
-  vegan: 'Thuần thực vật (100% chay)',
-  'ovo-lacto': 'Lạc trứng sữa',
-  ovo: 'Lạc trứng',
-  lacto: 'Lạc sữa',
-  raw: 'Thực phẩm sống',
-  'vegetarian-friendly': 'Có nhiều món chay',
+  vegan: 'Thuần chay (Vegan)',
+  'ovo-lacto': 'Trứng & Sữa (Lacto-ovo)',
+  ovo: 'Chay có trứng (Ovo)',
+  lacto: 'Ăn chay có sữa (Lacto)',
+  raw: 'Thuần chay (Vegan)',
+  'vegetarian-friendly': 'Trứng & Sữa (Lacto-ovo)',
   all: 'Tất cả chế độ ăn',
 }
 

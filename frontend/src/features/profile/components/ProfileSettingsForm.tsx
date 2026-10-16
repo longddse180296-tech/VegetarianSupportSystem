@@ -120,10 +120,10 @@ export const ProfileSettingsForm = ({
               }
             >
               <option value="">Chưa chọn</option>
-              <option value="Vegan">Thuần chay</option>
-              <option value="Lacto-vegetarian">Chay có sữa</option>
-              <option value="Ovo-vegetarian">Chay có trứng</option>
-              <option value="Lacto-ovo vegetarian">Chay trứng sữa</option>
+              <option value="Vegan">Thuần chay (Vegan)</option>
+              <option value="Lacto-vegetarian">Ăn chay có sữa (Lacto)</option>
+              <option value="Ovo-vegetarian">Chay có trứng (Ovo)</option>
+              <option value="Lacto-ovo vegetarian">Trứng & Sữa (Lacto-ovo)</option>
             </select>
           </label>
           <label className="block text-sm">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, ChefHat, Sparkles, UtensilsCrossed } from 'lucide-react'
-import { Button, EmptyState, SkeletonLoader } from '../../../shared/components'
+import { EmptyState, SkeletonLoader } from '../../../shared/components'
 import { getRecipes, toggleFavorite } from '../api/recipeApi'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeFilterBar } from '../components/RecipeFilterBar'
@@ -13,6 +13,35 @@ interface RecipeListProps {
 }
 
 const PAGE_SIZE = 8
+
+// Icon tủ lạnh mở cửa với các ngăn kệ bên trong
+const OpenFridgeIcon = ({ size = 28, className = '' }: { size?: number; className?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-label="Tủ lạnh mở"
+  >
+    {/* Thân tủ chính bên trái */}
+    <rect x="3" y="2" width="12" height="20" rx="2" />
+    <line x1="3" y1="8.5" x2="15" y2="8.5" />
+    {/* Các ngăn chứa thực phẩm bên trong */}
+    <line x1="5.5" y1="5.5" x2="12.5" y2="5.5" strokeDasharray="1 1" />
+    <line x1="5.5" y1="13" x2="12.5" y2="13" strokeDasharray="1 1" />
+    <line x1="5.5" y1="17" x2="12.5" y2="17" strokeDasharray="1 1" />
+    {/* Cánh cửa tủ mở sang bên phải */}
+    <path d="M15 2.5 L20.5 4.5 V21.5 L15 19.5 Z" fill="currentColor" fillOpacity="0.15" />
+    <path d="M15 2.5 L20.5 4.5 V21.5 L15 19.5" />
+    {/* Tay nắm cửa */}
+    <line x1="18" y1="10" x2="18" y2="14" strokeWidth="2" />
+  </svg>
+)
 
 function matchesCategory(r: Recipe, category: string) {
   if (category === 'all') return true
@@ -58,6 +87,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
   const [allItems, setAllItems] = useState<Recipe[]>([])
   const [_totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+  const [isError, setIsError] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [heroToast, setHeroToast] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -72,10 +102,15 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
   const loadList = async (next: Partial<RecipeListFilter> = {}) => {
     const applied: RecipeListFilter = { ...filter, ...next }
     setIsLoading(true)
+    setIsError(false)
     try {
       const res = await getRecipes(applied)
       setAllItems(res.items)
       setTotalCount(res.totalCount)
+    } catch {
+      setIsError(true)
+      setAllItems([])
+      setTotalCount(0)
     } finally {
       setIsLoading(false)
     }
@@ -229,68 +264,93 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
               setDietPill(c)
               setPage(1)
             }}
-            onOpenAI={() => {
-              showToast('✨ Đã chuyển đến Tủ bếp AI gợi ý món')
-              onNavigate?.('/pantry')
-            }}
           />
         </section>
 
-        {/* ============== Tủ bếp AI banner ============== */}
+        {/* ============== BANNER AI TỦ BẾP (Background xanh nhạt, icon tủ lạnh mở, Card nổi bật) ============== */}
         <section
-          className="mt-6 overflow-hidden rounded-[16px] bg-[#1B5E20] text-white shadow-sm"
+          className="mt-7 overflow-hidden rounded-[20px] border border-emerald-200/90 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-green-50 shadow-xs"
         >
-          <div className="grid gap-6 px-6 py-6 md:grid-cols-12 md:items-center md:px-8 md:py-7">
+          <div className="grid gap-6 px-6 py-6 md:grid-cols-12 md:items-center md:px-8 md:py-6">
             <div className="md:col-span-8">
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11.5px] font-semibold uppercase tracking-[0.02em] text-white backdrop-blur">
-                <Sparkles size={11} /> Tính năng thông minh mới
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 px-3 py-1 text-[12px] font-bold text-emerald-800 shadow-2xs">
+                <Sparkles size={13} className="text-emerald-700" /> Tính năng thông minh mới
               </span>
-              <h2 className="mt-2 text-[24px] font-extrabold leading-[32px] text-white">
+              <h2 className="mt-2.5 text-[22px] font-extrabold leading-[30px] text-emerald-950">
                 Bạn có sẵn nguyên liệu trong bếp?
               </h2>
-              <p className="mt-1.5 text-[14px] font-normal leading-[22px] text-emerald-100">
-                Thử ngay tính năng Tủ bếp AI để được gợi ý các món chay thơm ngon,
-                chuẩn dinh dưỡng từ chính những gì bạn đang có!
+              <p className="mt-1 text-[14px] font-normal leading-[22px] text-emerald-800/90">
+                Thử ngay tính năng Tủ bếp AI để nhận gợi ý các món chay thơm ngon,
+                chuẩn dinh dưỡng từ chính những gì bạn đang có mà không lo lãng phí!
               </p>
             </div>
-            <div className="flex justify-end md:col-span-4">
-              <Button
-                type="button"
-                size="md"
-                variant="primary"
-                fullWidth={false}
-                className="!rounded-[12px] !bg-white !text-[#1B5E20] !px-5 hover:!bg-[#E8F5E9] font-bold"
-                rightIcon={<ArrowRight size={16} />}
-                leftIcon={<Sparkles size={16} />}
+
+            {/* Nhãn "Mở tủ bếp AI" dạng Card nổi bật nhưng không lấn át danh sách món */}
+            <div className="flex md:col-span-4 md:justify-end">
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => {
                   showToast('✨ Đang mở Tủ bếp AI...')
                   onNavigate?.('/pantry')
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onNavigate?.('/pantry')
+                  }
+                }}
+                className="group flex w-full cursor-pointer items-center justify-between gap-3.5 rounded-[16px] border-2 border-emerald-300 bg-white p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500 hover:shadow-md md:w-auto md:min-w-[240px]"
               >
-                Khám phá Tủ bếp AI -&gt;
-              </Button>
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
+                  <OpenFridgeIcon size={24} />
+                </div>
+                <div className="flex flex-1 flex-col text-left">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+                    Gợi ý món theo bếp
+                  </span>
+                  <span className="text-[15px] font-extrabold text-slate-900 group-hover:text-emerald-800">
+                    Mở tủ bếp AI
+                  </span>
+                </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-all group-hover:bg-emerald-50 group-hover:text-emerald-700 group-hover:translate-x-0.5">
+                  <ArrowRight size={16} />
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ============== Results header ============== */}
-        <section id="recipes-list-section" className="mt-8">
-          <div className="mb-5">
+        {/* ============== RESULTS SECTION: TIÊU ĐỀ TONE XÁM ĐẬM/ĐEN ============== */}
+        <section id="recipes-list-section" className="mt-9">
+          <div className="mb-5 flex items-center justify-between">
+            {/* Tiêu đề đổi màu sang tone xám đậm/đen */}
             <h2
-              className="font-extrabold tracking-[-0.01em] text-[#121C2A]"
-              style={{ fontSize: '22px', lineHeight: '30px' }}
+              className="text-[24px] md:text-[26px] font-extrabold tracking-tight text-[#111827]"
+              style={{ lineHeight: '32px' }}
             >
-              Công thức dành cho bạn
+              Công thức nổi bật
             </h2>
+            <span className="text-[13.5px] font-medium text-slate-500">
+              {totalFiltered} công thức
+            </span>
           </div>
 
           {isLoading ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <SkeletonLoader count={6} variant="card" />
+              <SkeletonLoader count={8} variant="card" />
             </div>
+          ) : isError ? (
+            <EmptyState
+              title="Không thể kết nối đến máy chủ"
+              description="Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại."
+              actionLabel="Thử lại"
+              onAction={() => void loadList()}
+              icon={<ChefHat size={40} className="text-red-500" />}
+            />
           ) : totalFiltered === 0 ? (
             <EmptyState
-              title="Không tìm thấy công thức nào phù hợp"
+              title="Không có công thức nào phù hợp"
               description="Hãy thử từ khóa khác, nới lỏng bộ lọc về thời gian, mức calo hoặc thay đổi chế độ ăn. Bạn cũng có thể dùng Tủ bếp AI để gợi ý theo nguyên liệu đang có."
               actionLabel="Xóa bộ lọc"
               onAction={resetFilter}
@@ -311,12 +371,12 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
               </div>
 
               {/* Basic Pagination */}
-              <div className="flex items-center justify-center gap-2 mt-8 mb-6">
+              <div className="flex items-center justify-center gap-2 mt-9 mb-6">
                 <button
                   type="button"
                   onClick={() => handlePageChange(Math.max(1, safePage - 1))}
                   disabled={safePage === 1}
-                  className="flex h-9 items-center gap-1 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[13px] font-medium text-[#374151] transition disabled:opacity-40 hover:bg-gray-50 disabled:hover:bg-white"
+                  className="flex h-9 items-center gap-1 rounded-[10px] border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 transition disabled:opacity-40 hover:bg-slate-50 disabled:hover:bg-white"
                 >
                   &lt; Trước
                 </button>
@@ -328,10 +388,10 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
                       key={idx}
                       type="button"
                       onClick={() => handlePageChange(idx)}
-                      className={`w-9 h-9 flex items-center justify-center rounded-[8px] text-[13px] transition ${
+                      className={`w-9 h-9 flex items-center justify-center rounded-[10px] text-[13px] transition ${
                         active
-                          ? 'bg-[#2e7d32] text-white font-medium shadow-xs'
-                          : 'border border-[#e5e7eb] bg-white text-[#374151] hover:bg-gray-50'
+                          ? 'bg-[#2E7D32] text-white font-bold shadow-xs'
+                          : 'border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       {idx}
@@ -342,7 +402,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
                   type="button"
                   onClick={() => handlePageChange(Math.min(totalPages, safePage + 1))}
                   disabled={safePage === totalPages}
-                  className="flex h-9 items-center gap-1 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[13px] font-medium text-[#374151] transition disabled:opacity-40 hover:bg-gray-50 disabled:hover:bg-white"
+                  className="flex h-9 items-center gap-1 rounded-[10px] border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 transition disabled:opacity-40 hover:bg-slate-50 disabled:hover:bg-white"
                 >
                   Sau &gt;
                 </button>
@@ -355,7 +415,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
       {heroToast && (
         <div
           aria-live="polite"
-          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 text-[14px] font-semibold text-white shadow-lg backdrop-blur"
+          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2.5 text-[14px] font-semibold text-white shadow-lg backdrop-blur-md"
           style={{ lineHeight: '20px' }}
         >
           <span className="mr-1.5 inline-flex items-center gap-1">

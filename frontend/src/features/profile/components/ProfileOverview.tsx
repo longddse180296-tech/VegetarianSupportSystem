@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { UserProfile, ProfileStats, RecentPost } from '../types'
 import { Button } from '../../../shared/components'
+import { DIETARY_TYPE_LABELS } from '../../../shared/constants'
 
 interface ProfileOverviewProps {
   profile: UserProfile
@@ -242,7 +243,9 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </div>
           <div>
             <div className="text-base font-bold text-[#1f2937] leading-snug">
-              {profile.dietaryType || 'Chưa chọn'}
+              {(profile.dietaryType && DIETARY_TYPE_LABELS[profile.dietaryType as keyof typeof DIETARY_TYPE_LABELS]) ||
+                profile.dietaryType ||
+                'Chưa chọn'}
             </div>
             <p className="text-[11px] text-[#6b7280] mt-1">
               Đồng bộ toàn bộ công thức
