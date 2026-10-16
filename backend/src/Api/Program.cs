@@ -129,20 +129,28 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
-await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
 
-if (args.Contains("--seed-core-data", StringComparer.Ordinal))
+var seedCoreData = args.Contains("--seed-core-data", StringComparer.Ordinal);
+var seedDemoData = args.Contains("--seed-demo-data", StringComparer.Ordinal);
+if (seedCoreData || seedDemoData)
 {
     if (!app.Environment.IsDevelopment())
     {
         throw new InvalidOperationException("Sample data can only be seeded in Development.");
     }
 
+    if (seedCoreData)
+        await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
+
     await using var scope = app.Services.CreateAsyncScope();
-    await CoreDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
-    app.Logger.LogInformation("Core Data sample seed completed.");
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    if (seedCoreData) await CoreDataSeeder.SeedAsync(db);
+    if (seedDemoData) await DemoDataSeeder.SeedAsync(db);
+    app.Logger.LogInformation("Sample seed completed. Demo catalog: {DemoCatalog}.", seedDemoData);
     return;
 }
+
+await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
 
 app.UseExceptionHandler();
 

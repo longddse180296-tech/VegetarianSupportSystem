@@ -60,6 +60,16 @@ void Check(bool condition, string name)
 
 try
 {
+    if (args.Contains("--demo-seed-only", StringComparer.Ordinal))
+    {
+        await db.Database.MigrateAsync();
+        await app.StartAsync();
+        using var demoClient = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+        await DemoSeedChecks.RunAsync(demoClient, db, Check);
+        Console.WriteLine($"ALL {checks} DEMO SEED CHECKS PASSED");
+        return;
+    }
+
     if (args.Contains("--dashboard-only", StringComparer.Ordinal))
     {
         await db.Database.EnsureCreatedAsync();
@@ -88,6 +98,7 @@ try
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
     await CoreDataApiChecks.RunAsync(client, db, Check);
     await SeedFilterChecks.RunAsync(client, db, Check);
+    await DemoSeedChecks.RunAsync(client, db, Check);
     await PasswordResetApiChecks.RunAsync(client,
         app.Services.GetRequiredService<CapturingResetEmailSender>(), Check);
     await SmtpTransportChecks.RunAsync(Check);

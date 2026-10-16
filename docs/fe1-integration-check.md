@@ -64,9 +64,9 @@ Sau khi bỏ trang kiểm duyệt chung, đã chạy lại lint/build FE và 7 k
 
 ## Điểm BE/môi trường cần bàn giao
 
-Kiểm tra chỉ đọc lần cuối cho thấy database `VegetarianSupport` hiện **chưa có bảng Videos** và thiếu các cột `AiFlagReason`, `AiFlagType`, `AiPriority`, `AiEvidence`, `CreatedAtUtc`, `UpdatedAtUtc` trong `ModerationSubmissions`. Đây là nguyên nhân môi trường có thể khiến API nội dung trả 500, dù FE đã map đúng. LocalDB bật chưa đồng nghĩa schema đã cập nhật.
+Trước đợt cập nhật database ngày 12/10/2026, database `VegetarianSupport` **chưa có bảng Videos** và thiếu các cột `AiFlagReason`, `AiFlagType`, `AiPriority`, `AiEvidence`, `CreatedAtUtc`, `UpdatedAtUtc` trong `ModerationSubmissions`. Đây là nguyên nhân môi trường khiến API nội dung trả 500, dù FE đã map đúng. LocalDB bật chưa đồng nghĩa schema đã cập nhật.
 
-Năm migration BE3 chưa được ghi trong `__EFMigrationsHistory` của database này:
+Năm migration BE3 từng thiếu trong `__EFMigrationsHistory` của database này:
 
 - `20261009141232_Be3VideoAndFoodScan`
 - `20261009142113_Be3ModerationEvidence`
@@ -74,7 +74,13 @@ Năm migration BE3 chưa được ghi trong `__EFMigrationsHistory` của databa
 - `20261009175534_RepairModerationSubmissionColumns`
 - `20261009183225_VideoAdminOnlyModeration`
 
-Nhờ BE/người quản lý database rà soát và áp dụng migration theo quy trình nhóm trước khi demo toàn bộ nội dung. Đợt FE này không tự áp dụng lên database đang dùng.
+Theo yêu cầu trực tiếp của thành viên ngày 12/10/2026, đã áp dụng đủ năm migration có sẵn vào **đúng database `VegetarianSupport`** và khởi động lại API tại `http://localhost:5080`. Không thay đổi source BE, migration hay contract; không chạy seed dữ liệu mẫu.
+
+- Đã xác nhận kết nối SQL của tiến trình API trước và sau cập nhật đều trỏ tới `VegetarianSupport` trên instance LocalDB đang dùng. Bản sao lưu `COPY_ONLY` có checksum ở `.local/db-backups/VegetarianSupport_before_migrations_20261012_010253.bak` (5.726.720 bytes), đã qua `RESTORE VERIFYONLY` trước khi migration.
+- Lịch sử hiện có đủ 19 migration. Đã kiểm tra tồn tại `Videos`, `FoodScanRecords` và cả sáu cột kiểm duyệt nói trên. Trước migration chưa có submission kiểm duyệt, nên bước chuyển trạng thái/xóa kết quả AI cũ của video không tác động bản ghi nào.
+- API đã chạy lại và OpenAPI trả 200. **8 kiểm tra GET có xác thực đều HTTP 200**: `/api/auth/me`, `/api/me/articles?page=1&pageSize=1`, `/api/me/videos?page=1&pageSize=1`, hàng đợi Admin với `contentType=Article` và `Video`, danh sách submission Article, `/api/admin/dashboard`, `/api/meal-plans?page=1&pageSize=12`.
+- Các kiểm tra xác thực dùng endpoint token Development có sẵn cho Admin đang hoạt động. Mật khẩu trong cấu hình seed Admin trả 401; không thay đổi tài khoản hoặc mật khẩu để kiểm thử. Sau restart, người dùng cần đăng nhập lại bằng thông tin đang dùng vì khóa ký JWT Development được tạo mới khi chưa cấu hình khóa cố định.
+- Log migration, kết quả API và thông tin tiến trình/bản sao lưu ở `.local/vegetarian-migration-apply.log`, `.local/vegetarian-migration-api-checks.json`, `.local/vegetarian-migration-state.json`. `.local/` được Git bỏ qua; không commit bản sao lưu, token hoặc secrets.
 
 Các phần FE chưa thể bổ sung dữ liệu thật nếu BE chưa cung cấp:
 
