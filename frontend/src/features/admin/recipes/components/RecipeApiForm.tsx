@@ -167,36 +167,46 @@ export function RecipeApiForm({
                 setCategoryName(item.name)
               }}
             />
-            <label className="block text-sm font-medium text-slate-700">
-              URL ảnh <span className="font-normal text-slate-400">(tùy chọn)</span>
-              <input
-                type="url"
-                pattern="https?://.*"
-                maxLength={2048}
-                className={fieldClass}
-                placeholder="https://..."
-                value={form.imageUrl || ''}
-                onChange={(e) =>
-                  setForm({ ...form, imageUrl: e.target.value || null })
-                }
-              />
-              <span className="mt-1.5 block text-xs font-normal leading-relaxed text-slate-400">
-                Đường dẫn ảnh đại diện của món ăn (URL HTTP/HTTPS).
-              </span>
-              {form.imageUrl && (
-                <div className="mt-2 flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
-                  <img
-                    src={form.imageUrl}
-                    alt="Xem trước ảnh công thức"
-                    className="size-12 rounded-md object-cover border border-slate-200 bg-white"
-                    onError={(e) => {
-                      ;(e.target as HTMLElement).style.display = 'none'
-                    }}
-                  />
-                  <span className="text-xs text-slate-500">Xem trước ảnh món ăn</span>
-                </div>
-              )}
-            </label>
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label
+                  htmlFor="recipe-image-url"
+                  className="text-sm font-semibold text-slate-700"
+                >
+                  URL ảnh <span className="font-normal text-slate-400">(tùy chọn)</span>
+                </label>
+              </div>
+              <div className="w-full">
+                <input
+                  id="recipe-image-url"
+                  type="url"
+                  pattern="https?://.*"
+                  maxLength={2048}
+                  className={`${fieldClass} !mt-0 !h-[46px]`}
+                  placeholder="https://..."
+                  value={form.imageUrl || ''}
+                  onChange={(e) =>
+                    setForm({ ...form, imageUrl: e.target.value || null })
+                  }
+                />
+                <span className="mt-1.5 block text-xs font-normal leading-relaxed text-slate-400">
+                  Đường dẫn ảnh đại diện của món ăn (URL HTTP/HTTPS).
+                </span>
+                {form.imageUrl && (
+                  <div className="mt-2 flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                    <img
+                      src={form.imageUrl}
+                      alt="Xem trước ảnh công thức"
+                      className="size-12 rounded-md object-cover border border-slate-200 bg-white"
+                      onError={(e) => {
+                        ;(e.target as HTMLElement).style.display = 'none'
+                      }}
+                    />
+                    <span className="text-xs text-slate-500">Xem trước ảnh món ăn</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <label className="block text-sm font-medium text-slate-700">
             Mô tả <span className="font-normal text-slate-400">(tùy chọn)</span>
