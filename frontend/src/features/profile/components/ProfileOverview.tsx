@@ -17,8 +17,8 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import type { UserProfile, ProfileStats, RecentPost } from '../types'
-import { getDietaryTypeLabel } from '../../../shared/constants'
 import { Button } from '../../../shared/components'
+import { getDietaryTypeLabel } from '../../../shared/constants'
 
 interface ProfileOverviewProps {
   profile: UserProfile

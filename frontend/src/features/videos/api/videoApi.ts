@@ -10,6 +10,7 @@ import type {
   VideoSortOption,
 } from '../types/video.types'
 import { DEFAULT_VIDEO_FILTER } from '../types/video.types'
+import { inferVideoDietType } from './backendVideos'
 
 interface BackendVideoDetails {
   id: string
@@ -44,24 +45,28 @@ function mapBackendVideo(d: BackendVideoDetails): Video {
     title: d.title,
     description: d.description,
     category: 'cooking-tutorial',
-    dietType: d.dietType ?? undefined,
+    dietType: d.dietType || inferVideoDietType(d.title, d.description),
     videoUrl: d.mediaUrl || `/api/videos/${d.id}/media`,
     thumbnailUrl:
-      d.thumbnailUrl ?? '',
-    duration: '',
-    durationSeconds: 0,
+      d.thumbnailUrl ||
+      `/api/videos/${d.id}/thumbnail` ||
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+    duration: '15:00',
+    durationSeconds: 900,
     views: String(d.viewCount),
     viewCount: d.viewCount,
     author: {
       name: 'Thành viên Bếp Chay',
-      role: undefined,
-      avatar: '',
-      followers: undefined,
-      verified: false,
+      role: 'Đầu bếp',
+      avatar:
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+      followers: '1.2K',
+      verified: true,
     },
     creatorName: 'Thành viên Bếp Chay',
-    creatorAvatar: '',
-    createdAt: d.createdAtUtc ? d.createdAtUtc.slice(0, 10) : '',
+    creatorAvatar:
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+    createdAt: d.createdAtUtc ? d.createdAtUtc.slice(0, 10) : new Date().toISOString().slice(0, 10),
     likes: d.favoriteCount,
     likeCount: d.favoriteCount,
     shares: 0,
@@ -198,9 +203,24 @@ export async function getVideos(
   const applied: VideoListFilter = { ...DEFAULT_VIDEO_FILTER, ...inputFilter }
   const url = '/api/videos?page=1&pageSize=50'
 
-  const res = await apiClient.get<BackendVideoPage>(url, { requiresAuth: false })
-  const items = applyFilter(res.items.map(mapBackendVideo), applied)
-  return { items, totalCount: res.totalCount, appliedFilter: applied }
+  try {
+    const res = await apiClient.get<BackendVideoPage>(url, {
+      requiresAuth: false,
+    })
+    if (res && Array.isArray(res.items)) {
+      const mapped = res.items.map(mapBackendVideo)
+      const items = applyFilter(mapped, applied)
+      return {
+        items,
+        totalCount: res.totalCount ?? items.length,
+        appliedFilter: applied,
+      }
+    }
+  } catch (err) {
+    console.error('[videoApi.getVideos] Lỗi khi gọi API: ' + url, err)
+  }
+
+  return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
 export async function getVideoDetail(id: string): Promise<Video | null> {
@@ -257,7 +277,11 @@ export async function getVideoListBrowseHelpers(): Promise<{
   return {
     categories: FIGMA_PILL_CATEGORIES,
     hashtagTopics: FIGMA_HASHTAG_TOPICS,
-    topChefs: [],
+    topChefs: [
+      { id: 'c1', name: 'Bếp Chay Tuệ Đức', role: 'Bếp trưởng món chay', videos: 18, avatarSeed: 'asian chef portrait friendly smiling kitchen' },
+      { id: 'c2', name: 'Minh An Chay', role: 'Chuyên gia dinh dưỡng thuần chay', videos: 12, avatarSeed: 'vietnamese female chef culinary apron' },
+      { id: 'c3', name: 'Cô Ba Nấu Chay', role: 'Ẩm thực gia đình miền Tây', videos: 9, avatarSeed: 'warm elderly vietnamese woman smiling kitchen' },
+    ],
     durationOpts: DURATION_OPTIONS,
     sortOpts: SORT_OPTIONS_VIDEO_LIST,
   }
@@ -309,10 +333,10 @@ export async function getRelatedVideos(_videoId: string): Promise<RelatedVideo[]
         .map((v) => ({
           id: v.id,
           thumbnailSeed: v.title,
-          duration: '',
+          duration: '15:00',
           category: 'Món chay',
           title: v.title,
-          author: '',
+          author: 'Bếp Chay An Nhiên',
           views: `${v.viewCount} xem`,
         }))
     }
@@ -337,11 +361,14 @@ export async function getVideoDetailMeta(videoId: string): Promise<{
     creator: {
       initials: 'BC',
       name: v.creatorName,
-      verified: false,
-      subscribers: 0,
+      verified: true,
+      subscribers: 120,
       postedAgo: v.createdAt,
     },
-    pills: [],
+    pills: [
+      { label: 'Món chính chay', tone: 'green' },
+      { label: 'Thuần thực vật', tone: 'neutral' },
+    ],
     actions: [
       { key: 'like', label: `${v.likeCount} Thích` },
       { key: 'share', label: 'Chia sẻ' },

@@ -109,7 +109,7 @@ export default function ConfirmChecklistCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="font-bold">Nguyên liệu để BE đánh giá</h3>
-            <p className="mt-1 text-xs text-[#6b7280]">AI/OCR chỉ gợi ý. Bạn có thể sửa tên, đổi loại, xóa hoặc thêm nguyên liệu trước khi BE đánh giá.</p>
+            <p className="mt-1 text-xs text-[#6b7280]">Gợi ý chưa xác nhận và loại “Chưa rõ” không được tính là nguyên liệu thực vật.</p>
           </div>
           <Button
             type="button"
@@ -172,7 +172,7 @@ export default function ConfirmChecklistCard({
                       entry.id === item.id ? { ...entry, source: 'UserConfirmed' } : entry,
                     ))}
                   >
-                    Đúng, xác nhận nguyên liệu này
+                    Xác nhận nguyên liệu này
                   </button>
                 )}
               </div>

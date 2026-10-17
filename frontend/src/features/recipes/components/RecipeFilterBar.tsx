@@ -61,19 +61,18 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
     <div
       className="rounded-[20px] border border-slate-200 bg-white p-5 md:p-6 shadow-xs transition-shadow"
     >
-      {/* Search + Search/AI btns */}
+      {/* Row 1: Search bar */}
       <div className="border-b border-slate-100 pb-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="min-w-0 flex-1">
+          <div className="flex-1 w-full">
             <Input
               placeholder="Tìm kiếm công thức theo tên món hoặc nguyên liệu (đậu hũ, nấm, hạt sen...)"
               value={filter.search}
               onChange={(e) => onChange({ search: e.target.value })}
-              leftIcon={<Search size={16} className="text-[#6B7280]" />}
+              leftIcon={<Search size={16} className="text-slate-400" />}
               className="!h-11 !rounded-[12px] !border-slate-300 !pl-10 !pr-4 w-full text-[14px]"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant="primary"
@@ -98,7 +97,6 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
           )}
         </div>
       </div>
-    </div>
 
       {/* Row 2: Chế độ ăn chay (Diet pills) - Viền & chữ inactive đậm rõ nét, pb-5 mb-5 */}
       <div className="border-b border-slate-100 pt-5 pb-5 flex flex-col gap-2.5">
@@ -161,6 +159,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
           })}
         </div>
       </div>
+
       {/* Row 4: Bộ lọc nhanh & Mức calo (Thời gian nấu & Kcal) */}
       <div className="pt-5 pb-2">
         <div className="mb-3 text-[12px] font-bold uppercase tracking-wider text-slate-700">

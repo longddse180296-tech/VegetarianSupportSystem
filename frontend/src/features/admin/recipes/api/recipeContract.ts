@@ -1,8 +1,8 @@
+import { apiClient } from '../../../../shared/api/apiClient'
 import {
   BACKEND_DIETARY_TYPE_LABELS,
   type BackendDietaryType,
 } from '../../../../shared/constants'
-import { apiClient } from '../../../../shared/api/apiClient'
 
 export type DietaryType = BackendDietaryType
 export const dietLabels: Record<DietaryType, string> = BACKEND_DIETARY_TYPE_LABELS

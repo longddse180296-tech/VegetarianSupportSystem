@@ -22,8 +22,8 @@ export const DIET_TYPE_LABELS: Record<RestaurantDietType, string> = {
   'ovo-lacto': 'Trứng & Sữa (Lacto-ovo)',
   ovo: 'Chay có trứng (Ovo)',
   lacto: 'Ăn chay có sữa (Lacto)',
-  raw: 'Thực phẩm sống',
-  'vegetarian-friendly': 'Có nhiều món chay',
+  raw: 'Thuần chay (Vegan)',
+  'vegetarian-friendly': 'Trứng & Sữa (Lacto-ovo)',
   all: 'Tất cả chế độ ăn',
 }
 
@@ -50,7 +50,7 @@ export interface Restaurant {
   district: string
   geoLat?: number
   geoLng?: number
-  distanceKm: number | null
+  distanceKm: number
   openingHours: string
   closingDay: string
   phoneNumber: string
@@ -85,8 +85,6 @@ export interface RestaurantFilter {
   favoritesOnly: boolean
   /** Khoảng cách tối đa (km) theo pills Tất cả | <1 | <3 | <5 | <10. 0 = không lọc (Tất cả). */
   distanceMaxKm: 0 | 1 | 3 | 5 | 10
-  latitude: number | null
-  longitude: number | null
 }
 
 export const DEFAULT_RESTAURANT_FILTER: RestaurantFilter = {
@@ -98,8 +96,6 @@ export const DEFAULT_RESTAURANT_FILTER: RestaurantFilter = {
   deliveryOnly: false,
   favoritesOnly: false,
   distanceMaxKm: 0,
-  latitude: null,
-  longitude: null,
 }
 
 export interface RestaurantListResponse {

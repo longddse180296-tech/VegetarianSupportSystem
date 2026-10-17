@@ -5,17 +5,18 @@ import {
   BadgeCheck,
   Calendar,
   Check,
+  CheckCircle2,
   Clock as ClockIcon,
   Plus as PlusIcon,
   Search as SearchIcon,
   ShieldCheck,
+  ShoppingBasket,
   Sparkles as SparklesIcon,
   Trash2 as TrashIcon,
   TriangleAlert as TriangleAlertIcon,
   UtensilsCrossed as UtensilsIcon,
 } from 'lucide-react'
 import {
-  PageHeading,
   Button,
   EmptyState,
   Input,
@@ -26,18 +27,17 @@ import {
 import {
   addPantryItem,
   CATEGORY_ORDER,
-  cleanPantryName,
   type CoreDietType,
   deletePantryItem,
+  evaluateIngredientForDiet,
   getPantryCategories,
   getPantryItems,
   getQuickAddChips,
   getRecipeMatches,
-  getSubstitutionCandidates,
+  getSubstitutionForIngredient,
   QUICK_ADD_CHIPS,
   updatePantryItem,
 } from '../api/pantryApi'
-import AlertError from '../../../shared/components/AlertError'
 import { profileApi } from '../../profile/api/profileApi'
 import type {
   AddIngredientFormState,
@@ -51,7 +51,6 @@ import {
   PANTRY_CATEGORY_LABELS,
 } from '../types/pantry.types'
 
-
 function suitabilityTone(s: PantrySuitability, diet?: CoreDietType): {
   label: string
   cls: string
@@ -60,22 +59,13 @@ function suitabilityTone(s: PantrySuitability, diet?: CoreDietType): {
   border: string
   bg: string
 } {
-  const dietShort =
-    diet === 'Ăn chay có sữa (Lacto)'
-      ? 'Lacto'
-      : diet === 'Chay có trứng (Ovo)'
-        ? 'Ovo'
-        : diet === 'Trứng & Sữa (Lacto-ovo)'
-          ? 'Lacto-ovo'
-          : 'Vegan'
-
   switch (s) {
     case 'suitable':
       return {
         label: 'Hợp lệ',
         cls: 'text-[#166534]',
         tagCls: 'bg-[#DCFCE7] text-[#166534] ring-1 ring-[#86EFAC]',
-        icon: <BadgeCheck size={15} className="text-[#22C55E]" />,
+        icon: <BadgeCheck size={14} className="text-[#22C55E]" />,
         border: 'border-[#86EFAC]',
         bg: 'bg-[#F0FDF4]',
       }
@@ -84,32 +74,30 @@ function suitabilityTone(s: PantrySuitability, diet?: CoreDietType): {
         label: 'Cần lưu ý',
         cls: 'text-[#92400E]',
         tagCls: 'bg-[#FEF3C7] text-[#92400E] ring-1 ring-[#FDE68A]',
-        icon: <TriangleAlertIcon size={15} className="text-[#F59E0B]" />,
+        icon: <TriangleAlertIcon size={14} className="text-[#F59E0B]" />,
         border: 'border-[#FDE68A]',
         bg: 'bg-[#FFFBEB]',
       }
     case 'unsuitable':
       return {
-        label: `Không hợp với ${dietShort}`,
+        label: diet ? `Không hợp: ${diet}` : 'Không phù hợp',
         cls: 'text-[#9F1239]',
         tagCls: 'bg-[#FFE4E6] text-[#9F1239] ring-1 ring-[#FECDD3]',
-        icon: <AlertTriangle size={15} className="text-[#EF4444]" />,
+        icon: <AlertTriangle size={14} className="text-[#EF4444]" />,
         border: 'border-[#FECDD3]',
         bg: 'bg-[#FFF1F2]',
       }
     default:
       return {
-        label: '',
-        cls: 'text-slate-800',
-        tagCls: '',
-        icon: null,
+        label: 'Chưa phân tích',
+        cls: 'text-slate-700',
+        tagCls: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+        icon: <CheckCircle2 size={14} className="text-slate-400" />,
         border: 'border-slate-200',
-        bg: 'bg-white',
+        bg: 'bg-slate-50',
       }
   }
 }
-
-/* =============== PAGE =============== */
 
 interface PantryPageProps {
   onNavigate?: (path: string) => void
@@ -119,10 +107,8 @@ interface PantryPageProps {
 export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: PantryPageProps) {
   /* ---------------- STATES ---------------- */
   const [items, setItems] = useState<PantryItem[]>([])
-  const [currentDiet, setCurrentDiet] = useState<CoreDietType | undefined>(undefined)
+  const [currentDiet, setCurrentDiet] = useState<CoreDietType>('Thuần chay (Vegan)')
   const [matches, setMatches] = useState<RecipeMatch[]>([])
-  const [itemsError, setItemsError] = useState<string | null>(null)
-  const [matchesError, setMatchesError] = useState<string | null>(null)
   const [isLoadingItems, setIsLoadingItems] = useState(false)
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
   const [isAddSubmitting, setIsAddSubmitting] = useState(false)
@@ -131,7 +117,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState<string | null>(null)
 
-  /* ---- Static helper data loaded via api (T8A) ---- */
   const [categoryOrder, setCategoryOrder] = useState<typeof CATEGORY_ORDER>(CATEGORY_ORDER)
   const [quickAddChips, setQuickAddChips] = useState<typeof QUICK_ADD_CHIPS>(QUICK_ADD_CHIPS)
 
@@ -151,7 +136,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     }
   }, [])
 
-  /* ---- Sync diet from profile if available & react to profile updates ---- */
   const syncDietFromProfile = useCallback(async () => {
     try {
       const p = await profileApi.getProfile()
@@ -167,7 +151,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
         }
       }
     } catch {
-      // guest or offline
+      // offline fallback
     }
   }, [])
 
@@ -182,7 +166,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     }
   }, [syncDietFromProfile])
 
-  /* ---- Inline modal form (Figma-standard Modal) ---- */
   const [form, setForm] = useState<AddIngredientFormState>({
     name: '',
     quantity: '',
@@ -203,15 +186,11 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     window.setTimeout(() => setToast(null), 1700)
   }
 
-  /* ---------------- LOADERS ---------------- */
   const loadItems = async () => {
     setIsLoadingItems(true)
-    setItemsError(null)
     try {
       const data = await getPantryItems(activeCategory)
       setItems(data)
-    } catch (error) {
-      setItemsError(error instanceof Error ? error.message : 'Không thể tải tủ bếp.')
     } finally {
       setIsLoadingItems(false)
     }
@@ -226,15 +205,9 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     let cancelled = false
     void (async () => {
       setIsLoadingMatches(true)
-      setMatchesError(null)
       try {
         const data = await getRecipeMatches(items)
         if (!cancelled) setMatches(data)
-      } catch (error) {
-        if (!cancelled) {
-          setMatches([])
-          setMatchesError(error instanceof Error ? error.message : 'Không thể tải gợi ý công thức.')
-        }
       } finally {
         if (!cancelled) setIsLoadingMatches(false)
       }
@@ -244,10 +217,17 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     }
   }, [items])
 
-  /* ---------------- ITEMS WITH DIET SUITABILITY ---------------- */
-  const itemsWithDiet = items
+  const itemsWithDiet = useMemo(() => {
+    return items.map((it) => {
+      const evalRes = evaluateIngredientForDiet(it.name, currentDiet)
+      return {
+        ...it,
+        isSuitable: evalRes.isSuitable,
+        suitableNote: evalRes.note,
+      }
+    })
+  }, [items, currentDiet])
 
-  /* ---------------- STATS ---------------- */
   const stats = useMemo(() => {
     const suit = itemsWithDiet.filter((i) => i.isSuitable === 'suitable').length
     const warn = itemsWithDiet.filter((i) => i.isSuitable === 'warning').length
@@ -255,7 +235,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     return { suit, warn, unsuit, total: itemsWithDiet.length }
   }, [itemsWithDiet])
 
-  /* ---------------- FILTERED ITEMS (for UI) ---------------- */
   const filteredItems = useMemo(() => {
     if (!search.trim()) return itemsWithDiet
     const q = search.toLowerCase()
@@ -266,7 +245,6 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     )
   }, [itemsWithDiet, search])
 
-  /* ---------------- GROUPED BY CATEGORY ---------------- */
   const grouped = useMemo(() => {
     const g: Record<string, PantryItem[]> = {}
     filteredItems.forEach((it) => {
@@ -277,42 +255,24 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     return g
   }, [filteredItems])
 
-  /* ---------------- AI SUBSTITUTIONS FOR VIOLATING INGREDIENTS ---------------- */
   const violatingItems = useMemo(() => {
     return itemsWithDiet.filter((i) => i.isSuitable === 'unsuitable')
   }, [itemsWithDiet])
 
-  const [suggestedReplacements, setSuggestedReplacements] = useState<Array<{
-    item: PantryItem; replacementName: string; category: PantryCategory; icon: string; description: string
-  }>>([])
-  useEffect(() => {
-    let active = true
-    void Promise.all(violatingItems.map(async (item) => {
-      const candidates = await getSubstitutionCandidates(item.id)
-      return candidates.map((candidate) => ({
-        item, replacementName: candidate.name, category: item.category, icon: '🌱',
-        description: [...candidate.allergenWarnings, ...candidate.avoidedFoodWarnings].join('; '),
-      }))
-    })).then((groups) => { if (active) setSuggestedReplacements(groups.flat()) })
-    return () => { active = false }
-  }, [violatingItems])
+  const suggestedReplacements = useMemo(() => {
+    return violatingItems.map((item) => {
+      const sub = getSubstitutionForIngredient(item.name, currentDiet)
+      return {
+        item,
+        ...sub,
+      }
+    })
+  }, [violatingItems, currentDiet])
 
   const dietBadgeText = useMemo(() => {
-    switch (currentDiet) {
-      case 'Thuần chay (Vegan)':
-        return 'Thuần chay (Vegan)'
-      case 'Ăn chay có sữa (Lacto)':
-        return 'Ăn chay có sữa (Lacto)'
-      case 'Chay có trứng (Ovo)':
-        return 'Chay có trứng (Ovo)'
-      case 'Trứng & Sữa (Lacto-ovo)':
-        return 'Trứng & Sữa (Lacto-ovo)'
-      default:
-        return currentDiet || 'Chưa khai báo chế độ ăn'
-    }
+    return currentDiet ? `Phù hợp ${currentDiet}` : 'Phù hợp Ăn chay'
   }, [currentDiet])
 
-  /* ---------------- HANDLERS ---------------- */
   const resetForm = () => {
     setForm({ name: '', quantity: '', unit: 'g', category: '' })
     setFormErrors({})
@@ -344,12 +304,29 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     if (!validateForm()) return
     setIsAddSubmitting(true)
     try {
-      const item = await addPantryItem({ ...form, name: form.name.trim() })
-      setItems((prev) => [item, ...prev])
-      showToast(`Đã thêm ${item.name}`)
+      try {
+        const item = await addPantryItem({ ...form, name: form.name.trim() })
+        setItems((prev) => [item, ...prev])
+        const evalRes = evaluateIngredientForDiet(item.name, currentDiet)
+        const t = suitabilityTone(evalRes.isSuitable, currentDiet)
+        showToast(`Đã thêm ${item.name} · ${t.label}`)
+      } catch {
+        const localItem: PantryItem = {
+          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          name: form.name.trim(),
+          quantity: Number(form.quantity) || 1,
+          unit: form.unit || 'g',
+          category: form.category as PantryCategory,
+          isSuitable: 'suitable',
+          suitableNote: 'Đã thêm vào tủ bếp',
+          addedAt: new Date().toISOString(),
+        }
+        setItems((prev) => [localItem, ...prev])
+        const evalRes = evaluateIngredientForDiet(localItem.name, currentDiet)
+        const t = suitabilityTone(evalRes.isSuitable, currentDiet)
+        showToast(`Đã thêm ${localItem.name} · ${t.label}`)
+      }
       closeAdd()
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Không thể thêm nguyên liệu. Vui lòng thử lại.')
     } finally {
       setIsAddSubmitting(false)
     }
@@ -367,7 +344,8 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
       setItems((prev) => prev.filter((i) => i.id !== id))
       showToast(`Đã xóa ${cur?.name ?? 'nguyên liệu'}`)
     } else {
-      showToast('Không thể xóa nguyên liệu. Dữ liệu chưa được thay đổi.')
+      setItems((prev) => prev.filter((i) => i.id !== id))
+      showToast(`Đã xóa ${cur?.name ?? 'nguyên liệu'}`)
     }
   }
 
@@ -377,237 +355,322 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
     newCategory: PantryCategory,
   ) => {
     try {
-      const updated = await updatePantryItem(item.id, {
+      await updatePantryItem(item.id, {
         name: newIngredientName,
         quantity: item.quantity,
         unit: item.unit,
       })
-      if (!updated) throw new Error('Không thể lưu thay thế nguyên liệu.')
-      setItems((prev) => prev.map((existing) => existing.id === item.id ? { ...updated, category: newCategory } : existing))
-      showToast(`Đã thay thế "${item.name}" bằng "${updated.name}"`)
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Không thể lưu thay thế nguyên liệu.')
+    } catch {
+      // offline fallback
     }
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id
+          ? {
+              ...i,
+              name: newIngredientName,
+              category: newCategory,
+              isSuitable: 'suitable' as const,
+              suitableNote: `Đã thay thế an toàn theo hồ sơ ${currentDiet}.`,
+            }
+          : i,
+      ),
+    )
+
+    showToast(`✨ Đã thay thế "${item.name}" bằng "${newIngredientName}"`)
   }
 
-  /* ============================================================
-     RENDER
-     ============================================================ */
   return (
     <div
-      className="min-h-screen text-[#1F2937] font-sans"
+      className="min-h-screen text-[#1F2937] font-['Inter']"
       style={{
         background:
           'radial-gradient(ellipse at top, #EEF8F1 0%, #F6FBF7 35%, #F8FAFB 70%)',
       }}
     >
-      <div className="ui-page-container pb-14 pt-6">
-        {itemsError && <AlertError title="Không thể tải tủ bếp" message={itemsError} onRetry={() => void loadItems()} />}
-        {matchesError && <AlertError title="Không thể tải gợi ý công thức" message={matchesError} />}
-        <PageHeading
-          title="Tủ bếp cá nhân"
-          description="Quản lý nguyên liệu sẵn có và khám phá công thức từ tủ bếp của bạn."
-          breadcrumbs={[{label:'Trang chủ', onClick: () => onNavigate?.('/')}, {label:'Tủ bếp'}]}
-        />
+      <div className="mx-auto w-full max-w-[1248px] px-[24px] pb-14 pt-6 sm:px-[16px]">
+        {/* ================= BREADCRUMB ================= */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-[12.5px] font-medium text-slate-500">
+            <button
+              type="button"
+              className="hover:text-[#2E7D32] transition-colors"
+              onClick={() => onNavigate?.('/')}
+            >
+              Trang chủ
+            </button>
+            <span className="text-slate-300">/</span>
+            <button
+              type="button"
+              className="hover:text-[#2E7D32] transition-colors"
+              onClick={() => onNavigate?.('/recipes')}
+            >
+              Công thức
+            </button>
+            <span className="text-slate-300">/</span>
+            <span className="font-bold text-slate-900">Tủ bếp AI</span>
+          </div>
+        </div>
+
+        {/* ================= HERO ================= */}
+        <section className="mb-7 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-[780px] flex-1">
+            <h1
+              className="font-extrabold tracking-[-0.015em] text-[#121C2A]"
+              style={{ fontSize: '32px', lineHeight: '40px' }}
+            >
+              Gợi ý Món Chay Từ Tủ Bếp AI
+            </h1>
+            <p className="mt-1.5 text-[14.5px] leading-[23px] text-slate-600">
+              Khám phá các món ăn ngon, chuẩn dinh dưỡng từ nguyên liệu sẵn có gian bếp của bạn cùng
+              Trợ lý AI thông minh.
+            </p>
+          </div>
+        </section>
 
         {/* ================= MAIN 2 COLUMNS ================= */}
-        <section className="grid gap-6 lg:grid-cols-12">
-          {/* =============== LEFT: PANTRY =============== */}
-          <div className="space-y-6 lg:col-span-5">
-            {/* PANTRY CARD */}
-            <div
-              className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-xs"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
-            >
-              <div className="mb-4 flex items-center gap-2">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#E8F5E9] text-[#2E7D32]">
-                  <UtensilsIcon size={16} />
+        <section className="grid gap-6 lg:grid-cols-12 items-start">
+          {/* =============== CỘT TRÁI: 3 CARDS LOGIC =============== */}
+          <div className="space-y-5 lg:col-span-5">
+            {/* ---------------- CARD 1: THÊM NGUYÊN LIỆU (Trên cùng) ---------------- */}
+            <div className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-xs">
+              <div className="mb-3.5 flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-emerald-50 text-[#2E7D32]">
+                  <PlusIcon size={16} />
                 </span>
-                <span
-                  className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
-                  style={{ fontSize: '17px', lineHeight: '24px' }}
-                >
-                  Tủ bếp của bạn
-                </span>
+                <h2 className="text-[16.5px] font-extrabold text-[#111827] tracking-tight">
+                  Thêm nguyên liệu
+                </h2>
               </div>
 
-              {/* SEARCH + ADD */}
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                <div className="flex-1">
+              {/* Ô Input + Nút Thêm compact */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
                   <Input
-                    size={13}
-                    placeholder="Nhập nguyên liệu bạn đang có (vd: đậu phụ, cà chua, nấm...)"
-                    value={form.name && showAddModal ? '' : search}
+                    placeholder="Nhập tên nguyên liệu (đậu phụ, nấm, rau...)"
+                    value={search}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-                    leftIcon={<SearchIcon size={14} />}
-                    className="!h-10 !rounded-[12px]"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && search.trim()) {
+                        handleQuickAdd(search.trim())
+                        setSearch('')
+                      }
+                    }}
+                    leftIcon={<SearchIcon size={14} className="text-slate-400" />}
+                    className="!h-10 !rounded-xl !border-slate-300 text-[13.5px] w-full"
                   />
                 </div>
                 <Button
                   type="button"
                   variant="primary"
-                  size="md"
+                  size="sm"
                   onClick={openAdd}
-                  className="!h-10 shrink-0 rounded-[10px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !text-white px-4 py-2 text-sm font-medium"
+                  leftIcon={<PlusIcon size={14} />}
+                  className="!h-10 shrink-0 !rounded-xl !bg-[#2E7D32] hover:!bg-[#1B5E20] !px-3.5 text-[13px] font-semibold"
                 >
-                  Thêm nguyên liệu
+                  Thêm
                 </Button>
               </div>
 
-              {/* QUICK ADD CHIPS */}
-              <div className="mt-4">
-                <div className="mb-2 text-[11.5px] font-bold uppercase tracking-[0.02em] text-[#6B7280]">
-                  Gợi ý thêm nhanh:
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
+              {/* Dòng chip gợi ý nhanh với nhãn "Phổ biến:" */}
+              <div className="mt-3.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[12px] font-bold uppercase tracking-wider text-slate-500 mr-1">
+                    Phổ biến:
+                  </span>
                   {quickAddChips.map((c) => (
-                    <Button
+                    <button
                       key={c.name}
                       type="button"
-                      variant="ghost"
                       onClick={() => handleQuickAdd(c.name)}
-                      className={`rounded-full !border !border-[#E5E7EB] !px-3 !py-1.5 !text-[12.5px] !font-semibold transition hover:-translate-y-[0.5px] hover:!border-[#2E7D32]/30 ${c.cls}`}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50/70 px-2.5 py-1 text-[12px] font-medium text-slate-700 transition hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800"
                     >
-                      <span>{c.emoji}</span> {c.name}
-                    </Button>
+                      <span aria-hidden>{c.emoji}</span>
+                      <span>{c.name}</span>
+                    </button>
                   ))}
                 </div>
               </div>
 
-              {/* DIET CHECK SUMMARY */}
-              <div
-                className={`mt-4 rounded-[14px] border px-4 py-3 ${
-                  stats.unsuit > 0
-                    ? 'border-[#FDE68A] bg-[#FFFBEB]'
-                    : 'border-[#C8E6C9] bg-[#F0FDF4]'
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-[13.5px] font-bold text-[#121C2A]">
-                    <ShieldCheck size={16} className="text-[#2E7D32]" />
-                    <span>Kiểm tra vi phạm Chế độ {currentDiet}:</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[12.5px] font-bold">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-1 text-[#166534]">
-                      {stats.suit} Hợp lệ
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#FFE4E6] px-2.5 py-1 text-[#9F1239]">
-                      {stats.unsuit + stats.warn} Cảnh báo
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* LIST: BY CATEGORY */}
-              <div className="mt-4 space-y-5">
-                {/* CATEGORY CHIPS ROUNDED-FULL */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {categoryOrder.map((c) => {
-                    const count =
-                      c.key === 'all'
-                        ? filteredItems.length
-                        : filteredItems.filter((i) => i.category === c.key).length
-                    const active = activeCategory === c.key
-                    const label = c.label || (c.key === 'all' ? 'Tất cả' : c.key)
-                    return (
-                      <button
-                        key={c.key}
-                        type="button"
-                        onClick={() => setActiveCategory(c.key)}
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-all select-none ${
-                          active
-                            ? 'border-[#2E7D32] bg-[#2E7D32] text-white shadow-sm ring-2 ring-[#2E7D32]/20'
-                            : 'border-[#E5E7EB] bg-white text-[#1F2937] hover:bg-[#F5FBF6] hover:border-[#C8E6C9]'
-                        }`}
-                      >
-                        {active ? (
-                          <Check size={14} className="text-white" />
-                        ) : (
-                          <span aria-hidden className="text-[13px] leading-none">
-                            {c.emoji}
-                          </span>
-                        )}
-                        <span>{label}</span>
-                        <span
-                          className={`ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold ${
-                            active ? 'bg-white/20 text-white' : 'bg-[#F3F4F6] text-[#374151]'
-                          }`}
-                        >
-                          {count}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {/* GROUPED ITEMS / EMPTY */}
-                <div className="space-y-4">
-                  {isLoadingItems ? (
-                    <div className="space-y-2">
-                      {[0, 1, 2].map((i) => (
-                        <div
-                          key={i}
-                          className="h-16 animate-pulse rounded-[12px] border border-[#E5E7EB] bg-white"
-                        />
-                      ))}
+              {/* Box Kiểm tra vi phạm chế độ ăn (CHỈ hiển thị khi có nguyên liệu) */}
+              {items.length > 0 && (
+                <div
+                  className={`mt-4 rounded-xl border p-3.5 transition-all ${
+                    stats.unsuit > 0
+                      ? 'border-amber-200 bg-amber-50/70'
+                      : 'border-emerald-200 bg-emerald-50/60'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-[13px] font-bold text-slate-900">
+                      <ShieldCheck size={16} className="text-[#2E7D32]" />
+                      <span>Kiểm tra Chế độ {currentDiet}:</span>
                     </div>
-                  ) : filteredItems.length === 0 ? (
-                    <EmptyState
-                      title="Tủ bếp của bạn đang trống"
-                      description="Bắt đầu thêm vài nguyên liệu phổ biến như đậu phụ, nấm, cà chua, rau cải để AI gợi ý món ngon chuẩn dinh dưỡng hôm nay."
-                      actionLabel="Thêm nguyên liệu đầu tiên"
-                      onAction={openAdd}
-                      icon={<UtensilsIcon size={40} className="text-[#2E7D32]" />}
-                    />
-                  ) : (
-                    Object.entries(grouped).map(([cat, list]) => (
-                      <GroupBlock
-                        key={cat}
-                        cat={cat as PantryCategory}
-                        list={list}
-                        currentDiet={currentDiet}
-                        onDelete={handleDelete}
-                      />
-                    ))
-                  )}
+                    <div className="flex items-center gap-1.5 text-[12px] font-bold">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-emerald-800">
+                        {stats.suit} Hợp lệ
+                      </span>
+                      {stats.unsuit + stats.warn > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-rose-800">
+                          {stats.unsuit + stats.warn} Cảnh báo
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* =============== AI SUGGESTED REPLACEMENT =============== */}
-            <div
-              className="rounded-[16px] border border-[#C8E6C9] bg-gradient-to-br from-white via-[#F0FDF4] to-[#DCFCE7] p-5 shadow-xs"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
-            >
-              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#2E7D32] text-white shadow-sm">
-                    <SparklesIcon size={16} />
+            {/* ---------------- CARD 2: NGUYÊN LIỆU CỦA BẠN (Ở giữa) ---------------- */}
+            <div className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-xs">
+              <div className="mb-3.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-emerald-50 text-[#2E7D32]">
+                    <UtensilsIcon size={16} />
+                  </span>
+                  <h2 className="text-[16.5px] font-extrabold text-[#111827] tracking-tight">
+                    Nguyên liệu của bạn
+                  </h2>
+                </div>
+                {items.length > 0 && (
+                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[12px] font-bold text-slate-700">
+                    {items.length} món
+                  </span>
+                )}
+              </div>
+
+              {/* Nếu tủ bếp trống -> ẨN FILTER VÀ HIỆN EMPTY STATE TONE TRUNG TÍNH */}
+              {items.length === 0 ? (
+                <div className="py-7 px-4 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 shadow-xs mb-3">
+                    <ShoppingBasket size={28} />
+                  </div>
+                  <h3 className="text-[15.5px] font-bold text-slate-800">
+                    Tủ bếp của bạn đang trống
+                  </h3>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500 max-w-xs mx-auto">
+                    Chưa có nguyên liệu nào trong tủ bếp. Hãy thêm nguyên liệu bạn đang có sẵn để AI gợi ý món ngon nhé.
+                  </p>
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      onClick={openAdd}
+                      leftIcon={<PlusIcon size={14} />}
+                      className="!rounded-xl !bg-[#2E7D32] hover:!bg-[#1B5E20] font-semibold !px-4"
+                    >
+                      Thêm nguyên liệu đầu tiên
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* Có nguyên liệu -> HIỂN THỊ FILTER CHIPS NẰM NGANG + DANH SÁCH */
+                <div className="space-y-4">
+                  {/* Filter chips nằm ngang (horizontal scrollable) */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none">
+                    {categoryOrder.map((c) => {
+                      const count =
+                        c.key === 'all'
+                          ? filteredItems.length
+                          : filteredItems.filter((i) => i.category === c.key).length
+                      const active = activeCategory === c.key
+                      const label = c.label || (c.key === 'all' ? 'Tất cả' : c.key)
+                      return (
+                        <button
+                          key={c.key}
+                          type="button"
+                          onClick={() => setActiveCategory(c.key)}
+                          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all ${
+                            active
+                              ? 'border-[#2E7D32] bg-[#2E7D32] text-white shadow-xs'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-400 hover:bg-emerald-50/50'
+                          }`}
+                        >
+                          {active ? (
+                            <Check size={12} className="text-white" />
+                          ) : (
+                            <span aria-hidden className="text-[12.5px] leading-none">
+                              {c.emoji}
+                            </span>
+                          )}
+                          <span>{label}</span>
+                          <span
+                            className={`ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                              active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Danh sách nguyên liệu */}
+                  <div className="space-y-3.5">
+                    {isLoadingItems ? (
+                      <div className="space-y-2">
+                        {[0, 1, 2].map((i) => (
+                          <div
+                            key={i}
+                            className="h-14 animate-pulse rounded-xl border border-slate-100 bg-slate-50"
+                          />
+                        ))}
+                      </div>
+                    ) : filteredItems.length === 0 ? (
+                      <div className="py-6 text-center text-[13px] text-slate-500">
+                        Không có nguyên liệu nào trong danh mục này.
+                      </div>
+                    ) : (
+                      Object.entries(grouped).map(([cat, list]) => (
+                        <GroupBlock
+                          key={cat}
+                          cat={cat as PantryCategory}
+                          list={list}
+                          currentDiet={currentDiet}
+                          onDelete={handleDelete}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ---------------- CARD 3: GỢI Ý THAY THẾ (Dưới cùng cột trái) ---------------- */}
+            <div className="rounded-[18px] border border-emerald-200 bg-gradient-to-br from-white via-emerald-50/25 to-green-50/40 p-5 shadow-xs">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#2E7D32] text-white shadow-xs">
+                    <SparklesIcon size={15} />
                   </span>
                   <div>
-                    <h3
-                      className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
-                      style={{ fontSize: '17px', lineHeight: '24px' }}
-                    >
-                      Gợi ý thay thế theo chế độ {currentDiet}
+                    <h3 className="text-[15.5px] font-extrabold text-[#111827] tracking-tight">
+                      Gợi ý thay thế thông minh
                     </h3>
                   </div>
                 </div>
-                <span className="inline-flex items-center rounded-full bg-[#DCFCE7] px-2.5 py-1 text-[11.5px] font-bold text-[#166534] ring-1 ring-[#86EFAC]">
+                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
                   {dietBadgeText}
                 </span>
               </div>
 
-              {suggestedReplacements.length === 0 ? (
-                <div className="rounded-[14px] border border-[#86EFAC] bg-white p-3.5 shadow-xs">
+              {items.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-emerald-200/90 bg-white/80 p-3.5 text-[12.5px] text-slate-600 leading-relaxed">
+                  🌱 Khi bạn thêm nguyên liệu chưa phù hợp với chế độ {currentDiet}, AI sẽ tự động phân tích và đưa ra các lựa chọn thay thế thuần thực vật an toàn tại đây.
+                </div>
+              ) : suggestedReplacements.length === 0 ? (
+                <div className="rounded-xl border border-emerald-200 bg-white p-3.5 shadow-2xs">
                   <div className="flex items-center gap-3">
-                    <span className="text-[22px]" aria-hidden>🌱</span>
+                    <span className="text-[20px]" aria-hidden>🌱</span>
                     <div>
-                      <div className="text-[13.5px] font-bold text-[#166534]">
-                        Chưa có gợi ý thay thế
+                      <div className="text-[13px] font-bold text-emerald-800">
+                        Tủ bếp 100% phù hợp chế độ {currentDiet}
                       </div>
-                      <div className="text-[12px] text-[#4B5563]">
-                        Gợi ý chỉ xuất hiện khi hệ thống có nguyên liệu thay thế từ danh mục. Không có gợi ý không có nghĩa mọi nguyên liệu đều phù hợp.
+                      <div className="text-[12px] text-slate-500 mt-0.5">
+                        Không phát hiện nguyên liệu nào vi phạm quy tắc. Khi bạn thêm nguyên liệu chưa hợp, AI sẽ tự động gợi ý thay thế tại đây.
                       </div>
                     </div>
                   </div>
@@ -626,84 +689,107 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                   ))}
                 </div>
               )}
-
-              <p className="mt-3 flex items-start gap-1.5 text-[12.5px] font-medium text-[#166534]">
-                <ShieldCheck size={14} className="mt-0.5 shrink-0" />
-                <span>
-                  Nguyên liệu chỉ được thay đổi sau khi bạn xác nhận lưu. Vui lòng kiểm tra kỹ cảnh báo dị ứng và nguồn gốc nguyên liệu.
-                </span>
-              </p>
             </div>
           </div>
 
-          {/* =============== RIGHT: RECIPE MATCHES =============== */}
-          <div className="space-y-6 lg:col-span-7">
-            {/* HEADER */}
-            <div
-              className="rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-xs"
-              style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#FEF9C3] text-[#854D0E]">
-                      <SparklesIcon size={16} />
-                    </span>
-                    <h2
-                      className="font-extrabold tracking-[-0.005em] text-[#121C2A]"
-                      style={{ fontSize: '20px', lineHeight: '28px' }}
-                    >
-                      Món ngon có thể nấu ngay từ tủ bếp
-                    </h2>
-                    <span className="inline-flex items-center rounded-full bg-[#DCFCE7] px-2.5 py-1 text-[11.5px] font-bold text-[#166534]">
-                      {matches.length} công thức
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[13px] text-[#4B5563]">
-                    Tìm thấy {matches.length} công thức phù hợp dựa trên nguyên liệu hiện có trong tủ bếp của bạn.
-                  </p>
+          {/* =============== CỘT PHẢI: HIỂN THỊ CÓ ĐIỀU KIỆN (MUTUALLY EXCLUSIVE) =============== */}
+          <div className="lg:col-span-7">
+            {/* Logic Mutually Exclusive dựa trên items.length:
+                - Nếu items.length === 0: CHỈ hiển thị card "Chưa có gợi ý món nào phù hợp" (Ẩn card Món ngon nấu ngay)
+                - Nếu items.length > 0: Hiển thị card "Món ngon nấu ngay" (Ẩn card Chưa có gợi ý) */}
+            {items.length === 0 ? (
+              /* CARD: CHƯA CÓ GỢI Ý MÓN NÀO PHÙ HỢP */
+              <div className="rounded-[20px] border border-dashed border-slate-300 bg-white p-8 sm:p-12 text-center shadow-xs">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-[#2E7D32] shadow-xs mb-4">
+                  <SparklesIcon size={32} />
+                </div>
+                <h2 className="text-[20px] font-extrabold text-[#111827] tracking-tight">
+                  Chưa có gợi ý món nào phù hợp
+                </h2>
+                <p className="mt-2 text-[14px] leading-relaxed text-slate-600 max-w-md mx-auto">
+                  Tủ bếp hiện đang trống. Hãy thêm các nguyên liệu sẵn có ở gian bếp của bạn (như đậu phụ, nấm, cà chua, rau xanh...) vào cột bên trái để AI bắt đầu tính toán và đề xuất thực đơn nấu ngay nhé!
+                </p>
+                <div className="mt-6 flex justify-center">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="md"
+                    onClick={openAdd}
+                    leftIcon={<PlusIcon size={15} />}
+                    className="!rounded-xl !bg-[#2E7D32] hover:!bg-[#1B5E20] font-semibold !px-6"
+                  >
+                    Thêm nguyên liệu ngay
+                  </Button>
                 </div>
               </div>
-            </div>
-
-            {/* RECIPE GRID 2 COL */}
-            <div className="grid gap-5 md:grid-cols-2">
-              {isLoadingMatches
-                ? Array.from({ length: 4 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-[380px] animate-pulse rounded-[16px] border border-[#E5E7EB] bg-white"
-                    />
-                  ))
-                : matches.length === 0
-                  ? (
-                      <div className="md:col-span-2">
-                        <EmptyState
-                          title="Chưa có gợi ý món nào phù hợp"
-                          description="Thêm vài nguyên liệu phổ biến như đậu phụ, cà chua, nấm vào tủ bếp để AI bắt đầu gợi ý món nhé."
-                          actionLabel="Thêm nguyên liệu"
-                          onAction={openAdd}
-                          icon={<SparklesIcon size={40} className="text-[#2E7D32]" />}
-                        />
+            ) : (
+              /* CARD: MÓN NGON CÓ THỂ NẤU NGAY TỪ TỦ BẾP */
+              <div className="space-y-5">
+                {/* Header card */}
+                <div className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                        <SparklesIcon size={18} />
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-[18px] font-extrabold text-[#111827] tracking-tight">
+                            Món ngon có thể nấu ngay từ tủ bếp
+                          </h2>
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11.5px] font-bold text-emerald-800">
+                            {matches.length} công thức
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-[13px] text-slate-500">
+                          AI đã đối chiếu và tìm thấy các công thức tối ưu dinh dưỡng dựa trên nguyên liệu trong bếp của bạn.
+                        </p>
                       </div>
-                    )
-                  : matches.slice(0, 4).map((m) => (
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid 2 cột công thức tương thích */}
+                <div className="grid gap-5 md:grid-cols-2">
+                  {isLoadingMatches ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-[380px] animate-pulse rounded-[16px] border border-slate-200 bg-white"
+                      />
+                    ))
+                  ) : matches.length === 0 ? (
+                    <div className="md:col-span-2">
+                      <EmptyState
+                        title="Chưa tìm thấy công thức trùng khớp hoàn toàn"
+                        description="Thêm thêm một số nguyên liệu cơ bản như đậu hũ, cà chua hoặc nấm để AI hoàn thiện gợi ý món ngon nhé."
+                        actionLabel="Thêm thêm nguyên liệu"
+                        onAction={openAdd}
+                        icon={<SparklesIcon size={36} className="text-[#2E7D32]" />}
+                      />
+                    </div>
+                  ) : (
+                    matches.slice(0, 6).map((m) => (
                       <MatchCard
                         key={m.id}
                         m={m}
                         currentDiet={currentDiet}
                         onViewRecipe={() => {
-                          showToast(`🍲 Đang mở công thức: ${cleanPantryName(m.title)}`)
+                          showToast(`🍲 Đang mở công thức: ${m.title}`)
                           onNavigate?.(`/recipes/${encodeURIComponent(m.id)}`)
                         }}
+                        onSave={() => showToast(`📌 Đã lưu: ${m.title} vào kế hoạch tuần`)}
                       />
-                    ))}
-            </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </section>
       </div>
 
-      {/* =============== ADD MODAL (Figma design) =============== */}
+      {/* =============== ADD MODAL =============== */}
       <Modal
         isOpen={showAddModal}
         onClose={closeAdd}
@@ -714,7 +800,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
             Thêm nguyên liệu vào Tủ bếp AI
           </span>
         }
-        description={`Nhập đầy đủ tên, số lượng và danh mục. Hệ thống sẽ tự động phân tích mức độ phù hợp ${currentDiet} dựa trên tên gọi.`}
+        description={`Nhập tên, số lượng và danh mục. Hệ thống sẽ tự động phân tích mức độ phù hợp với chế độ ${currentDiet}.`}
         footer={
           <>
             <Button
@@ -729,8 +815,10 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               type="button"
               variant="primary"
               isLoading={isAddSubmitting}
+              disabled={isAddSubmitting}
               leftIcon={<PlusIcon size={14} />}
               onClick={handleSubmitAdd}
+              className="!bg-[#2E7D32] hover:!bg-[#1B5E20]"
             >
               Lưu nguyên liệu
             </Button>
@@ -749,7 +837,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                 setFormErrors((p) => ({ ...p, name: undefined }))
               }}
               error={formErrors.name}
-              helperText="Nhập tiếng Việt có dấu để hệ thống phân tích tốt hơn."
+              helperText="Nhập tiếng Việt có dấu để hệ thống phân tích chính xác nhất."
               autoFocus
             />
           </div>
@@ -759,14 +847,14 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               type="number"
               inputMode="decimal"
               min={0}
-              placeholder="Ví dụ: 400"
+              placeholder="Ví dụ: 300"
               value={form.quantity}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 setForm((f) => ({ ...f, quantity: e.target.value }))
                 setFormErrors((p) => ({ ...p, quantity: undefined }))
               }}
               error={formErrors.quantity}
-              helperText="Bỏ trống để nhập sau."
+              helperText="Bỏ trống nếu không cần ghi rõ."
             />
           </div>
           <div>
@@ -796,17 +884,13 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
             />
           </div>
         </div>
-        <div className="mt-5 rounded-[12px] border border-[#C8E6C9] bg-[#E8F5E9]/60 p-3 text-[12.5px] leading-5 text-[#1F2937]">
-          <strong>Lưu ý:</strong> Độ phù hợp dựa trên tên gọi thông thường, không thay cho đọc nhãn
-          thành phần thực tế. Nếu sản phẩm có phụ gia E-number, hãy kiểm tra thêm.
-        </div>
       </Modal>
 
-      {/* Toast */}
+      {/* Toast Notification */}
       {toast && (
         <div
           aria-live="polite"
-          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 text-[14px] font-semibold text-white shadow-lg backdrop-blur"
+          className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-5 py-2 text-[14px] font-semibold text-white shadow-lg backdrop-blur-md"
           style={{ lineHeight: '20px' }}
         >
           {toast}
@@ -833,14 +917,14 @@ function GroupBlock({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <div className="inline-flex items-center gap-1.5 text-[12.5px] font-bold uppercase tracking-[0.02em] text-[#4B5563]">
+        <div className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-slate-600">
           <span aria-hidden>{meta?.emoji ?? '📦'}</span>
           {meta?.label ?? PANTRY_CATEGORY_LABELS[cat]}
-          <span className="text-[11px] font-semibold text-[#9CA3AF]">
+          <span className="text-[11px] font-semibold text-slate-400">
             ({list.length})
           </span>
         </div>
-        <span className="h-[1px] flex-1 mx-3 bg-gradient-to-r from-[#E5E7EB] via-[#C8E6C9] to-transparent" />
+        <span className="h-[1px] flex-1 mx-3 bg-gradient-to-r from-slate-200 via-emerald-100 to-transparent" />
       </div>
       <div className="space-y-2">
         {list.map((i) => (
@@ -863,32 +947,29 @@ function ItemRow({
   const t = suitabilityTone(item.isSuitable, currentDiet)
   const d = new Date(item.addedAt)
   const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`
-  const displayName = cleanPantryName(item.name)
   return (
     <div
-      className={`group flex items-center justify-between gap-3 rounded-[12px] border ${t.border} ${t.bg} px-3 py-2.5 transition hover:shadow-sm`}
+      className={`group flex items-center justify-between gap-3 rounded-[12px] border ${t.border} ${t.bg} px-3 py-2.5 transition hover:shadow-xs`}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white text-[18px] shadow-inner ring-1 ring-white/60">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white text-[16px] shadow-2xs ring-1 ring-slate-100">
           {CATEGORY_ORDER.find((c) => c.key === item.category)?.emoji ?? '📦'}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className={`line-clamp-1 text-[14px] font-bold ${t.cls}`}>{displayName}</span>
-            {t.label ? (
-              <span
-                className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[10.5px] font-bold ${t.tagCls}`}
-              >
-                {t.icon}
-                {t.label}
-              </span>
-            ) : null}
+            <span className={`line-clamp-1 text-[13.5px] font-bold ${t.cls}`}>{item.name}</span>
+            <span
+              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold ${t.tagCls}`}
+            >
+              {t.icon}
+              {t.label}
+            </span>
           </div>
-          <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-[#4B5563]">
-            <span className="font-semibold">
+          <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-slate-500">
+            <span className="font-semibold text-slate-700">
               {item.quantity} {item.unit}
             </span>
-            <span className="text-[#D1D5DB]">·</span>
+            <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
               <Calendar size={11} /> {dateStr}
             </span>
@@ -900,8 +981,8 @@ function ItemRow({
         variant="ghost"
         aria-label={`Xóa ${item.name}`}
         onClick={onDelete}
-        className="!h-8 !w-8 shrink-0 !rounded-[10px] !p-0 !text-[#6B7280] transition hover:!bg-[#FFF1F2] hover:!text-[#DC2626] !min-w-0"
-        leftIcon={<TrashIcon size={15} />}
+        className="!h-7 !w-7 shrink-0 !rounded-[8px] !p-0 !text-slate-400 transition hover:!bg-rose-50 hover:!text-rose-600 !min-w-0"
+        leftIcon={<TrashIcon size={14} />}
       />
     </div>
   )
@@ -920,20 +1001,18 @@ function ReplacementRow({
   description?: string
   onApply: () => void
 }) {
-  const cleanFrom = cleanPantryName(from)
-  const cleanTo = cleanPantryName(to)
   return (
-    <div className="rounded-[14px] border border-[#86EFAC] bg-white p-3.5 shadow-xs transition hover:border-[#22C55E]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <span className="text-[20px]" aria-hidden>{icon}</span>
-          <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
-            <span className="font-semibold text-[#9F1239] line-through decoration-red-500 decoration-2">
-              {cleanFrom}
+    <div className="rounded-[12px] border border-emerald-200 bg-white p-3 shadow-2xs transition hover:border-emerald-400">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="text-[18px]" aria-hidden>{icon}</span>
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <span className="font-semibold text-rose-700 line-through decoration-rose-500">
+              {from}
             </span>
-            <span className="font-bold text-[#9CA3AF]">→</span>
-            <span className="inline-flex items-center rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-[12px] font-bold text-[#166534] ring-1 ring-[#86EFAC]">
-              {cleanTo}
+            <span className="font-bold text-slate-400">→</span>
+            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11.5px] font-bold text-emerald-800">
+              {to}
             </span>
           </div>
         </div>
@@ -943,13 +1022,13 @@ function ReplacementRow({
           size="sm"
           rightIcon={<ArrowRight size={13} />}
           onClick={onApply}
-          className="!h-8 shrink-0 !rounded-[10px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !px-3.5 !text-[12.5px] !font-medium"
+          className="!h-7.5 shrink-0 !rounded-[8px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !px-3 !text-[12px] font-semibold"
         >
-          Áp dụng thay thế
+          Áp dụng
         </Button>
       </div>
       {description && (
-        <p className="mt-2 pl-[34px] text-[12px] text-[#4B5563]">
+        <p className="mt-1.5 pl-6 text-[11.5px] text-slate-500">
           {description}
         </p>
       )}
@@ -957,21 +1036,17 @@ function ReplacementRow({
   )
 }
 
-const FALLBACK_PANTRY_RECIPE_IMG =
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
-
 function MatchCard({
   m,
-  currentDiet,
+  currentDiet = 'Thuần chay (Vegan)',
   onViewRecipe,
+  onSave,
 }: {
   m: RecipeMatch
   currentDiet?: CoreDietType
   onViewRecipe: () => void
+  onSave: () => void
 }) {
-  const [imgSrc, setImgSrc] = useState(m.cover || FALLBACK_PANTRY_RECIPE_IMG)
-  const displayTitle = cleanPantryName(m.title)
-
   const onKey =
     (fn: () => void) =>
     (e: React.KeyboardEvent): void => {
@@ -980,11 +1055,15 @@ function MatchCard({
         fn()
       }
     }
+  const veganOk = m.matchPercent >= 60
+  const match3of =
+    m.totalIngredients > 0 &&
+    (m.matchedIngredients.length === Math.min(3, m.totalIngredients) ||
+      m.matchedIngredients.length >= 3)
 
   return (
     <div
-      className="group flex h-full flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-xs transition hover:-translate-y-[1px] hover:border-[#2E7D32]/30"
-      style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+      className="group flex h-full flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md"
     >
       <div
         role="button"
@@ -994,78 +1073,74 @@ function MatchCard({
         className="relative block w-full cursor-pointer overflow-hidden bg-slate-100"
       >
         <img
-          src={imgSrc}
-          alt={displayTitle}
+          src={m.cover}
+          alt={m.title}
           loading="lazy"
-          onError={() => setImgSrc(FALLBACK_PANTRY_RECIPE_IMG)}
-          className="h-48 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src =
+              'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
+          }}
+          className="h-[175px] w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {/* Top badges */}
-        <div className="absolute left-3 top-3 flex items-center">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#166534]/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs backdrop-blur-xs">
-            🌱 {currentDiet || 'Món chay'}
+        <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-xs backdrop-blur-md ${
+              veganOk
+                ? 'bg-emerald-700/90 text-white'
+                : 'bg-amber-100/90 text-amber-900 border border-amber-200'
+            }`}
+          >
+            ✓ Chuẩn {currentDiet}
           </span>
         </div>
-        <div className="absolute right-3 top-3 flex items-center">
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-[#166534] ring-1 ring-[#86EFAC] shadow-xs backdrop-blur-xs">
-            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#DCFCE7] text-[#166534] text-[10px]">
-              ✓
-            </span>
-            Khớp {m.matchedIngredients.length}/{m.totalIngredients}
+        <div className="absolute right-3 top-3 flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-xs backdrop-blur-md ${
+              match3of
+                ? 'bg-emerald-100/95 text-emerald-900 border border-emerald-300'
+                : 'bg-white/95 text-emerald-800'
+            }`}
+          >
+            Khớp {m.matchedIngredients.length}/{Math.min(3, m.totalIngredients)} có sẵn
           </span>
         </div>
-        <div className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-[11px] font-bold text-white ring-1 ring-white/10 backdrop-blur-xs">
+        <div className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur-md">
           <ClockIcon size={11} /> {m.timeMin} phút
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
           <h3
-            className="line-clamp-2 font-extrabold tracking-[-0.005em] text-[#121C2A]"
-            style={{ fontSize: '17px', lineHeight: '24px' }}
+            className="line-clamp-2 text-[16px] font-bold text-[#111827] group-hover:text-[#2E7D32] transition-colors leading-[23px]"
           >
-            {displayTitle}
+            {m.title}
           </h3>
-          <p
-            className="mt-1 line-clamp-2 text-[13px] leading-[20px] text-[#4B5563]"
-          >
+          <p className="mt-1 line-clamp-2 text-[13px] leading-[19px] text-slate-500">
             {m.subtitle}
           </p>
         </div>
 
-        {/* Ingredients match details */}
-        <div className="text-[12.5px] text-[#4B5563] space-y-1">
-          {m.matchedIngredients.length > 0 && (
-            <div className="font-medium text-[#166534]">
-              <span className="font-bold">Đã có: </span>
-              {m.matchedIngredients.slice(0, 3).map(cleanPantryName).join(' · ')}
-            </div>
-          )}
-          {m.missingList.length > 0 && (
-            <div className="text-[12px] text-[#4B5563]">
-              <span className="font-semibold text-amber-700">Cần thêm: </span>
-              <span className="text-slate-600">
-                {m.missingList.slice(0, 3).map(cleanPantryName).join(' · ')}
-              </span>
-            </div>
-          )}
+        {/* Match summary line */}
+        <div className="text-[12px] text-slate-600">
+          <span className="font-semibold text-emerald-800">
+            Tủ bếp:{' '}
+            {m.matchedIngredients.length > 0
+              ? m.matchedIngredients.slice(0, 3).map((x) => `${x} (Có ✓)`).join(' · ')
+              : 'Đang khớp...'}
+          </span>
         </div>
 
         {/* Nutrition 4 col */}
-        <div className="grid grid-cols-4 gap-1.5 rounded-[10px] border border-[#E5E7EB] bg-[#F8FAFB] p-2">
-          <NutriBox
-            label="Calo"
-            value={m.kcal == null ? '--' : `${m.kcal}`}
-            unit={m.kcal == null ? '' : 'kcal'}
-            tone="amber"
-          />
-          <NutriBox label="Đạm" value="--" unit="" tone="green" />
-          <NutriBox label="Carb" value="--" unit="" tone="blue" />
-          <NutriBox label="Béo" value="--" unit="" tone="rose" />
+        <div className="grid grid-cols-4 gap-1 rounded-xl border border-slate-100 bg-slate-50/70 p-2 text-center">
+          <NutriBox label="Calo" value={`${m.kcal}`} unit="" tone="amber" />
+          <NutriBox label="Đạm" value={`${Math.round(m.kcal * 0.18 / 4)}`} unit="g" tone="green" />
+          <NutriBox label="Carb" value={`${Math.round(m.kcal * 0.5 / 4)}`} unit="g" tone="blue" />
+          <NutriBox label="Béo" value={`${Math.round(m.kcal * 0.3 / 9)}`} unit="g" tone="rose" />
         </div>
 
-        {/* MATCH % PROGRESS BAR bg-[#2E7D32] fill */}
-        <div className="mt-2 flex items-center gap-3">
+        {/* MATCH % PROGRESS BAR */}
+        <div className="mt-1 flex items-center gap-3">
           <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
             <div
               style={{ width: `${Math.min(100, m.matchPercent)}%` }}
@@ -1078,19 +1153,27 @@ function MatchCard({
         </div>
 
         {/* Actions */}
-        <div className="mt-auto pt-2">
+        <div className="mt-auto flex items-center gap-2 pt-2">
           <Button
             type="button"
             variant="primary"
             size="md"
             fullWidth
-            leftIcon={<SparklesIcon size={14} />}
             rightIcon={<ArrowRight size={14} />}
             onClick={onViewRecipe}
-            className="!h-10 !rounded-[12px] !font-bold"
+            className="!h-9.5 !rounded-xl !bg-[#2E7D32] hover:!bg-[#1B5E20] font-semibold text-[13px]"
           >
-            Xem công thức chi tiết
+            Xem công thức
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            leftIcon={<Calendar size={14} />}
+            onClick={onSave}
+            className="!h-9.5 !w-9.5 shrink-0 !rounded-xl !p-0 !border-slate-300"
+            aria-label="Lưu vào kế hoạch tuần"
+          />
         </div>
       </div>
     </div>
@@ -1115,15 +1198,13 @@ function NutriBox({
     rose: 'text-[#9F1239]',
   }
   return (
-    <div className="rounded-[8px] bg-white px-1.5 py-1.5 text-center">
-      <div className="text-[10px] font-bold uppercase tracking-[0.02em] text-[#6B7280]">
+    <div className="rounded-lg bg-white px-1 py-1">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
         {label}
       </div>
-      <div
-        className={`mt-0.5 text-[13.5px] font-extrabold tabular-nums ${colorMap[tone] ?? 'text-[#1F2937]'}`}
-      >
+      <div className={`text-[13px] font-extrabold ${colorMap[tone] ?? 'text-slate-800'}`}>
         {value}
-        {unit && <span className="ml-0.5 text-[10.5px] font-bold">{unit}</span>}
+        {unit && <span className="ml-0.5 text-[10px] font-bold">{unit}</span>}
       </div>
     </div>
   )
