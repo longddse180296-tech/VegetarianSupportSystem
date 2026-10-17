@@ -25,6 +25,10 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
             src={recipe.cover}
             alt={recipe.title}
             loading="lazy"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src =
+                'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80'
+            }}
             className="h-40 w-full object-cover transition duration-200 group-hover:scale-[1.02]"
           />
           <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-bold text-[#2e7d32] shadow-xs ring-1 ring-[#c8e6c9]">
@@ -33,7 +37,10 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
           </span>
         </div>
         <div className="p-4">
-          <h4 className="line-clamp-1 text-sm font-extrabold tracking-tight text-[#1f2937]">
+          <h4
+            title={recipe.title}
+            className="line-clamp-2 text-sm font-extrabold tracking-tight text-[#1f2937]"
+          >
             {recipe.title}
           </h4>
           <p className="mt-1 line-clamp-1 text-xs text-[#6b7280]">{recipe.subtitle}</p>
@@ -68,11 +75,18 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
         src={recipe.cover}
         alt={recipe.title}
         loading="lazy"
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).src =
+            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80'
+        }}
         className="h-20 w-20 shrink-0 rounded-[10px] object-cover ring-1 ring-[#e5e7eb]"
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <h5 className="line-clamp-1 text-[13px] font-extrabold text-[#1f2937]">
+          <h5
+            title={recipe.title}
+            className="line-clamp-2 text-[13px] font-extrabold text-[#1f2937]"
+          >
             {recipe.title}
           </h5>
           <span className="shrink-0 rounded-full bg-[#e8f5e9] px-2 py-0.5 text-[10px] font-bold text-[#2e7d32]">

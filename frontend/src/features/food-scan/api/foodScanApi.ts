@@ -83,10 +83,10 @@ interface BackendScanPage {
 }
 
 export const DIET_LABELS: Record<string, string> = {
-  Vegan: 'Thuần chay',
-  Lacto: 'Chay có sữa',
-  Ovo: 'Chay có trứng',
-  LactoOvo: 'Chay có sữa và trứng',
+  Vegan: 'Thuần chay (Vegan)',
+  Lacto: 'Ăn chay có sữa (Lacto)',
+  Ovo: 'Chay có trứng (Ovo)',
+  LactoOvo: 'Trứng & Sữa (Lacto-ovo)',
 }
 
 export const INGREDIENT_KIND_LABELS: Record<IngredientKind, string> = {
@@ -133,8 +133,8 @@ export async function analyzeScanImage(
   image: File,
 ): Promise<ScanAnalysis> {
   if (!getStoredToken()) throw new Error('Hãy đăng nhập trước khi quét ảnh.')
-  if (image.size === 0 || image.size > 10 * 1024 * 1024) {
-    throw new Error('Chọn ảnh JPG, PNG hoặc WEBP tối đa 10 MB.')
+  if (image.size === 0 || image.size > 5 * 1024 * 1024) {
+    throw new Error('Chỉ hỗ trợ file ảnh định dạng JPG hoặc PNG với kích thước tối đa 5MB.')
   }
 
   const form = new FormData()
@@ -160,6 +160,7 @@ export async function analyzeScanImage(
     }
     return { sourceType, data }
   } catch (error) {
+    console.error(`[foodScanApi.analyzeScanImage] Lỗi khi gọi /api/food-scans/${endpoint}`, error);
     if (error instanceof ApiError && error.status === 422) {
       throw new Error('Không nhận diện được ảnh. Hãy chọn ảnh rõ hơn và thử lại.')
     }
@@ -171,7 +172,14 @@ export async function analyzeScanImage(
 }
 
 export async function evaluateScan(request: EvaluateScanRequest): Promise<SavedFoodScan> {
-  const saved = await apiClient.post<SavedFoodScan>('/api/food-scans/evaluate', request)
+  const url = '/api/food-scans/evaluate'
+  let saved: SavedFoodScan
+  try {
+    saved = await apiClient.post<SavedFoodScan>(url, request)
+  } catch (err) {
+    console.error('[foodScanApi.evaluateScan] Lỗi khi gọi ' + url, err)
+    throw err
+  }
   if (!saved?.id || !Array.isArray(saved.assessments)) {
     throw new Error('BE không trả về kết quả quét đã lưu hợp lệ.')
   }
@@ -179,9 +187,14 @@ export async function evaluateScan(request: EvaluateScanRequest): Promise<SavedF
 }
 
 export async function getScanHistory(page = 1, pageSize = 10): Promise<ScanHistoryPage> {
-  const response = await apiClient.get<BackendScanPage>(
-    `/api/food-scans/history?page=${page}&pageSize=${pageSize}`,
-  )
+  const url = `/api/food-scans/history?page=${page}&pageSize=${pageSize}`
+  let response: BackendScanPage
+  try {
+    response = await apiClient.get<BackendScanPage>(url)
+  } catch (err) {
+    console.error('[foodScanApi.getScanHistory] Lỗi khi gọi ' + url, err)
+    throw err
+  }
   if (!response || !Array.isArray(response.items)) {
     throw new Error('Dữ liệu lịch sử quét không hợp lệ.')
   }
@@ -193,6 +206,12 @@ export async function getScanHistory(page = 1, pageSize = 10): Promise<ScanHisto
   }
 }
 
-export function getScanDetail(id: string): Promise<SavedFoodScan> {
-  return apiClient.get<SavedFoodScan>(`/api/food-scans/${encodeURIComponent(id)}`)
+export async function getScanDetail(id: string): Promise<SavedFoodScan> {
+  const url = `/api/food-scans/${encodeURIComponent(id)}`
+  try {
+    return await apiClient.get<SavedFoodScan>(url)
+  } catch (err) {
+    console.error('[foodScanApi.getScanDetail] Lỗi khi gọi ' + url, err)
+    throw err
+  }
 }

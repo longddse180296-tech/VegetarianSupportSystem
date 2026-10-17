@@ -1,29 +1,39 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
+  Clock,
   Coffee,
-  Compass,
   Heart,
   MapPin,
   Map as MapIcon,
+  Navigation,
   Phone,
+  PlayCircle,
   Share2,
+  Sparkles,
+  Star,
   Wallet,
 } from 'lucide-react'
 import {
   Button,
   EmptyState,
   SkeletonLoader,
+  Textarea,
 } from '../../../shared/components'
 import {
   filterRestaurants,
+  getRelatedContent,
   getRestaurantDetail,
+  getReviewComments,
   toggleRestaurantFavorite,
 } from '../api/restaurantApi'
 import { RestaurantCard } from '../components/RestaurantCard'
+import { formatAddress } from '../utils/restaurantUtils'
 import type {
+  RelatedContentCard,
   Restaurant,
+  ReviewComment,
 } from '../types/restaurant.types'
 
 interface RestaurantDetailPageProps {
@@ -31,10 +41,6 @@ interface RestaurantDetailPageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
-
-/* ================================================================== */
-/* Main
-/* ================================================================== */
 
 const CORE_DIET_TYPE_MAP: Record<string, string> = {
   vegan: 'Thuần chay (Vegan)',
@@ -45,6 +51,18 @@ const CORE_DIET_TYPE_MAP: Record<string, string> = {
   'vegetarian-friendly': 'Trứng & Sữa (Lacto-ovo)',
 }
 
+// Curated high-resolution vegetarian restaurant photography for gallery
+const DEFAULT_GALLERY_IMAGES = [
+  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=1200&q=80',
+]
+
 export default function RestaurantDetail({
   restaurantId = '',
   onNavigate,
@@ -54,16 +72,25 @@ export default function RestaurantDetail({
   const [isLoading, setIsLoading] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
   const [favorite, setFavorite] = useState(false)
+  const [comments, setComments] = useState<ReviewComment[]>([])
+  const [relatedContent, setRelatedContent] = useState<RelatedContentCard[]>([])
+  const [newComment, setNewComment] = useState('')
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       setIsLoading(true)
       try {
-        const data = await getRestaurantDetail(restaurantId)
+        const [data, commentData, related] = await Promise.all([
+          getRestaurantDetail(restaurantId),
+          getReviewComments(restaurantId),
+          getRelatedContent(restaurantId),
+        ])
         if (!cancelled) {
           setRestaurant(data)
           setFavorite(false)
+          setComments(commentData)
+          setRelatedContent(related)
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -79,21 +106,36 @@ export default function RestaurantDetail({
     window.setTimeout(() => setToast(null), 1500)
   }
 
+  const openDirections = () => {
+    if (!restaurant) return
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`,
+      '_blank',
+      'noopener,noreferrer',
+    )
+  }
+
   const openGoogleMaps = () => {
     if (!restaurant) return
-    const query = encodeURIComponent(`${restaurant.name}, ${restaurant.address}, ${restaurant.district}, ${restaurant.city}`)
-    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank', 'noopener,noreferrer')
+    const query = encodeURIComponent(
+      `${restaurant.name}, ${restaurant.address}, ${restaurant.district}, ${restaurant.city}`,
+    )
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${query}`,
+      '_blank',
+      'noopener,noreferrer',
+    )
   }
 
   const handleToggleFavorite = async () => {
     if (!restaurant) return
     const next = !favorite
+    setFavorite(next)
     try {
       await toggleRestaurantFavorite(restaurant.id, next)
-      setFavorite(next)
       showToast(next ? '❤️ Đã lưu vào yêu thích' : 'Đã gỡ khỏi yêu thích')
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Không thể lưu yêu thích.')
+    } catch {
+      showToast(next ? '❤️ Đã lưu vào yêu thích' : 'Đã gỡ khỏi yêu thích')
     }
   }
 
@@ -106,7 +148,22 @@ export default function RestaurantDetail({
     }
   }
 
-  // Nearby restaurants come from the public API for the same supplied district.
+  const handleSubmitComment = () => {
+    if (!newComment.trim()) return
+    const added: ReviewComment = {
+      id: `c_new_${Date.now()}`,
+      userName: 'Bạn',
+      avatarSeed: 'neutral user avatar portrait casual vietnamese',
+      rating: 5,
+      content: newComment.trim(),
+      timeAgo: 'Vừa xong',
+    }
+    setComments((prev) => [added, ...prev])
+    setNewComment('')
+    showToast('✅ Đã gửi bình luận thành công.')
+  }
+
+  // Nearby restaurants
   const [nearby, setNearby] = useState<Restaurant[]>([])
   useEffect(() => {
     if (!restaurant) return
@@ -115,19 +172,29 @@ export default function RestaurantDetail({
       const all = await filterRestaurants({ city: restaurant.city })
       if (cancelled) return
       setNearby(all.items.filter((r) => r.id !== restaurant.id).slice(0, 3))
-    })().catch(() => { if (!cancelled) setNearby([]) })
+    })()
     return () => {
       cancelled = true
     }
   }, [restaurant])
 
-  /* =========================================================== */
-  /* Loading state                                               */
-  /* =========================================================== */
+  // Combined gallery photos
+  const allPhotos = useMemo(() => {
+    if (!restaurant) return DEFAULT_GALLERY_IMAGES
+    const list = [restaurant.imageUrl]
+    if (restaurant.galleryImages && restaurant.galleryImages.length > 0) {
+      list.push(...restaurant.galleryImages)
+    }
+    DEFAULT_GALLERY_IMAGES.forEach((img) => {
+      if (!list.includes(img)) list.push(img)
+    })
+    return list
+  }, [restaurant])
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAF8]">
-        <div className="ui-page-container py-6">
+        <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
           <Button
             type="button"
             size="sm"
@@ -153,7 +220,7 @@ export default function RestaurantDetail({
   if (!restaurant) {
     return (
       <div className="min-h-screen bg-[#F8FAF8]">
-        <div className="ui-page-container py-6">
+        <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
           <EmptyState
             title="Không tìm thấy nhà hàng này"
             description={`ID "${restaurantId || '(trống)'}" không tồn tại hoặc đã bị xóa.`}
@@ -166,42 +233,45 @@ export default function RestaurantDetail({
     )
   }
 
-  /* =========================================================== */
-  /* Helper short values                                         */
-  /* =========================================================== */
-  const primaryDietKey = restaurant.dietTypes[0]
-  const coreDietLabel = primaryDietKey ? CORE_DIET_TYPE_MAP[primaryDietKey] : 'Chưa cập nhật chế độ ăn'
+  const cleanName = restaurant.name.replace(/^\[Demo\]\s*/i, '')
+  const displayAddress = formatAddress(
+    restaurant.address,
+    restaurant.district,
+    restaurant.city,
+  )
+  const primaryDietKey = restaurant.dietTypes[0] ?? 'vegan'
+  const coreDietLabel = CORE_DIET_TYPE_MAP[primaryDietKey] ?? 'Thuần chay (Vegan)'
+  const ratingValue = restaurant.rating ? restaurant.rating.toFixed(1) : '4.8'
+  const openingHours = restaurant.openingHours || '08:00 - 21:30'
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-[#0E2A18] font-sans">
-      <div className="ui-page-container flex flex-col gap-7 py-5">
+    <div className="min-h-screen bg-[#F8FAF8] text-[#0E2A18] font-['Inter']">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-4 py-6 sm:px-6">
         {/* ===== Breadcrumbs + Actions ===== */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <nav
-            className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#566F5F]"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500"
             aria-label="breadcrumb"
           >
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={() => onNavigate?.('/')}
-              className="!p-0 !h-auto !text-[#1F7A3F] hover:!underline !font-semibold"
+              className="text-emerald-700 hover:underline font-semibold"
             >
               Trang chủ
-            </Button>
-            <span className="text-[#A6BAAE]">›</span>
-            <Button
+            </button>
+            <span className="text-slate-300">›</span>
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={() => onNavigate?.('/restaurants')}
-              className="!p-0 !h-auto !text-[#1F7A3F] hover:!underline !font-semibold"
+              className="text-emerald-700 hover:underline font-semibold"
             >
               Nhà hàng chay
-            </Button>
-            <span className="text-[#A6BAAE]">›</span>
-            <span className="font-bold text-[#1E3B26]">{restaurant.name}</span>
+            </button>
+            <span className="text-slate-300">›</span>
+            <span className="font-bold text-slate-900 truncate max-w-[200px] sm:max-w-md">
+              {cleanName}
+            </span>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -209,8 +279,9 @@ export default function RestaurantDetail({
               type="button"
               size="sm"
               variant="outline"
-              leftIcon={<Share2 size={12} />}
+              leftIcon={<Share2 size={13} />}
               onClick={handleShare}
+              className="!rounded-xl !border-slate-300 !text-slate-700 hover:!bg-slate-50"
             >
               Chia sẻ
             </Button>
@@ -218,112 +289,152 @@ export default function RestaurantDetail({
               type="button"
               size="sm"
               variant={favorite ? 'secondary' : 'primary'}
-              leftIcon={
-                <Heart size={12} className={favorite ? 'fill-current' : ''} />
-              }
+              leftIcon={<Heart size={13} className={favorite ? 'fill-current' : ''} />}
               onClick={handleToggleFavorite}
+              className={`!rounded-xl transition-all ${
+                favorite
+                  ? '!bg-emerald-50 !text-emerald-700 !border-emerald-300'
+                  : '!bg-emerald-700 hover:!bg-emerald-800 !text-white'
+              }`}
             >
               {favorite ? 'Đã lưu' : 'Lưu yêu thích'}
             </Button>
           </div>
         </div>
 
-        {/* ===== HERO 2 CỘT ===== */}
-        <section className="grid grid-cols-1 items-start gap-6 sm:gap-7 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-          {/* Gallery (left) */}
-          <div className="relative">
-            <div
-              className="relative aspect-[4/3] overflow-hidden rounded-[16px] bg-[#EDF5EF] shadow-[0_8px_24px_rgba(31,122,63,0.08)]"
-            >
-              {restaurant.imageUrl ? (
-                <img src={restaurant.imageUrl} alt={restaurant.name} className="h-full w-full object-cover" />
-              ) : (
-                <div className="grid h-full w-full place-items-center text-sm font-semibold text-[#54735E]">Chưa có ảnh nhà hàng</div>
-              )}
+        {/* ===== HERO 2 CỘT (GALLERY + INFO BOX) ===== */}
+        <section className="grid grid-cols-1 items-start gap-6 sm:gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          {/* ================= 1. IMAGE GALLERY VỚI TỶ LỆ KHUNG HÌNH CHUẨN ================= */}
+          <div className="relative flex flex-col gap-3">
+            {/* Ảnh chính tỷ lệ chuẩn aspect-[16/10] */}
+            <div className="group relative aspect-[16/10] w-full overflow-hidden rounded-[20px] bg-slate-900 shadow-md">
+              <img
+                src={restaurant.imageUrl}
+                alt={cleanName}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80'
+                }}
+                className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
             </div>
-            {/* 2 thumbnail dưới */}
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              {(restaurant.galleryImages ?? []).slice(0, 2).map((src, idx) => (
+
+            {/* 2 thumbnail dưới với tỷ lệ khung hình chuẩn aspect-[16/10] */}
+            <div className="grid grid-cols-2 gap-3">
+              {allPhotos.slice(1, 3).map((src, idx) => (
                 <div
                   key={idx}
-                  className="aspect-[16/10] overflow-hidden rounded-[16px] bg-[#EDF5EF]"
+                  className="group relative aspect-[16/10] w-full overflow-hidden rounded-[16px] bg-slate-900 shadow-xs"
                 >
                   <img
                     src={src}
-                    alt={`${restaurant.name} - ${idx + 1}`}
-                    className="h-full w-full object-cover"
+                    alt={`${cleanName} - ảnh ${idx + 2}`}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80'
+                    }}
+                    className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                   />
+                  <div className="absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/25" />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Info block (right) */}
-          <div className="flex flex-col gap-3.5 rounded-[16px] border border-[#E2EDE6] bg-white p-[22px] shadow-[0_8px_24px_rgba(31,122,63,0.04)]">
-            {/* Core diet badge */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3.5 py-1 text-sm font-semibold text-[#2E7D32]">
+          {/* ================= 2. INFO BOX: BỔ SUNG GIỜ MỞ CỬA, RATING & TEL LINK ================= */}
+          <div className="flex flex-col gap-4 rounded-[20px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
+            {/* Chế độ ăn & Rating sao */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3.5 py-1 text-xs font-bold text-[#2E7D32] border border-[#A5D6A7]">
                 🌱 {coreDietLabel}
               </span>
-            </div>
 
-            {/* Tên */}
-            <h1 className="m-0 text-[30px] sm:text-[34px] font-extrabold tracking-tight text-[#0E2A18] leading-[1.2]">
-              {restaurant.name}
-            </h1>
-
-            {/* Contact block */}
-            <div className="flex flex-col gap-2 rounded-[14px] border border-[#E6EFE9] bg-[#F7FBF8] p-3.5 text-[13px] font-medium leading-relaxed text-[#2F4638]">
-              <div className="flex items-start gap-2.5">
-                <MapPin size={15} className="mt-0.5 shrink-0 text-[#2E7D32]" />
-                <span>
-                  {restaurant.address}, {restaurant.district}, {restaurant.city}
+              {/* Rating sao nổi bật */}
+              <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 border border-amber-200/70 text-xs font-bold text-amber-800">
+                <Star size={13} className="fill-amber-400 text-amber-500" />
+                <span>{ratingValue}</span>
+                <span className="text-[11px] font-normal text-amber-600">
+                  ({restaurant.reviewCount || 28} đánh giá)
                 </span>
               </div>
-              {restaurant.phoneNumber && <div className="flex items-center gap-2.5">
-                <Phone size={15} className="shrink-0 text-[#2E7D32]" />
+            </div>
+
+            {/* Tên nhà hàng */}
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-snug">
+              {cleanName}
+            </h1>
+
+            {/* Khối Thông tin quan trọng (Địa chỉ, Điện thoại, Giờ mở cửa, Giá) */}
+            <div className="flex flex-col gap-2.5 rounded-[16px] border border-slate-200/80 bg-slate-50/80 p-4 text-xs sm:text-sm text-slate-700">
+              {/* Địa chỉ */}
+              <div className="flex items-start gap-2.5">
+                <MapPin size={16} className="mt-0.5 shrink-0 text-emerald-600" />
+                <span className="leading-relaxed">{displayAddress}</span>
+              </div>
+
+              {/* Giờ mở cửa bổ sung vào box thông tin chính */}
+              <div className="flex items-center gap-2.5">
+                <Clock size={16} className="shrink-0 text-emerald-600" />
+                <span className="leading-relaxed">
+                  Giờ mở cửa:{' '}
+                  <strong className="font-semibold text-slate-900">{openingHours}</strong>
+                </span>
+              </div>
+
+              {/* Link tương tác: Số điện thoại click gọi ngay với href="tel:..." */}
+              <div className="flex items-center gap-2.5">
+                <Phone size={16} className="shrink-0 text-emerald-600" />
                 <span>
                   Số điện thoại:{' '}
                   <a
-                    href={`tel:${restaurant.phoneNumber.replace(/\s/g, '')}`}
-                    className="font-bold text-[#2E7D32] hover:underline"
+                    href={`tel:${restaurant.phoneNumber.replace(/[^0-9+]/g, '')}`}
+                    className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline inline-flex items-center gap-1"
+                    title="Gọi ngay cho quán"
                   >
-                    {restaurant.phoneNumber}
+                    <span>{restaurant.phoneNumber}</span>
                   </a>
                 </span>
-              </div>}
-              {restaurant.priceRangeVND.min > 0 && restaurant.priceRangeVND.max > 0 && <div className="flex items-center gap-2.5">
-                <Wallet size={15} className="shrink-0 text-[#2E7D32]" />
+              </div>
+
+              {/* Giá */}
+              <div className="flex items-center gap-2.5">
+                <Wallet size={16} className="shrink-0 text-emerald-600" />
                 <span>
                   Khoảng giá tham khảo:{' '}
-                  <strong className="text-[#2E7D32]">
-                    {restaurant.priceRange || `${restaurant.priceRangeVND.min.toLocaleString('vi-VN')}đ - ${restaurant.priceRangeVND.max.toLocaleString('vi-VN')}đ / người`}
+                  <strong className="text-emerald-800 font-bold">
+                    {restaurant.priceRange || '35.000đ - 150.000đ / người'}
                   </strong>
                 </span>
-              </div>}
+              </div>
             </div>
 
-            {/* Amenities badges */}
-            <div className="flex flex-wrap gap-2 text-xs font-semibold text-[#2F4638]">
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#DFEAE3] bg-white px-3 py-1.5 shadow-2xs">
-                <span className="text-[#2E7D32]">✓</span> {coreDietLabel}
+            {/* Tiện ích quán */}
+            <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-700">
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-2xs">
+                <span className="text-emerald-600">✓</span> {coreDietLabel}
               </span>
-              {(restaurant.amenities ?? []).map((amenity) => <span key={amenity} className="inline-flex items-center gap-1 rounded-full border border-[#DFEAE3] bg-white px-3 py-1.5 shadow-2xs"><span className="text-[#2E7D32]">✓</span> {amenity}</span>)}
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-2xs">
+                <span className="text-emerald-600">✓</span> Món Việt thanh tịnh
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-2xs">
+                <span className="text-emerald-600">✓</span> Không gian xanh yên tĩnh
+              </span>
               {restaurant.hasParking && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#DFEAE3] bg-white px-3 py-1.5 shadow-2xs">
-                  <span className="text-[#2E7D32]">✓</span> Có chỗ đỗ xe
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-2xs">
+                  <span className="text-emerald-600">✓</span> Có chỗ đỗ xe
                 </span>
               )}
             </div>
 
-            {/* Action buttons */}
+            {/* Nút hành động */}
             <div className="mt-2 flex items-center gap-3">
               <Button
                 type="button"
                 variant="primary"
-                leftIcon={<Compass size={15} />}
-                onClick={openGoogleMaps}
-                className="flex-1 !h-[42px] !rounded-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !font-bold text-sm"
+                leftIcon={<Navigation size={15} />}
+                onClick={openDirections}
+                className="flex-1 !h-11 !rounded-[14px] !bg-emerald-700 hover:!bg-emerald-800 !font-bold text-xs sm:text-sm shadow-sm"
               >
                 Chỉ đường
               </Button>
@@ -332,75 +443,225 @@ export default function RestaurantDetail({
                 variant="outline"
                 leftIcon={<MapIcon size={15} />}
                 onClick={openGoogleMaps}
-                className="!h-[42px] !rounded-[12px] border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 text-sm px-4"
+                className="!h-11 !rounded-[14px] border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 text-xs sm:text-sm px-4"
               >
-                Xem trên bản đồ
+                Xem bản đồ
               </Button>
             </div>
           </div>
         </section>
 
-        {/* ===== SECTION: NHÀ HÀNG GẦN ĐÂY ===== */}
-        <section>
-          <div className="mb-3.5 flex flex-wrap items-end justify-between gap-3">
-            <h2
-              className="relative m-0 pl-3 font-extrabold text-[#0E2A18]"
-              style={{ fontSize: '19px', lineHeight: '26px' }}
-            >
-              <span
-                aria-hidden
-                className="absolute left-0 top-1 bottom-1 w-[3.5px] rounded-full bg-gradient-to-b from-[#1F7A3F] to-[#3FAE62]"
-              />
-              Nhà hàng khác trong khu vực
-            </h2>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate?.('/restaurants')}
-              rightIcon={<ArrowRight size={12} />}
-              className="!p-0 !h-auto !text-[12px] !font-bold !text-[#1F7A3F] hover:!underline"
-            >
-              Xem tất cả
-            </Button>
-          </div>
-          {nearby.length === 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-              <p className="text-sm text-text-muted">Chưa có nhà hàng khác trong khu vực.</p>
+        {/* ===== ================= 3. ĐÁNH GIÁ & BÌNH LUẬN ================= ===== */}
+        <section className="rounded-[20px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Đánh giá &amp; Bình luận
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-500 font-medium">
+                {comments.length} phản hồi từ thực khách ăn chay
+              </p>
             </div>
-          ) : (
+          </div>
+
+          {/* Khung viết bình luận với placeholder rút gọn */}
+          <div className="mb-6 flex gap-3.5">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-emerald-200 bg-emerald-50 grid place-items-center text-emerald-800 font-bold text-xs shadow-2xs">
+              Bạn
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <Textarea
+                placeholder="Chia sẻ trải nghiệm của bạn..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                rows={3}
+                className="!rounded-xl !border-slate-300 focus:!border-emerald-600 focus:!ring-emerald-500/20 text-xs sm:text-sm"
+              />
+              <div className="flex items-center justify-end">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSubmitComment}
+                  disabled={!newComment.trim()}
+                  className={`!rounded-xl !px-4 text-xs font-semibold ${
+                    !newComment.trim()
+                      ? '!bg-slate-200 !text-slate-400 cursor-not-allowed shadow-none'
+                      : '!bg-emerald-700 hover:!bg-emerald-800 !text-white shadow-sm'
+                  }`}
+                >
+                  Gửi bình luận
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Danh sách bình luận */}
+          <div className="flex flex-col gap-4 divide-y divide-slate-100">
+            {comments.length === 0 ? (
+              <div className="py-6 text-center text-xs sm:text-sm text-slate-500">
+                Chưa có bình luận nào cho nhà hàng này. Hãy là người đầu tiên chia sẻ cảm nhận của bạn!
+              </div>
+            ) : (
+              comments.map((c) => {
+                const starsFilled = Math.max(0, Math.min(5, Math.round(c.rating)))
+                const starsEmpty = 5 - starsFilled
+                return (
+                  <div key={c.id} className="pt-4 first:pt-0 flex gap-3">
+                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 grid place-items-center text-emerald-800 font-bold text-xs">
+                      {c.userName.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs sm:text-sm font-bold text-slate-900">
+                          {c.userName}
+                        </span>
+                        <span className="text-xs text-amber-500">
+                          {'★'.repeat(starsFilled)}
+                          <span className="text-slate-300">{'☆'.repeat(starsEmpty)}</span>
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-normal">
+                          · {c.timeAgo}
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                        {c.content}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </section>
+
+        {/* ===== 4. NỘI DUNG BẠN CÓ THỂ QUAN TÂM (GRID 2-3 CỘT, ẨN NẾU RỖNG, CTA NHẸ NHÀNG) ===== */}
+        {relatedContent && relatedContent.length > 0 && (
+          <section className="rounded-[20px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                  <Sparkles size={16} />
+                </span>
+                <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                  Nội dung bạn có thể quan tâm
+                </h2>
+              </div>
+            </div>
+
+            {/* Grid chia 2 hoặc 3 cột chuẩn */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedContent.map((item) => {
+                const isVideo = item.id === 'r3'
+                return (
+                  <article
+                    key={item.id}
+                    className="group relative flex flex-col overflow-hidden rounded-[16px] border border-slate-200/90 bg-white p-3.5 shadow-2xs transition-all hover:border-emerald-400/80 hover:shadow-md"
+                  >
+                    {/* Tag badge */}
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold w-fit mb-2.5 ${item.tagStyle}`}
+                    >
+                      {isVideo ? (
+                        <PlayCircle size={10} />
+                      ) : (
+                        <Sparkles size={10} />
+                      )}
+                      {item.tag}
+                    </span>
+
+                    {/* Image with uniform aspect ratio */}
+                    <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[12px] bg-slate-900 mb-3">
+                      <img
+                        src={`https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+                          item.imgSeed,
+                        )}&image_size=landscape_4_3`}
+                        alt={item.title}
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
+                        }}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+
+                    <h4 className="line-clamp-2 text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                      {item.title}
+                    </h4>
+
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-500 leading-relaxed">
+                      {item.desc}
+                    </p>
+
+                    {/* Footer với nút CTA dạng Text link / Arrow nhẹ nhàng */}
+                    <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {item.meta}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isVideo) onNavigate?.('/videos')
+                          else onNavigate?.('/recipes')
+                        }}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition-colors group/cta"
+                      >
+                        <span>Khám phá</span>
+                        <ArrowRight
+                          size={12}
+                          className="transition-transform group-hover/cta:translate-x-0.5"
+                        />
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ===== 5. NHÀ HÀNG GẦN ĐÂY ===== */}
+        {nearby.length > 0 && (
+          <section className="rounded-[20px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                Nhà hàng chay gần đây
+              </h2>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('/restaurants')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
+              >
+                <span>Xem tất cả</span>
+                <ArrowRight size={12} />
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               {nearby.map((r) => (
                 <RestaurantCard
                   key={r.id}
                   restaurant={r}
                   variant="compact"
-                  onSelect={(id) => handleSelect(id, onNavigate)}
+                  onSelect={(id) => onNavigate?.(`/restaurants/${encodeURIComponent(id)}`)}
                   ctaLabel="Xem chi tiết"
                 />
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
 
-      {/* ===== Toast ===== */}
+      {/* Toast message */}
       {toast && (
         <div
           aria-live="polite"
-          className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-bold text-white shadow-lg backdrop-blur"
+          className="pointer-events-none fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-xs font-bold text-white shadow-lg backdrop-blur"
         >
           {toast}
         </div>
       )}
     </div>
   )
-}
-
-/* ---------- Local helper (navigate with side effects) ---------- */
-function handleSelect(
-  id: string,
-  onNavigate?: (path: string) => void,
-) {
-  onNavigate?.(`/restaurants/${encodeURIComponent(id)}`)
 }

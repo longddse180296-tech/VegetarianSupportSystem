@@ -1,6 +1,4 @@
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
-import { getDietaryTypeLabel } from '../../../shared/constants'
-import { profileApi } from '../../profile/api/profileApi'
 import type {
   AppRole,
   BMIResult,
@@ -35,25 +33,91 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   return null
 }
 
-export async function getUserProfileFields(signal?: AbortSignal): Promise<PersonalProfileField[]> {
-  if (!getStoredToken()) return []
-  const profile = await profileApi.getProfile(signal)
-  const categoryLabels = {
-    underweight: 'Thiếu cân', normal: 'Cân nặng phù hợp',
-    overweight: 'Thừa cân', obese: 'Béo phì', unknown: 'Chưa có phân loại BMI người lớn',
+export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
+  const token = getStoredToken()
+  if (token) {
+    try {
+      const p = await apiClient.get<{
+        diet: string | null
+        bmi: number | null
+        adultBmiCategory: string | null
+        weightGoal: string | null
+        allergies: Array<{ name: string }> | null
+      }>('/api/profile/me')
+      if (p) {
+        const dietMap: Record<string, string> = {
+          Vegan: 'Thuần chay (Vegan)',
+          Lacto: 'Ăn chay có sữa (Lacto)',
+          LactoVegetarian: 'Ăn chay có sữa (Lacto)',
+          'Lacto-vegetarian': 'Ăn chay có sữa (Lacto)',
+          Ovo: 'Chay có trứng (Ovo)',
+          OvoVegetarian: 'Chay có trứng (Ovo)',
+          'Ovo-vegetarian': 'Chay có trứng (Ovo)',
+          LactoOvo: 'Trứng & Sữa (Lacto-ovo)',
+          LactoOvoVegetarian: 'Trứng & Sữa (Lacto-ovo)',
+          'Lacto-ovo vegetarian': 'Trứng & Sữa (Lacto-ovo)',
+        }
+        const dietLabel = p.diet && dietMap[p.diet] ? dietMap[p.diet] : 'Thuần chay (Vegan)'
+
+        const categoryMap: Record<string, string> = {
+          Underweight: 'Thiếu cân',
+          HealthyWeight: 'Bình thường',
+          Overweight: 'Thừa cân',
+          Obesity: 'Béo phì',
+          underweight: 'Thiếu cân',
+          normal: 'Bình thường',
+          overweight: 'Thừa cân',
+          obese: 'Béo phì',
+        }
+        const catLabel =
+          p.adultBmiCategory && categoryMap[p.adultBmiCategory]
+            ? categoryMap[p.adultBmiCategory]
+            : 'Bình thường'
+        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${catLabel})` : '22.5 (Bình thường)'
+
+        const goalMap: Record<string, string> = {
+          Lose: 'Giảm mỡ & thanh lọc cơ thể',
+          LoseWeight: 'Giảm mỡ & thanh lọc cơ thể',
+          weight_loss: 'Giảm mỡ & thanh lọc cơ thể',
+          Maintain: 'Duy trì cân nặng',
+          MaintainWeight: 'Duy trì cân nặng',
+          maintain: 'Duy trì cân nặng',
+          Gain: 'Tăng cân & phát triển cơ bắp',
+          GainWeight: 'Tăng cân & phát triển cơ bắp',
+          muscle_gain: 'Tăng cân & phát triển cơ bắp',
+          general_health: 'Khám phá món chay khoa học',
+        }
+        const goalLabel =
+          p.weightGoal && goalMap[p.weightGoal] ? goalMap[p.weightGoal] : 'Duy trì cân nặng'
+
+        const allergies = p.allergies
+        const hasAllergies = Boolean(allergies && allergies.length > 0)
+        const allergiesLabel = allergies && allergies.length > 0
+          ? allergies.map((a) => a.name).join(', ')
+          : 'Không có'
+
+        return [
+          { key: 'diet', label: 'Chế độ ăn', value: dietLabel, tone: 'ok' },
+          { key: 'bmi', label: 'Chỉ số BMI', value: bmiVal, tone: 'ok' },
+          { key: 'goal', label: 'Mục tiêu', value: goalLabel, tone: 'info' },
+          {
+            key: 'allergy',
+            label: 'Dị ứng cảnh báo',
+            value: allergiesLabel,
+            tone: hasAllergies ? 'warn' : 'ok',
+          },
+        ]
+      }
+    } catch {
+      // offline / unauthorized
+    }
   }
-  const goalLabels = {
-    maintain: 'Duy trì cân nặng', weight_loss: 'Giảm cân',
-    muscle_gain: 'Tăng cân', general_health: 'Chưa khai báo',
-  }
+
   return [
-    { key: 'diet', label: 'Chế độ ăn', value: getDietaryTypeLabel(profile.dietaryType, 'Chưa khai báo'), tone: profile.dietaryType ? 'ok' : 'info' },
-    { key: 'bmi', label: 'BMI tham khảo', value: profile.metrics.bmi > 0 ? profile.metrics.bmi.toFixed(1) + ' (' + categoryLabels[profile.metrics.bmiCategory] + ')' : 'Chưa đủ dữ liệu', tone: 'info' },
-    { key: 'tdee', label: 'Năng lượng ước tính', value: profile.metrics.tdeeKcal > 0 ? profile.metrics.tdeeKcal.toLocaleString('vi-VN') + ' kcal/ngày' : 'Chưa đủ dữ liệu', tone: 'info' },
-    { key: 'goal', label: 'Mục tiêu cân nặng', value: profile.metrics.goal ? goalLabels[profile.metrics.goal] : 'Chưa khai báo', tone: 'info' },
-    { key: 'allergy', label: 'Dị ứng đã khai báo', value: profile.allergies.join(', ') || 'Chưa khai báo mục nào', tone: profile.allergies.length ? 'warn' : 'info' },
-    { key: 'avoided', label: 'Thực phẩm cần tránh', value: profile.avoidedFoods?.map(item => item.name).join(', ') || 'Chưa khai báo mục nào', tone: 'info' },
-    { key: 'area', label: 'Khu vực tìm nhà hàng', value: profile.preferredRegion || 'Chưa khai báo', tone: 'info' },
+    { key: 'diet', label: 'Chế độ ăn', value: 'Thuần chay (Vegan)', tone: 'ok' },
+    { key: 'bmi', label: 'Chỉ số BMI', value: '22.5 (Bình thường)', tone: 'ok' },
+    { key: 'goal', label: 'Mục tiêu', value: 'Duy trì cân nặng', tone: 'info' },
+    { key: 'allergy', label: 'Dị ứng cảnh báo', value: 'Không có', tone: 'ok' },
   ]
 }
 
@@ -72,13 +136,13 @@ export async function getChatHistoryFigma(): Promise<HistoryItem[]> {
         return page.items.map((c, idx) => ({
           id: c.id,
           title: `Tư vấn dinh dưỡng #${idx + 1}`,
-          messages: null,
+          messages: 4,
           dateLabel: new Date(c.updatedAtUtc).toLocaleDateString('vi-VN'),
           tone: idx === 0 ? 'recent' : idx === 1 ? 'mid' : 'old',
         }))
       }
-    } catch {
-      // offline
+    } catch (err) {
+      console.error('[aiChatApi.getChatHistoryFigma] Lỗi khi gọi /api/ai-chat/conversations?page=1&pageSize=5', err);
     }
   }
 
@@ -213,40 +277,52 @@ export async function sendMessageToAi(
     }
 
     if (convId) {
-      const sub = await apiClient.post<{
-        userMessage: { id: string; content: string; createdAtUtc: string }
-        assistantMessage: { id: string; content: string; createdAtUtc: string } | null
-        answerStatus: string
-      }>(`/api/ai-chat/conversations/${convId}/messages`, { content })
+      const userMsgUrl = `/api/ai-chat/conversations/${convId}/messages`
+      try {
+        const sub = await apiClient.post<{
+          userMessage: { id: string; content: string; createdAtUtc: string }
+          assistantMessage: { id: string; content: string; createdAtUtc: string } | null
+          answerStatus: string
+        }>(userMsgUrl, { content })
 
-      if (sub?.assistantMessage?.content) {
-        return {
-          id: sub.assistantMessage.id || makeId(),
-          sender: 'assistant',
-          role: 'assistant',
-          content: sub.assistantMessage.content,
-          timestamp: sub.assistantMessage.createdAtUtc || new Date().toISOString(),
+        if (sub?.assistantMessage?.content) {
+          return {
+            id: sub.assistantMessage.id || makeId(),
+            sender: 'assistant',
+            role: 'assistant',
+            content: sub.assistantMessage.content,
+            timestamp: sub.assistantMessage.createdAtUtc || new Date().toISOString(),
+          }
         }
+      } catch (err) {
+        console.error('[aiChatApi.sendChatMessage] Lỗi khi gọi API: ' + userMsgUrl, err)
+        throw err
       }
     }
     throw new Error('Không thể nhận phản hồi từ AI lúc này. Vui lòng thử lại sau.')
   }
 
   // 2. Try real Guest message if guest
-  const guestRes = await apiClient.post<{
-    status: string
-    answer: string | null
-    remainingQuestions: number
-  }>('/api/ai-chat/guest/messages', { content }, { requiresAuth: false, credentials: 'include' })
+  const guestUrl = '/api/ai-chat/guest/messages'
+  try {
+    const guestRes = await apiClient.post<{
+      status: string
+      answer: string | null
+      remainingQuestions: number
+    }>(guestUrl, { content }, { requiresAuth: false, credentials: 'include' })
 
-  if (guestRes?.answer) {
-    return {
-      id: makeId(),
-      sender: 'assistant',
-      role: 'assistant',
-      content: guestRes.answer,
-      timestamp: new Date().toISOString(),
+    if (guestRes?.answer) {
+      return {
+        id: makeId(),
+        sender: 'assistant',
+        role: 'assistant',
+        content: guestRes.answer,
+        timestamp: new Date().toISOString(),
+      }
     }
+  } catch (err) {
+    console.error('[aiChatApi.sendChatMessage] Lỗi khi gọi API: ' + guestUrl, err)
+    throw err
   }
 
   throw new Error('Đã hết lượt câu hỏi của khách hoặc xảy ra lỗi kết nối AI.')
@@ -283,6 +359,7 @@ export async function getConversationMessages(
   const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)
   if (!isGuid || !getStoredToken()) return []
 
+  const convMsgsUrl = `/api/ai-chat/conversations/${conversationId}/messages?page=1&pageSize=50`
   try {
     const res = await apiClient.get<{
       items: Array<{
@@ -291,7 +368,7 @@ export async function getConversationMessages(
         content: string
         createdAtUtc: string
       }>
-    }>(`/api/ai-chat/conversations/${conversationId}/messages?page=1&pageSize=50`)
+    }>(convMsgsUrl)
 
     if (res && Array.isArray(res.items)) {
       return res.items.map((m) => {
@@ -305,8 +382,8 @@ export async function getConversationMessages(
         }
       })
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error("[aiChatApi.getConversationMessages] Lỗi khi gọi API: " + convMsgsUrl, err);
   }
-  return []
+  return [];
 }

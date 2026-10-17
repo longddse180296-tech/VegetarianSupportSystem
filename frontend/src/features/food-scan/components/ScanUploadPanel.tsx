@@ -1,5 +1,6 @@
-import type { ChangeEvent, RefObject } from 'react'
-import { CheckCircle2, RefreshCw, Trash2, Upload } from 'lucide-react'
+import { useState } from 'react'
+import type { ChangeEvent, DragEvent, RefObject } from 'react'
+import { CheckCircle2, RefreshCw, Upload, X } from 'lucide-react'
 import { Button } from '../../../shared/components'
 import type { ScanSourceType } from '../types/foodScan.types'
 
@@ -12,6 +13,7 @@ interface ScanUploadPanelProps {
   onSourceTypeChange: (type: ScanSourceType) => void
   onPickFile: () => void
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onFileDrop?: (file: File) => void
   onClearImage: () => void
 }
 
@@ -24,21 +26,42 @@ export default function ScanUploadPanel({
   onSourceTypeChange,
   onPickFile,
   onFileChange,
+  onFileDrop,
   onClearImage,
 }: ScanUploadPanelProps) {
   const isDish = sourceType === 'Dish'
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isDragging) setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      onFileDrop?.(files[0])
+    }
+  }
 
   return (
     <div className="space-y-5">
       <section className="rounded-[16px] border border-[#e5e7eb] bg-white p-5 shadow-xs">
         <h2 className="text-base font-bold text-[#1f2937]">1. Chọn loại ảnh</h2>
-        <p className="mt-1 text-xs text-[#6b7280]">
-          BE xử lý ảnh món ăn và ảnh nhãn thành phần bằng hai luồng riêng.
-        </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {([
-            ['Dish', 'Ảnh món ăn', 'Gợi ý món và nguyên liệu nhìn thấy; bạn xác nhận phần chưa rõ.'],
-            ['Label', 'Ảnh nhãn thành phần', 'OCR đọc chữ trên nhãn; bạn sửa chữ và xác nhận nguyên liệu.'],
+            ['Dish', 'Ảnh món ăn', 'Nhận diện món ăn và nguyên liệu từ hình ảnh thực tế.'],
+            ['Label', 'Ảnh nhãn thành phần', 'Quét chữ trên bao bì sản phẩm để kiểm tra bảng thành phần.'],
           ] as const).map(([type, title, description]) => (
             <button
               key={type}
@@ -63,46 +86,85 @@ export default function ScanUploadPanel({
         <h2 className="text-base font-bold text-[#1f2937]">
           2. Tải {isDish ? 'ảnh món ăn' : 'ảnh nhãn thành phần'}
         </h2>
-        <p className="mt-1 text-xs text-[#6b7280]">
-          JPG, PNG hoặc WEBP, tối đa 10 MB. {isDish
-            ? 'Ảnh rõ món ăn giúp AI gợi ý nguyên liệu nhìn thấy.'
-            : 'Chụp rõ toàn bộ bảng thành phần để OCR đọc được chữ.'}
-        </p>
+        {/* Input file chuẩn Desktop Web */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg, image/png, image/webp"
           className="hidden"
           onChange={onFileChange}
         />
 
         {!imagePreview ? (
-          <div className="mt-4 flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#c8e6c9] bg-[#e8f5e9]/50 p-8 text-center">
-            <Upload size={24} className="text-[#2e7d32]" />
-            <span className="text-sm text-[#1f2937]">Chọn ảnh từ máy của bạn</span>
-            <Button type="button" leftIcon={<Upload size={14} />} onClick={onPickFile} disabled={isScanning}>
-              Tải ảnh lên
-            </Button>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onPickFile}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onPickFile()
+              }
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`mt-4 flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition-all duration-200 select-none ${
+              isDragging
+                ? 'border-[#2e7d32] bg-[#c8e6c9]/50 scale-[1.01] shadow-inner'
+                : 'border-[#c8e6c9] bg-[#e8f5e9]/50 hover:bg-[#e8f5e9]/80 hover:border-[#2e7d32]'
+            }`}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#2e7d32] shadow-xs">
+              <Upload size={22} className={isDragging ? 'animate-bounce' : ''} />
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-[#1f2937] block">
+                {isDragging ? 'Thả ảnh vào đây...' : 'Kéo & thả file ảnh từ máy tính vào đây hoặc nhấp để chọn tệp'}
+              </span>
+              <span className="mt-1 text-xs text-[#6b7280] block">
+                Hỗ trợ định dạng JPG, PNG, WEBP (tối đa 5 MB)
+              </span>
+            </div>
           </div>
         ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
-            <div className="overflow-hidden rounded-xl border bg-slate-50">
+          <div className="relative mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="relative flex justify-center items-center bg-slate-100 rounded-xl overflow-hidden min-h-[220px]">
               <img
                 src={imagePreview}
                 alt={isDish ? 'Ảnh món ăn đã chọn' : 'Ảnh nhãn đã chọn'}
-                className="h-60 w-full object-contain"
+                className="max-h-72 w-full object-contain"
               />
+              {/* Nút X ở góc trên bên phải để xóa ảnh */}
+              <button
+                type="button"
+                onClick={onClearImage}
+                disabled={isScanning}
+                title="Xóa ảnh"
+                aria-label="Xóa ảnh"
+                className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/70 text-white hover:bg-red-600 transition shadow-md backdrop-blur-xs cursor-pointer"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <div className="flex flex-col items-start gap-2">
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-[#2e7d32]">
-                <CheckCircle2 size={13} /> Đã chọn ảnh
-              </span>
-              <span className="max-w-40 break-all text-xs text-[#6b7280]">{imageFile?.name}</span>
-              <Button type="button" variant="outline" size="sm" onClick={onPickFile} disabled={isScanning} leftIcon={<RefreshCw size={13} />}>
-                Thay ảnh
-              </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={onClearImage} disabled={isScanning} leftIcon={<Trash2 size={13} />}>
-                Xóa ảnh
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-1 py-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#2e7d32] shrink-0">
+                  <CheckCircle2 size={14} /> Đã chọn ảnh
+                </span>
+                <span className="truncate text-xs text-[#6b7280]" title={imageFile?.name}>
+                  {imageFile?.name}
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onPickFile}
+                disabled={isScanning}
+                leftIcon={<RefreshCw size={13} />}
+              >
+                Đổi ảnh khác
               </Button>
             </div>
           </div>

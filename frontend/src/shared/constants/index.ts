@@ -6,6 +6,24 @@
 export const ROLES = ['Guest', 'User', 'Admin'] as const
 export type Role = (typeof ROLES)[number]
 
+// 4 Chế độ ăn chuẩn hóa toàn hệ thống (không viết tắt)
+export const STANDARD_DIETARY_NAMES = {
+  VEGAN: 'Thuần chay (Vegan)',
+  LACTO: 'Ăn chay có sữa (Lacto)',
+  OVO: 'Chay có trứng (Ovo)',
+  LACTO_OVO: 'Trứng & Sữa (Lacto-ovo)',
+} as const
+
+export type StandardDietaryName =
+  (typeof STANDARD_DIETARY_NAMES)[keyof typeof STANDARD_DIETARY_NAMES]
+
+export const ALL_STANDARD_DIETARY_NAMES: readonly StandardDietaryName[] = [
+  STANDARD_DIETARY_NAMES.VEGAN,
+  STANDARD_DIETARY_NAMES.LACTO,
+  STANDARD_DIETARY_NAMES.OVO,
+  STANDARD_DIETARY_NAMES.LACTO_OVO,
+] as const
+
 // 4 Chế độ ăn thuần chay chuẩn MVP
 export const DIETARY_TYPES = [
   'Vegan',
@@ -16,10 +34,10 @@ export const DIETARY_TYPES = [
 export type DietaryType = (typeof DIETARY_TYPES)[number]
 
 export const DIETARY_TYPE_LABELS: Record<DietaryType, string> = {
-  Vegan: 'Thuần chay (Vegan)',
-  'Lacto-vegetarian': 'Chay có sữa (Lacto)',
-  'Ovo-vegetarian': 'Chay có trứng (Ovo)',
-  'Lacto-ovo vegetarian': 'Chay trứng sữa (Lacto-ovo)',
+  Vegan: STANDARD_DIETARY_NAMES.VEGAN,
+  'Lacto-vegetarian': STANDARD_DIETARY_NAMES.LACTO,
+  'Ovo-vegetarian': STANDARD_DIETARY_NAMES.OVO,
+  'Lacto-ovo vegetarian': STANDARD_DIETARY_NAMES.LACTO_OVO,
 }
 
 // Canonical API values used by recipes, restaurants and article tags. Keep UI
@@ -33,10 +51,10 @@ export const BACKEND_DIETARY_TYPES = [
 export type BackendDietaryType = (typeof BACKEND_DIETARY_TYPES)[number]
 
 export const BACKEND_DIETARY_TYPE_LABELS: Record<BackendDietaryType, string> = {
-  Vegan: 'Thuần chay (Vegan)',
-  LactoVegetarian: 'Chay có sữa (Lacto)',
-  OvoVegetarian: 'Chay có trứng (Ovo)',
-  LactoOvoVegetarian: 'Chay trứng sữa (Lacto-ovo)',
+  Vegan: STANDARD_DIETARY_NAMES.VEGAN,
+  LactoVegetarian: STANDARD_DIETARY_NAMES.LACTO,
+  OvoVegetarian: STANDARD_DIETARY_NAMES.OVO,
+  LactoOvoVegetarian: STANDARD_DIETARY_NAMES.LACTO_OVO,
 }
 
 const dietaryTypeAliases: Record<string, BackendDietaryType> = {

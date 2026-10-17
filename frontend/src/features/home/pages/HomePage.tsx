@@ -8,6 +8,7 @@ import {
   MapPin,
   Play,
   Search,
+  Send,
   Sparkles,
 } from 'lucide-react'
 import { BACKEND_DIETARY_TYPE_LABELS, toBackendDietaryType } from '../../../shared/constants'
@@ -622,12 +623,66 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               </button>
             </div>
 
-            <div className="ui-card p-6">
-              <h3 className="text-lg font-semibold text-primary">Trao đổi cùng trợ lý AI</h3>
-              <p className="mt-3 text-sm leading-relaxed text-text-muted">
-                Mở cuộc trò chuyện để hỏi về nguyên liệu và chế độ ăn. Khi đăng nhập, trợ lý tham khảo hồ sơ bạn đã khai báo.
-              </p>
-              <p className="mt-3 text-xs text-text-muted">Câu trả lời được tải khi bạn gửi câu hỏi. Thông tin dinh dưỡng mang tính tham khảo.</p>
+            {/* Cột phải: Mô phỏng khung chat demo */}
+            <div
+              onClick={() => handleGoToAiChat()}
+              className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm p-5 cursor-pointer hover:border-[#C8E6C9] transition"
+            >
+              {/* Header mini */}
+              <div className="flex items-center justify-between border-b border-[#F3F4F6] pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    <Leaf size={14} className="fill-[#2E7D32]" />
+                  </span>
+                  <span className="text-[14px] font-bold text-[#111827]">
+                    Vegetarian AI Assistant
+                  </span>
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#2E7D32]">
+                  <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                  Đang hoạt động
+                </span>
+              </div>
+
+              {/* Tin nhắn người dùng mẫu */}
+              <div className="flex flex-col items-end">
+                <div className="bg-[#2E7D32] text-white rounded-[16px] rounded-tr-none p-3.5 text-sm ml-auto max-w-[85%] shadow-xs leading-relaxed">
+                  Bữa sáng đơn giản, 10 phút nấu nhanh và giàu đạm thực vật?
+                </div>
+                <span className="text-[10px] text-gray-400 mt-1 mr-1 font-medium">08:30</span>
+              </div>
+
+              {/* Tin nhắn AI trả lời mẫu */}
+              <div className="mt-3 flex flex-col items-start">
+                <div className="bg-[#E8F5E9] text-[#1F2937] rounded-[16px] rounded-tl-none p-4 text-sm leading-relaxed space-y-1.5 border border-[#C8E6C9]/60">
+                  <p className="font-semibold text-[#2E7D32]">
+                    Chào bạn! Gợi ý bữa sáng nhanh &amp; giàu đạm cho bạn:
+                  </p>
+                  <p>• Sinh tố chuối, yến mạch và hạt chia. (22g protein)</p>
+                  <p>• Đậu hũ non xào nấm ăn kèm bánh mì nguyên cám (~18g protein)</p>
+                  <p className="text-[12px] text-[#6B7280] pt-1">
+                    Thời gian thực hiện chỉ khoảng 8 – 10 phút, cung cấp năng lượng dồi dào cho ngày mới!
+                  </p>
+                </div>
+                <span className="text-[10px] text-gray-400 mt-1 ml-1 font-medium">08:31</span>
+              </div>
+
+              {/* Input giả lập ở dưới */}
+              <div className="mt-4 pt-3 border-t border-[#F3F4F6] flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  placeholder="Nhập câu hỏi của bạn..."
+                  className="flex-1 rounded-[8px] border border-[#E5E7EB] bg-[#F9FAFB] px-3.5 py-2 text-sm text-[#9CA3AF] cursor-pointer focus:outline-none"
+                />
+                <button
+                  type="button"
+                  aria-label="Gửi câu hỏi sang trợ lý AI"
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[#2E7D32] text-white hover:bg-[#1B5E20] transition cursor-pointer"
+                >
+                  <Send size={14} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

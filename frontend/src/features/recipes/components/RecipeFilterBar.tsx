@@ -1,12 +1,8 @@
-import { RotateCcw, Search, Sparkles } from 'lucide-react'
+import React from 'react'
+import { Clock, Flame, RotateCcw, Search } from 'lucide-react'
 import { Button, Input, Select, type SelectOption } from '../../../shared/components'
-import {
-  getRecipeFilterOptions,
-} from '../api/recipeApi'
-import type {
-  RecipeListFilter,
-  RecipeSortOption,
-} from '../types/recipe.types'
+import { getRecipeFilterOptions } from '../api/recipeApi'
+import type { RecipeListFilter, RecipeSortOption } from '../types/recipe.types'
 import { DEFAULT_RECIPE_FILTER } from '../types/recipe.types'
 
 interface RecipeFilterBarProps {
@@ -28,7 +24,6 @@ interface RecipeFilterBarProps {
   /** Not rendered in bar UI anymore (keep contract, parent still uses it for sorting client-side). */
   sort?: RecipeSortOption
   setSort?: (v: RecipeSortOption) => void
-  onOpenAI: () => void
 }
 
 export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
@@ -36,7 +31,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
   onChange,
   onReset,
   totalCount: _totalCount,
-  isLoading = false,
+  isLoading: _isLoading = false,
   category,
   setCategory,
   cookTimeTier,
@@ -45,7 +40,6 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
   setKcalTier,
   dietPill,
   setDietPill,
-  onOpenAI,
 }) => {
   const options = getRecipeFilterOptions()
 
@@ -60,156 +54,148 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
     filter.difficulty !== DEFAULT_RECIPE_FILTER.difficulty ||
     category !== 'all' ||
     cookTimeTier !== 'all' ||
-    kcalTier !== 'all'
+    kcalTier !== 'all' ||
+    dietPill !== 'all'
 
   return (
     <div
-      className="rounded-[20px] border border-[#E5E7EB] bg-white px-5 py-4"
-      style={{ boxShadow: '0 1px 2px 0 rgba(15,23,42,0.04)' }}
+      className="rounded-[20px] border border-slate-200 bg-white p-5 md:p-6 shadow-xs transition-shadow"
     >
-      {/* Search + Search/AI btns */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="min-w-0 flex-1">
-          <Input
-            placeholder="Tìm kiếm công thức theo tên món hoặc nguyên liệu (đậu hũ, nấm, hạt sen...)"
-            value={filter.search}
-            onChange={(e) => onChange({ search: e.target.value })}
-            leftIcon={<Search size={16} className="text-[#6B7280]" />}
-            className="!h-11 !rounded-[14px] !pl-10 !pr-4"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Row 1: Search bar */}
+      <div className="border-b border-slate-100 pb-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="flex-1 w-full">
+            <Input
+              placeholder="Tìm kiếm công thức theo tên món hoặc nguyên liệu (đậu hũ, nấm, hạt sen...)"
+              value={filter.search}
+              onChange={(e) => onChange({ search: e.target.value })}
+              leftIcon={<Search size={16} className="text-slate-400" />}
+              className="!h-11 !rounded-[12px] !border-slate-300 !pl-10 !pr-4 w-full text-[14px]"
+            />
+          </div>
           <Button
             type="button"
             variant="primary"
             size="md"
             leftIcon={<Search size={15} />}
             onClick={() => onChange({ search: filter.search })}
-            className="!h-11 !rounded-[14px] !px-5"
+            className="!h-11 !rounded-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !px-6 whitespace-nowrap w-full md:w-auto font-semibold"
           >
             Tìm kiếm
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            leftIcon={<Sparkles size={15} className="text-[#2e7d32] group-hover:text-white" />}
-            onClick={onOpenAI}
-            className="group !h-11 !rounded-[14px] !px-5 !border-[#2e7d32] !text-[#2e7d32] !bg-[#e8f5e9] hover:!bg-[#2e7d32] hover:!text-white transition-colors"
-          >
-            Khám phá theo Tủ bếp AI
-          </Button>
+          {isFiltering && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              leftIcon={<RotateCcw size={14} />}
+              onClick={onReset}
+              className="!h-11 !rounded-[12px] !text-[#2E7D32] hover:!bg-emerald-50 !font-semibold text-[13px] whitespace-nowrap w-full md:w-auto"
+            >
+              Xóa bộ lọc
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Diet pills row */}
-      <div className="mt-5 flex flex-col gap-2">
-        <div className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#6B7280]">
-          DANH MỤC MÓN ĂN <span className="ml-1 text-[10px]">CHẾ ĐỘ ĂN CỦA BẠN:</span>
+      {/* Row 2: Chế độ ăn chay (Diet pills) - Viền & chữ inactive đậm rõ nét, pb-5 mb-5 */}
+      <div className="border-b border-slate-100 pt-5 pb-5 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] font-bold uppercase tracking-wider text-slate-700">
+            CHẾ ĐỘ ĂN CHAY
+          </span>
+          <span className="text-[11.5px] text-slate-500">
+            Chọn để lọc theo trường phái ăn
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {DIET_PILLS.map((p) => {
             const active = dietPill === p.value
             return (
-              <Button
+              <button
                 key={p.value}
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => setDietPill(p.value)}
-                className={`rounded-full ${
+                className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] transition-all duration-150 ${
                   active
-                    ? '!bg-[#2E7D32] !text-white hover:!bg-[#1B5E20]'
-                    : '!border !border-[#E5E7EB] !bg-white !text-[#4B5563] hover:!bg-[#F5FBF6]'
+                    ? 'border-2 border-[#2E7D32] bg-[#2E7D32] font-bold text-white shadow-xs'
+                    : 'border-2 border-slate-300 bg-white font-semibold text-slate-800 hover:border-emerald-600 hover:bg-emerald-50/60 hover:text-emerald-900'
                 }`}
               >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full mr-1 ${
-                    active ? 'bg-white' : 'bg-[#2E7D32]'
-                  }`}
-                />
                 {p.label}
-              </Button>
+              </button>
             )
           })}
         </div>
       </div>
 
-      {/* Category pills */}
-      <div className="mt-3 flex flex-col gap-2">
-        <div className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#6B7280]">
-          DANH MỤC MÓN ĂN
+      {/* Row 3: Danh mục món ăn (Category pills) - Viền & chữ inactive đậm rõ nét, pb-5 mb-5 */}
+      <div className="border-b border-slate-100 pt-5 pb-5 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] font-bold uppercase tracking-wider text-slate-700">
+            DANH MỤC MÓN ĂN
+          </span>
+          <span className="text-[11.5px] text-slate-500">
+            Phân loại theo kiểu món
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {CATEGORY_PILLS.map((p) => {
             const active = category === p.value
             return (
-              <Button
+              <button
                 key={p.value}
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => setCategory(p.value)}
-                className={`rounded-full ${
+                className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] transition-all duration-150 ${
                   active
-                    ? '!bg-[#2E7D32] !text-white hover:!bg-[#1B5E20]'
-                    : '!border !border-[#E5E7EB] !bg-white !text-[#4B5563] hover:!bg-[#F5FBF6]'
+                    ? 'border-2 border-[#2E7D32] bg-[#2E7D32] font-bold text-white shadow-xs'
+                    : 'border-2 border-slate-300 bg-white font-semibold text-slate-800 hover:border-emerald-600 hover:bg-emerald-50/60 hover:text-emerald-900'
                 }`}
               >
                 {p.label}
-              </Button>
+              </button>
             )
           })}
         </div>
       </div>
 
-      {/* Cook time + Kcal selectors */}
-      <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-end md:gap-4">
-          <div className="min-w-0 flex-1 md:min-w-[180px]">
-            <div className="mb-1.5 text-[12px] font-semibold text-[#6B7280]">
+      {/* Row 4: Bộ lọc nhanh & Mức calo (Thời gian nấu & Kcal) */}
+      <div className="pt-5 pb-2">
+        <div className="mb-3 text-[12px] font-bold uppercase tracking-wider text-slate-700">
+          BỘ LỌC NHANH & MỨC CALO
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Dropdown Thời gian nấu */}
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+              <Clock size={14} className="text-emerald-700" />
               Thời gian nấu
-            </div>
+            </label>
             <Select
               value={cookTimeTier}
               onChange={(e) => setCookTimeTier(e.target.value)}
               options={COOKTIME_OPTIONS}
-              className="!rounded-[12px]"
+              className="!h-11 !rounded-[12px] !border-slate-300 text-[13.5px] font-medium"
             />
           </div>
-          <div className="min-w-0 flex-1 md:min-w-[180px]">
-            <div className="mb-1.5 text-[12px] font-semibold text-[#6B7280]">
+
+          {/* Dropdown Mức Calo */}
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+              <Flame size={14} className="text-amber-500" />
               Mức Calo (Kcal / Khẩu phần)
-            </div>
+            </label>
             <Select
               value={kcalTier}
               onChange={(e) => setKcalTier(e.target.value)}
               options={KCAL_OPTIONS}
-              className="!rounded-[12px]"
+              className="!h-11 !rounded-[12px] !border-slate-300 text-[13.5px] font-medium"
             />
           </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 md:min-w-[160px]">
-          {isFiltering ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              leftIcon={<RotateCcw size={12} />}
-              onClick={onReset}
-              className="!h-10 !rounded-[12px] !text-[#6B7280] w-full md:w-auto"
-            >
-              Xóa bộ lọc
-            </Button>
-          ) : isLoading ? (
-            <span className="text-[12px] font-semibold text-[#6B7280]">
-              Đang tải...
-            </span>
-          ) : null}
         </div>
       </div>
     </div>
   )
 }
-
 export default RecipeFilterBar
