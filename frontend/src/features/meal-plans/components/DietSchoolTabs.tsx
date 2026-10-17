@@ -18,28 +18,28 @@ interface SchoolItem {
 const SCHOOLS: SchoolItem[] = [
   {
     id: 'vegan',
-    title: 'Thuần chay (Vegan)',
+    title: 'Thuần chay',
     badge: '100% Thực vật',
     desc: 'Không thịt, trứng, sữa, mật ong',
     sub: 'Vegan Standard',
   },
   {
     id: 'lacto',
-    title: 'Ăn chay có sữa (Lacto)',
+    title: 'Chay có sữa',
     badge: 'Có sữa/phô mai',
     desc: 'Không thịt, không trứng',
     sub: 'Lacto-Vegetarian',
   },
   {
     id: 'ovo',
-    title: 'Chay có trứng (Ovo)',
+    title: 'Chay có trứng',
     badge: 'Có trứng hữu cơ',
     desc: 'Không thịt, không sữa bò',
     sub: 'Ovo-Vegetarian',
   },
   {
     id: 'lacto-ovo',
-    title: 'Trứng & Sữa (Lacto-ovo)',
+    title: 'Trứng & Sữa',
     badge: 'Đa dạng dưỡng chất',
     desc: 'Linh hoạt & phổ biến nhất',
     sub: 'Lacto-Ovo Vegetarian',

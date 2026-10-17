@@ -2,10 +2,8 @@ import { apiClient, ApiError, getStoredToken } from '../../../shared/api/apiClie
 import type { PlanDiet, PlanPage, PlanShoppingItem, ReplacementRecipe, SavedPlan, SavedPlanMeal } from '../types/mealPlanBackend.types'
 
 export const PLAN_DIET_LABELS: Record<PlanDiet, string> = {
-  Vegan: 'Thuần chay (Vegan)',
-  Lacto: 'Ăn chay có sữa (Lacto)',
-  Ovo: 'Chay có trứng (Ovo)',
-  LactoOvo: 'Trứng & Sữa (Lacto-ovo)',
+  Vegan: 'Thuần chay (Vegan)', Lacto: 'Chay có sữa (Lacto)',
+  Ovo: 'Chay có trứng (Ovo)', LactoOvo: 'Chay có trứng và sữa (Lacto-ovo)',
 }
 
 export function localDate(date = new Date()): string {

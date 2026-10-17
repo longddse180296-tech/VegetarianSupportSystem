@@ -21,7 +21,7 @@ const DIET_OPTIONS: DietOption[] = [
   {
     id: 'Vegan',
     name: 'Vegan',
-    vietnameseName: 'Thuần chay (Vegan)',
+    vietnameseName: 'Thuần chay',
     icon: Leaf,
     description:
       'Hoàn toàn không sử dụng bất kỳ sản phẩm nào từ động vật: thịt, gia cầm, cá, trứng, sữa động vật, mật ong, gelatin, mỡ động vật.',
@@ -30,7 +30,7 @@ const DIET_OPTIONS: DietOption[] = [
   {
     id: 'Lacto-vegetarian',
     name: 'Lacto-vegetarian',
-    vietnameseName: 'Ăn chay có sữa (Lacto)',
+    vietnameseName: 'Chay có sữa',
     icon: Milk,
     description:
       'Không ăn thịt, gia cầm, cá và trứng; có sử dụng sữa tươi, phô mai, bơ và các chế phẩm từ sữa động vật.',
@@ -39,7 +39,7 @@ const DIET_OPTIONS: DietOption[] = [
   {
     id: 'Ovo-vegetarian',
     name: 'Ovo-vegetarian',
-    vietnameseName: 'Chay có trứng (Ovo)',
+    vietnameseName: 'Chay có trứng',
     icon: Egg,
     description:
       'Không ăn thịt, gia cầm, cá và sữa động vật; có sử dụng trứng gia cầm từ nguồn trang trại hữu cơ nhân đạo.',
@@ -48,7 +48,7 @@ const DIET_OPTIONS: DietOption[] = [
   {
     id: 'Lacto-ovo vegetarian',
     name: 'Lacto-ovo vegetarian',
-    vietnameseName: 'Trứng & Sữa (Lacto-ovo)',
+    vietnameseName: 'Chay trứng & sữa',
     icon: Utensils,
     description:
       'Không ăn thịt, gia cầm, cá; kết hợp sử dụng cả trứng và các chế phẩm bơ sữa động vật thanh trùng.',
@@ -119,6 +119,9 @@ export const DietarySelector: React.FC<DietarySelectorProps> = ({
                       <h4 className="text-sm font-bold text-[#1f2937] leading-tight">
                         {option.vietnameseName}
                       </h4>
+                      <p className="text-[11px] text-[#6b7280] font-medium leading-tight">
+                        ({option.name})
+                      </p>
                     </div>
                   </div>
 

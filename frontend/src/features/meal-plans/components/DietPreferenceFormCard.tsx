@@ -17,22 +17,22 @@ const DIET_OPTIONS: {
 }[] = [
   {
     id: 'vegan',
-    name: 'Thuần chay (Vegan)',
+    name: 'Vegan',
     description: 'Thuần chay 100% không trứng, sữa, mật ong hay sản phẩm động vật',
   },
   {
     id: 'lacto',
-    name: 'Ăn chay có sữa (Lacto)',
+    name: 'Lacto-vegetarian',
     description: 'Ăn chay có sử dụng sữa, bơ, phô mai nhưng không ăn trứng',
   },
   {
     id: 'ovo',
-    name: 'Chay có trứng (Ovo)',
+    name: 'Ovo-vegetarian',
     description: 'Ăn chay có ăn trứng nhưng không dùng sữa và chế phẩm sữa',
   },
   {
     id: 'lacto-ovo',
-    name: 'Trứng & Sữa (Lacto-ovo)',
+    name: 'Lacto-ovo vegetarian',
     description: 'Ăn chay có sử dụng cả trứng và sữa, phổ biến và dễ tiếp cận',
   },
 ]
