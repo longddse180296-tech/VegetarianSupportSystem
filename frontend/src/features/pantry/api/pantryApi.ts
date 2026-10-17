@@ -93,6 +93,11 @@ function inferCategoryFromName(name: string): PantryCategory {
   return 'khac'
 }
 
+export function cleanPantryName(str?: string | null): string {
+  if (!str) return ''
+  return str.replace(/\[(mẫu|demo)\]\s*/gi, '').trim()
+}
+
 function mapBackendPantryItem(backendItem: BackendPantryItem): PantryItem {
   let isSuitable: PantrySuitability = backendItem.dietaryCompatibility === 'Compatible' ? 'suitable' : 'unchecked'
   if (backendItem.dietaryCompatibility === 'Incompatible') {
@@ -111,12 +116,14 @@ function mapBackendPantryItem(backendItem: BackendPantryItem): PantryItem {
     note = `Cảnh báo dị ứng: ${backendItem.allergenWarnings.join(', ')}`
   }
 
+  const cleanName = cleanPantryName(backendItem.name)
+
   return {
     id: backendItem.id,
-    name: backendItem.name,
+    name: cleanName,
     quantity: backendItem.quantity ? Number(backendItem.quantity) : 1,
     unit: backendItem.unit || 'g',
-    category: inferCategoryFromName(backendItem.name),
+    category: inferCategoryFromName(cleanName),
     isSuitable,
     suitableNote: note,
     addedAt: backendItem.createdAt,
@@ -186,16 +193,16 @@ export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMat
   if (suggestions && Array.isArray(suggestions) && suggestions.length > 0) {
     return suggestions.map((s) => ({
       id: s.recipeId,
-      title: s.recipeName,
+      title: cleanPantryName(s.recipeName),
       subtitle: `${s.totalTimeMinutes} phút · ${s.servings} khẩu phần`,
       cover:
         s.imageUrl ?? '',
       timeMin: s.totalTimeMinutes,
       kcal: s.caloriesPerServing == null ? null : Math.round(s.caloriesPerServing),
       tag: 'Gợi ý từ tủ bếp',
-      matchedIngredients: s.availableIngredients.map((i) => i.name),
+      matchedIngredients: s.availableIngredients.map((i) => cleanPantryName(i.name)),
       totalIngredients: s.availableIngredients.length + s.missingIngredients.length,
-      missingList: s.missingIngredients.map((i) => i.name),
+      missingList: s.missingIngredients.map((i) => cleanPantryName(i.name)),
       matchPercent: Math.round(Number(s.matchPercent)),
     }))
   }
@@ -218,7 +225,12 @@ export async function getSubstitutionCandidates(
   const url = `/api/pantry/items/${pantryItemId}/substitution-candidates`
   try {
     const res = await apiClient.get<PantrySubstitutionCandidate[]>(url)
-    if (res && Array.isArray(res)) return res
+    if (res && Array.isArray(res)) {
+      return res.map((c) => ({
+        ...c,
+        name: cleanPantryName(c.name),
+      }))
+    }
   } catch (err) {
     console.error('[pantryApi.getSubstitutionCandidates] Lỗi khi gọi API: ' + url, err)
   }

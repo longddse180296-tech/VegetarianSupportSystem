@@ -5,7 +5,6 @@ import {
   BadgeCheck,
   Calendar,
   Check,
-  CheckCircle2,
   Clock as ClockIcon,
   Plus as PlusIcon,
   Search as SearchIcon,
@@ -27,6 +26,7 @@ import {
 import {
   addPantryItem,
   CATEGORY_ORDER,
+  cleanPantryName,
   type CoreDietType,
   deletePantryItem,
   getPantryCategories,
@@ -99,12 +99,12 @@ function suitabilityTone(s: PantrySuitability, diet?: CoreDietType): {
       }
     default:
       return {
-        label: 'Chưa phân tích',
-        cls: 'text-slate-700',
-        tagCls: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
-        icon: <CheckCircle2 size={15} className="text-slate-400" />,
+        label: '',
+        cls: 'text-slate-800',
+        tagCls: '',
+        icon: null,
         border: 'border-slate-200',
-        bg: 'bg-slate-50',
+        bg: 'bg-white',
       }
   }
 }
@@ -300,15 +300,15 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
   const dietBadgeText = useMemo(() => {
     switch (currentDiet) {
       case 'Thuần chay (Vegan)':
-        return 'Phù hợp Thuần chay'
+        return 'Thuần chay (Vegan)'
       case 'Ăn chay có sữa (Lacto)':
-        return 'Phù hợp Chay có sữa'
+        return 'Ăn chay có sữa (Lacto)'
       case 'Chay có trứng (Ovo)':
-        return 'Phù hợp Chay có trứng'
+        return 'Chay có trứng (Ovo)'
       case 'Trứng & Sữa (Lacto-ovo)':
-        return 'Phù hợp Trứng & Sữa'
+        return 'Trứng & Sữa (Lacto-ovo)'
       default:
-        return 'Chưa khai báo chế độ ăn'
+        return currentDiet || 'Chưa khai báo chế độ ăn'
     }
   }, [currentDiet])
 
@@ -630,7 +630,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
               <p className="mt-3 flex items-start gap-1.5 text-[12.5px] font-medium text-[#166534]">
                 <ShieldCheck size={14} className="mt-0.5 shrink-0" />
                 <span>
-                  Chỉ thay nguyên liệu sau khi bạn chọn và backend lưu thành công. Kiểm tra riêng cảnh báo dị ứng và nguồn gốc nguyên liệu.
+                  Nguyên liệu chỉ được thay đổi sau khi bạn xác nhận lưu. Vui lòng kiểm tra kỹ cảnh báo dị ứng và nguồn gốc nguyên liệu.
                 </span>
               </p>
             </div>
@@ -660,8 +660,7 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                     </span>
                   </div>
                   <p className="mt-1 text-[13px] text-[#4B5563]">
-                    Tìm thấy {matches.length} công thức đủ ưu tiên dinh dưỡng dựa trên nguyên liệu
-                    đã kiểm duyệt an toàn.
+                    Tìm thấy {matches.length} công thức phù hợp dựa trên nguyên liệu hiện có trong tủ bếp của bạn.
                   </p>
                 </div>
               </div>
@@ -694,10 +693,9 @@ export default function PantryPage({ onNavigate, isLoggedIn: _isLoggedIn }: Pant
                         m={m}
                         currentDiet={currentDiet}
                         onViewRecipe={() => {
-                          showToast(`🍲 Đang mở công thức: ${m.title}`)
+                          showToast(`🍲 Đang mở công thức: ${cleanPantryName(m.title)}`)
                           onNavigate?.(`/recipes/${encodeURIComponent(m.id)}`)
                         }}
-                        onSave={() => onNavigate?.('/meal-plans')}
                       />
                     ))}
             </div>
@@ -865,6 +863,7 @@ function ItemRow({
   const t = suitabilityTone(item.isSuitable, currentDiet)
   const d = new Date(item.addedAt)
   const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`
+  const displayName = cleanPantryName(item.name)
   return (
     <div
       className={`group flex items-center justify-between gap-3 rounded-[12px] border ${t.border} ${t.bg} px-3 py-2.5 transition hover:shadow-sm`}
@@ -875,13 +874,15 @@ function ItemRow({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className={`line-clamp-1 text-[14px] font-bold ${t.cls}`}>{item.name}</span>
-            <span
-              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[10.5px] font-bold ${t.tagCls}`}
-            >
-              {t.icon}
-              {t.label}
-            </span>
+            <span className={`line-clamp-1 text-[14px] font-bold ${t.cls}`}>{displayName}</span>
+            {t.label ? (
+              <span
+                className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[10.5px] font-bold ${t.tagCls}`}
+              >
+                {t.icon}
+                {t.label}
+              </span>
+            ) : null}
           </div>
           <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-[#4B5563]">
             <span className="font-semibold">
@@ -919,6 +920,8 @@ function ReplacementRow({
   description?: string
   onApply: () => void
 }) {
+  const cleanFrom = cleanPantryName(from)
+  const cleanTo = cleanPantryName(to)
   return (
     <div className="rounded-[14px] border border-[#86EFAC] bg-white p-3.5 shadow-xs transition hover:border-[#22C55E]">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -926,11 +929,11 @@ function ReplacementRow({
           <span className="text-[20px]" aria-hidden>{icon}</span>
           <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
             <span className="font-semibold text-[#9F1239] line-through decoration-red-500 decoration-2">
-              {from}
+              {cleanFrom}
             </span>
             <span className="font-bold text-[#9CA3AF]">→</span>
             <span className="inline-flex items-center rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-[12px] font-bold text-[#166534] ring-1 ring-[#86EFAC]">
-              {to}
+              {cleanTo}
             </span>
           </div>
         </div>
@@ -954,17 +957,21 @@ function ReplacementRow({
   )
 }
 
+const FALLBACK_PANTRY_RECIPE_IMG =
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
+
 function MatchCard({
   m,
   currentDiet,
   onViewRecipe,
-  onSave,
 }: {
   m: RecipeMatch
   currentDiet?: CoreDietType
   onViewRecipe: () => void
-  onSave: () => void
 }) {
+  const [imgSrc, setImgSrc] = useState(m.cover || FALLBACK_PANTRY_RECIPE_IMG)
+  const displayTitle = cleanPantryName(m.title)
+
   const onKey =
     (fn: () => void) =>
     (e: React.KeyboardEvent): void => {
@@ -973,7 +980,6 @@ function MatchCard({
         fn()
       }
     }
-
 
   return (
     <div
@@ -985,33 +991,30 @@ function MatchCard({
         tabIndex={0}
         onClick={onViewRecipe}
         onKeyDown={onKey(onViewRecipe)}
-        className="relative block w-full cursor-pointer"
+        className="relative block w-full cursor-pointer overflow-hidden bg-slate-100"
       >
         <img
-          src={m.cover}
-          alt={m.title}
+          src={imgSrc}
+          alt={displayTitle}
           loading="lazy"
-          className="h-[170px] w-full object-cover transition group-hover:scale-[1.03]"
+          onError={() => setImgSrc(FALLBACK_PANTRY_RECIPE_IMG)}
+          className="h-48 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
         {/* Top badges */}
-        <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-white/70 backdrop-blur bg-primary-light text-primary`}
-          >
-            {currentDiet ? `Gợi ý cho ${currentDiet}` : 'Gợi ý từ tủ bếp'}
+        <div className="absolute left-3 top-3 flex items-center">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#166534]/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs backdrop-blur-xs">
+            🌱 {currentDiet || 'Món chay'}
           </span>
         </div>
-        <div className="absolute right-3 top-3 flex items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-white/70 backdrop-blur bg-white text-primary`}
-          >
-            <span className="flex h-3 w-3 items-center justify-center rounded-full bg-white text-[#166534]">
+        <div className="absolute right-3 top-3 flex items-center">
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-[#166534] ring-1 ring-[#86EFAC] shadow-xs backdrop-blur-xs">
+            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#DCFCE7] text-[#166534] text-[10px]">
               ✓
-            </span>{' '}
-            Khớp {m.matchedIngredients.length}/{m.totalIngredients} nguyên liệu sẵn có
+            </span>
+            Khớp {m.matchedIngredients.length}/{m.totalIngredients}
           </span>
         </div>
-        <div className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-[11px] font-bold text-white ring-1 ring-white/10 backdrop-blur">
+        <div className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-[11px] font-bold text-white ring-1 ring-white/10 backdrop-blur-xs">
           <ClockIcon size={11} /> {m.timeMin} phút
         </div>
       </div>
@@ -1021,7 +1024,7 @@ function MatchCard({
             className="line-clamp-2 font-extrabold tracking-[-0.005em] text-[#121C2A]"
             style={{ fontSize: '17px', lineHeight: '24px' }}
           >
-            {m.title}
+            {displayTitle}
           </h3>
           <p
             className="mt-1 line-clamp-2 text-[13px] leading-[20px] text-[#4B5563]"
@@ -1030,23 +1033,21 @@ function MatchCard({
           </p>
         </div>
 
-        {/* Match summary line */}
-        <div className="text-[12.5px] text-[#4B5563]">
-          <span className="font-semibold text-[#166534]">
-            Tủ bếp:{' '}
-            {m.matchedIngredients.length > 0
-              ? m.matchedIngredients.slice(0, 3).map((x) => `${x} (Có ✓)`).join(' · ')
-              : 'Đang khớp...'}
-          </span>
+        {/* Ingredients match details */}
+        <div className="text-[12.5px] text-[#4B5563] space-y-1">
+          {m.matchedIngredients.length > 0 && (
+            <div className="font-medium text-[#166534]">
+              <span className="font-bold">Đã có: </span>
+              {m.matchedIngredients.slice(0, 3).map(cleanPantryName).join(' · ')}
+            </div>
+          )}
           {m.missingList.length > 0 && (
-            <span className="mt-1 block">
-              <span className="text-[#9F1239]">
-                {m.missingList.slice(0, 2).map((x) => `(${x})`).join(' · ')}
-              </span>{' '}
-              <span className="text-[#1F2937]">
-                Cần bổ sung các nguyên liệu còn thiếu theo công thức.
+            <div className="text-[12px] text-[#4B5563]">
+              <span className="font-semibold text-amber-700">Cần thêm: </span>
+              <span className="text-slate-600">
+                {m.missingList.slice(0, 3).map(cleanPantryName).join(' · ')}
               </span>
-            </span>
+            </div>
           )}
         </div>
 
@@ -1054,17 +1055,17 @@ function MatchCard({
         <div className="grid grid-cols-4 gap-1.5 rounded-[10px] border border-[#E5E7EB] bg-[#F8FAFB] p-2">
           <NutriBox
             label="Calo"
-            value={m.kcal == null ? 'Chưa có' : `${m.kcal}`}
-            unit=""
+            value={m.kcal == null ? '--' : `${m.kcal}`}
+            unit={m.kcal == null ? '' : 'kcal'}
             tone="amber"
           />
-          <NutriBox label="Đạm" value="Chưa có" unit="g" tone="green" />
-          <NutriBox label="Carb" value="Chưa có" unit="g" tone="blue" />
-          <NutriBox label="Béo tối" value="Chưa có" unit="g" tone="rose" />
+          <NutriBox label="Đạm" value="--" unit="" tone="green" />
+          <NutriBox label="Carb" value="--" unit="" tone="blue" />
+          <NutriBox label="Béo" value="--" unit="" tone="rose" />
         </div>
 
         {/* MATCH % PROGRESS BAR bg-[#2E7D32] fill */}
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-2 flex items-center gap-3">
           <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
             <div
               style={{ width: `${Math.min(100, m.matchPercent)}%` }}
@@ -1077,7 +1078,7 @@ function MatchCard({
         </div>
 
         {/* Actions */}
-        <div className="mt-auto flex items-center gap-2">
+        <div className="mt-auto pt-2">
           <Button
             type="button"
             variant="primary"
@@ -1086,19 +1087,10 @@ function MatchCard({
             leftIcon={<SparklesIcon size={14} />}
             rightIcon={<ArrowRight size={14} />}
             onClick={onViewRecipe}
-            className="!h-10 !rounded-[12px]"
+            className="!h-10 !rounded-[12px] !font-bold"
           >
-            Xem công thức chi tiết →
+            Xem công thức chi tiết
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            leftIcon={<Calendar size={14} />}
-            onClick={onSave}
-            className="!h-10 !w-10 !rounded-[12px] !p-0"
-            aria-label="Mở trang lập thực đơn"
-          />
         </div>
       </div>
     </div>
@@ -1124,14 +1116,14 @@ function NutriBox({
   }
   return (
     <div className="rounded-[8px] bg-white px-1.5 py-1.5 text-center">
-      <div className="text-[10.5px] font-bold uppercase tracking-[0.02em] text-[#6B7280]">
+      <div className="text-[10px] font-bold uppercase tracking-[0.02em] text-[#6B7280]">
         {label}
       </div>
       <div
-        className={`mt-0.5 text-[14px] font-extrabold tabular-nums ${colorMap[tone] ?? 'text-[#1F2937]'}`}
+        className={`mt-0.5 text-[13.5px] font-extrabold tabular-nums ${colorMap[tone] ?? 'text-[#1F2937]'}`}
       >
         {value}
-        {unit && <span className="ml-0.5 text-[11px] font-bold">{unit}</span>}
+        {unit && <span className="ml-0.5 text-[10.5px] font-bold">{unit}</span>}
       </div>
     </div>
   )

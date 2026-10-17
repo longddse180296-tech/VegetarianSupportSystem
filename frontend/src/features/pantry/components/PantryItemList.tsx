@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { Button, StatusBadge } from '../../../shared/components'
 import type { PantryItem, PantrySuitability } from '../types/pantry.types'
 import { PANTRY_CATEGORY_LABELS } from '../types/pantry.types'
+import { cleanPantryName } from '../api/pantryApi'
 
 interface PantryItemListProps {
   items: PantryItem[]
@@ -26,7 +27,7 @@ function suitabilityMessage(s: PantrySuitability) {
     case 'unsuitable':
       return '🚫 Phát hiện chất không phù hợp ăn chay — không khuyến nghị sử dụng trong món ăn chay.'
     case 'unchecked':
-      return '🔍 Chưa kiểm tra — quét tại "Quét thực phẩm" để xác minh chi tiết.'
+      return 'Đã lưu trong tủ bếp cá nhân.'
     default:
       return ''
   }
@@ -71,99 +72,103 @@ export const PantryItemList: React.FC<PantryItemListProps> = ({
 
   return (
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2">
-      {items.map((item) => (
-        <li
-          key={item.id}
-          className="group relative flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white p-5 transition hover:-translate-y-[1px] hover:border-[#2E7D32]/30"
-          style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
-        >
-          <div className="flex gap-4">
-            {/* Icon thumbnail 64x64 rounded-[12px] */}
-            <div
-              aria-hidden
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[12px] bg-[#E8F5E9]"
-            >
-              <span className="text-2xl" aria-hidden>
-                {item.isSuitable === 'unsuitable'
-                  ? '🚫'
-                  : item.isSuitable === 'warning'
-                  ? '⚠️'
-                  : item.category === 'hat-ngu-coc'
-                  ? '🌾'
-                  : item.category === 'nam'
-                  ? '🍄'
-                  : item.category === 'trai-cay'
-                  ? '🍎'
-                  : item.category === 'gia-vi'
-                  ? '🧂'
-                  : item.category === 'rau-cu-qua'
-                  ? '🥬'
-                  : item.category === 'dau-mem-san-xuat'
-                  ? '🧀'
-                  : item.category === 'sua-hat'
-                  ? '🥛'
-                  : item.category === 'thuc-pham-che-bien'
-                  ? '🥫'
-                  : '🧺'}
-              </span>
-            </div>
-
-            {/* Info */}
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <h3
-                  className="min-w-0 flex-1 font-semibold tracking-[-0.005em] text-[#1F2937] break-words line-clamp-2"
-                  style={{ fontSize: '18px', lineHeight: '26px' }}
-                  title={item.name}
-                >
-                  {item.name}
-                </h3>
-                <StatusBadge status={mapStatus(item.isSuitable)} size="sm" />
-              </div>
-
-              {/* Pills: category, quantity, addedAt */}
-              <div
-                className="mt-2 flex flex-wrap items-center gap-2"
-                style={{ fontSize: '12px', lineHeight: '16px' }}
-              >
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2.5 py-1 font-medium text-[#2E7D32]">
-                  {PANTRY_CATEGORY_LABELS[item.category] ?? 'Khác'}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 font-semibold tabular-nums text-[#1F2937]">
-                  {item.quantity > 0 ? `${item.quantity} ${item.unit}` : 'Chưa nhập số lượng'}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#F8FAF8] px-2.5 py-1 font-medium text-[#6B7280]">
-                  Thêm {new Date(item.addedAt).toLocaleDateString('vi-VN')}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Suitability note / description */}
-          <p
-            className="mt-4 font-normal text-[#1F2937]"
-            style={{ fontSize: '14px', lineHeight: '22px' }}
+      {items.map((item) => {
+        const displayName = cleanPantryName(item.name)
+        const status = mapStatus(item.isSuitable)
+        return (
+          <li
+            key={item.id}
+            className="group relative flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white p-5 transition hover:-translate-y-[1px] hover:border-[#2E7D32]/30"
+            style={{ boxShadow: '0 1px 2px 0 rgba(15, 23, 42, 0.04)' }}
           >
-            {item.suitableNote ?? suitabilityMessage(item.isSuitable)}
-          </p>
+            <div className="flex gap-4">
+              {/* Icon thumbnail 64x64 rounded-[12px] */}
+              <div
+                aria-hidden
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[12px] bg-[#E8F5E9]"
+              >
+                <span className="text-2xl" aria-hidden>
+                  {item.isSuitable === 'unsuitable'
+                    ? '🚫'
+                    : item.isSuitable === 'warning'
+                    ? '⚠️'
+                    : item.category === 'hat-ngu-coc'
+                    ? '🌾'
+                    : item.category === 'nam'
+                    ? '🍄'
+                    : item.category === 'trai-cay'
+                    ? '🍎'
+                    : item.category === 'gia-vi'
+                    ? '🧂'
+                    : item.category === 'rau-cu-qua'
+                    ? '🥬'
+                    : item.category === 'dau-mem-san-xuat'
+                    ? '🧀'
+                    : item.category === 'sua-hat'
+                    ? '🥛'
+                    : item.category === 'thuc-pham-che-bien'
+                    ? '🥫'
+                    : '🧺'}
+                </span>
+              </div>
 
-          {/* Footer actions */}
-          <div className="mt-5 flex items-center justify-between gap-3 border-t border-dashed border-[#E5E7EB] pt-4">
-            <div className="truncate font-medium text-[#6B7280]" style={{ fontSize: '12px', lineHeight: '16px' }}>
-              #{item.id}
+              {/* Info */}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <h3
+                    className="min-w-0 flex-1 font-semibold tracking-[-0.005em] text-[#1F2937] break-words line-clamp-2"
+                    style={{ fontSize: '18px', lineHeight: '26px' }}
+                    title={displayName}
+                  >
+                    {displayName}
+                  </h3>
+                  {status !== 'neutral' && <StatusBadge status={status} size="sm" />}
+                </div>
+
+                {/* Pills: category, quantity, addedAt */}
+                <div
+                  className="mt-2 flex flex-wrap items-center gap-2"
+                  style={{ fontSize: '12px', lineHeight: '16px' }}
+                >
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2.5 py-1 font-medium text-[#2E7D32]">
+                    {PANTRY_CATEGORY_LABELS[item.category] ?? 'Khác'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 font-semibold tabular-nums text-[#1F2937]">
+                    {item.quantity > 0 ? `${item.quantity} ${item.unit}` : 'Chưa nhập số lượng'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#F8FAF8] px-2.5 py-1 font-medium text-[#6B7280]">
+                    Thêm {new Date(item.addedAt).toLocaleDateString('vi-VN')}
+                  </span>
+                </div>
+              </div>
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="danger"
-              onClick={() => onDelete(item.id)}
-              leftIcon={<Trash2 size={14} />}
+
+            {/* Suitability note / description */}
+            <p
+              className="mt-4 font-normal text-[#1F2937]"
+              style={{ fontSize: '14px', lineHeight: '22px' }}
             >
-              Xóa
-            </Button>
-          </div>
-        </li>
-      ))}
+              {item.suitableNote ?? suitabilityMessage(item.isSuitable)}
+            </p>
+
+            {/* Footer actions */}
+            <div className="mt-5 flex items-center justify-between gap-3 border-t border-dashed border-[#E5E7EB] pt-4">
+              <div className="truncate font-medium text-[#6B7280]" style={{ fontSize: '12px', lineHeight: '16px' }}>
+                #{item.id}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="danger"
+                onClick={() => onDelete(item.id)}
+                leftIcon={<Trash2 size={14} />}
+              >
+                Xóa
+              </Button>
+            </div>
+          </li>
+        )
+      })}
     </ul>
   )
 }
