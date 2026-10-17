@@ -6,6 +6,7 @@ import { ProfileOverview } from '../components/ProfileOverview'
 import { ProfileSettingsForm } from '../components/ProfileSettingsForm'
 import type { UserProfile, ProfileStats, RecentPost } from '../types'
 import { AlertCircle, RefreshCw } from 'lucide-react'
+import { getDietaryTypeLabel } from '../../../shared/constants'
 
 interface ProfilePageProps {
   onNavigate?: (path: string) => void
@@ -36,6 +37,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [isUpdating, setIsUpdating] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [contentWarning, setContentWarning] = useState<string | null>(null)
+  const [saveNotice, setSaveNotice] = useState<string | null>(null)
   const [reloadTrigger, setReloadTrigger] = useState(0)
 
   useEffect(() => {
@@ -95,6 +97,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     try {
       const updated = await profileApi.updateProfile(updates)
       setProfile(updated)
+      setSaveNotice('Đã lưu hồ sơ.')
       if (updateUser) {
         updateUser({
           fullName: updated.fullName,
@@ -110,7 +113,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const displayName = profile?.fullName || user?.fullName || 'Thành viên'
   const displayEmail = profile?.email || user?.email || ''
   const displayAvatar = profile?.avatarUrl || user?.avatarUrl
-  const displayDiet = profile?.dietaryType || 'Chưa chọn chế độ ăn'
+  const displayDiet = getDietaryTypeLabel(profile?.dietaryType)
 
   return (
     <UserProfileShell
@@ -132,6 +135,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         },
       ]}
     >
+      {saveNotice && <p role="status" className="mb-4 rounded-xl border border-emerald-200 bg-primary-light p-4 text-sm text-primary">{saveNotice}</p>}
       {/* Loading Skeleton State */}
       {isLoading && (
         <div className="flex flex-col gap-6 w-full animate-pulse">
@@ -199,7 +203,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               profile={profile}
               stats={stats}
               recentPosts={recentPosts}
-              onGoToSettings={() => setViewMode('settings')}
+              onGoToSettings={() => { setSaveNotice(null); setViewMode('settings') }}
               onNavigate={onNavigate}
             />
           ) : (

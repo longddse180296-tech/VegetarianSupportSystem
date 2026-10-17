@@ -100,7 +100,7 @@ function resolveCategoryBadge(r: Recipe): CategoryBadgeInfo {
   }
 
   return {
-    label: 'Món chính',
+    label: r.category || 'Món chính',
     icon: <UtensilsCrossed size={12} className="text-emerald-700" />,
     tagCls: 'bg-emerald-50/95 text-emerald-900 border-emerald-200/90',
   }
@@ -129,7 +129,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
 
   return (
     <article
-      className="group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-slate-200/90 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md"
+      className="ui-card ui-content-card group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-slate-200/90 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md"
     >
       {/* Cover image wrap */}
       <div
@@ -141,7 +141,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         aria-label={`Mở chi tiết món ${recipe.title}`}
       >
         <img
-          src={imageSrc}
+          src={imageSrc || getDiverseFoodImage(recipe.id, recipe.title)}
           alt={recipe.title}
           loading="lazy"
           onError={() => {
@@ -174,7 +174,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         {/* Title: 16-18px typography */}
         <h3
           onClick={handleSelect}
-          className="cursor-pointer font-bold tracking-tight text-[#111827] transition-colors line-clamp-2 hover:text-[#166534]"
+          className="ui-card-title cursor-pointer font-bold tracking-tight text-[#111827] transition-colors line-clamp-2 hover:text-[#166534] group-hover:text-primary"
           style={{ fontSize: '17px', lineHeight: '24px' }}
           title={recipe.title}
         >

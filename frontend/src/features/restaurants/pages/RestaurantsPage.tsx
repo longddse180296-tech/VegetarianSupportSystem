@@ -1,14 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Compass,
   MapPin,
+  Navigation,
   RotateCcw,
   Sparkles,
 } from 'lucide-react'
-import { EmptyState, SkeletonCard } from '../../../shared/components'
+import {
+  PageHeading,
+  EmptyState,
+  SkeletonLoader,
+} from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
 import {
   filterRestaurants,
-  getRestaurantDetail,
 } from '../api/restaurantApi'
 import { RestaurantCard } from '../components/RestaurantCard'
 import { RestaurantFilterBar } from '../components/RestaurantFilter'
@@ -18,6 +23,8 @@ import type {
   RestaurantFilter as RestaurantFilterState,
 } from '../types/restaurant.types'
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
+import { profileApi } from '../../profile/api/profileApi'
+import { useAuth } from '../../auth'
 
 interface RestaurantsPageProps {
   onNavigate?: (path: string) => void
@@ -41,13 +48,16 @@ const POPULAR_DISTRICTS = [
 
 export default function RestaurantsPage({
   onNavigate,
-  isLoggedIn: _isLoggedIn,
+  isLoggedIn = false,
 }: RestaurantsPageProps) {
+  const { isAuthenticated } = useAuth()
+  const canReadProfile = isLoggedIn || isAuthenticated
+  const savedArea = useRef('')
   const [filter, setFilter] = useState<RestaurantFilterState>(DEFAULT_RESTAURANT_FILTER)
   const [items, setItems] = useState<Restaurant[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [isError, setIsError] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [selectedMapRestaurant, setSelectedMapRestaurant] = useState<Restaurant | null>(null)
 
@@ -60,34 +70,53 @@ export default function RestaurantsPage({
     window.setTimeout(() => setToast(null), 2200)
   }
 
-  // Initial load
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setIsLoading(true)
-      setIsError(false)
-      try {
-        const res = await filterRestaurants(DEFAULT_RESTAURANT_FILTER)
-        if (cancelled) return
-        setItems(res.items)
-        setTotalCount(res.totalCount)
-        if (res.items.length > 0) {
-          setSelectedMapRestaurant(res.items[0])
-        }
-      } catch {
-        if (!cancelled) {
-          setIsError(true)
-          setItems([])
-          setTotalCount(0)
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationState('denied')
+      showToast('Trình duyệt này không hỗ trợ định vị. Vui lòng chọn quận/huyện.')
+      return
     }
-  }, [])
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocationState('granted')
+        setFilter((current) => ({
+          ...current,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          search: current.search === savedArea.current ? '' : current.search,
+        }))
+        showToast('✅ Đã xác định vị trí hiện tại của bạn.')
+      },
+      () => {
+        setLocationState('denied')
+        showToast('Không lấy được vị trí. Bạn có thể chọn Quận/Huyện bên dưới.')
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+    )
+  }
+
+  // Pre-fill preferred region from user profile
+  useEffect(() => {
+    if (!canReadProfile) return
+    let active = true
+    void profileApi.getProfile().then((profile) => {
+      if (!active) return
+      const area = profile.preferredRegion?.trim()
+      savedArea.current = area || ''
+      if (area) {
+        setFilter((current) =>
+          current.latitude === null &&
+          current.longitude === null &&
+          !current.search &&
+          current.city === 'all'
+            ? { ...current, search: area }
+            : current,
+        )
+      }
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [canReadProfile])
 
   // Debounced filter update
   useEffect(() => {
@@ -95,24 +124,20 @@ export default function RestaurantsPage({
     const t = window.setTimeout(() => {
       ;(async () => {
         setIsLoading(true)
-        setIsError(false)
+        setLoadError(null)
         try {
           const res = await filterRestaurants(filter)
           if (cancelled) return
           setItems(res.items)
           setTotalCount(res.totalCount)
           setSelectedMapRestaurant((prev) =>
-            prev && res.items.some((x) => x.id === prev.id)
-              ? prev
-              : res.items.length > 0
-              ? res.items[0]
-              : null,
+            res.items.find((item) => item.id === prev?.id) ?? res.items[0] ?? null,
           )
-        } catch {
+        } catch (error) {
           if (!cancelled) {
-            setIsError(true)
             setItems([])
-            setTotalCount(0)
+            setSelectedMapRestaurant(null)
+            setLoadError(error instanceof Error ? error.message : 'Không thể tải nhà hàng.')
           }
         } finally {
           if (!cancelled) setIsLoading(false)
@@ -139,33 +164,6 @@ export default function RestaurantsPage({
     onNavigate?.(`/restaurants/${encodeURIComponent(id)}`)
   }
 
-  const handleBook = async (id: string) => {
-    const r = await getRestaurantDetail(id)
-    if (!r) return
-    showToast(`📞 Đặt chỗ tại ${r.name.replace(/^\[Demo\]\s*/i, '')}: ${r.phoneNumber}`)
-  }
-
-  // Handle Geolocation Request
-  const requestLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationState('denied')
-      showToast('Trình duyệt không hỗ trợ định vị tự động. Vui lòng chọn quận/huyện.')
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (_position) => {
-        setLocationState('granted')
-        showToast('✅ Đã xác định vị trí hiện tại thành công!')
-      },
-      (_err) => {
-        setLocationState('denied')
-        showToast('Không thể lấy vị trí tự động. Hãy chọn Quận/Huyện thủ công bên dưới.')
-      },
-      { timeout: 8000 },
-    )
-  }
-
   // Handle Manual District Selection
   const handleDistrictChange = (district: string) => {
     setSelectedDistrict(district)
@@ -177,32 +175,16 @@ export default function RestaurantsPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-[#121C2A] font-['Inter']">
-      <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">
-        {/* ===== Breadcrumbs ===== */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/')}
-              className="text-emerald-700 hover:underline font-semibold"
-            >
-              Trang chủ
-            </button>
-            <span className="text-slate-300">›</span>
-            <span className="font-bold text-slate-900">Nhà hàng chay</span>
-          </nav>
-        </div>
-
-        {/* ===== Header ===== */}
-        <header className="mb-5">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            Nhà hàng chay gần bạn
-          </h1>
-          <p className="mt-1.5 text-sm sm:text-base text-slate-600 max-w-[760px] leading-relaxed">
-            Khám phá các nhà hàng và quán ăn chay thanh tịnh, dinh dưỡng phù hợp quanh khu vực của bạn.
-          </p>
-        </header>
+    <div className="min-h-screen bg-[#F8FAF8] text-[#121C2A] font-sans">
+      <div className="ui-page-container py-6">
+        <PageHeading
+          title="Nhà hàng chay gần bạn"
+          description="Khám phá các nhà hàng và quán ăn chay thanh tịnh quanh vị trí của bạn."
+          breadcrumbs={[
+            { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+            { label: 'Nhà hàng chay' },
+          ]}
+        />
 
         {/* ===== Location Banner with Fallback Manual Selection ===== */}
         {locationState === 'prompt' && (
@@ -223,8 +205,8 @@ export default function RestaurantsPage({
               </button>
               <button
                 type="button"
-                onClick={requestLocation}
-                className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800"
+                onClick={useCurrentLocation}
+                className="rounded-xl bg-[#2E7D32] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#1B5E20]"
               >
                 Cho phép vị trí
               </button>
@@ -261,7 +243,7 @@ export default function RestaurantsPage({
 
               <button
                 type="button"
-                onClick={requestLocation}
+                onClick={useCurrentLocation}
                 className="inline-flex items-center gap-1 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100/50 transition-colors"
               >
                 <Compass size={13} />
@@ -276,7 +258,7 @@ export default function RestaurantsPage({
           <div className="mb-5 flex items-center justify-between rounded-[16px] border border-emerald-200 bg-emerald-50/60 px-4 py-2.5 text-xs text-emerald-900">
             <span className="flex items-center gap-2 font-medium">
               <span className="h-2 w-2 rounded-full bg-emerald-600 animate-ping" />
-              Đang định vị quanh vị trí của bạn (bán kính ưu tiên 10km)
+              Đang định vị quanh vị trí của bạn
             </span>
             <button
               type="button"
@@ -288,7 +270,12 @@ export default function RestaurantsPage({
           </div>
         )}
 
-        {/* ===== Search + Filter bar ===== */}
+        {/* Search + Filter bar */}
+        {filter.latitude === null && (
+          <p className="mb-3 text-xs text-[#6B7280]">
+            Chưa có tọa độ GPS: tìm theo tên hoặc khu vực. Khoảng cách km sẽ được tính khi bật vị trí.
+          </p>
+        )}
         <div className="mb-6">
           <RestaurantFilterBar
             filter={filter}
@@ -299,14 +286,13 @@ export default function RestaurantsPage({
           />
         </div>
 
-
-        {/* ===== MAIN LAYOUT: ĐẢO NGƯỢC TỈ LỆ (Danh sách 2/3, Bản đồ 1/3) ===== */}
+        {/* ===== MAIN LAYOUT (Danh sách 7 cột, Bản đồ 5 cột trên lg) ===== */}
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-          {/* ================= CỘT TRÁI (2/3 = 8 CỘT): Danh sách nhà hàng ================= */}
-          <div className="flex flex-col gap-4 lg:col-span-8">
+          {/* ================= CỘT TRÁI (7 cột): Danh sách nhà hàng ================= */}
+          <div className="flex flex-col gap-4 lg:col-span-7">
             {/* Nút xóa bộ lọc khi có tiêu chí đang lọc */}
             {(filter.search || filter.diet !== 'all' || filter.distanceMaxKm > 0 || filter.city !== 'all') && (
-              <div className="flex items-center justify-end text-xs sm:text-sm text-slate-500">
+              <div className="flex items-center justify-end text-xs text-slate-500">
                 <button
                   type="button"
                   onClick={resetFilter}
@@ -317,28 +303,24 @@ export default function RestaurantsPage({
               </div>
             )}
 
-            {/* Restaurant List / SkeletonCard Grid / EmptyState */}
-            {isLoading ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))}
-              </div>
-            ) : isError ? (
-              <EmptyState
-                title="Không thể kết nối đến máy chủ"
-                description="Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại."
-                actionLabel="Thử lại"
-                onAction={() => updateFilter({})}
-                icon={<Sparkles size={40} className="text-red-500" />}
+            {/* Restaurant List / SkeletonLoader / Error / EmptyState */}
+            {loadError ? (
+              <AlertError
+                title="Không thể tải nhà hàng"
+                message={loadError}
+                onRetry={() => updateFilter({})}
               />
+            ) : isLoading ? (
+              <div className="flex flex-col gap-3.5">
+                <SkeletonLoader count={5} variant="card" />
+              </div>
             ) : items.length === 0 ? (
               <EmptyState
                 title="Không có nhà hàng nào phù hợp"
                 description="Bạn hãy thử nới lỏng bộ lọc khoảng cách, chọn quận/huyện khác hoặc xóa từ khóa tìm kiếm để khám phá thêm địa điểm."
                 actionLabel="Xóa bộ lọc"
                 onAction={resetFilter}
-                icon={<Sparkles size={40} className="text-emerald-600" />}
+                icon={<Sparkles size={40} className="text-[#2E7D32]" />}
               />
             ) : (
               <div className="flex flex-col gap-4">
@@ -346,14 +328,13 @@ export default function RestaurantsPage({
                   <div
                     key={r.id}
                     onClick={() => setSelectedMapRestaurant(r)}
-                    className="cursor-pointer transition-transform"
+                    className="cursor-pointer"
                   >
                     <RestaurantCard
                       restaurant={r}
                       featured={idx === 0}
                       isSelected={selectedMapRestaurant?.id === r.id}
                       onSelect={handleSelect}
-                      onBook={handleBook}
                       variant="horizontal"
                       onNavigate={onNavigate}
                     />
@@ -363,9 +344,9 @@ export default function RestaurantsPage({
             )}
           </div>
 
-          {/* ================= CỘT PHẢI (1/3 = 4 CỘT): BẢN ĐỒ THỰC TẾ LEAFLET ================= */}
-          <div className="sticky top-20 flex flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white shadow-xs lg:col-span-4">
-            <div className="h-[580px] w-full">
+          {/* ================= CỘT PHẢI (5 cột): BẢN ĐỒ TƯƠNG TÁC LEAFLET ================= */}
+          <div className="sticky top-20 flex flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white shadow-xs lg:col-span-5">
+            <div className="h-[520px] w-full">
               <RestaurantRealMap
                 restaurants={items}
                 selectedRestaurant={selectedMapRestaurant}
@@ -373,6 +354,25 @@ export default function RestaurantsPage({
                 onNavigate={onNavigate}
               />
             </div>
+            {selectedMapRestaurant && (
+              <div className="p-4 border-t border-slate-100 flex items-center justify-between gap-3 bg-[#FBFDFB]">
+                <div className="min-w-0">
+                  <h4 className="text-xs font-bold text-slate-800 truncate">{selectedMapRestaurant.name}</h4>
+                  <p className="text-[11px] text-slate-500 truncate">{selectedMapRestaurant.address}</p>
+                </div>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    `${selectedMapRestaurant.name}, ${selectedMapRestaurant.address}`,
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-600 hover:text-white transition-all shadow-2xs"
+                >
+                  <Navigation size={12} />
+                  <span>Google Maps</span>
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>

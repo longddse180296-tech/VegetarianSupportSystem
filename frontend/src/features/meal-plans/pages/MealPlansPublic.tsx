@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   Calendar,
-  ChevronRight,
   Leaf,
   Lock,
   ShoppingCart,
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { MyMealPlanPage } from './MyMealPlanPage'
+import { Breadcrumb } from '../../../shared/components'
 
 export interface MealPlansPublicProps {
   onNavigate?: (path: string) => void
@@ -21,17 +21,8 @@ export const MealPlansPublic = ({ onNavigate }: MealPlansPublicProps) => {
   const create = () =>
     onNavigate?.('/login?returnUrl=' + encodeURIComponent('/meal-plans/setup'))
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <nav className="flex items-center gap-2 text-xs font-medium text-slate-500">
-        <button
-          onClick={() => onNavigate?.('/')}
-          className="fe1-link hover:text-emerald-700"
-        >
-          Trang chủ
-        </button>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-emerald-700 font-bold">Thực đơn</span>
-      </nav>
+    <div className="ui-page-container py-8 space-y-8">
+      <Breadcrumb items={[{ label: 'Trang chủ', onClick: () => onNavigate?.('/') }, { label: 'Thực đơn' }]} />
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0f4a24] via-[#1a6b37] to-[#22874a] p-8 md:p-10 lg:p-12 shadow-lg">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/4" />
         <div className="relative flex flex-col lg:flex-row justify-between gap-8">

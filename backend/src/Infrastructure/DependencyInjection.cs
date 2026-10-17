@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<IFeaturedContentRepository, FeaturedContentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
         services.AddScoped<IRevokedAccessTokenRepository, RevokedAccessTokenRepository>();
         services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
@@ -64,15 +65,7 @@ public static class DependencyInjection
         services.AddHostedService<ModerationAiWorker>();
         services.AddHttpClient<IGeminiService, GeminiService>(client =>
             client.Timeout = TimeSpan.FromSeconds(45));
-        if (bool.TryParse(configuration["AiChat:UseMockResponses"], out var useMockResponses)
-            && useMockResponses)
-        {
-            services.AddScoped<IAiChatAnswerService, MockAiChatAnswerService>();
-        }
-        else
-        {
-            services.AddScoped<IAiChatAnswerService, GeminiAiChatAnswerService>();
-        }
+        services.AddScoped<IAiChatAnswerService, GeminiAiChatAnswerService>();
 
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IIngredientRepository, IngredientRepository>();

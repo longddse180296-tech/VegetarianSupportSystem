@@ -1,15 +1,11 @@
+import {
+  BACKEND_DIETARY_TYPE_LABELS,
+  type BackendDietaryType,
+} from '../../../../shared/constants'
 import { apiClient } from '../../../../shared/api/apiClient'
-export type DietaryType =
-  | 'Vegan'
-  | 'LactoVegetarian'
-  | 'OvoVegetarian'
-  | 'LactoOvoVegetarian'
-export const dietLabels: Record<DietaryType, string> = {
-  Vegan: 'Thuần chay (Vegan)',
-  LactoVegetarian: 'Ăn chay có sữa (Lacto)',
-  OvoVegetarian: 'Chay có trứng (Ovo)',
-  LactoOvoVegetarian: 'Trứng & Sữa (Lacto-ovo)',
-}
+
+export type DietaryType = BackendDietaryType
+export const dietLabels: Record<DietaryType, string> = BACKEND_DIETARY_TYPE_LABELS
 export interface RecipeInput {
   categoryId: string
   name: string

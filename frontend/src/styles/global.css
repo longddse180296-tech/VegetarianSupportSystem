@@ -12,10 +12,16 @@
   --color-danger-light: #fef2f2;
   --color-warning: #d97706;
   --color-warning-light: #fffbeb;
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Segoe UI', Arial, sans-serif;
+  --font-heading: var(--font-sans);
+  --radius-control: 10px;
+  --radius-panel: 16px;
+  --shadow-panel: 0 2px 8px rgb(15 23 42 / 0.05);
 }
 
 :root {
+  --page-max-width: 1240px;
+  --page-gutter: 24px;
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --primary: #2e7d32;
   --primary-hover: #1b5e20;
@@ -31,10 +37,28 @@
   --radius-card: 16px;
   --radius-modal: 20px;
   --radius-pill: 9999px;
+  --space-control: 12px;
+  --space-card: 20px;
+  --shadow-card: 0 2px 8px rgb(15 23 42 / 0.05);
+  --shadow-dialog: 0 20px 60px rgb(15 23 42 / 0.18);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html { scrollbar-gutter: stable; }
+
+@media (max-width: 639px) {
+  :root { --page-gutter: 16px; }
+}
+
+@utility ui-page-container {
+  width: 100%;
+  max-width: var(--page-max-width);
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+  min-width: 0;
 }
 
 body {
@@ -44,6 +68,71 @@ body {
   color: var(--text-main);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+button, input, select, textarea, option {
+  font-family: inherit;
+}
+
+:where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-heading);
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+/* Shared public hierarchy: page title, card title, breadcrumb and metadata tag. */
+.ui-page-heading { margin-bottom: 24px; }
+.ui-page-heading-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.ui-page-eyebrow { margin-bottom: 12px; }
+.ui-page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ui-page-title, .fe1-ui .ui-page-title {
+  margin: 0;
+  color: #14261c;
+  font-family: var(--font-heading);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+.ui-page-description { margin-top: 10px; max-width: 760px; color: var(--text-muted); font-size: 15px; font-weight: 400; line-height: 1.6; }
+.ui-breadcrumb { margin-bottom: 20px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--text-muted); }
+.ui-breadcrumb ol { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0; }
+.ui-breadcrumb li { display: inline-flex; align-items: center; gap: 8px; }
+.ui-breadcrumb button, .fe1-ui .ui-breadcrumb button { font-size: 13px; font-weight: 500; color: var(--primary); cursor: pointer; }
+.ui-breadcrumb button:hover { text-decoration: underline; }
+.ui-breadcrumb [aria-current="page"] { color: var(--text-main); font-weight: 600; }
+.ui-breadcrumb-separator { color: #9ca3af; }
+.ui-badge, .fe1-ui .ui-badge { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; border-radius: var(--radius-pill); border: 1px solid transparent; padding: 4px 10px; font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1.4; }
+.ui-badge svg { width: 14px; height: 14px; flex-shrink: 0; }
+.ui-badge-green { color: var(--primary); background: var(--primary-light); border-color: #c8e6c9; }
+.ui-badge-neutral { color: #475569; background: #f1f5f9; border-color: #e2e8f0; }
+.ui-badge-amber { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+.ui-card-title, .fe1-ui .ui-card-title { font-family: var(--font-heading); font-size: 18px; font-weight: 700; line-height: 1.35; letter-spacing: 0; color: var(--text-main); }
+.ui-hero-title, .fe1-ui .ui-hero-title { font-family: var(--font-heading); font-size: clamp(36px, 4.2vw, 50px); font-weight: 800; line-height: 1.15; letter-spacing: -0.015em; color: #14261c; }
+.ui-content-card { transition: border-color 150ms ease, box-shadow 150ms ease; }
+.ui-content-card:hover { border-color: #a5cfad; box-shadow: 0 6px 18px rgb(15 23 42 / 0.08); }
+
+@utility ui-card {
+  background: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+@utility ui-control {
+  border-radius: var(--radius-btn);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Base interactive focus rings matching DESIGN.md */

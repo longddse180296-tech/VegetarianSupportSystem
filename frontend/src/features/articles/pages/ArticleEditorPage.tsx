@@ -24,6 +24,7 @@ import {
   type MyArticleRecord,
 } from '../api/articles.api'
 import { RichContentRenderer } from '../components/RichContentRenderer'
+import { BACKEND_DIETARY_TYPE_LABELS, BACKEND_DIETARY_TYPES } from '../../../shared/constants'
 
 export const ArticleEditorPage = ({
   articleId,
@@ -42,6 +43,7 @@ export const ArticleEditorPage = ({
     content: '',
     category: '',
     coverImageUrl: null,
+    dietaryTypes: [],
   })
   const [preview, setPreview] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -50,9 +52,9 @@ export const ArticleEditorPage = ({
   const [review, setReview] = useState<Submission | null>(null)
   const [loadedRecord, setLoadedRecord] = useState<MyArticleRecord | null>(null)
   if (record.data && record.data !== loadedRecord) {
-    const { title, content, category, coverImageUrl } = record.data
+    const { title, content, category, coverImageUrl, dietaryTypes } = record.data
     setLoadedRecord(record.data)
-    setForm({ title, content, category, coverImageUrl })
+    setForm({ title, content, category, coverImageUrl, dietaryTypes: dietaryTypes || [] })
   }
   const state = record.data?.status || 'Draft'
   const editable =
@@ -97,7 +99,7 @@ export const ArticleEditorPage = ({
       userName={user?.fullName}
       onLogout={() => void logout().then(() => onNavigate('/auth/login'))}
     >
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-5">
+      <div className="ui-page-container py-8 space-y-5">
         <button
           className="fe1-link text-sm font-bold text-emerald-800"
           onClick={() => onNavigate('/profile/my-articles')}
@@ -148,6 +150,27 @@ export const ArticleEditorPage = ({
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </label>
+              <fieldset className="space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
+                <legend className="px-1 text-sm font-semibold">Phù hợp với chế độ ăn nào?</legend>
+                <p className="text-xs text-slate-600">Chọn các chế độ mà nội dung bài viết áp dụng. Thông tin này giúp người đọc lọc bài viết phù hợp.</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {BACKEND_DIETARY_TYPES.map((dietaryType) => (
+                    <label key={dietaryType} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.dietaryTypes.includes(dietaryType)}
+                        onChange={(event) => setForm({
+                          ...form,
+                          dietaryTypes: event.target.checked
+                            ? [...form.dietaryTypes, dietaryType]
+                            : form.dietaryTypes.filter((item) => item !== dietaryType),
+                        })}
+                      />
+                      {BACKEND_DIETARY_TYPE_LABELS[dietaryType]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <label className="block text-sm">
                 Danh mục
                 <input
@@ -232,6 +255,7 @@ export const ArticleEditorPage = ({
               <h2 className="text-xl font-bold mb-4">
                 {form.title || 'Tiêu đề bài viết'}
               </h2>
+              {!!form.dietaryTypes.length && <div className="mb-4 flex flex-wrap gap-2">{form.dietaryTypes.map((dietaryType) => <span key={dietaryType} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">{BACKEND_DIETARY_TYPE_LABELS[dietaryType]}</span>)}</div>}
               <RichContentRenderer content={form.content} />
             </section>
           )}

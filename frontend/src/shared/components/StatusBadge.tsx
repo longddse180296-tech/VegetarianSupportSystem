@@ -111,10 +111,10 @@ const STATUS_MAP: Record<BadgeStatusType, StatusConfig> = {
   },
   Published: {
     defaultLabel: 'Đã xuất bản',
-    bg: 'bg-[#e8f5e9]',
-    text: 'text-[#2e7d32]',
+    bg: 'bg-primary-light',
+    text: 'text-primary',
     border: 'border-[#c8e6c9]',
-    dotColor: 'bg-[#2e7d32]',
+    dotColor: 'bg-primary',
   },
   RevisionRequested: {
     defaultLabel: 'Yêu cầu chỉnh sửa',
@@ -141,10 +141,10 @@ const STATUS_MAP: Record<BadgeStatusType, StatusConfig> = {
   // Food Scan Suitability
   suitable: {
     defaultLabel: 'Phù hợp theo thông tin cung cấp',
-    bg: 'bg-[#e8f5e9]',
-    text: 'text-[#2e7d32]',
+    bg: 'bg-primary-light',
+    text: 'text-primary',
     border: 'border-[#c8e6c9]',
-    dotColor: 'bg-[#2e7d32]',
+    dotColor: 'bg-primary',
   },
   unsuitable: {
     defaultLabel: 'Không phù hợp',

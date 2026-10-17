@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, ChefHat, Sparkles, UtensilsCrossed } from 'lucide-react'
-import { EmptyState, SkeletonCard } from '../../../shared/components'
+import { EmptyState, PageHeading, SkeletonCard } from '../../../shared/components'
+import AlertError from '../../../shared/components/AlertError'
 import { getRecipes, toggleFavorite } from '../api/recipeApi'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeFilterBar } from '../components/RecipeFilterBar'
@@ -75,6 +76,7 @@ function matchesCook(r: Recipe, tier: string) {
 function matchesKcal(r: Recipe, tier: string) {
   if (tier === 'all') return true
   const k = r.nutrition.kcal
+  if (k === null) return false
   if (tier === 'lt200') return k < 200
   if (tier === '200-350') return k >= 200 && k <= 350
   if (tier === '350-500') return k >= 350 && k <= 500
@@ -87,7 +89,7 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
   const [allItems, setAllItems] = useState<Recipe[]>([])
   const [_totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
-  const [isError, setIsError] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [heroToast, setHeroToast] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -102,15 +104,15 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
   const loadList = async (next: Partial<RecipeListFilter> = {}) => {
     const applied: RecipeListFilter = { ...filter, ...next }
     setIsLoading(true)
-    setIsError(false)
+    setLoadError(null)
     try {
       const res = await getRecipes(applied)
       setAllItems(res.items)
       setTotalCount(res.totalCount)
-    } catch {
-      setIsError(true)
+    } catch (error) {
       setAllItems([])
       setTotalCount(0)
+      setLoadError(error instanceof Error ? error.message : 'Không thể tải công thức.')
     } finally {
       setIsLoading(false)
     }
@@ -171,6 +173,9 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
       setHeroToast(next ? 'Đã lưu vào yêu thích ❤️' : 'Đã gỡ khỏi mục yêu thích')
       window.setTimeout(() => setHeroToast(null), 1500)
       return { ok: true, next: res.isFavorite }
+    } catch (error) {
+      setHeroToast(error instanceof Error ? error.message : 'Không thể lưu yêu thích.')
+      return { ok: false, next: !next }
     } finally {
       setTogglingId(null)
     }
@@ -212,29 +217,18 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
 
   return (
     <div
-      className="min-h-screen text-[#1F2937] font-['Inter']"
+      className="min-h-screen text-[#1F2937] font-sans"
       style={{
         background:
           'linear-gradient(180deg, #F8FAFB 0%, #F0F8F2 25%, #F8FAFB 55%)',
       }}
     >
-      <div className="mx-auto w-full max-w-[1232px] px-[24px] pb-14 pt-8 sm:px-[16px]">
-        {/* ============== HERO ============== */}
-        <section className="flex flex-col items-center text-center">
-          <h1
-            className="font-extrabold tracking-[-0.015em] text-[#121C2A]"
-            style={{ fontSize: '38px', lineHeight: '48px' }}
-          >
-            Công thức món chay
-          </h1>
-          <p
-            className="mt-3 max-w-[720px] font-normal text-[#6B7280]"
-            style={{ fontSize: '16px', lineHeight: '26px' }}
-          >
-            Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày được tinh chỉnh
-            khoa học theo nhu cầu dinh dưỡng.
-          </p>
-        </section>
+      <div className="ui-page-container pb-14 pt-8">
+        <PageHeading
+          title="Công thức món chay"
+          description="Khám phá công thức ăn chay và thông tin dinh dưỡng từ kho công thức của hệ thống."
+          breadcrumbs={[{label:'Trang chủ', onClick: () => onNavigate?.('/')}, {label:'Công thức'}]}
+        />
 
         {/* ============== FILTER BAR ============== */}
         <section className="mt-8">
@@ -336,20 +330,14 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
             </span>
           </div>
 
-          {isLoading ? (
+          {loadError ? (
+            <AlertError title="Không thể tải công thức" message={loadError} onRetry={() => void loadList()} />
+          ) : isLoading ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <SkeletonCard key={i} />
               ))}
             </div>
-          ) : isError ? (
-            <EmptyState
-              title="Không thể kết nối đến máy chủ"
-              description="Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại."
-              actionLabel="Thử lại"
-              onAction={() => void loadList()}
-              icon={<ChefHat size={40} className="text-red-500" />}
-            />
           ) : totalFiltered === 0 ? (
             <EmptyState
               title="Không có công thức nào phù hợp"

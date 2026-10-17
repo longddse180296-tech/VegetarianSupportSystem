@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X } from 'lucide-react'
+import { Select } from '../../../../shared/components/Select'
 import type { AdminVideoItem, VideoFormData } from '../types/adminVideos.types'
 
 const videoSchema = z.object({
@@ -37,6 +38,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<VideoFormValues>({
     resolver: zodResolver(videoSchema),
@@ -51,6 +54,9 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       isPublished: true,
     },
   })
+
+  const categoryValue = watch('category')
+  const resolutionValue = watch('resolution')
 
   useEffect(() => {
     if (videoToEdit) {
@@ -148,19 +154,20 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-gray-700 block mb-1">
-                Danh mục <span className="text-red-500">*</span>
-              </label>
-              <select
-                {...register('category')}
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer"
-              >
-                <option value="main-dish">Món chính</option>
-                <option value="salad">Salad</option>
-                <option value="soup">Món nước</option>
-                <option value="drinks">Đồ uống</option>
-                <option value="cooking-tips">Mẹo nấu ăn</option>
-              </select>
+              <Select
+                label="Danh mục"
+                required
+                value={categoryValue}
+                onChange={(e) => setValue('category', e.target.value, { shouldValidate: true })}
+                options={[
+                  { value: 'main-dish', label: 'Món chính' },
+                  { value: 'salad', label: 'Salad' },
+                  { value: 'soup', label: 'Món nước' },
+                  { value: 'drinks', label: 'Đồ uống' },
+                  { value: 'cooking-tips', label: 'Mẹo nấu ăn' },
+                ]}
+                error={errors.category?.message}
+              />
             </div>
 
             <div>
@@ -181,18 +188,18 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-gray-700 block mb-1">
-                Độ phân giải
-              </label>
-              <select
-                {...register('resolution')}
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer"
-              >
-                <option value="1080p Full HD">1080p Full HD</option>
-                <option value="2K QHD">2K QHD</option>
-                <option value="4K UHD">4K UHD</option>
-                <option value="720p HD">720p HD</option>
-              </select>
+              <Select
+                label="Độ phân giải"
+                value={resolutionValue}
+                onChange={(e) => setValue('resolution', e.target.value, { shouldValidate: true })}
+                options={[
+                  { value: '1080p Full HD', label: '1080p Full HD' },
+                  { value: '2K QHD', label: '2K QHD' },
+                  { value: '4K UHD', label: '4K UHD' },
+                  { value: '720p HD', label: '720p HD' },
+                ]}
+                error={errors.resolution?.message}
+              />
             </div>
 
             <div>

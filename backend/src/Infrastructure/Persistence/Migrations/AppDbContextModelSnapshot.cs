@@ -129,6 +129,21 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Articles", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.ArticleDietaryType", b =>
+                {
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DietaryType")
+                        .HasColumnType("int");
+
+                    b.HasKey("ArticleId", "DietaryType");
+
+                    b.HasIndex("ArticleId");
+
+                    b.ToTable("ArticleDietaryTypes", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.ArticleVersion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -174,6 +189,21 @@ namespace Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ArticleVersions", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ArticleVersionDietaryType", b =>
+                {
+                    b.Property<Guid>("ArticleVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DietaryType")
+                        .HasColumnType("int");
+
+                    b.HasKey("ArticleVersionId", "DietaryType");
+
+                    b.HasIndex("ArticleVersionId");
+
+                    b.ToTable("ArticleVersionDietaryTypes", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Category", b =>
@@ -335,6 +365,30 @@ namespace Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Favorites", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.FeaturedContent", b =>
+                {
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("PinnedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("PinnedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ContentType", "ContentId");
+
+                    b.HasIndex("ContentType", "PinnedAt");
+
+                    b.ToTable("FeaturedContent", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.FoodScanRecord", b =>
@@ -1422,6 +1476,17 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Entities.ArticleDietaryType", b =>
+                {
+                    b.HasOne("Domain.Entities.Article", "Article")
+                        .WithMany("DietaryTypes")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+                });
+
             modelBuilder.Entity("Domain.Entities.ArticleVersion", b =>
                 {
                     b.HasOne("Domain.Entities.Article", null)
@@ -1437,6 +1502,17 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Submission");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ArticleVersionDietaryType", b =>
+                {
+                    b.HasOne("Domain.Entities.ArticleVersion", "ArticleVersion")
+                        .WithMany("DietaryTypes")
+                        .HasForeignKey("ArticleVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ArticleVersion");
                 });
 
             modelBuilder.Entity("Domain.Entities.Comment", b =>
@@ -1623,7 +1699,14 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.Article", b =>
                 {
+                    b.Navigation("DietaryTypes");
+
                     b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ArticleVersion", b =>
+                {
+                    b.Navigation("DietaryTypes");
                 });
 
             modelBuilder.Entity("Domain.Entities.Category", b =>

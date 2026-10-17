@@ -1,4 +1,6 @@
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
+import { getDietaryTypeLabel } from '../../../shared/constants'
+import { profileApi } from '../../profile/api/profileApi'
 import type {
   AppRole,
   BMIResult,
@@ -33,91 +35,25 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   return null
 }
 
-export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
-  const token = getStoredToken()
-  if (token) {
-    try {
-      const p = await apiClient.get<{
-        diet: string | null
-        bmi: number | null
-        adultBmiCategory: string | null
-        weightGoal: string | null
-        allergies: Array<{ name: string }> | null
-      }>('/api/profile/me')
-      if (p) {
-        const dietMap: Record<string, string> = {
-          Vegan: 'Thuần chay (Vegan)',
-          Lacto: 'Ăn chay có sữa (Lacto)',
-          LactoVegetarian: 'Ăn chay có sữa (Lacto)',
-          'Lacto-vegetarian': 'Ăn chay có sữa (Lacto)',
-          Ovo: 'Chay có trứng (Ovo)',
-          OvoVegetarian: 'Chay có trứng (Ovo)',
-          'Ovo-vegetarian': 'Chay có trứng (Ovo)',
-          LactoOvo: 'Trứng & Sữa (Lacto-ovo)',
-          LactoOvoVegetarian: 'Trứng & Sữa (Lacto-ovo)',
-          'Lacto-ovo vegetarian': 'Trứng & Sữa (Lacto-ovo)',
-        }
-        const dietLabel = p.diet && dietMap[p.diet] ? dietMap[p.diet] : 'Thuần chay (Vegan)'
-
-        const categoryMap: Record<string, string> = {
-          Underweight: 'Thiếu cân',
-          HealthyWeight: 'Bình thường',
-          Overweight: 'Thừa cân',
-          Obesity: 'Béo phì',
-          underweight: 'Thiếu cân',
-          normal: 'Bình thường',
-          overweight: 'Thừa cân',
-          obese: 'Béo phì',
-        }
-        const catLabel =
-          p.adultBmiCategory && categoryMap[p.adultBmiCategory]
-            ? categoryMap[p.adultBmiCategory]
-            : 'Bình thường'
-        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${catLabel})` : '22.5 (Bình thường)'
-
-        const goalMap: Record<string, string> = {
-          Lose: 'Giảm mỡ & thanh lọc cơ thể',
-          LoseWeight: 'Giảm mỡ & thanh lọc cơ thể',
-          weight_loss: 'Giảm mỡ & thanh lọc cơ thể',
-          Maintain: 'Duy trì cân nặng',
-          MaintainWeight: 'Duy trì cân nặng',
-          maintain: 'Duy trì cân nặng',
-          Gain: 'Tăng cân & phát triển cơ bắp',
-          GainWeight: 'Tăng cân & phát triển cơ bắp',
-          muscle_gain: 'Tăng cân & phát triển cơ bắp',
-          general_health: 'Khám phá món chay khoa học',
-        }
-        const goalLabel =
-          p.weightGoal && goalMap[p.weightGoal] ? goalMap[p.weightGoal] : 'Duy trì cân nặng'
-
-        const allergies = p.allergies
-        const hasAllergies = Boolean(allergies && allergies.length > 0)
-        const allergiesLabel = allergies && allergies.length > 0
-          ? allergies.map((a) => a.name).join(', ')
-          : 'Không có'
-
-        return [
-          { key: 'diet', label: 'Chế độ ăn', value: dietLabel, tone: 'ok' },
-          { key: 'bmi', label: 'Chỉ số BMI', value: bmiVal, tone: 'ok' },
-          { key: 'goal', label: 'Mục tiêu', value: goalLabel, tone: 'info' },
-          {
-            key: 'allergy',
-            label: 'Dị ứng cảnh báo',
-            value: allergiesLabel,
-            tone: hasAllergies ? 'warn' : 'ok',
-          },
-        ]
-      }
-    } catch {
-      // offline / unauthorized
-    }
+export async function getUserProfileFields(signal?: AbortSignal): Promise<PersonalProfileField[]> {
+  if (!getStoredToken()) return []
+  const profile = await profileApi.getProfile(signal)
+  const categoryLabels = {
+    underweight: 'Thiếu cân', normal: 'Cân nặng phù hợp',
+    overweight: 'Thừa cân', obese: 'Béo phì', unknown: 'Chưa có phân loại BMI người lớn',
   }
-
+  const goalLabels = {
+    maintain: 'Duy trì cân nặng', weight_loss: 'Giảm cân',
+    muscle_gain: 'Tăng cân', general_health: 'Chưa khai báo',
+  }
   return [
-    { key: 'diet', label: 'Chế độ ăn', value: 'Thuần chay (Vegan)', tone: 'ok' },
-    { key: 'bmi', label: 'Chỉ số BMI', value: '22.5 (Bình thường)', tone: 'ok' },
-    { key: 'goal', label: 'Mục tiêu', value: 'Duy trì cân nặng', tone: 'info' },
-    { key: 'allergy', label: 'Dị ứng cảnh báo', value: 'Không có', tone: 'ok' },
+    { key: 'diet', label: 'Chế độ ăn', value: getDietaryTypeLabel(profile.dietaryType, 'Chưa khai báo'), tone: profile.dietaryType ? 'ok' : 'info' },
+    { key: 'bmi', label: 'BMI tham khảo', value: profile.metrics.bmi > 0 ? profile.metrics.bmi.toFixed(1) + ' (' + categoryLabels[profile.metrics.bmiCategory] + ')' : 'Chưa đủ dữ liệu', tone: 'info' },
+    { key: 'tdee', label: 'Năng lượng ước tính', value: profile.metrics.tdeeKcal > 0 ? profile.metrics.tdeeKcal.toLocaleString('vi-VN') + ' kcal/ngày' : 'Chưa đủ dữ liệu', tone: 'info' },
+    { key: 'goal', label: 'Mục tiêu cân nặng', value: profile.metrics.goal ? goalLabels[profile.metrics.goal] : 'Chưa khai báo', tone: 'info' },
+    { key: 'allergy', label: 'Dị ứng đã khai báo', value: profile.allergies.join(', ') || 'Chưa khai báo mục nào', tone: profile.allergies.length ? 'warn' : 'info' },
+    { key: 'avoided', label: 'Thực phẩm cần tránh', value: profile.avoidedFoods?.map(item => item.name).join(', ') || 'Chưa khai báo mục nào', tone: 'info' },
+    { key: 'area', label: 'Khu vực tìm nhà hàng', value: profile.preferredRegion || 'Chưa khai báo', tone: 'info' },
   ]
 }
 
@@ -136,7 +72,7 @@ export async function getChatHistoryFigma(): Promise<HistoryItem[]> {
         return page.items.map((c, idx) => ({
           id: c.id,
           title: `Tư vấn dinh dưỡng #${idx + 1}`,
-          messages: 4,
+          messages: null,
           dateLabel: new Date(c.updatedAtUtc).toLocaleDateString('vi-VN'),
           tone: idx === 0 ? 'recent' : idx === 1 ? 'mid' : 'old',
         }))

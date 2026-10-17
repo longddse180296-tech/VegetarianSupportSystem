@@ -32,6 +32,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<RestaurantRecipe> RestaurantRecipes => Set<RestaurantRecipe>();
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
+    public DbSet<FeaturedContent> FeaturedContent => Set<FeaturedContent>();
     public DbSet<MealPlan> MealPlans => Set<MealPlan>();
     public DbSet<MealPlanMeal> MealPlanMeals => Set<MealPlanMeal>();
     public DbSet<MealPlanMealIngredient> MealPlanMealIngredients => Set<MealPlanMealIngredient>();

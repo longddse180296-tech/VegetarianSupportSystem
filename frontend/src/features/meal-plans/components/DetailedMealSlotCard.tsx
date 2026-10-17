@@ -130,7 +130,6 @@ export const DetailedMealSlotCard: React.FC<DetailedMealSlotCardProps> = ({
             <span>🌱 Tỷ lệ thực vật:</span>
             <span className="font-bold">{meal.plantBasedRate}%</span>
           </span>
-          <span className="text-slate-400">100% Thuần khiết</span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
           <div

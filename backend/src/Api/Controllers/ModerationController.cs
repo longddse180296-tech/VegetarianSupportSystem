@@ -112,8 +112,7 @@ public sealed class ModerationController(ModerationService moderationService) : 
 [Authorize(Roles = "Admin")]
 [Route("api/admin/moderation/submissions")]
 public sealed class AdminModerationController(
-    ModerationService moderationService,
-    IHostEnvironment hostEnvironment) : ControllerBase
+    ModerationService moderationService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll(
@@ -200,32 +199,7 @@ public sealed class AdminModerationController(
         }
     }
 
-    [HttpPost("{id:guid}/mock-ai-result")]
-    public async Task<IActionResult> RecordMockAiResult(
-        Guid id,
-        [FromBody] MockAiResultRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!hostEnvironment.IsDevelopment()) return NotFound();
 
-        try
-        {
-            var submission = await moderationService.RecordAiResultAsync(
-                id,
-                new ModerationAiResult(
-                    request.Status,
-                    request.Summary,
-                    request.CheckedScope,
-                    request.UncheckedScope,
-                    request.FlagReason),
-                cancellationToken);
-            return Ok(ModerationSubmissionResponse.From(submission));
-        }
-        catch (ModerationException ex)
-        {
-            return ModerationHttpError.From(ex);
-        }
-    }
 }
 
 public sealed record SubmitModerationRequest(
@@ -238,13 +212,6 @@ public sealed record SubmitModerationRequest(
 public sealed record MakeModerationDecisionRequest(
     ModerationDecisionType Decision,
     string Reason);
-
-public sealed record MockAiResultRequest(
-    AiFlagStatus Status,
-    string Summary,
-    string? CheckedScope,
-    string? UncheckedScope,
-    string? FlagReason);
 
 public sealed record ModerationDecisionResponse(
     Guid Id,

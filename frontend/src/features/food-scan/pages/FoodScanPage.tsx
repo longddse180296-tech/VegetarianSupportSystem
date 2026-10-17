@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { History as HistoryIcon, ScanLine } from 'lucide-react'
-import { Button, SkeletonLoader } from '../../../shared/components'
+import { PageHeading, Badge, Button, SkeletonLoader } from '../../../shared/components'
 import { Modal } from '../../../shared/components/Modal'
 import {
   analyzeScanImage,
@@ -247,15 +247,14 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
   }
 
   return (
-    <div className="min-h-screen bg-[#f6faf7] px-4 py-6 text-[#1f2937] sm:px-6">
-      <div className="mx-auto max-w-6xl space-y-5">
-        <header>
-          <p className="flex items-center gap-1 text-xs font-semibold text-[#2e7d32]"><ScanLine size={13} /> Quét & phân tích thực phẩm</p>
-          <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">Kiểm tra món ăn & thành phần</h1>
-          <p className="mt-2 text-sm text-[#6b7280]">
-            Tải lên ảnh món ăn hoặc nhãn thành phần để phân tích và đối chiếu mức độ phù hợp với chế độ ăn chay của bạn.
-          </p>
-        </header>
+    <div className="min-h-screen bg-[#f6faf7] py-6 text-[#1f2937]">
+      <div className="ui-page-container space-y-5">
+        <PageHeading
+          title="Kiểm tra món ăn & thành phần"
+          description="Tải ảnh món ăn hoặc nhãn thành phần và xác nhận thông tin trước khi đánh giá."
+          breadcrumbs={[{label:'Trang chủ', onClick: () => onNavigate?.('/')}, {label:'Quét thực phẩm'}]}
+          eyebrow={<Badge icon={<ScanLine />}>Quét &amp; phân tích thực phẩm</Badge>}
+        />
 
         {!isLoggedIn ? (
           <section className="rounded-2xl border bg-white p-6">

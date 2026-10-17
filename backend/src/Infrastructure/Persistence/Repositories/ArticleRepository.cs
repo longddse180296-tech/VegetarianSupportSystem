@@ -10,7 +10,9 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
 {
     private IQueryable<Article> WithVersions(bool tracking = false)
     {
-        var query = db.Articles.Include(x => x.Versions).ThenInclude(x => x.Submission)
+        var query = db.Articles.Include(x => x.DietaryTypes)
+            .Include(x => x.Versions).ThenInclude(x => x.DietaryTypes)
+            .Include(x => x.Versions).ThenInclude(x => x.Submission)
             .ThenInclude(x => x.Decisions).AsSplitQuery();
         return tracking ? query : query.AsNoTracking();
     }
@@ -46,6 +48,7 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
                 && x.Submission.IsCurrentPublished);
 
     private IQueryable<ArticleVersion> PublicWithDetails() => PublicVersions()
+        .Include(x => x.DietaryTypes)
         .Include(x => x.Submission).ThenInclude(x => x.Decisions).AsSplitQuery();
 
     public async Task<ArticlePage<ArticleVersion>> ListPublicAsync(ArticleListQuery search, CancellationToken ct)
@@ -61,6 +64,8 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
             var category = search.Category.Trim();
             query = query.Where(x => x.Category == category);
         }
+        if (search.DietaryType is { } dietaryType)
+            query = query.Where(x => x.DietaryTypes.Any(type => type.DietaryType == dietaryType));
         var count = await query.CountAsync(ct);
         var ids = await query.OrderByDescending(x => x.SubmittedAt).ThenBy(x => x.Id)
             .Skip((search.Page - 1) * search.PageSize).Take(search.PageSize)

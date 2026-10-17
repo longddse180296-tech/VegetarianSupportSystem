@@ -197,7 +197,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAFB] py-8">
-        <div className="mx-auto w-full max-w-[1140px] px-4 sm:px-6">
+        <div className="ui-page-container">
           <SkeletonLoader count={1} variant="text" className="w-48 mb-6 h-6" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
             <div className="lg:col-span-6">
@@ -222,7 +222,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   if (isNotFound || !recipe) {
     return (
       <div className="min-h-screen bg-[#F8FAFB] py-12">
-        <div className="mx-auto max-w-4xl px-4 text-center">
+        <div className="ui-page-container text-center">
           <EmptyState
             title="Không tìm thấy công thức này"
             description={`Công thức bạn tìm kiếm không tồn tại hoặc đã được cập nhật. Bạn có thể quay lại danh sách công thức chay để khám phá thêm nhiều món ngon.`}
@@ -241,18 +241,19 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     recipe.totalTime ||
     `${(recipe.prepTimeMinutes || 10) + (recipe.cookTimeMinutes || 20)} phút`
   const servingsText = `${recipe.servings || recipe.servingSize || 2} người`
-  const caloriesText = `${recipe.calories || recipe.nutrition?.kcal || 320} kcal`
-  const proteinText = `${recipe.protein || recipe.nutrition?.proteinG || 18}g`
-  const carbsText = `${recipe.carbs || recipe.nutrition?.carbsG || 28}g`
-  const fatText = `${recipe.fat || recipe.nutrition?.fatG || 14}g`
+  const formatNutrient = (value: number | null | undefined, unit: string) => value == null ? 'Chưa cập nhật' : `${value}${unit}`
+  const caloriesText = formatNutrient(recipe.calories ?? recipe.nutrition.kcal, ' kcal')
+  const proteinText = formatNutrient(recipe.protein ?? recipe.nutrition.proteinG, 'g')
+  const carbsText = formatNutrient(recipe.carbs ?? recipe.nutrition.carbsG, 'g')
+  const fatText = formatNutrient(recipe.fat ?? recipe.nutrition.fatG, 'g')
 
   const viewCount = recipe.viewCount || 1240
   const favoriteCount = recipe.favoriteCount || 86
   const cleanRecipeTitle = cleanText(recipe.title)
 
   return (
-    <div className="min-h-screen bg-[#F8FAFB] text-[#1F2937] font-['Inter'] pb-16">
-      <div className="mx-auto w-full max-w-[1140px] px-4 sm:px-6 pt-6">
+    <div className="min-h-screen bg-[#F8FAFB] text-[#1F2937] font-sans pb-16">
+      <div className="ui-page-container pt-6">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-[13px] text-slate-500">
           <button
@@ -296,7 +297,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
             <div>
               <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3.5 py-1 text-xs font-bold text-[#2E7D32] border border-emerald-200">
                 <Sparkles size={12} />
-                {recipe.dietType || 'Thuần chay (Vegan)'}
+                {recipe.dietType || 'Chưa đủ thông tin'}
               </span>
 
               <h1 className="text-[28px] font-extrabold leading-[1.25] text-[#111827] sm:text-[34px] tracking-tight">

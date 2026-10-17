@@ -32,8 +32,7 @@ export interface UserProfileShellProps {
   onNavigate?: (path: string) => void
 }
 
-const DEFAULT_AVATAR =
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
+const DEFAULT_AVATAR = ''
 
 export const UserProfileShell: React.FC<UserProfileShellProps> = ({
   activeTab,
@@ -105,7 +104,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
       }}
     >
       <div className="min-h-screen bg-[#f8faf8] pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="ui-page-container pt-6">
           {/* Breadcrumbs matching DESIGN.md */}
           <nav className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-6 flex-wrap">
             {breadcrumbs.map((b, idx) => {
@@ -148,7 +147,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
               {/* Left Column: Avatar & Personal Identity */}
               <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5 text-center sm:text-left">
                 <div className="relative shrink-0">
-                  <img
+                  {displayAvatar ? <img
                     src={displayAvatar}
                     alt={displayName}
                     className="w-20 h-20 rounded-full object-cover ring-4 ring-[#e8f5e9] border border-emerald-600/20 shadow-sm"
@@ -156,7 +155,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                       ;(e.currentTarget as HTMLImageElement).src =
                         DEFAULT_AVATAR
                     }}
-                  />
+                  /> : <span className="grid h-20 w-20 place-items-center rounded-full bg-primary-light text-2xl font-semibold text-primary">{displayName.charAt(0).toUpperCase()}</span>}
                   <span
                     className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-[#2e7d32] border-2 border-white ring-1 ring-emerald-200"
                     title="Đang hoạt động"
@@ -260,18 +259,18 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                   <span>Dinh dưỡng chuẩn hóa</span>
                 </div>
                 <p className="text-[#6b7280] leading-relaxed text-[11px]">
-                  Chỉ số BMI và chế độ ăn chay của bạn được bảo vệ riêng tư và
-                  dùng để tối ưu gợi ý thực đơn, quét món ăn an toàn.
+                  Hồ sơ đã lưu cung cấp chế độ ăn, dị ứng và chỉ số tham khảo
+                  cho các chức năng cá nhân hóa khi bạn đăng nhập.
                 </p>
                 <div className="mt-3 pt-2.5 border-t border-emerald-200/50 flex items-center gap-1.5 text-[11px] font-medium text-[#2e7d32]">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#2e7d32]" />
-                  <span>Chuẩn khoa học Á Đông</span>
+                  <span>Theo thông tin bạn đã khai báo</span>
                 </div>
               </div>
             </aside>
 
             {/* Right Column: Dynamic Feature Content */}
-            <main className="lg:col-span-3">{children}</main>
+            <main className="min-w-0 lg:col-span-3">{children}</main>
           </div>
         </div>
       </div>

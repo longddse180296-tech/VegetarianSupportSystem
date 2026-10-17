@@ -44,7 +44,7 @@ export interface RecipeMatch {
   totalIngredients: number
   missingList: string[]
   timeMin: number
-  kcal: number
+  kcal: number | null
   tag: string
 }
 

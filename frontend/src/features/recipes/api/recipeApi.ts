@@ -30,14 +30,13 @@ export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlog
       return res.items.slice(0, 3).map((a) => ({
         id: a.id,
         title: a.title,
-        excerpt: a.description || 'Bài viết chia sẻ kinh nghiệm dinh dưỡng và lối sống ăn chay an lành.',
+        excerpt: a.description ?? '',
         imageUrl:
-          a.imageUrl ||
-          'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600&q=80',
-        author: a.authorName || 'Bếp Chay An Yên',
-        readTime: '5 phút đọc',
-        publishedAt: 'Mới đăng',
-        tags: ['Ăn chay', 'Sức khỏe'],
+          a.imageUrl ?? '',
+        author: a.authorName ?? '',
+        readTime: '',
+        publishedAt: '',
+        tags: [],
       }))
     }
   } catch (err) {
@@ -60,10 +59,9 @@ export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoC
         id: v.id,
         title: v.title,
         imageUrl:
-          v.thumbnailUrl ||
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-        duration: '15:00',
-        channel: 'Bếp Chay An Nhiên',
+          v.thumbnailUrl ?? '',
+        duration: '',
+        channel: '',
       }))
     }
   } catch (err) {
@@ -89,9 +87,8 @@ export async function getRelatedRestaurants(_recipeId: string): Promise<RelatedR
         name: r.name,
         address: r.address,
         imageUrl:
-          r.imageUrl ||
-          'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80',
-        distanceKm: r.distanceKm ? Number(r.distanceKm) : 1.5,
+          r.imageUrl ?? '',
+        distanceKm: r.distanceKm == null ? null : Number(r.distanceKm),
       }))
     }
   } catch (err) {
@@ -175,8 +172,8 @@ export type CoreDietType =
 
 export function resolveDietType(
   assessments?: Array<{ dietaryType: number | string; status: number | string }>,
-  title?: string,
-): { dietType: CoreDietType; dietCategory: RecipeDietCategory } {
+  _title?: string,
+): { dietType: string; dietCategory: RecipeDietCategory } {
   if (assessments && assessments.length > 0) {
     const isCompatible = (typeNum: number, typeName: string) =>
       assessments.some(
@@ -206,23 +203,7 @@ export function resolveDietType(
     }
   }
 
-  // Fallback heuristics by title if assessments is empty or unknown
-  if (title) {
-    const lower = title.toLowerCase()
-    const hasEgg = lower.includes('trứng')
-    const hasMilk = lower.includes('sữa') || lower.includes('phô mai') || lower.includes('bơ')
-    if (hasEgg && hasMilk) {
-      return { dietType: 'Trứng & Sữa (Lacto-ovo)', dietCategory: 'ovo-lacto' }
-    }
-    if (hasMilk) {
-      return { dietType: 'Ăn chay có sữa (Lacto)', dietCategory: 'lacto' }
-    }
-    if (hasEgg) {
-      return { dietType: 'Chay có trứng (Ovo)', dietCategory: 'ovo' }
-    }
-  }
-
-  return { dietType: 'Thuần chay (Vegan)', dietCategory: 'vegan' }
+  return { dietType: 'Chưa đủ thông tin', dietCategory: 'unknown' }
 }
 
 // ---------- Real Backend Interfaces & Adapters ----------
@@ -294,8 +275,8 @@ function getFallbackRecipeImage(id: string, name?: string): string {
 }
 
 function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
-  const cookMin = summary.cookTimeMinutes || 20
-  const prepMin = summary.prepTimeMinutes || 10
+  const cookMin = summary.cookTimeMinutes
+  const prepMin = summary.prepTimeMinutes
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
   const { dietType, dietCategory } = resolveDietType(summary.dietaryAssessments, summary.name)
   const img =
@@ -306,37 +287,36 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   return {
     id: summary.id,
     title: summary.name,
-    description: `Công thức ${summary.name} chuẩn vị, dinh dưỡng cân bằng và thanh đạm.`,
+    description: '',
     category: summary.categoryName,
     dietType,
     prepTime: `${prepMin} phút`,
     cookTime: `${cookMin} phút`,
     totalTime: `${prepMin + cookMin} phút`,
-    servings: summary.servings || 2,
-    calories: summary.caloriesPerServing ? Math.round(summary.caloriesPerServing) : 320,
+    servings: summary.servings,
+    calories: summary.caloriesPerServing == null ? null : Math.round(summary.caloriesPerServing),
     imageUrl: img,
     coverImage: img,
     cookTimeMinutes: cookMin,
     prepTimeMinutes: prepMin,
-    servingSize: summary.servings || 2,
+    servingSize: summary.servings,
     dietCategory,
     difficulty,
     isFavorite: false,
     favoriteCount: 0,
     viewCount: 0,
-    authorName: 'Bếp Chay An Yên',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+    authorName: '',
+    authorAvatar: '',
     tags: [summary.categoryName, dietType].filter(Boolean),
     ingredients: [],
     steps: [],
     nutrition: {
-      kcal: summary.caloriesPerServing ? Math.round(summary.caloriesPerServing) : 320,
-      proteinG: 15,
-      carbsG: 35,
-      fatG: 10,
+      kcal: summary.caloriesPerServing == null ? null : Math.round(summary.caloriesPerServing),
+      proteinG: null,
+      carbsG: null,
+      fatG: null,
     },
-    publishedAt: new Date().toISOString(),
+    publishedAt: '',
     relatedBlogs: [],
     relatedVideos: [],
     relatedRestaurants: [],
@@ -344,8 +324,8 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
 }
 
 function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
-  const cookMin = detail.cookTimeMinutes || 20
-  const prepMin = detail.prepTimeMinutes || 10
+  const cookMin = detail.cookTimeMinutes
+  const prepMin = detail.prepTimeMinutes
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
   const { dietType, dietCategory } = resolveDietType(detail.dietaryAssessments, detail.name)
   const img =
@@ -392,33 +372,31 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
     prepTime: `${prepMin} phút`,
     cookTime: `${cookMin} phút`,
     totalTime: `${prepMin + cookMin} phút`,
-    servings: detail.servings || 2,
-    calories: detail.caloriesPerServing ? Math.round(detail.caloriesPerServing) : 320,
-    protein: detail.proteinGramPerServing ? Math.round(detail.proteinGramPerServing) : 15,
-    carbs: detail.carbohydrateGramPerServing ? Math.round(detail.carbohydrateGramPerServing) : 35,
-    fat: detail.fatGramPerServing ? Math.round(detail.fatGramPerServing) : 10,
-    plantRatio: '100%',
+    servings: detail.servings,
+    calories: detail.caloriesPerServing == null ? null : Math.round(detail.caloriesPerServing),
+    protein: detail.proteinGramPerServing == null ? null : Math.round(detail.proteinGramPerServing),
+    carbs: detail.carbohydrateGramPerServing == null ? null : Math.round(detail.carbohydrateGramPerServing),
+    fat: detail.fatGramPerServing == null ? null : Math.round(detail.fatGramPerServing),
     imageUrl: img,
     coverImage: img,
     cookTimeMinutes: cookMin,
     prepTimeMinutes: prepMin,
-    servingSize: detail.servings || 2,
+    servingSize: detail.servings,
     dietCategory,
     difficulty,
     isFavorite: false,
     favoriteCount: 0,
     viewCount: 0,
-    authorName: 'Bếp Chay An Yên',
-    authorAvatar:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+    authorName: '',
+    authorAvatar: '',
     tags: [detail.categoryName, dietType].filter(Boolean),
     ingredients,
     steps,
     nutrition: {
-      kcal: detail.caloriesPerServing ? Math.round(detail.caloriesPerServing) : 320,
-      proteinG: detail.proteinGramPerServing ? Math.round(detail.proteinGramPerServing) : 15,
-      carbsG: detail.carbohydrateGramPerServing ? Math.round(detail.carbohydrateGramPerServing) : 35,
-      fatG: detail.fatGramPerServing ? Math.round(detail.fatGramPerServing) : 10,
+      kcal: detail.caloriesPerServing == null ? null : Math.round(detail.caloriesPerServing),
+      proteinG: detail.proteinGramPerServing == null ? null : Math.round(detail.proteinGramPerServing),
+      carbsG: detail.carbohydrateGramPerServing == null ? null : Math.round(detail.carbohydrateGramPerServing),
+      fatG: detail.fatGramPerServing == null ? null : Math.round(detail.fatGramPerServing),
     },
     publishedAt: detail.createdAt,
     relatedBlogs: [],
@@ -448,29 +426,9 @@ export async function getRecipes(
   params.set('pageNumber', '1')
   params.set('pageSize', '50')
 
-  const url = `/api/recipes?${params.toString()}`
-  try {
-    const res = await apiClient.get<BackendRecipePage>(url, {
-      requiresAuth: false,
-    })
-    if (res && Array.isArray(res.items)) {
-      const items = res.items.map(mapSummaryToRecipe)
-      return {
-        items,
-        totalCount: res.totalCount ?? items.length,
-        appliedFilter: applied,
-      }
-    }
-  } catch (err) {
-    console.error(`[recipeApi.getRecipes] Lỗi khi gọi API: ${url}`, err)
-    throw err
-  }
-
-  return {
-    items: [],
-    totalCount: 0,
-    appliedFilter: applied,
-  }
+  const res = await apiClient.get<BackendRecipePage>(`/api/recipes?${params.toString()}`, { requiresAuth: false })
+  const items = res.items.map(mapSummaryToRecipe)
+  return { items, totalCount: res.totalCount, appliedFilter: applied }
 }
 
 export async function getRecipeDetail(id: string): Promise<Recipe | null> {
@@ -495,9 +453,9 @@ export async function toggleFavorite(
   nextState?: boolean,
 ): Promise<{ id: string; isFavorite: boolean; favoriteCount: number }> {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  if (!isUuid) throw new Error('Công thức không có ID hợp lệ.')
   let isFavorite = nextState ?? true
   if (isUuid) {
-    try {
       if (nextState !== false) {
         await apiClient.post('/api/favorites', { targetType: 'Recipe', targetId: id })
         isFavorite = true
@@ -511,9 +469,6 @@ export async function toggleFavorite(
         }
         isFavorite = false
       }
-    } catch {
-      // Offline/unauthorized
-    }
   }
 
   return { id, isFavorite, favoriteCount: isFavorite ? 1 : 0 }

@@ -1,8 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
-  Calendar,
-  ChevronRight,
+  Check,
   Clock,
   Flame,
   Leaf,
@@ -11,11 +10,11 @@ import {
   Search,
   Send,
   Sparkles,
-  User,
 } from 'lucide-react'
-import { listVideos, type VideoDetails } from '../../videos/api/backendVideos'
+import { BACKEND_DIETARY_TYPE_LABELS, toBackendDietaryType } from '../../../shared/constants'
 import { apiClient } from '../../../shared/api/apiClient'
-import { EmptyState, SkeletonLoader } from '../../../shared/components'
+import { getPublicFeaturedContent, type FeaturedContentItem } from '../../../shared/api/featuredContentApi'
+import { Badge, EmptyState, SkeletonLoader } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 
 interface HomePageProps {
@@ -23,7 +22,7 @@ interface HomePageProps {
   isLoggedIn?: boolean
 }
 
-const QUICK_TAGS = ['Bún bò chay', 'Salad bơ', 'Gỏi cuốn', 'Nấm đùi gà']
+const QUICK_TAGS = ['Đậu hũ', 'Nấm', 'Salad bơ', 'Canh chua']
 
 const AI_SAMPLE_QUESTIONS = [
   'Món này có chay không?',
@@ -31,72 +30,6 @@ const AI_SAMPLE_QUESTIONS = [
   'Gợi ý thực đơn hôm nay',
 ]
 
-const RESTAURANT_DIET_MAP: Record<number, string> = {
-  1: 'Thuần chay (Vegan)',
-  2: 'Ăn chay có sữa (Lacto)',
-  3: 'Chay có trứng (Ovo)',
-  4: 'Trứng & Sữa (Lacto-ovo)',
-}
-
-function cleanPrefix(text?: string | null): string {
-  if (!text) return ''
-  return text.replace(/^\[(Mẫu|Demo)\]\s*/i, '').trim()
-}
-
-const FALLBACK_RECIPE_IMAGES = [
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-]
-
-function getRecipeImage(url: string | null | undefined, id: string): string {
-  if (url && url.trim().length > 0) return url
-  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
-  return FALLBACK_RECIPE_IMAGES[hash % FALLBACK_RECIPE_IMAGES.length]
-}
-
-const FALLBACK_VIDEO_THUMBNAILS = [
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-]
-
-function getVideoThumbnail(url: string | null | undefined, id: string): string {
-  if (url && url.trim().length > 0) return url
-  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
-  return FALLBACK_VIDEO_THUMBNAILS[hash % FALLBACK_VIDEO_THUMBNAILS.length]
-}
-
-function getVideoDuration(id: string): string {
-  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
-  const mins = 4 + (hash % 8)
-  const secs = 12 + (hash % 45)
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
-
-const FALLBACK_RESTAURANT_IMAGES = [
-  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-]
-
-function getRestaurantImage(url: string | null | undefined, id: string): string {
-  if (url && url.trim().length > 0) return url
-  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
-  return FALLBACK_RESTAURANT_IMAGES[hash % FALLBACK_RESTAURANT_IMAGES.length]
-}
-
-const FALLBACK_ARTICLE_IMAGES = [
-  'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-]
-
-function getArticleImage(url: string | null | undefined, id: string): string {
-  if (url && url.trim().length > 0) return url
-  const hash = Math.abs(id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))
-  return FALLBACK_ARTICLE_IMAGES[hash % FALLBACK_ARTICLE_IMAGES.length]
-}
 
 interface HomeRecipeItem {
   id: string
@@ -107,59 +40,53 @@ interface HomeRecipeItem {
   imageUrl: string
 }
 
-interface HomeRestaurantItem {
-  id: string
-  name: string
-  address: string
-  dietType: string
-  imageUrl: string
-  distanceKm?: number | null
+type HomeSection = 'recipes' | 'restaurants' | 'videos' | 'articles'
+
+const SECTION_LABELS: Record<HomeSection, string> = {
+  recipes: 'công thức',
+  restaurants: 'nhà hàng nổi bật',
+  videos: 'video nổi bật',
+  articles: 'bài viết nổi bật',
 }
 
-interface HomeArticleItem {
-  id: string
-  title: string
-  author: string
-  date: string
-  excerpt: string
-  imageUrl: string
+function publishedDate(value: string | null) {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString('vi-VN')
 }
 
 export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [recipes, setRecipes] = useState<HomeRecipeItem[]>([])
-  const [videos, setVideos] = useState<VideoDetails[]>([])
-  const [restaurants, setRestaurants] = useState<HomeRestaurantItem[]>([])
-  const [articles, setArticles] = useState<HomeArticleItem[]>([])
+  const [videos, setVideos] = useState<FeaturedContentItem[]>([])
+  const [restaurants, setRestaurants] = useState<FeaturedContentItem[]>([])
+  const [articles, setArticles] = useState<FeaturedContentItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadErrors, setLoadErrors] = useState<string[]>([])
+  const [loadErrors, setLoadErrors] = useState<HomeSection[]>([])
+  const [loadRevision, setLoadRevision] = useState(0)
 
   // Load real data from services
   useEffect(() => {
-    let isMounted = true
+    const controller = new AbortController()
     void (async () => {
         const results = await Promise.allSettled([
           apiClient.get<{ items: Array<{
             id: string; name: string; categoryName: string; cookTimeMinutes: number
             caloriesPerServing: number | null; imageUrl: string | null
-          }> }>('/api/recipes?pageNumber=1&pageSize=3', { requiresAuth: false }),
-          apiClient.get<{ items: Array<{
-            id: string; name: string; address: string; distanceKm: number | null; imageUrl: string | null; dietaryTypes?: number[]
-          }> }>('/api/restaurants?pageNumber=1&pageSize=3', { requiresAuth: false }),
-          listVideos(),
-          apiClient.get<{ items: Array<{
-            id: string; title: string; category: string; publishedAt: string; coverImageUrl: string | null
-          }> }>('/api/articles?page=1&pageSize=3', { requiresAuth: false }),
+          }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false, signal: controller.signal }),
+          getPublicFeaturedContent('Restaurant', controller.signal),
+          getPublicFeaturedContent('Video', controller.signal),
+          getPublicFeaturedContent('Article', controller.signal),
         ])
-        if (!isMounted) return
+        if (controller.signal.aborted) return
         const [recipeResult, restaurantResult, videoResult, articleResult] = results
 
         if (recipeResult.status === 'fulfilled') {
           setRecipes(
             recipeResult.value.items.map((r) => ({
               id: r.id,
-              title: cleanPrefix(r.name),
-              tag: cleanPrefix(r.categoryName),
+              title: r.name,
+              tag: r.categoryName,
               cookTime: `${r.cookTimeMinutes} phút`,
               calories: r.caloriesPerServing == null ? 'Chưa có dữ liệu calo' : `${Math.round(r.caloriesPerServing)} kcal`,
               imageUrl: r.imageUrl || '',
@@ -168,46 +95,37 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
         }
 
         if (restaurantResult.status === 'fulfilled') {
-          setRestaurants(
-            restaurantResult.value.items.map((res) => {
-              const firstDiet = res.dietaryTypes && res.dietaryTypes.length > 0 ? res.dietaryTypes[0] : 1
-              const dietLabel = RESTAURANT_DIET_MAP[firstDiet] ?? 'Thuần chay (Vegan)'
-              return {
-                id: res.id,
-                name: cleanPrefix(res.name),
-                address: cleanPrefix(res.address),
-                dietType: dietLabel,
-                imageUrl: res.imageUrl || '',
-                distanceKm: res.distanceKm,
-              }
-            }),
-          )
+          setRestaurants(restaurantResult.value)
         }
 
         if (videoResult.status === 'fulfilled') {
-          setVideos(videoResult.value.slice(0, 3))
+          setVideos(videoResult.value)
         }
 
         if (articleResult.status === 'fulfilled') {
-            setArticles(
-              articleResult.value.items.map((a) => ({
-                id: a.id,
-                title: cleanPrefix(a.title),
-                author: 'Thành viên',
-                date: new Date(a.publishedAt).toLocaleDateString('vi-VN'),
-                excerpt: a.category,
-                imageUrl: a.coverImageUrl || '',
-              })),
-            )
+          setArticles(articleResult.value)
         }
-        const labels = ['công thức', 'nhà hàng', 'video', 'bài viết']
-        setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [labels[index]] : []))
+        const sections: HomeSection[] = ['recipes', 'restaurants', 'videos', 'articles']
+        setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [sections[index]] : []))
         setLoading(false)
     })()
     return () => {
-      isMounted = false
+      controller.abort()
     }
-  }, [])
+  }, [loadRevision])
+
+  function retryContent() {
+    setLoading(true)
+    setLoadErrors([])
+    setLoadRevision(revision => revision + 1)
+  }
+
+  function sectionState(section: HomeSection, count: number) {
+    if (loading && count === 0) return <SkeletonLoader count={3} variant="card" />
+    if (loadErrors.includes(section)) return <AlertError title={`Chưa tải được ${SECTION_LABELS[section]}`} message="Vui lòng thử lại để xem nội dung mới nhất." onRetry={retryContent} />
+    if (!loading && count === 0) return <EmptyState title={`Chưa có ${SECTION_LABELS[section]}`} description={section === 'recipes' ? 'Công thức sẽ xuất hiện khi được cập nhật và công khai.' : 'Nội dung sẽ xuất hiện khi được quản trị viên ghim và vẫn đang công khai.'} />
+    return null
+  }
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -229,27 +147,24 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFDFB] text-[#1F2937] font-['Inter']">
+    <div className="min-h-screen bg-[#FBFDFB] text-[#1F2937] font-sans">
       {/* =========================================================================
        * 1. HERO SECTION & THỐNG KÊ (TOP BANNER)
        * ========================================================================= */}
       <section className="relative overflow-hidden bg-gradient-to-b from-[#E8F5E9]/60 via-[#F8FAF8] to-[#FBFDFB] border-b border-[#E8F5E9] py-12 lg:py-16">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+        <div className="ui-page-container">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
             {/* Cột trái */}
             <div className="lg:col-span-7 flex flex-col items-start gap-5">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#C8E6C9] bg-white px-3.5 py-1.5 text-[12px] font-bold tracking-wider text-[#2E7D32] shadow-xs">
-                <Leaf size={14} className="fill-[#2E7D32]" />
-                NỀN TẢNG DINH DƯỠNG THỰC VẬT
-              </span>
+              <Badge icon={<Leaf />}>NỀN TẢNG ẨM THỰC &amp; DINH DƯỠNG THỰC VẬT</Badge>
 
-              <h1 className="text-[36px] sm:text-[46px] lg:text-[50px] font-extrabold tracking-tight text-[#111827] leading-[1.15]">
+              <h1 className="ui-hero-title">
                 Ăn chay lành mạnh, <br className="hidden sm:inline" />
                 đơn giản hơn mỗi ngày
               </h1>
 
-              <p className="text-[16px] text-gray-600 leading-relaxed max-w-[540px]">
-                Khám phá hàng nghìn công thức thuần chay, thực đơn cá nhân hóa và nhận trợ giúp từ trợ lý AI dinh dưỡng.
+              <p className="text-[16px] text-[#4B5563] leading-relaxed max-w-[540px]">
+                Khám phá công thức chay, thực đơn cá nhân hóa và nhận trợ giúp từ trợ lý AI dinh dưỡng.
               </p>
 
               {/* Cặp nút CTA */}
@@ -257,28 +172,53 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 <button
                   type="button"
                   onClick={() => onNavigate?.('/recipes')}
-                  className="rounded-[10px] bg-[#2E7D32] hover:bg-[#1B5E20] px-5 py-2.5 sm:px-6 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-white shadow-sm transition active:scale-98"
+                  className="rounded-[10px] bg-[#2E7D32] hover:bg-[#1B5E20] px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition active:scale-98"
                 >
                   Khám phá công thức
                 </button>
                 <button
                   type="button"
                   onClick={() => onNavigate?.('/ai-chat')}
-                  className="inline-flex items-center gap-2 rounded-[10px] border border-[#2E7D32] bg-white hover:bg-[#E8F5E9] px-5 py-2.5 sm:px-6 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-[#2E7D32] transition active:scale-98"
+                  className="inline-flex items-center gap-2 rounded-[10px] border border-[#2E7D32] bg-white hover:bg-[#E8F5E9] px-6 py-3 text-[15px] font-semibold text-[#2E7D32] transition active:scale-98"
                 >
                   <Sparkles size={16} />
                   Tư vấn dinh dưỡng với AI
                 </button>
               </div>
+
+              {/* 3 Cam kết */}
+              <div className="flex flex-wrap items-center gap-6 pt-4 text-[13px] font-semibold text-[#374151]">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>Khám phá công thức chay</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>Thông tin dinh dưỡng tham khảo</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>Thực đơn cá nhân hóa</span>
+                </div>
+              </div>
             </div>
 
             {/* Cột phải: Ảnh đĩa salad tròn */}
             <div className="lg:col-span-5 flex justify-center lg:justify-end relative">
-              <div className="relative aspect-square w-[300px] sm:w-[380px] lg:w-[420px] rounded-full overflow-hidden p-2 bg-gradient-to-tr from-[#C8E6C9]/40 to-transparent">
+              <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px]">
+                {/* Vòng nền gradient nhẹ */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#C8E6C9]/40 to-transparent scale-105" />
+
                 <img
                   src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
                   alt="Đĩa salad thuần chay ngũ sắc"
-                  className="h-full w-full aspect-square rounded-full object-cover shadow-2xl ring-8 ring-white"
+                  className="h-full w-full rounded-full object-cover shadow-2xl ring-8 ring-white"
                 />
               </div>
             </div>
@@ -289,7 +229,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       {/* =========================================================================
        * 2. THANH TÌM KIẾM NHANH TOÀN HỆ THỐNG
        * ========================================================================= */}
-      <section className="mx-auto max-w-[1240px] px-4 sm:px-6 -mt-7 relative z-20">
+      <section className="ui-page-container -mt-7 relative z-20">
         <div className="rounded-[16px] border border-[#E5E7EB] bg-white p-4 sm:p-5 shadow-lg">
           <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
@@ -301,7 +241,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm món ăn, bài viết, video..."
+                placeholder="Tìm kiếm công thức theo tên món ăn..."
                 className="w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] pl-10 pr-4 py-3 text-[14px] text-[#1F2937] placeholder:text-[#9CA3AF] focus:border-[#2E7D32] focus:bg-white focus:outline-none transition"
               />
             </div>
@@ -333,20 +273,15 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
       {/* =========================================================================
        * 3. SECTION: CÔNG THỨC NỔI BẬT
        * ========================================================================= */}
-      <div className="mx-auto max-w-[1240px] px-4 pt-8 sm:px-6">
-        {loading && <SkeletonLoader count={3} variant="card" />}
-        {loadErrors.length > 0 && <AlertError title="Một số nội dung chưa tải được" message={`Không thể tải ${loadErrors.join(', ')}. Hãy tải lại trang để thử lại.`} />}
-        {!loading && loadErrors.length === 0 && recipes.length + videos.length + articles.length + restaurants.length === 0 && (
-          <EmptyState title="Chưa có nội dung công khai" description="Nội dung sẽ xuất hiện khi được cập nhật và công khai." />
-        )}
-      </div>
-      {recipes.length > 0 && (
-        <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <section className="ui-page-container py-16">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
                 Công thức nổi bật
               </h2>
+              <p className="mt-1 text-[14px] text-[#6B7280]">
+                Tham khảo công thức trong hệ thống và lựa chọn món phù hợp với bạn.
+              </p>
             </div>
             <button
               type="button"
@@ -358,19 +293,23 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {recipes.slice(0, 3).map((recipe) => (
+          {sectionState('recipes', recipes.length)}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {recipes.map((recipe) => (
               <article
                 key={recipe.id}
                 className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
               >
-                {/* Image */}
+                {/* Image & Tag */}
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
-                  <img
-                    src={getRecipeImage(recipe.imageUrl, recipe.id)}
+                  {recipe.imageUrl ? <img
+                    src={recipe.imageUrl}
                     alt={recipe.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
+                  /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh</div>}
+                  <span className="absolute left-3 top-3 rounded-full bg-white/95 backdrop-blur px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32] shadow-xs">
+                    {recipe.tag}
+                  </span>
                 </div>
 
                 {/* Details */}
@@ -409,101 +348,20 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             ))}
           </div>
         </section>
-      )}
 
-      {/* =========================================================================
-       * 4. SECTION: BÀI VIẾT MỚI NHẤT
-       * ========================================================================= */}
-      {articles.length > 0 && (
-        <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
-          <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                  Bài viết mới nhất
-                </h2>
-                <p className="mt-1 text-[14px] text-[#6B7280]">
-                  Cẩm nang khoa học dinh dưỡng và kinh nghiệm thực hành từ các chuyên gia.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onNavigate?.('/articles')}
-                className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
-              >
-                Xem tất cả bài viết
-                <ArrowRight size={15} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              {articles.map((article) => (
-                <article
-                  key={article.id}
-                  className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
-                >
-                  <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                    <img
-                      src={getArticleImage(article.imageUrl, article.id)}
-                      alt={article.title}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  </div>
-
-                  <div className="flex flex-1 flex-col justify-between p-5">
-                    <div>
-                      <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-2 font-medium">
-                        <span className="flex items-center gap-1 text-[#2E7D32] font-semibold">
-                          <User size={12} />
-                          {article.author}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          {article.date}
-                        </span>
-                      </div>
-
-                      <h3
-                        onClick={() => onNavigate?.(`/articles/${article.id}`)}
-                        className="text-[16px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
-                      >
-                        {article.title}
-                      </h3>
-
-                      <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">
-                        {article.excerpt}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
-                      <button
-                        type="button"
-                        onClick={() => onNavigate?.(`/articles/${article.id}`)}
-                        className="inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline"
-                      >
-                        Đọc thêm
-                        <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* =========================================================================
        * 5. SECTION: VIDEO NẤU ĂN NỔI BẬT
        * ========================================================================= */}
-      {videos.length > 0 && (
-        <section className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <section className="ui-page-container py-16">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                Video nấu ăn nổi bật
+                Video nổi bật
               </h2>
+              <p className="mt-1 text-[14px] text-[#6B7280]">
+                Video được quản trị viên chọn để giới thiệu tới cộng đồng.
+              </p>
             </div>
             <button
               type="button"
@@ -515,6 +373,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             </button>
           </div>
 
+          {sectionState('videos', videos.length)}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {videos.map((vid) => (
               <article
@@ -522,22 +381,17 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
               >
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
-                  <img
-                    src={getVideoThumbnail(vid.thumbnailUrl, vid.id)}
+                  {vid.imageUrl ? <img
+                    src={vid.imageUrl}
                     alt={vid.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
-                  />
-
-                  {/* Duration Badge */}
-                  <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/75 backdrop-blur-xs px-2 py-0.5 text-[11px] font-semibold text-white">
-                    {getVideoDuration(vid.id)}
-                  </span>
+                  /> : <div className="flex h-full items-center justify-center text-sm text-white">Chưa có ảnh bìa</div>}
 
                   {/* Center Play Button */}
                   <button
                     type="button"
-                    onClick={() => onNavigate?.(`/videos/${vid.id}`)}
-                    aria-label="Xem video"
+                    onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)}
+                    aria-label={`Xem video ${vid.title}`}
                     className="absolute inset-0 flex items-center justify-center cursor-pointer"
                   >
                     <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-[#2E7D32] shadow-xl group-hover:scale-110 transition duration-200">
@@ -547,36 +401,36 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 </div>
 
                 <div className="p-4">
-                  <h3
-                    onClick={() => onNavigate?.(`/videos/${vid.id}`)}
-                    className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-2 leading-snug"
-                  >
-                    {cleanPrefix(vid.title)}
+                  <h3 className="text-[15px] font-bold text-[#111827] leading-snug">
+                    <button type="button" onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)} className="text-left hover:text-[#2E7D32] transition line-clamp-2">
+                      {vid.title}
+                    </button>
                   </h3>
-                  <div className="mt-2.5 flex items-center text-[12px] text-[#6B7280] font-medium">
-                    <span className="flex items-center gap-1.5 text-[#2E7D32] font-semibold">
-                      <User size={12} />
-                      Bếp Chay An Lạc
-                    </span>
-                  </div>
+                  {vid.authorName && <p className="mt-2 text-[12px] text-[#2E7D32] font-semibold">{vid.authorName}</p>}
+                  {vid.description && <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">{vid.description}</p>}
+                  {(vid.viewCount != null || publishedDate(vid.publishedAt)) && <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B7280] font-medium">
+                    {vid.viewCount != null && <span>{vid.viewCount.toLocaleString('vi-VN')} lượt xem</span>}
+                    {publishedDate(vid.publishedAt) && <span>{publishedDate(vid.publishedAt)}</span>}
+                  </div>}
                 </div>
               </article>
             ))}
           </div>
         </section>
-      )}
 
       {/* =========================================================================
        * 6. SECTION: NHÀ HÀNG CHAY
        * ========================================================================= */}
-      {restaurants.length > 0 && (
         <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
-          <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="ui-page-container">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                  Nhà hàng chay
+                  Nhà hàng nổi bật
                 </h2>
+                <p className="mt-1 text-[14px] text-[#6B7280]">
+                  Khám phá các nhà hàng được quản trị viên giới thiệu.
+                </p>
               </div>
               <button
                 type="button"
@@ -588,6 +442,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               </button>
             </div>
 
+            {sectionState('restaurants', restaurants.length)}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {restaurants.map((res) => (
                 <article
@@ -595,32 +450,44 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
-                    <img
-                      src={getRestaurantImage(res.imageUrl, res.id)}
-                      alt={res.name}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                    />
+                    {res.imageUrl ? (
+                      <img
+                        src={res.imageUrl}
+                        alt={res.title}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                        Chưa có ảnh
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-1 flex-col justify-between p-4">
                     <div>
-                      <h3
-                        onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
-                        className="text-[16px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-1"
-                      >
-                        {res.name}
+                      <h3 className="text-[16px] font-bold text-[#111827]">
+                        <button type="button" onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)} className="text-left hover:text-[#2E7D32] transition line-clamp-1">
+                          {res.title}
+                        </button>
                       </h3>
-                      <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-[#6B7280] line-clamp-2 leading-relaxed">
+                      {res.address && <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-[#6B7280] line-clamp-2 leading-relaxed">
                         <MapPin size={13} className="text-[#2E7D32] shrink-0 mt-0.5" />
                         <span>{res.address}</span>
-                      </p>
+                      </p>}
+                      {res.description && <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">{res.description}</p>}
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
+                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#F3F4F6]">
+                      <div className="flex flex-wrap gap-1.5">
+                        {res.dietaryTypes.map(diet => {
+                          const dietaryType = toBackendDietaryType(diet)
+                          return <span key={diet} className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-1 text-xs font-semibold text-[#2E7D32]">{dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}</span>
+                        })}
+                      </div>
                       <button
                         type="button"
-                        onClick={() => onNavigate?.(`/restaurants/${res.id}`)}
-                        className="w-full rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition text-center"
+                        onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)}
+                        className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
                       >
                         Xem chi tiết
                       </button>
@@ -631,12 +498,90 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             </div>
           </div>
         </section>
-      )}
 
       {/* =========================================================================
-       * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI (DEMO / PREVIEW)
+       * 6b. SECTION: BÀI VIẾT NỔI BẬT
        * ========================================================================= */}
-      <section className="mx-auto max-w-[1240px] px-4 sm:px-6 my-12">
+      <section className="ui-page-container my-16">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
+              Bài viết nổi bật
+            </h2>
+            <p className="mt-1 text-[14px] text-[#6B7280]">
+              Chia sẻ kiến thức, kinh nghiệm và lối sống ăn chay khoa học từ cộng đồng.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate?.('/articles')}
+            className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline cursor-pointer"
+          >
+            Xem tất cả bài viết
+            <ArrowRight size={15} />
+          </button>
+        </div>
+
+        {sectionState('articles', articles.length)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {articles.map((art) => (
+            <article
+              key={art.id}
+              onClick={() => onNavigate?.(`/articles/${encodeURIComponent(art.id)}`)}
+              className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200 cursor-pointer"
+            >
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+                {art.imageUrl ? (
+                  <img
+                    src={art.imageUrl}
+                    alt={art.title}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center bg-emerald-50 text-emerald-700">
+                    <Leaf size={32} />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-1 flex-col justify-between p-5 space-y-3">
+                <div>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {art.dietaryTypes?.map(diet => {
+                      const dietaryType = toBackendDietaryType(diet)
+                      return (
+                        <span key={diet} className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]">
+                          {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
+                        </span>
+                      )
+                    })}
+                  </div>
+
+                  <h3 className="text-[16px] font-bold text-[#111827] line-clamp-2 group-hover:text-[#2E7D32] transition">
+                    {art.title}
+                  </h3>
+
+                  {art.description && (
+                    <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 leading-relaxed">
+                      {art.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span>{art.authorName || 'Tác giả ẩn danh'}</span>
+                  {publishedDate(art.publishedAt) && <span>{publishedDate(art.publishedAt)}</span>}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* =========================================================================
+       * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI
+       * ========================================================================= */}
+      <section className="ui-page-container my-12">
         <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F0FDF4] p-6 sm:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Cột trái: Thông tin & điều hướng */}
@@ -653,7 +598,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 Giải đáp thắc mắc dinh dưỡng, nguyên liệu thay thế, tính toán calo và nhận gợi ý bữa ăn phù hợp cho bạn trong tích tắc.
               </p>
 
-              {/* 3 Nút câu hỏi mẫu (dạng pill clickable/demo) */}
+              {/* Câu hỏi gợi ý để bắt đầu cuộc trò chuyện */}
               <div className="flex flex-wrap gap-2 pt-4">
                 {AI_SAMPLE_QUESTIONS.map((q) => (
                   <button

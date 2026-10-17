@@ -40,6 +40,49 @@ export const DIETARY_TYPE_LABELS: Record<DietaryType, string> = {
   'Lacto-ovo vegetarian': STANDARD_DIETARY_NAMES.LACTO_OVO,
 }
 
+// Canonical API values used by recipes, restaurants and article tags. Keep UI
+// labels in one place so every feature describes the same four diets.
+export const BACKEND_DIETARY_TYPES = [
+  'Vegan',
+  'LactoVegetarian',
+  'OvoVegetarian',
+  'LactoOvoVegetarian',
+] as const
+export type BackendDietaryType = (typeof BACKEND_DIETARY_TYPES)[number]
+
+export const BACKEND_DIETARY_TYPE_LABELS: Record<BackendDietaryType, string> = {
+  Vegan: STANDARD_DIETARY_NAMES.VEGAN,
+  LactoVegetarian: STANDARD_DIETARY_NAMES.LACTO,
+  OvoVegetarian: STANDARD_DIETARY_NAMES.OVO,
+  LactoOvoVegetarian: STANDARD_DIETARY_NAMES.LACTO_OVO,
+}
+
+const dietaryTypeAliases: Record<string, BackendDietaryType> = {
+  '1': 'Vegan',
+  Vegan: 'Vegan',
+  '2': 'LactoVegetarian',
+  Lacto: 'LactoVegetarian',
+  LactoVegetarian: 'LactoVegetarian',
+  'Lacto-vegetarian': 'LactoVegetarian',
+  '3': 'OvoVegetarian',
+  Ovo: 'OvoVegetarian',
+  OvoVegetarian: 'OvoVegetarian',
+  'Ovo-vegetarian': 'OvoVegetarian',
+  '4': 'LactoOvoVegetarian',
+  LactoOvo: 'LactoOvoVegetarian',
+  LactoOvoVegetarian: 'LactoOvoVegetarian',
+  'Lacto-ovo vegetarian': 'LactoOvoVegetarian',
+}
+
+export function toBackendDietaryType(value: unknown): BackendDietaryType | null {
+  return dietaryTypeAliases[String(value)] ?? null
+}
+
+export function getDietaryTypeLabel(value: unknown, fallback = 'Chưa chọn chế độ ăn'): string {
+  const diet = toBackendDietaryType(value)
+  return diet ? BACKEND_DIETARY_TYPE_LABELS[diet] : fallback
+}
+
 // Trạng thái AI Flag Check (tách bạch hoàn toàn với Admin)
 export const AI_FLAG_STATUSES = [
   'NotSubmitted',

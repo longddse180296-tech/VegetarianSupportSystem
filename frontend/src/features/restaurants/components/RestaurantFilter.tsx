@@ -61,10 +61,11 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
   onReset,
 }) => {
   const activeDist = activeDistancePill(filter.distanceMaxKm)
+  const hasLocation = filter.latitude !== null && filter.longitude !== null
 
   return (
     <div className="rounded-[20px] border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs">
-      {/* ===== Search row: Gộp nút tìm kiếm thành icon kính lúp nhỏ bên trong thẻ input ===== */}
+      {/* ===== Search row ===== */}
       <div className="relative mb-4 flex items-center">
         <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
           <Search size={18} />
@@ -97,10 +98,13 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {DISTANCE_OPTIONS.map((opt) => {
               const active = activeDist === opt.value
+              const disabled = opt.km > 0 && !hasLocation
               return (
                 <button
                   type="button"
                   key={opt.value}
+                  disabled={disabled}
+                  title={disabled ? 'Cần bật định vị vị trí để lọc khoảng cách' : undefined}
                   onClick={() =>
                     onChange({
                       distanceMaxKm: active
@@ -109,7 +113,9 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
                     })
                   }
                   className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
-                    active
+                    disabled
+                      ? 'opacity-40 cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400'
+                      : active
                       ? 'bg-[#E8F5E9] text-[#2E7D32] border border-[#A5D6A7] font-semibold shadow-xs'
                       : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400'
                   }`}
@@ -124,7 +130,7 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
         {/* Separator */}
         <div className="border-t border-slate-100" />
 
-        {/* Row 2: Tiện ích diet pills (Rút gọn tên, tránh rớt dòng) */}
+        {/* Row 2: Chế độ ăn pills */}
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[90px]">
             Chế độ ăn:

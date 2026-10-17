@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { RefreshCw, Search } from 'lucide-react'
 import {
   SharedDataTable,
   type ColumnDef,
 } from '../../../../shared/components/SharedDataTable'
 import { Modal } from '../../../../shared/components/Modal'
+import { Select } from '../../../../shared/components/Select'
 import { apiClient } from '../../../../shared/api/apiClient'
 import { AdminFrame, Feedback } from '../../components/ApiWorkspace'
 import { useApiData } from '../../hooks/useApiData'
@@ -95,14 +97,17 @@ export const AdminCommentsPage = ({
     <AdminFrame
       menu="comments"
       title="Quản lý bình luận"
-      subtitle="Xem nội dung thật và lưu lý do khi ẩn hoặc gỡ bình luận."
+      subtitle="Theo dõi thảo luận cộng đồng và quản lý nội dung bình luận."
       onNavigate={onNavigate}
     >
-      <div className="flex flex-wrap gap-3">
+      <div className="admin-filter-bar grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+        <label className="min-w-0 space-y-2">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500"><Search aria-hidden="true" size={14} />Tìm kiếm</span>
         <input
+          type="search"
           aria-label="Tìm bình luận"
           maxLength={120}
-          className={`${fieldClass} max-w-sm`}
+          className={fieldClass}
           placeholder="Tìm nội dung..."
           value={search}
           onChange={(e) => {
@@ -110,40 +115,49 @@ export const AdminCommentsPage = ({
             setPage(1)
           }}
         />
-        <select
-          aria-label="Trạng thái bình luận"
-          className="rounded-xl border p-3 text-sm"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value)
-            setPage(1)
-          }}
-        >
-          <option value="">Tất cả trạng thái</option>
-          {Object.entries(labels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Loại nội dung bình luận"
-          className="rounded-xl border p-3 text-sm"
-          value={type}
-          onChange={(e) => {
-            setType(e.target.value)
-            setPage(1)
-          }}
-        >
-          <option value="">Tất cả nội dung</option>
-          <option value="Article">Bài viết</option>
-          <option value="Video">Video</option>
-        </select>
-        <button className={secondaryClass} onClick={result.reload}>
+        </label>
+        <div className="min-w-44 space-y-2">
+          <Select
+            label="Trạng thái"
+            aria-label="Trạng thái bình luận"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value)
+              setPage(1)
+            }}
+            options={[
+              { value: '', label: 'Tất cả trạng thái' },
+              ...Object.entries(labels).map(([value, label]) => ({
+                value,
+                label,
+              })),
+            ]}
+          />
+        </div>
+        <div className="min-w-44 space-y-2">
+          <Select
+            label="Loại nội dung"
+            aria-label="Loại nội dung bình luận"
+            value={type}
+            onChange={(e) => {
+              setType(e.target.value)
+              setPage(1)
+            }}
+            options={[
+              { value: '', label: 'Tất cả nội dung' },
+              { value: 'Article', label: 'Bài viết' },
+              { value: 'Video', label: 'Video' },
+            ]}
+          />
+        </div>
+        <button type="button" className={`${secondaryClass} inline-flex min-h-11 items-center justify-center gap-2 self-end`} disabled={result.loading} onClick={result.reload}>
+          <RefreshCw aria-hidden="true" size={15} className={result.loading ? 'motion-safe:animate-spin' : ''} />
           Làm mới
         </button>
       </div>
       <SharedDataTable
+        title="Bình luận cộng đồng"
+        totalCountBadge={result.data?.totalCount}
         columns={columns}
         data={result.data?.items || []}
         keyExtractor={(item) => item.id}
@@ -214,23 +228,21 @@ export const AdminCommentsPage = ({
                   }
                 }}
               >
-                <label className="block">
-                  Thao tác
-                  <select
-                    aria-label="Thao tác"
-                    required
-                    disabled={busy}
-                    className={fieldClass}
-                    value={action}
-                    onChange={(e) => setAction(e.target.value)}
-                  >
-                    <option value="">Chọn thao tác</option>
-                    {selected.status === 'Visible' && (
-                      <option value="hide">Ẩn bình luận</option>
-                    )}
-                    <option value="remove">Gỡ bình luận</option>
-                  </select>
-                </label>
+                <Select
+                  label="Thao tác"
+                  aria-label="Thao tác"
+                  required
+                  disabled={busy}
+                  value={action}
+                  onChange={(e) => setAction(e.target.value)}
+                  options={[
+                    { value: '', label: 'Chọn thao tác' },
+                    ...(selected.status === 'Visible'
+                      ? [{ value: 'hide', label: 'Ẩn bình luận' }]
+                      : []),
+                    { value: 'remove', label: 'Gỡ bình luận' },
+                  ]}
+                />
                 <label className="block">
                   Lý do
                   <textarea
