@@ -17,6 +17,9 @@ import { getPublicFeaturedContent, type FeaturedContentItem } from '../../../sha
 import { Badge, EmptyState, SkeletonLoader } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 
+import { resolveDietType } from '../../recipes/api/recipeApi'
+import { inferVideoDietType } from '../../videos/api/backendVideos'
+
 interface HomePageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
@@ -38,6 +41,35 @@ interface HomeRecipeItem {
   cookTime: string
   calories: string
   imageUrl: string
+  dietaryTypes: string[]
+}
+
+function extractRecipeDietaryTypes(
+  assessments?: Array<{ dietaryType: number | string; status: number | string }>,
+  title?: string,
+): string[] {
+  if (assessments && assessments.length > 0) {
+    const isCompat = (typeNum: number, name: string) =>
+      assessments.some(
+        (a) =>
+          (a.dietaryType === typeNum || String(a.dietaryType).toLowerCase() === name.toLowerCase()) &&
+          (a.status === 1 || String(a.status).toLowerCase() === 'compatible'),
+      )
+
+    const list: string[] = []
+    if (isCompat(1, 'Vegan')) list.push('Vegan')
+    if (isCompat(2, 'LactoVegetarian')) list.push('LactoVegetarian')
+    if (isCompat(3, 'OvoVegetarian')) list.push('OvoVegetarian')
+    if (isCompat(4, 'LactoOvoVegetarian')) list.push('LactoOvoVegetarian')
+    if (list.length > 0) return list
+  }
+
+  const resolved = resolveDietType(assessments, title)
+  if (resolved.dietCategory === 'vegan') return ['Vegan']
+  if (resolved.dietCategory === 'lacto') return ['LactoVegetarian']
+  if (resolved.dietCategory === 'ovo') return ['OvoVegetarian']
+  if (resolved.dietCategory === 'ovo-lacto') return ['LactoOvoVegetarian']
+  return ['Vegan']
 }
 
 type HomeSection = 'recipes' | 'restaurants' | 'videos' | 'articles'
@@ -73,6 +105,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
           apiClient.get<{ items: Array<{
             id: string; name: string; categoryName: string; cookTimeMinutes: number
             caloriesPerServing: number | null; imageUrl: string | null
+            dietaryAssessments?: Array<{ dietaryType: number | string; status: number | string }>
           }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false, signal: controller.signal }),
           getPublicFeaturedContent('Restaurant', controller.signal),
           getPublicFeaturedContent('Video', controller.signal),
@@ -83,27 +116,28 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
         if (recipeResult.status === 'fulfilled') {
           setRecipes(
-            recipeResult.value.items.map((r) => ({
+            recipeResult.value.items.slice(0, 4).map((r) => ({
               id: r.id,
               title: r.name,
               tag: r.categoryName,
               cookTime: `${r.cookTimeMinutes} phút`,
               calories: r.caloriesPerServing == null ? 'Chưa có dữ liệu calo' : `${Math.round(r.caloriesPerServing)} kcal`,
               imageUrl: r.imageUrl || '',
+              dietaryTypes: extractRecipeDietaryTypes(r.dietaryAssessments, r.name),
             })),
           )
         }
 
         if (restaurantResult.status === 'fulfilled') {
-          setRestaurants(restaurantResult.value)
+          setRestaurants(restaurantResult.value.slice(0, 3))
         }
 
         if (videoResult.status === 'fulfilled') {
-          setVideos(videoResult.value)
+          setVideos(videoResult.value.slice(0, 3))
         }
 
         if (articleResult.status === 'fulfilled') {
-          setArticles(articleResult.value)
+          setArticles(articleResult.value.slice(0, 3))
         }
         const sections: HomeSection[] = ['recipes', 'restaurants', 'videos', 'articles']
         setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [sections[index]] : []))
@@ -315,6 +349,21 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 {/* Details */}
                 <div className="flex flex-1 flex-col justify-between p-4">
                   <div>
+                    {/* Dietary tags */}
+                    <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
+                      {recipe.dietaryTypes.map((diet) => {
+                        const dietaryType = toBackendDietaryType(diet)
+                        return (
+                          <span
+                            key={diet}
+                            className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]"
+                          >
+                            {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
+                          </span>
+                        )
+                      })}
+                    </div>
+
                     <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-1.5 font-medium">
                       <span className="flex items-center gap-1">
                         <Clock size={12} />
@@ -375,17 +424,26 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
           {sectionState('videos', videos.length)}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {videos.map((vid) => (
+            {videos.slice(0, 3).map((vid) => {
+              const vidDietaryTypes = (vid.dietaryTypes && vid.dietaryTypes.length > 0)
+                ? vid.dietaryTypes
+                : [inferVideoDietType(vid.title, vid.description ?? undefined)]
+
+              return (
               <article
                 key={vid.id}
-                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md transition"
+                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
               >
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
-                  {vid.imageUrl ? <img
-                    src={vid.imageUrl}
-                    alt={vid.title}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
-                  /> : <div className="flex h-full items-center justify-center text-sm text-white">Chưa có ảnh bìa</div>}
+                  {vid.imageUrl ? (
+                    <img
+                      src={vid.imageUrl}
+                      alt={vid.title}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-white">Chưa có ảnh bìa</div>
+                  )}
 
                   {/* Center Play Button */}
                   <button
@@ -400,21 +458,64 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   </button>
                 </div>
 
-                <div className="p-4">
-                  <h3 className="text-[15px] font-bold text-[#111827] leading-snug">
-                    <button type="button" onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)} className="text-left hover:text-[#2E7D32] transition line-clamp-2">
-                      {vid.title}
+                <div className="flex flex-1 flex-col justify-between p-5">
+                  <div>
+                    {/* Dietary tags */}
+                    <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
+                      {vidDietaryTypes.map((diet) => {
+                        const dietaryType = toBackendDietaryType(diet)
+                        return (
+                          <span
+                            key={diet}
+                            className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]"
+                          >
+                            {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
+                          </span>
+                        )
+                      })}
+                    </div>
+
+                    <h3 className="text-[16px] font-bold text-[#111827] leading-snug line-clamp-2 min-h-[44px]">
+                      <button
+                        type="button"
+                        onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)}
+                        className="text-left hover:text-[#2E7D32] transition"
+                      >
+                        {vid.title}
+                      </button>
+                    </h3>
+
+                    {vid.authorName && (
+                      <p className="mt-1.5 text-[12px] text-[#2E7D32] font-semibold">{vid.authorName}</p>
+                    )}
+
+                    {vid.description && (
+                      <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 leading-relaxed min-h-[38px]">
+                        {vid.description}
+                      </p>
+                    )}
+
+                    {(vid.viewCount != null || publishedDate(vid.publishedAt)) && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-[#6B7280] font-medium">
+                        {vid.viewCount != null && <span>{vid.viewCount.toLocaleString('vi-VN')} lượt xem</span>}
+                        {publishedDate(vid.publishedAt) && <span>• {publishedDate(vid.publishedAt)}</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
+                    <button
+                      type="button"
+                      onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)}
+                      className="w-full flex items-center justify-center gap-1.5 rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition text-center"
+                    >
+                      <span>Xem video</span>
+                      <Play size={13} className="fill-current ml-0.5" />
                     </button>
-                  </h3>
-                  {vid.authorName && <p className="mt-2 text-[12px] text-[#2E7D32] font-semibold">{vid.authorName}</p>}
-                  {vid.description && <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">{vid.description}</p>}
-                  {(vid.viewCount != null || publishedDate(vid.publishedAt)) && <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B7280] font-medium">
-                    {vid.viewCount != null && <span>{vid.viewCount.toLocaleString('vi-VN')} lượt xem</span>}
-                    {publishedDate(vid.publishedAt) && <span>{publishedDate(vid.publishedAt)}</span>}
-                  </div>}
+                  </div>
                 </div>
               </article>
-            ))}
+            )})}
           </div>
         </section>
 
@@ -444,7 +545,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
             {sectionState('restaurants', restaurants.length)}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {restaurants.map((res) => (
+              {restaurants.slice(0, 3).map((res) => (
                 <article
                   key={res.id}
                   className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
@@ -463,33 +564,54 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                     )}
                   </div>
 
-                  <div className="flex flex-1 flex-col justify-between p-4">
+                  <div className="flex flex-1 flex-col justify-between p-5">
                     <div>
-                      <h3 className="text-[16px] font-bold text-[#111827]">
-                        <button type="button" onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)} className="text-left hover:text-[#2E7D32] transition line-clamp-1">
+                      {/* Dietary tags */}
+                      <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
+                        {res.dietaryTypes.map((diet) => {
+                          const dietaryType = toBackendDietaryType(diet)
+                          return (
+                            <span
+                              key={diet}
+                              className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]"
+                            >
+                              {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
+                            </span>
+                          )
+                        })}
+                      </div>
+
+                      <h3 className="text-[16px] font-bold text-[#111827] min-h-[24px]">
+                        <button
+                          type="button"
+                          onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)}
+                          className="text-left hover:text-[#2E7D32] transition line-clamp-1"
+                        >
                           {res.title}
                         </button>
                       </h3>
-                      {res.address && <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-[#6B7280] line-clamp-2 leading-relaxed">
-                        <MapPin size={13} className="text-[#2E7D32] shrink-0 mt-0.5" />
-                        <span>{res.address}</span>
-                      </p>}
-                      {res.description && <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-3 leading-relaxed">{res.description}</p>}
+                      {res.address && (
+                        <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-[#6B7280] line-clamp-2 leading-relaxed min-h-[36px]">
+                          <MapPin size={13} className="text-[#2E7D32] shrink-0 mt-0.5" />
+                          <span>{res.address}</span>
+                        </p>
+                      )}
+                      {res.description && (
+                        <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 leading-relaxed min-h-[38px]">
+                          {res.description}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#F3F4F6]">
-                      <div className="flex flex-wrap gap-1.5">
-                        {res.dietaryTypes.map(diet => {
-                          const dietaryType = toBackendDietaryType(diet)
-                          return <span key={diet} className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-1 text-xs font-semibold text-[#2E7D32]">{dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}</span>
-                        })}
-                      </div>
+                    <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
+                      {/* Uniform Xem chi tiet button */}
                       <button
                         type="button"
                         onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)}
-                        className="rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white px-3.5 py-1.5 text-[12px] font-bold transition"
+                        className="w-full flex items-center justify-center gap-1.5 rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition duration-150 text-center"
                       >
-                        Xem chi tiết
+                        <span>Xem chi tiết</span>
+                        <ArrowRight size={14} />
                       </button>
                     </div>
                   </div>
@@ -524,7 +646,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
         {sectionState('articles', articles.length)}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articles.map((art) => (
+          {articles.slice(0, 3).map((art) => (
             <article
               key={art.id}
               onClick={() => onNavigate?.(`/articles/${encodeURIComponent(art.id)}`)}
@@ -546,30 +668,33 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
               <div className="flex flex-1 flex-col justify-between p-5 space-y-3">
                 <div>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {art.dietaryTypes?.map(diet => {
+                  <div className="flex flex-wrap items-start content-start gap-1.5 mb-2.5 min-h-[52px]">
+                    {art.dietaryTypes?.map((diet) => {
                       const dietaryType = toBackendDietaryType(diet)
                       return (
-                        <span key={diet} className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]">
+                        <span
+                          key={diet}
+                          className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]"
+                        >
                           {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
                         </span>
                       )
                     })}
                   </div>
 
-                  <h3 className="text-[16px] font-bold text-[#111827] line-clamp-2 group-hover:text-[#2E7D32] transition">
+                  <h3 className="text-[16px] font-bold text-[#111827] line-clamp-2 min-h-[44px] group-hover:text-[#2E7D32] transition">
                     {art.title}
                   </h3>
 
                   {art.description && (
-                    <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 leading-relaxed">
+                    <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 min-h-[38px] leading-relaxed">
                       {art.description}
                     </p>
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <span>{art.authorName || 'Tác giả ẩn danh'}</span>
+                <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between text-xs text-slate-500">
+                  <span className="font-medium text-slate-700">{art.authorName || 'Quản Trị Viên Hệ Thống'}</span>
                   {publishedDate(art.publishedAt) && <span>{publishedDate(art.publishedAt)}</span>}
                 </div>
               </div>

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { MyMealPlanPage } from './MyMealPlanPage'
-import { Breadcrumb } from '../../../shared/components'
+import { Badge, Button, PageHeading } from '../../../shared/components'
 
 export interface MealPlansPublicProps {
   onNavigate?: (path: string) => void
@@ -21,27 +21,41 @@ export const MealPlansPublic = ({ onNavigate }: MealPlansPublicProps) => {
   const create = () =>
     onNavigate?.('/login?returnUrl=' + encodeURIComponent('/meal-plans/setup'))
   return (
-    <div className="ui-page-container py-8 space-y-8">
-      <Breadcrumb items={[{ label: 'Trang chủ', onClick: () => onNavigate?.('/') }, { label: 'Thực đơn' }]} />
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0f4a24] via-[#1a6b37] to-[#22874a] p-8 md:p-10 lg:p-12 shadow-lg">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/4" />
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Lập thực đơn món chay"
+        description="Khám phá và thiết lập kế hoạch dinh dưỡng 7 ngày với 21 bữa ăn cân bằng, tinh chỉnh khoa học theo hồ sơ cá nhân."
+        breadcrumbs={[{ label: 'Trang chủ', onClick: () => onNavigate?.('/') }, { label: 'Thực đơn' }]}
+        eyebrow={<Badge icon={<Leaf size={14} />}>Kế hoạch &amp; Dinh dưỡng</Badge>}
+        actions={
+          <Button
+            variant="primary"
+            leftIcon={<Sparkles size={16} />}
+            onClick={create}
+          >
+            Tạo thực đơn cá nhân hóa
+          </Button>
+        }
+      />
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1B5E20] via-[#2E7D32] to-[#388E3C] p-8 md:p-10 lg:p-12 shadow-lg">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/4 pointer-events-none" />
         <div className="relative flex flex-col lg:flex-row justify-between gap-8">
           <div className="max-w-2xl space-y-4">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 text-white/90 text-xs font-semibold">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-white/95 text-xs font-semibold">
               <Leaf className="w-4 h-4" />
               Theo hồ sơ và chế độ ăn của bạn
             </span>
-            <h1 className="text-3xl md:text-4xl font-black text-white leading-tight">
+            <h2 className="text-3xl md:text-4xl font-black text-white leading-tight">
               Lập thực đơn chay <span className="text-emerald-300">7 ngày</span>{' '}
               phù hợp riêng cho bạn
-            </h1>
-            <p className="text-white/80">
+            </h2>
+            <p className="text-white/90">
               Tạo 21 bữa ăn từ các công thức đang có, dựa trên chế độ ăn, dị ứng
               và thực phẩm cần tránh trong hồ sơ.
             </p>
             <button
               onClick={create}
-              className="fe1-control inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-[#1a6b37] font-bold hover:bg-emerald-50"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-[#2E7D32] hover:text-[#1B5E20] font-bold shadow-md hover:bg-emerald-50 transition-all cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               Tạo thực đơn cá nhân hóa

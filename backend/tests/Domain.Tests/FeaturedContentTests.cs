@@ -14,6 +14,8 @@ public sealed class FeaturedContentTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 17, 8, 0, 0, TimeSpan.Zero);
 
+
+
     [Theory]
     [InlineData("")]
     [InlineData("Recipe")]

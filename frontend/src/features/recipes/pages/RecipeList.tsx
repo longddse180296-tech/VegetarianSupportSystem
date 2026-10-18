@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, ChefHat, Sparkles, UtensilsCrossed } from 'lucide-react'
-import { EmptyState, SkeletonCard } from '../../../shared/components'
+import { Badge, EmptyState, PageHeading, SkeletonCard } from '../../../shared/components'
 import { getRecipes, toggleFavorite } from '../api/recipeApi'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeFilterBar } from '../components/RecipeFilterBar'
@@ -10,6 +10,7 @@ import { DEFAULT_RECIPE_FILTER } from '../types/recipe.types'
 interface RecipeListProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
+  initialSearch?: string
 }
 
 const PAGE_SIZE = 8
@@ -44,22 +45,43 @@ const OpenFridgeIcon = ({ size = 28, className = '' }: { size?: number; classNam
 )
 
 function matchesCategory(r: Recipe, category: string) {
-  if (category === 'all') return true
-  const t = r.title.toLowerCase()
-  switch (category) {
-    case 'main':
-      return /(xào|rang|kho|đậu phụ|thập cẩm|hạt sen|cháo|gạo|ộp|riêu)/.test(t)
-    case 'salad':
-      return /salad/.test(t)
-    case 'soup':
-      return /(canh|chè|nước|phở|hủ tiếu|bún|mì|súp|riêu)/.test(t)
-    case 'drink':
-      return /(sinh tố|sữa|nước ép|trà|chia|pudding|sữa chua)/.test(t)
-    case 'dessert':
-      return /(bánh|chè|ngọt|cake|quyết|puding|tiramisu)/.test(t)
-    default:
-      return true
+  if (!category || category === 'all') return true
+  const rCat = (r.category || '').toLowerCase().trim()
+  const target = category.toLowerCase().trim()
+
+  // 1. Exact match
+  if (rCat === target) return true
+
+  // 2. Strict category mapping (strictly compares r.category from database, never loose title keywords)
+  if (target.includes('cơm') || target.includes('xôi')) {
+    return rCat.includes('cơm') || rCat.includes('xôi')
   }
+  if (target.includes('bún') || target.includes('phở') || target.includes('mì')) {
+    return rCat.includes('bún') || rCat.includes('phở') || rCat.includes('mì')
+  }
+  if (target.includes('canh') || target.includes('súp')) {
+    return rCat.includes('canh') || rCat.includes('súp')
+  }
+  if (target.includes('xào') || target.includes('rau')) {
+    return rCat.includes('xào') || rCat.includes('rau')
+  }
+  if (target.includes('kho') || target.includes('rim')) {
+    return rCat.includes('kho') || rCat.includes('rim')
+  }
+  if (target.includes('gỏi') || target.includes('salad')) {
+    return rCat.includes('gỏi') || rCat.includes('salad')
+  }
+  if (target.includes('cuốn') || target.includes('chiên')) {
+    return (rCat.includes('cuốn') || rCat.includes('chiên')) && !rCat.includes('cơm') && !rCat.includes('xôi')
+  }
+  if (target.includes('bánh') || target.includes('tráng miệng')) {
+    return rCat.includes('bánh') || rCat.includes('tráng miệng')
+  }
+  if (target.includes('uống') || target.includes('đồ uống')) {
+    return rCat.includes('uống')
+  }
+
+  return rCat.includes(target) || target.includes(rCat)
 }
 
 function matchesCook(r: Recipe, tier: string) {
@@ -82,8 +104,15 @@ function matchesKcal(r: Recipe, tier: string) {
   return true
 }
 
-export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: RecipeListProps) {
-  const [filter, setFilter] = useState<RecipeListFilter>(DEFAULT_RECIPE_FILTER)
+export default function RecipeList({
+  onNavigate,
+  isLoggedIn: _isLoggedIn,
+  initialSearch = '',
+}: RecipeListProps) {
+  const [filter, setFilter] = useState<RecipeListFilter>(() => ({
+    ...DEFAULT_RECIPE_FILTER,
+    search: initialSearch,
+  }))
   const [allItems, setAllItems] = useState<Recipe[]>([])
   const [_totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
@@ -211,33 +240,19 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
   const pagedItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   return (
-    <div
-      className="min-h-screen text-[#1F2937] font-['Inter']"
-      style={{
-        background:
-          'linear-gradient(180deg, #F8FAFB 0%, #F0F8F2 25%, #F8FAFB 55%)',
-      }}
-    >
-      <div className="mx-auto w-full max-w-[1232px] px-[24px] pb-14 pt-8 sm:px-[16px]">
-        {/* ============== HERO ============== */}
-        <section className="flex flex-col items-center text-center">
-          <h1
-            className="font-extrabold tracking-[-0.015em] text-[#121C2A]"
-            style={{ fontSize: '38px', lineHeight: '48px' }}
-          >
-            Công thức món chay
-          </h1>
-          <p
-            className="mt-3 max-w-[720px] font-normal text-[#6B7280]"
-            style={{ fontSize: '16px', lineHeight: '26px' }}
-          >
-            Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày được tinh chỉnh
-            khoa học theo nhu cầu dinh dưỡng.
-          </p>
-        </section>
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Công thức món chay"
+        description="Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày được tinh chỉnh khoa học theo nhu cầu dinh dưỡng."
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+          { label: 'Công thức' },
+        ]}
+        eyebrow={<Badge icon={<ChefHat size={14} />}>Bộ sưu tập món ngon</Badge>}
+      />
 
-        {/* ============== FILTER BAR ============== */}
-        <section className="mt-8">
+      {/* ============== FILTER BAR ============== */}
+      <section className="mt-2">
           <RecipeFilterBar
             filter={filter}
             onChange={updateFilter}
@@ -412,7 +427,6 @@ export default function RecipeList({ onNavigate, isLoggedIn: _isLoggedIn }: Reci
             </>
           )}
         </section>
-      </div>
 
       {heroToast && (
         <div

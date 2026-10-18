@@ -60,18 +60,22 @@ export const BACKEND_DIETARY_TYPE_LABELS: Record<BackendDietaryType, string> = {
 const dietaryTypeAliases: Record<string, BackendDietaryType> = {
   '1': 'Vegan',
   Vegan: 'Vegan',
+  [STANDARD_DIETARY_NAMES.VEGAN]: 'Vegan',
   '2': 'LactoVegetarian',
   Lacto: 'LactoVegetarian',
   LactoVegetarian: 'LactoVegetarian',
   'Lacto-vegetarian': 'LactoVegetarian',
+  [STANDARD_DIETARY_NAMES.LACTO]: 'LactoVegetarian',
   '3': 'OvoVegetarian',
   Ovo: 'OvoVegetarian',
   OvoVegetarian: 'OvoVegetarian',
   'Ovo-vegetarian': 'OvoVegetarian',
+  [STANDARD_DIETARY_NAMES.OVO]: 'OvoVegetarian',
   '4': 'LactoOvoVegetarian',
   LactoOvo: 'LactoOvoVegetarian',
   LactoOvoVegetarian: 'LactoOvoVegetarian',
   'Lacto-ovo vegetarian': 'LactoOvoVegetarian',
+  [STANDARD_DIETARY_NAMES.LACTO_OVO]: 'LactoOvoVegetarian',
 }
 
 export function toBackendDietaryType(value: unknown): BackendDietaryType | null {

@@ -28,7 +28,10 @@ const CURATED_THUMBNAILS = [
 
 function cleanPrefix(text?: string | null): string {
   if (!text) return ''
-  return text.replace(/^\[Mẫu\]\s*/i, '').trim()
+  return text
+    .replace(/^\[Chế độ:[^\]]+\]\s*/i, '')
+    .replace(/^\[Mẫu\]\s*/i, '')
+    .trim()
 }
 
 function cleanDietLabel(diet?: string | null): string {

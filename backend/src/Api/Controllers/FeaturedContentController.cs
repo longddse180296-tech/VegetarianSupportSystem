@@ -34,7 +34,7 @@ public sealed class AdminFeaturedContentController(FeaturedContentService servic
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public Task<IActionResult> SetPinned(string contentType, Guid id, FeaturedContentPinRequest request,
+    public Task<IActionResult> SetPinned(string contentType, Guid id, [FromBody] FeaturedContentPinRequest request,
         CancellationToken ct) => Execute(async () =>
         {
             await service.SetPinnedAsync(contentType, id, request, User.GetUserId()!, ct);

@@ -16,8 +16,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 if (builder.Environment.IsDevelopment())
 {
-    var envPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"));
-    DotEnvLoader.Load(envPath);
+    var candidatePaths = new[]
+    {
+        Path.Combine(builder.Environment.ContentRootPath, ".env"),
+        Path.Combine(builder.Environment.ContentRootPath, "..", ".env"),
+        Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"),
+    };
+    foreach (var path in candidatePaths)
+    {
+        var fullPath = Path.GetFullPath(path);
+        if (File.Exists(fullPath))
+        {
+            DotEnvLoader.Load(fullPath);
+        }
+    }
     // Keep environment variables and command-line arguments above appsettings.
     builder.Configuration.AddEnvironmentVariables();
     builder.Configuration.AddCommandLine(args);

@@ -5,18 +5,12 @@ import {
   ChefHat,
   Clock,
   Clock3,
-  Eye,
   Flame,
-  Heart,
-  MessageSquare,
-  MessageSquareHeart,
   Play,
-  Send,
   Sparkles,
-  Star,
   UtensilsCrossed,
 } from 'lucide-react'
-import { Button, EmptyState, SkeletonLoader } from '../../../shared/components'
+import { Breadcrumb, Button, EmptyState, SkeletonLoader } from '../../../shared/components'
 import {
   getRecipeDetail,
   getRecipes,
@@ -35,15 +29,7 @@ interface RecipeDetailProps {
   recipeId?: string
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
-}
-
-interface UserComment {
-  id: string
-  userName: string
-  avatarUrl: string
-  rating: number
-  content: string
-  createdAt: string
+  fromSource?: string
 }
 
 // Curated distinct real food images for related recipes (replacing repetitive placeholder)
@@ -81,7 +67,38 @@ function isInstructionPlaceholder(text?: string): boolean {
 export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   recipeId = '',
   onNavigate,
+  fromSource,
 }) => {
+  const hashQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.hash.split('?')[1] || '').get('from')
+      : null
+  const locationQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('from')
+      : null
+  const rawFrom = (fromSource || hashQuery || locationQuery || '')
+    .toLowerCase()
+    .trim()
+  const isFromMealPlans =
+    rawFrom === 'meal-plans' ||
+    rawFrom === 'meal-plan' ||
+    rawFrom === 'mealplans' ||
+    rawFrom === 'mealplan'
+
+  const handleBack = () => {
+    const target = isFromMealPlans ? '/meal-plans' : '/recipes'
+    if (onNavigate) {
+      onNavigate(target)
+    } else if (typeof window !== 'undefined') {
+      window.location.hash = target
+    }
+  }
+
+  const backLabel = isFromMealPlans
+    ? 'Quay lại thực đơn'
+    : 'Quay lại danh sách công thức'
+
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isNotFound, setIsNotFound] = useState(false)
@@ -91,12 +108,6 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   const [relatedVideos, setRelatedVideos] = useState<RelatedVideoCard[]>([])
   const [relatedRestaurants, setRelatedRestaurants] = useState<RelatedRestaurantCard[]>([])
 
-  // Comment & Rating state
-  const [comments, setComments] = useState<UserComment[]>([])
-  const [showCommentForm, setShowCommentForm] = useState(false)
-  const [userRating, setUserRating] = useState(5)
-  const [commentText, setCommentText] = useState('')
-  const [userNameInput, setUserNameInput] = useState('')
   const [hasReportedMissing, setHasReportedMissing] = useState(false)
 
   useEffect(() => {
@@ -174,26 +185,6 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     showToast('📢 Cảm ơn bạn! Đã gửi báo cáo thiếu hướng dẫn tới Ban biên tập để ưu tiên cập nhật.')
   }
 
-  const handleAddComment = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!commentText.trim()) return
-
-    const newComment: UserComment = {
-      id: `c-${Date.now()}`,
-      userName: userNameInput.trim() || 'Thành viên Bếp Chay',
-      avatarUrl:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-      rating: userRating,
-      content: commentText.trim(),
-      createdAt: 'Vừa xong',
-    }
-
-    setComments((prev) => [newComment, ...prev])
-    setCommentText('')
-    setShowCommentForm(false)
-    showToast('🎉 Cảm ơn bạn đã gửi bình luận và đánh giá món ăn!')
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAFB] py-8">
@@ -225,9 +216,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
         <div className="mx-auto max-w-4xl px-4 text-center">
           <EmptyState
             title="Không tìm thấy công thức này"
-            description={`Công thức bạn tìm kiếm không tồn tại hoặc đã được cập nhật. Bạn có thể quay lại danh sách công thức chay để khám phá thêm nhiều món ngon.`}
-            actionLabel="Quay lại danh sách công thức"
-            onAction={() => onNavigate?.('/recipes')}
+            description={`Công thức bạn tìm kiếm không tồn tại hoặc đã được cập nhật. Bạn có thể quay lại để tiếp tục.`}
+            actionLabel={backLabel}
+            onAction={handleBack}
             icon={<ChefHat size={44} className="text-[#2E7D32]" />}
           />
         </div>
@@ -246,35 +237,26 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   const carbsText = `${recipe.carbs || recipe.nutrition?.carbsG || 28}g`
   const fatText = `${recipe.fat || recipe.nutrition?.fatG || 14}g`
 
-  const viewCount = recipe.viewCount || 1240
-  const favoriteCount = recipe.favoriteCount || 86
   const cleanRecipeTitle = cleanText(recipe.title)
+  const cleanRecipeDesc = cleanText(recipe.description)
 
   return (
     <div className="min-h-screen bg-[#F8FAFB] text-[#1F2937] font-['Inter'] pb-16">
       <div className="mx-auto w-full max-w-[1140px] px-4 sm:px-6 pt-6">
         {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-[13px] text-slate-500">
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/')}
-            className="hover:text-[#2E7D32] transition-colors"
-          >
-            Trang chủ
-          </button>
-          <span className="text-slate-300">›</span>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/recipes')}
-            className="hover:text-[#2E7D32] transition-colors"
-          >
-            Công thức
-          </button>
-          <span className="text-slate-300">›</span>
-          <span className="font-semibold text-slate-900 truncate max-w-[280px] sm:max-w-md">
-            {cleanRecipeTitle}
-          </span>
-        </nav>
+        <Breadcrumb
+          items={[
+            {
+              label: 'Trang chủ',
+              onClick: () =>
+                onNavigate ? onNavigate('/') : (window.location.hash = '/'),
+            },
+            ...(isFromMealPlans
+              ? [{ label: 'Thực đơn', onClick: handleBack }]
+              : [{ label: 'Công thức', onClick: handleBack }]),
+            { label: cleanRecipeTitle },
+          ]}
+        />
 
         {/* 1. TOP HERO SECTION */}
         <section className="mb-10 grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
@@ -303,23 +285,11 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                 {cleanRecipeTitle}
               </h1>
 
-              {/* Thống kê: Phân cách bằng dấu chấm ( • ) thoáng đãng */}
-              <div className="mt-3.5 flex flex-wrap items-center gap-2.5 text-[13.5px] font-medium text-slate-600">
-                <span className="inline-flex items-center gap-1.5 text-slate-700">
-                  <Eye size={15} className="text-slate-400" />
-                  {viewCount.toLocaleString('vi-VN')} Lượt xem
-                </span>
-                <span className="text-slate-300">•</span>
-                <span className="inline-flex items-center gap-1.5 text-slate-700">
-                  <Heart size={15} className="text-rose-500 fill-rose-500/20" />
-                  {favoriteCount.toLocaleString('vi-VN')} Lượt thích
-                </span>
-                <span className="text-slate-300">•</span>
-                <span className="inline-flex items-center gap-1.5 text-slate-700">
-                  <MessageSquare size={15} className="text-emerald-700" />
-                  {comments.length} Bình luận
-                </span>
-              </div>
+              {cleanRecipeDesc && (
+                <p className="mt-3 text-[14.5px] leading-relaxed text-slate-600">
+                  {cleanRecipeDesc}
+                </p>
+              )}
             </div>
 
             {/* 6-stat Nutrition Grid (ĐẢO NGƯỢC: Số to ở trên, Nhãn nhỏ ở dưới) */}
@@ -544,155 +514,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
           </div>
         </section>
 
-        {/* 4. ĐÁNH GIÁ & BÌNH LUẬN (Xử lý khi lượt đánh giá = 0) */}
-        <section className="mb-12 rounded-[20px] border border-slate-200 bg-white p-6 shadow-xs">
-          <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-3.5">
-            <h2 className="flex items-center gap-2 text-[19px] font-bold text-[#111827]">
-              <MessageSquare size={18} className="text-[#2E7D32]" />
-              Đánh giá &amp; Bình luận
-            </h2>
-            {comments.length > 0 && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setShowCommentForm((prev) => !prev)}
-                className="!rounded-xl text-[13px] font-semibold"
-              >
-                {showCommentForm ? 'Đóng form' : '+ Viết bình luận'}
-              </Button>
-            )}
-          </div>
 
-          {/* Nếu lượt đánh giá = 0: Ẩn rating hiện tại, thay bằng Empty State Box */}
-          {comments.length === 0 ? (
-            <div className="rounded-[16px] border border-dashed border-slate-300 bg-slate-50/70 p-8 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-[#2E7D32] shadow-xs mb-3">
-                <MessageSquareHeart size={26} />
-              </div>
-              <h3 className="text-[17px] font-bold text-slate-900">
-                Chưa có đánh giá nào cho món này
-              </h3>
-              <p className="mt-1.5 text-[14px] text-slate-600 max-w-md mx-auto">
-                Chưa có đánh giá. Hãy là người đầu tiên bình luận và chia sẻ cảm nhận nấu món này cùng cộng đồng nhé!
-              </p>
-              <div className="mt-5">
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="md"
-                  onClick={() => setShowCommentForm(true)}
-                  className="!rounded-xl !bg-[#2E7D32] hover:!bg-[#1B5E20] font-semibold !px-6"
-                >
-                  Viết bình luận đầu tiên
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {comments.map((cm) => (
-                <div key={cm.id} className="flex gap-3.5 rounded-xl border border-slate-100 p-4 bg-slate-50/40">
-                  <img
-                    src={cm.avatarUrl}
-                    alt={cm.userName}
-                    className="h-10 w-10 rounded-full object-cover shrink-0"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[14px] text-slate-900">{cm.userName}</span>
-                      <span className="text-[12px] text-slate-400">{cm.createdAt}</span>
-                    </div>
-                    <div className="flex items-center gap-1 my-1">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          size={13}
-                          className={
-                            i < cm.rating
-                              ? 'fill-amber-400 text-amber-400'
-                              : 'text-slate-300'
-                          }
-                        />
-                      ))}
-                    </div>
-                    <p className="text-[14px] text-slate-700 leading-relaxed mt-1">
-                      {cm.content}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Form nhập bình luận */}
-          {showCommentForm && (
-            <form onSubmit={handleAddComment} className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/30 p-5">
-              <h4 className="font-bold text-[15px] text-slate-900 mb-3">
-                Chia sẻ đánh giá của bạn
-              </h4>
-              <div className="mb-3 flex items-center gap-2">
-                <span className="text-[13px] font-medium text-slate-700">Đánh giá món:</span>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setUserRating(star)}
-                      className="p-1 text-amber-400 hover:scale-110 transition-transform"
-                    >
-                      <Star
-                        size={18}
-                        className={star <= userRating ? 'fill-amber-400' : 'text-slate-300'}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <input
-                  type="text"
-                  placeholder="Họ tên của bạn (tùy chọn)"
-                  value={userNameInput}
-                  onChange={(e) => setUserNameInput(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-[14px] focus:border-emerald-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="mb-3">
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Món ăn này có hợp khẩu vị bạn không? Bạn có mẹo nhỏ nào khi chế biến món này không?..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-3.5 text-[14px] focus:border-emerald-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowCommentForm(false)}
-                  className="!rounded-xl"
-                >
-                  Hủy
-                </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  rightIcon={<Send size={14} />}
-                  className="!rounded-xl !bg-[#2E7D32] hover:!bg-[#1B5E20] font-semibold"
-                >
-                  Gửi bình luận
-                </Button>
-              </div>
-            </form>
-          )}
-        </section>
 
         {/* 5. CÔNG THỨC LIÊN QUAN (Mảng ảnh thật đa dạng, không trùng lặp) */}
         {relatedRecipes.length > 0 && (
@@ -717,7 +539,13 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                   <article
                     key={rel.id || idx}
                     onClick={() => {
-                      onNavigate?.(`/recipes/${encodeURIComponent(rel.id)}`)
+                      const query = isFromMealPlans ? '?from=meal-plans' : ''
+                      const target = `/recipes/${encodeURIComponent(rel.id)}${query}`
+                      if (onNavigate) {
+                        onNavigate(target)
+                      } else {
+                        window.location.hash = target
+                      }
                       window.scrollTo({ top: 0, behavior: 'smooth' })
                     }}
                     className="group flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md cursor-pointer"
@@ -948,17 +776,17 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
           </section>
         )}
 
-        {/* Back to list button */}
-        <div className="mt-8 pt-4 border-t border-slate-200 flex justify-start">
+        {/* Nút quay lại danh sách công thức / thực đơn ở cuối trang */}
+        <div className="mt-10 pt-6 border-t border-slate-200 flex justify-start">
           <Button
             type="button"
             variant="outline"
             size="md"
             leftIcon={<ArrowLeft size={16} />}
-            onClick={() => onNavigate?.('/recipes')}
-            className="!rounded-[12px] !border-slate-300 hover:!border-[#2E7D32]"
+            onClick={handleBack}
+            className="!rounded-[12px] !border-slate-300 hover:!border-[#2E7D32] hover:!text-[#2E7D32] font-semibold"
           >
-            Quay lại danh sách công thức
+            {backLabel}
           </Button>
         </div>
       </div>

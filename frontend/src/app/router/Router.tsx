@@ -38,6 +38,7 @@ import {
 import {
   VideoListPage,
   VideoDetailPage,
+  VideoCreatePage,
   MyVideosPage,
 } from '../../features/videos'
 import {
@@ -86,7 +87,10 @@ const withPublic = (
 
 export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   const { isLoading: authLoading } = useAuth()
-  const path = ctx.currentPath
+  const rawPath = ctx.currentPath || '/'
+  const [rawPathname, searchRaw = ''] = rawPath.split('?')
+  const path = rawPathname ? (rawPathname.startsWith('/') ? rawPathname : `/${rawPathname}`) : '/'
+  const searchParams = new URLSearchParams(searchRaw)
   const { onNavigate } = ctx
   const isLoggedIn = Boolean(ctx.user)
 
@@ -107,7 +111,18 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
 
   const recipeMatch = path.match(/^\/recipes\/([^/]+)\/?$/)
   if (path === '/recipes' || path === 'recipes') {
-    return withPublic(<RecipeList onNavigate={onNavigate} />, 'recipes', ctx)
+    const initialSearch =
+      searchParams.get('q') || searchParams.get('search') || ''
+    return withPublic(
+      <RecipeList
+        key={`recipes-${initialSearch}`}
+        onNavigate={onNavigate}
+        isLoggedIn={isLoggedIn}
+        initialSearch={initialSearch}
+      />,
+      'recipes',
+      ctx,
+    )
   }
   if (recipeMatch) {
     let recipeId = ''
@@ -116,11 +131,13 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     } catch {
       // Let RecipeDetail handle malformed IDs without crashing the router.
     }
+    const fromParam = searchParams.get('from') || undefined
     return withPublic(
       <RecipeDetail
         key={recipeId}
         recipeId={recipeId}
         onNavigate={onNavigate}
+        fromSource={fromParam}
       />,
       'recipes',
       ctx,
@@ -133,8 +150,15 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     path === '/aichat' ||
     path === 'ai-chat'
   ) {
+    const initialQuery =
+      searchParams.get('q') || searchParams.get('query') || ''
     return withPublic(
-      <AiChatPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />,
+      <AiChatPage
+        key={`aichat-${initialQuery}`}
+        onNavigate={onNavigate}
+        isLoggedIn={isLoggedIn}
+        initialQuery={initialQuery}
+      />,
       'ai-chat',
       ctx,
     )
@@ -151,14 +175,16 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     if (!ctx.user) {
       return <LoginPage onNavigate={onNavigate} />
     }
-    return <ArticleEditorPage onNavigate={onNavigate} />
+    const fromParam = (searchParams.get('from') as 'articles' | 'profile') || 'articles'
+    return <ArticleEditorPage onNavigate={onNavigate} fromSource={fromParam} />
   }
   if (articleEditorMatch) {
     if (!ctx.user) {
       return <LoginPage onNavigate={onNavigate} />
     }
     const editId = decodeURIComponent(articleEditorMatch[1])
-    return <ArticleEditorPage articleId={editId} onNavigate={onNavigate} />
+    const fromParam = (searchParams.get('from') as 'articles' | 'profile') || 'articles'
+    return <ArticleEditorPage articleId={editId} onNavigate={onNavigate} fromSource={fromParam} />
   }
 
   const articleMatch = path.match(/^\/articles\/([^/]+)\/?$/)
@@ -167,7 +193,7 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       <ArticleList
         onSelectArticle={(id) => onNavigate(`/articles/${id}`)}
         onCreateArticle={() =>
-          onNavigate(ctx.user ? '/articles/create' : '/auth/login')
+          onNavigate(ctx.user ? '/articles/create?from=articles' : '/auth/login')
         }
         onNavigateHome={() => onNavigate('/')}
         onOpenAiChat={() => onNavigate('/ai-chat')}
@@ -187,10 +213,10 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
         articleId={articleId}
         onBackToList={() => onNavigate('/articles')}
         onCreateArticle={() =>
-          onNavigate(ctx.user ? '/articles/create' : '/auth/login')
+          onNavigate(ctx.user ? '/articles/create?from=articles' : '/auth/login')
         }
         onEditArticle={(id) =>
-          onNavigate(ctx.user ? `/articles/editor/${id}` : '/auth/login')
+          onNavigate(ctx.user ? `/articles/editor/${id}?from=articles` : '/auth/login')
         }
         onSelectRelatedArticle={(id) => onNavigate(`/articles/${id}`)}
       />,
@@ -199,11 +225,33 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     )
   }
 
+  const isCreateVideoRoute =
+    path === '/videos/create' ||
+    path.startsWith('/videos/create?') ||
+    path === '/videos/new' ||
+    path.startsWith('/videos/new?')
+  const fromVideoParam =
+    new URLSearchParams(window.location.hash.split('?')[1] || '').get(
+      'from',
+    ) || undefined
+
+  if (isCreateVideoRoute) {
+    return (
+      <VideoCreatePage
+        onNavigate={onNavigate}
+        fromSource={fromVideoParam}
+      />
+    )
+  }
+
   const videoMatch = path.match(/^\/videos\/([^/]+)\/?$/)
   if (path === '/videos' || path === 'videos') {
     return withPublic(<VideoListPage onNavigate={onNavigate} />, 'videos', ctx)
   }
-  if (videoMatch) {
+  if (
+    videoMatch &&
+    !['create', 'new', 'editor'].includes(videoMatch[1])
+  ) {
     const videoId = decodeURIComponent(videoMatch[1])
     return withPublic(
       <VideoDetailPage key={videoId} videoId={videoId} onNavigate={onNavigate} />,
@@ -246,7 +294,19 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   }
 
   if (path === '/pantry' || path === 'pantry') {
-    return withPublic(<PantryPage onNavigate={onNavigate} />, 'pantry', ctx)
+    if (!ctx.user) {
+      try {
+        sessionStorage.setItem('returnUrl', '/pantry')
+      } catch {
+        // ignore storage error
+      }
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    return withPublic(
+      <PantryPage onNavigate={onNavigate} isLoggedIn={isLoggedIn} />,
+      'pantry',
+      ctx,
+    )
   }
 
   // ─── Meal Plans: Protected Route /meal-plans/create ─────────────────

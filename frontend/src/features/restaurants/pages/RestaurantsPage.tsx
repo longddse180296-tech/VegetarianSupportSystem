@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
+  Check,
+  ChevronDown,
   Compass,
   MapPin,
-  RotateCcw,
   Sparkles,
 } from 'lucide-react'
-import { EmptyState, SkeletonCard } from '../../../shared/components'
+import { Badge, EmptyState, PageHeading, SkeletonCard } from '../../../shared/components'
 import {
   filterRestaurants,
   getRestaurantDetail,
@@ -38,6 +39,100 @@ const POPULAR_DISTRICTS = [
   { value: 'Hải Châu', label: 'Hải Châu, Đà Nẵng' },
   { value: 'Sơn Trà', label: 'Sơn Trà, Đà Nẵng' },
 ]
+
+interface AmberDistrictSelectProps {
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ value: string; label: string }>
+}
+
+function AmberDistrictSelect({ value, onChange, options }: AmberDistrictSelectProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const selected = options.find((o) => o.value === value) || options[0]
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
+  return (
+    <div ref={containerRef} className="relative inline-block text-left min-w-[210px]">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label="Chọn Quận / Huyện"
+        className={`h-9 w-full flex items-center justify-between gap-2 rounded-xl border bg-white px-3 text-xs font-semibold text-amber-950 transition-all duration-150 outline-none cursor-pointer shadow-2xs ${
+          isOpen
+            ? 'border-amber-500 ring-2 ring-amber-400/30'
+            : 'border-amber-300 hover:border-amber-400 hover:bg-amber-50/40'
+        }`}
+      >
+        <span className="truncate flex items-center gap-1.5">
+          <MapPin size={13} className="text-amber-600 shrink-0" />
+          <span className="truncate">{selected.label}</span>
+        </span>
+        <ChevronDown
+          size={14}
+          className={`text-amber-700 shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+          aria-hidden="true"
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          role="listbox"
+          tabIndex={-1}
+          className="absolute left-0 top-full mt-1.5 w-full min-w-[220px] z-50 rounded-xl border border-amber-200/90 bg-white p-1.5 shadow-xl shadow-amber-950/10 max-h-60 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-100"
+        >
+          {options.map((opt) => {
+            const isSelected = opt.value === value
+            return (
+              <button
+                type="button"
+                role="option"
+                key={opt.value}
+                aria-selected={isSelected}
+                onClick={() => {
+                  onChange(opt.value)
+                  setIsOpen(false)
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer select-none ${
+                  isSelected
+                    ? 'bg-amber-100 text-amber-950 font-bold'
+                    : 'text-slate-700 hover:bg-amber-50 hover:text-amber-950 font-medium'
+                }`}
+              >
+                <span className="truncate">{opt.label}</span>
+                {isSelected && <Check size={13} className="text-amber-700 shrink-0" />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function RestaurantsPage({
   onNavigate,
@@ -154,8 +249,11 @@ export default function RestaurantsPage({
     }
 
     navigator.geolocation.getCurrentPosition(
-      (_position) => {
+      (position) => {
         setLocationState('granted')
+        const lat = Number(position.coords.latitude.toFixed(6))
+        const lng = Number(position.coords.longitude.toFixed(6))
+        updateFilter({ latitude: lat, longitude: lng })
         showToast('✅ Đã xác định vị trí hiện tại thành công!')
       },
       (_err) => {
@@ -166,43 +264,44 @@ export default function RestaurantsPage({
     )
   }
 
-  // Handle Manual District Selection
+  // Handle Manual District Selection with corresponding center coordinates
   const handleDistrictChange = (district: string) => {
     setSelectedDistrict(district)
+    const districtCoords: Record<string, { lat: number; lng: number }> = {
+      'Quận 1': { lat: 10.7769, lng: 106.7008 },
+      'Quận 3': { lat: 10.7841, lng: 106.6868 },
+      'Quận 7': { lat: 10.7295, lng: 106.7219 },
+      'Thủ Đức': { lat: 10.85, lng: 106.7717 },
+      'Bình Thạnh': { lat: 10.803, lng: 106.709 },
+      'Ba Đình': { lat: 21.0359, lng: 105.8198 },
+      'Hoàn Kiếm': { lat: 21.0285, lng: 105.8542 },
+      'Tây Hồ': { lat: 21.0673, lng: 105.8241 },
+      'Hải Châu': { lat: 16.0471, lng: 108.2068 },
+      'Sơn Trà': { lat: 16.07, lng: 108.235 },
+    }
+
     if (district === 'all') {
       updateFilter({ city: 'all' })
     } else {
-      updateFilter({ city: district })
+      const coords = districtCoords[district]
+      updateFilter({
+        city: district,
+        ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
+      })
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-[#121C2A] font-['Inter']">
-      <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">
-        {/* ===== Breadcrumbs ===== */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/')}
-              className="text-emerald-700 hover:underline font-semibold"
-            >
-              Trang chủ
-            </button>
-            <span className="text-slate-300">›</span>
-            <span className="font-bold text-slate-900">Nhà hàng chay</span>
-          </nav>
-        </div>
-
-        {/* ===== Header ===== */}
-        <header className="mb-5">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            Nhà hàng chay gần bạn
-          </h1>
-          <p className="mt-1.5 text-sm sm:text-base text-slate-600 max-w-[760px] leading-relaxed">
-            Khám phá các nhà hàng và quán ăn chay thanh tịnh, dinh dưỡng phù hợp quanh khu vực của bạn.
-          </p>
-        </header>
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Nhà hàng chay gần bạn"
+        description="Khám phá các nhà hàng và quán ăn chay thanh tịnh, dinh dưỡng phù hợp quanh khu vực của bạn."
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+          { label: 'Nhà hàng chay' },
+        ]}
+        eyebrow={<Badge icon={<MapPin size={14} />}>Địa điểm ẩm thực chay</Badge>}
+      />
 
         {/* ===== Location Banner with Fallback Manual Selection ===== */}
         {locationState === 'prompt' && (
@@ -224,7 +323,7 @@ export default function RestaurantsPage({
               <button
                 type="button"
                 onClick={requestLocation}
-                className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800"
+                className="rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] px-4 py-2 text-xs font-bold text-white shadow-xs transition"
               >
                 Cho phép vị trí
               </button>
@@ -246,18 +345,11 @@ export default function RestaurantsPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <select
+              <AmberDistrictSelect
                 value={selectedDistrict}
-                onChange={(e) => handleDistrictChange(e.target.value)}
-                aria-label="Chọn Quận/Huyện thủ công"
-                className="h-9 rounded-xl border border-amber-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-2xs focus:border-emerald-600 focus:outline-none"
-              >
-                {POPULAR_DISTRICTS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
+                onChange={handleDistrictChange}
+                options={POPULAR_DISTRICTS}
+              />
 
               <button
                 type="button"
@@ -304,18 +396,6 @@ export default function RestaurantsPage({
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
           {/* ================= CỘT TRÁI (2/3 = 8 CỘT): Danh sách nhà hàng ================= */}
           <div className="flex flex-col gap-4 lg:col-span-8">
-            {/* Nút xóa bộ lọc khi có tiêu chí đang lọc */}
-            {(filter.search || filter.diet !== 'all' || filter.distanceMaxKm > 0 || filter.city !== 'all') && (
-              <div className="flex items-center justify-end text-xs sm:text-sm text-slate-500">
-                <button
-                  type="button"
-                  onClick={resetFilter}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
-                >
-                  <RotateCcw size={12} /> Xóa bộ lọc
-                </button>
-              </div>
-            )}
 
             {/* Restaurant List / SkeletonCard Grid / EmptyState */}
             {isLoading ? (
@@ -375,7 +455,6 @@ export default function RestaurantsPage({
             </div>
           </div>
         </div>
-      </div>
 
       {/* Toast popup */}
       {toast && (

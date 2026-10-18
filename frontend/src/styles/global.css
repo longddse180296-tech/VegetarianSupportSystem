@@ -47,7 +47,10 @@
   box-sizing: border-box;
 }
 
-html { scrollbar-gutter: stable; }
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
 
 @media (max-width: 639px) {
   :root { --page-gutter: 16px; }
@@ -101,7 +104,19 @@ button, input, select, textarea, option {
 .ui-breadcrumb { margin-bottom: 20px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--text-muted); }
 .ui-breadcrumb ol { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0; }
 .ui-breadcrumb li { display: inline-flex; align-items: center; gap: 8px; }
-.ui-breadcrumb button, .fe1-ui .ui-breadcrumb button { font-size: 13px; font-weight: 500; color: var(--primary); cursor: pointer; }
+.ui-breadcrumb button, .fe1-ui .ui-breadcrumb button {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  line-height: inherit;
+  font-family: inherit;
+  display: inline;
+}
 .ui-breadcrumb button:hover { text-decoration: underline; }
 .ui-breadcrumb [aria-current="page"] { color: var(--text-main); font-weight: 600; }
 .ui-breadcrumb-separator { color: #9ca3af; }

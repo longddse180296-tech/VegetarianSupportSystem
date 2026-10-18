@@ -113,12 +113,7 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
     }
   }
 
-  return [
-    { key: 'diet', label: 'Chế độ ăn', value: 'Thuần chay (Vegan)', tone: 'ok' },
-    { key: 'bmi', label: 'Chỉ số BMI', value: '22.5 (Bình thường)', tone: 'ok' },
-    { key: 'goal', label: 'Mục tiêu', value: 'Duy trì cân nặng', tone: 'info' },
-    { key: 'allergy', label: 'Dị ứng cảnh báo', value: 'Không có', tone: 'ok' },
-  ]
+  return []
 }
 
 export async function getFaqsFigma(): Promise<FaqItem[]> {

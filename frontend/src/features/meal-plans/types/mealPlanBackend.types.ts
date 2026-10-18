@@ -7,6 +7,7 @@ export interface SavedPlanMeal {
   slot: BackendMealSlot
   recipeId: string
   recipeName: string
+  imageUrl?: string | null
   servings: number
   totalTimeMinutes: number
   caloriesPerServing: number | null
@@ -52,6 +53,7 @@ export interface PlanPage {
 export interface ReplacementRecipe {
   id: string
   name: string
+  imageUrl?: string | null
   caloriesPerServing: number | null
   cookTimeMinutes: number
   prepTimeMinutes: number
