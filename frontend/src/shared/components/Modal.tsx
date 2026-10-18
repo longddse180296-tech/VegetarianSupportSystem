@@ -49,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
     >
@@ -62,20 +62,20 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Dialog Card */}
       <div
-        className={`ui-modal-panel relative w-full ${maxWidthClass} bg-white rounded-[var(--radius-modal)] shadow-[var(--shadow-dialog)] border border-border-subtle flex flex-col overflow-hidden transition-all duration-200 transform scale-100 z-10 ${className}`}
+        className={`ui-modal-panel relative w-full ${maxWidthClass} max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)] my-auto bg-white rounded-[24px] shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-all duration-200 transform scale-100 z-10 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         {(title || description) && (
-          <div className="ui-modal-header px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+          <div className="ui-modal-header px-6 pt-5 pb-3.5 border-b border-slate-100 flex items-start justify-between gap-4 shrink-0">
             <div>
               {title && (
-                <h3 className="text-lg font-bold text-text-main leading-snug tracking-tight">
+                <h3 className="text-lg font-bold text-slate-900 leading-snug tracking-tight">
                   {title}
                 </h3>
               )}
               {description && (
-                <p className="text-xs text-text-muted mt-1 leading-relaxed">{description}</p>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">{description}</p>
               )}
             </div>
 
@@ -93,13 +93,13 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Body */}
-        <div className="ui-modal-body px-6 py-5 overflow-y-auto max-h-[75vh] text-sm text-text-main">
+        <div className="ui-modal-body px-6 py-4 overflow-y-auto flex-1 min-h-0 text-sm text-slate-700">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="ui-modal-footer px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-3">
+          <div className="ui-modal-footer px-6 py-3.5 bg-slate-50/90 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
             {footer}
           </div>
         )}

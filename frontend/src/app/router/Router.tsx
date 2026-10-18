@@ -38,6 +38,7 @@ import {
 import {
   VideoListPage,
   VideoDetailPage,
+  VideoCreatePage,
   MyVideosPage,
 } from '../../features/videos'
 import {
@@ -222,11 +223,33 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     )
   }
 
+  const isCreateVideoRoute =
+    path === '/videos/create' ||
+    path.startsWith('/videos/create?') ||
+    path === '/videos/new' ||
+    path.startsWith('/videos/new?')
+  const fromVideoParam =
+    new URLSearchParams(window.location.hash.split('?')[1] || '').get(
+      'from',
+    ) || undefined
+
+  if (isCreateVideoRoute) {
+    return (
+      <VideoCreatePage
+        onNavigate={onNavigate}
+        fromSource={fromVideoParam}
+      />
+    )
+  }
+
   const videoMatch = path.match(/^\/videos\/([^/]+)\/?$/)
   if (path === '/videos' || path === 'videos') {
     return withPublic(<VideoListPage onNavigate={onNavigate} />, 'videos', ctx)
   }
-  if (videoMatch) {
+  if (
+    videoMatch &&
+    !['create', 'new', 'editor'].includes(videoMatch[1])
+  ) {
     const videoId = decodeURIComponent(videoMatch[1])
     return withPublic(
       <VideoDetailPage key={videoId} videoId={videoId} onNavigate={onNavigate} />,

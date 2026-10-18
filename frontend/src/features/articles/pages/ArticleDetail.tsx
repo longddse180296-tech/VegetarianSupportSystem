@@ -4,7 +4,7 @@ import { useAuth } from '../../auth'
 import { apiClient } from '../../../shared/api/apiClient'
 import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
-import { Button } from '../../../shared/components'
+import { Badge, Button, PageHeading } from '../../../shared/components'
 import {
   primaryClass,
   secondaryClass,
@@ -113,6 +113,22 @@ export const ArticleDetail = ({
 
   return (
     <div className="ui-page-container py-8 space-y-6">
+      {/* Header đồng bộ: Bài viết về lối sống chay */}
+      <PageHeading
+        title="Bài viết về lối sống chay"
+        description="Khám phá kiến thức, cẩm nang dinh dưỡng thực vật khoa học và câu chuyện truyền cảm hứng từ cộng đồng."
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => { window.location.hash = '#/' } },
+          { label: 'Bài viết', onClick: onBackToList },
+          { label: 'Chi tiết bài viết' },
+        ]}
+        eyebrow={
+          <Badge icon={<Leaf size={14} className="text-[#2E7D32]" />}>
+            Kiến thức &amp; cộng đồng
+          </Badge>
+        }
+      />
+
       <Feedback error={article.error} />
       {article.error && (
         <button className={secondaryClass} onClick={article.reload}>

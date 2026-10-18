@@ -420,7 +420,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
 
                 <div className="flex flex-1 flex-col justify-between p-5 space-y-3.5">
                   <div>
-                    <div className="flex flex-wrap items-center gap-1.5 min-h-[26px] mb-2.5">
+                    <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
                       {item.dietaryTypes?.map((type) => (
                         <span
                           key={type}

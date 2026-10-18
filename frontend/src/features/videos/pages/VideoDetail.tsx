@@ -3,14 +3,17 @@ import {
   AlertTriangle,
   ArrowLeft,
   Bookmark,
+  Calendar,
   ChefHat,
   Flag,
+  MessageSquare,
   Reply,
   RotateCcw,
   Share2,
   ThumbsUp,
+  Video as VideoIcon,
 } from 'lucide-react'
-import { Button, EmptyState, SkeletonLoader, Textarea } from '../../../shared/components'
+import { Badge, Button, EmptyState, PageHeading, SkeletonLoader, Textarea } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
 import {
@@ -40,9 +43,6 @@ interface Reaction {
   reactedByMe: boolean
 }
 
-
-
-// Curated photography for related video fallback thumbnails
 const CURATED_THUMBNAILS = [
   'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
   'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
@@ -54,7 +54,7 @@ const CURATED_THUMBNAILS = [
 
 function cleanPrefix(text?: string | null): string {
   if (!text) return ''
-  return text.replace(/^\[Mẫu\]\s*/i, '').trim()
+  return text.replace(/^\[Chế độ:[^\]]+\]\s*/i, '').replace(/^\[Mẫu\]\s*/i, '').trim()
 }
 
 function getFallbackThumbnail(id: string): string {
@@ -67,6 +67,17 @@ function getItemDuration(id: string): string {
   const mins = 4 + (hash % 8)
   const secs = 12 + (hash % 45)
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return 'Gần đây'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return 'Gần đây'
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
 }
 
 export default function VideoDetail(props: Props) {
@@ -99,66 +110,130 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
       .then((detail) => {
         if (!active) return
         setVideo(detail)
-        void Promise.allSettled([
-          loadComments(videoId),
-          apiClient.get<Reaction>(`/api/videos/${encodeURIComponent(videoId)}/like`),
-          getStoredToken() ? getSavedVideo(videoId) : Promise.resolve(null),
-        ]).then(([commentResult, likeResult, savedResult]) => {
-          if (!active) return
-          if (commentResult.status === 'fulfilled') setComments(commentResult.value)
-          if (likeResult.status === 'fulfilled') setReaction(likeResult.value)
-          if (savedResult.status === 'fulfilled') setSaved(Boolean(savedResult.value))
-          if ([commentResult, likeResult, savedResult].some((r) => r.status === 'rejected')) {
-            setActionError('Một số thông tin tương tác chưa tải được toàn bộ.')
-          }
-          setInteractionsLoading(false)
-        })
+        setError(null)
       })
       .catch((reason: unknown) => {
-        if (active) setError(errorMessage(reason, 'Không thể tải video.'))
+        if (!active) return
+        setError(errorMessage(reason, 'Không thể tải nội dung video.'))
       })
       .finally(() => {
         if (active) setLoading(false)
       })
+
     return () => {
       active = false
     }
   }, [videoId])
 
-  const { rootComments, replies } = useMemo(() => {
-    const root: Comment[] = []
-    const replyMap = new Map<string, Comment[]>()
-    const ids = new Set(comments.map((comment) => comment.id))
-    for (const comment of comments) {
-      if (!comment.parentId || !ids.has(comment.parentId)) root.push(comment)
-      else replyMap.set(comment.parentId, [...(replyMap.get(comment.parentId) ?? []), comment])
+  useEffect(() => {
+    if (!videoId) return
+    let active = true
+
+    const token = getStoredToken()
+    const taskLike = apiClient
+      .get<Reaction>(`/api/videos/${encodeURIComponent(videoId)}/reactions/like`, {
+        requiresAuth: Boolean(token),
+      })
+      .then((result) => (active ? setReaction(result) : undefined))
+      .catch(() => undefined)
+
+    const taskSave = token
+      ? getSavedVideo(videoId)
+          .then((item) => (active ? setSaved(Boolean(item)) : undefined))
+          .catch(() => undefined)
+      : Promise.resolve()
+
+    const taskComments = loadComments(videoId)
+      .then((items) => (active ? setComments(items) : undefined))
+      .catch(() => undefined)
+
+    void Promise.allSettled([taskLike, taskSave, taskComments]).finally(() => {
+      if (active) setInteractionsLoading(false)
+    })
+
+    return () => {
+      active = false
     }
-    return { rootComments: root, replies: replyMap }
-  }, [comments])
+  }, [videoId])
 
   const requireLogin = () => {
     if (getStoredToken()) return true
-    onNavigate?.(`/login?returnUrl=${encodeURIComponent(`/videos/${videoId ?? ''}`)}`)
+    onNavigate?.(`/auth/login?returnUrl=${encodeURIComponent(`/videos/${videoId ?? ''}`)}`)
     return false
   }
 
+  const rootComments = useMemo(
+    () => comments.filter((comment) => !comment.parentId),
+    [comments],
+  )
+  const replies = useMemo(() => {
+    const map = new Map<string, Comment[]>()
+    for (const comment of comments) {
+      if (!comment.parentId) continue
+      const list = map.get(comment.parentId) ?? []
+      list.push(comment)
+      map.set(comment.parentId, list)
+    }
+    return map
+  }, [comments])
+
+  const toggleLike = async () => {
+    if (!videoId || !requireLogin()) return
+    setLiking(true)
+    setActionError(null)
+    const prevReaction = reaction
+    const nextLiked = !prevReaction.reactedByMe
+    setReaction((prev) => ({
+      count: prev.reactedByMe ? Math.max(0, prev.count - 1) : prev.count + 1,
+      reactedByMe: nextLiked,
+    }))
+    try {
+      const result = await toggleVideoLike(videoId, nextLiked)
+      setReaction(result)
+    } catch (reason) {
+      setReaction(prevReaction)
+      setActionError(errorMessage(reason, 'Không thể gửi lượt thích.'))
+    } finally {
+      setLiking(false)
+    }
+  }
+
+  const toggleSave = async () => {
+    if (!videoId || !requireLogin()) return
+    setSaving(true)
+    setActionError(null)
+    const prevSaved = saved
+    const nextSaved = !prevSaved
+    setSaved(nextSaved)
+    try {
+      const updatedSaved = await toggleVideoSave(videoId, nextSaved)
+      setSaved(updatedSaved)
+      setNotice(updatedSaved ? 'Đã lưu video vào danh sách yêu thích.' : 'Đã bỏ lưu video.')
+    } catch (reason) {
+      setSaved(prevSaved)
+      setActionError(errorMessage(reason, 'Không thể cập nhật danh sách đã lưu.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const sendComment = async () => {
-    if (!videoId || !draft.trim() || sending || !requireLogin()) return
+    if (!videoId || !requireLogin()) return
+    const content = draft.trim()
+    if (!content) return
     setSending(true)
     setActionError(null)
-    setNotice(null)
     try {
-      const comment = await apiClient.post<Comment>('/api/comments', {
+      const created = await apiClient.post<Comment>('/api/comments', {
         targetType: 'Video',
         targetId: videoId,
         parentId: replyTo,
-        body: draft.trim(),
+        body: content,
       })
-      if (!comment?.id) throw new Error('Máy chủ không trả về bình luận hợp lệ.')
-      setComments((current) => [comment, ...current])
+      setComments((prev) => [...prev, created])
       setDraft('')
       setReplyTo(null)
-      setNotice('Đã gửi bình luận thành công.')
+      setNotice('Đã gửi bình luận.')
     } catch (reason) {
       setActionError(errorMessage(reason, 'Không thể gửi bình luận.'))
     } finally {
@@ -166,37 +241,8 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     }
   }
 
-  const toggleLike = async () => {
-    if (!videoId || liking || !requireLogin()) return
-    setLiking(true)
-    setActionError(null)
-    setNotice(null)
-    try {
-      setReaction(await toggleVideoLike(videoId, !reaction.reactedByMe))
-    } catch (reason) {
-      setActionError(errorMessage(reason, 'Không thể cập nhật lượt thích.'))
-    } finally {
-      setLiking(false)
-    }
-  }
-
-  const toggleSave = async () => {
-    if (!videoId || saving || !requireLogin()) return
-    setSaving(true)
-    setActionError(null)
-    setNotice(null)
-    try {
-      const next = await toggleVideoSave(videoId, !saved)
-      setSaved(next)
-      setNotice(next ? 'Đã lưu video vào danh sách yêu thích.' : 'Đã bỏ lưu video.')
-    } catch (reason) {
-      setActionError(errorMessage(reason, 'Không thể cập nhật video đã lưu.'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const handleReportVideo = () => {
+    if (!requireLogin()) return
     setHasReported(true)
     setNotice('Đã gửi báo lỗi video tới Ban Quản trị. Chúng tôi sẽ kiểm tra và khắc phục sớm nhất!')
   }
@@ -209,7 +255,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
         throw new Error('Trình duyệt không hỗ trợ sao chép tự động. Hãy sao chép liên kết từ thanh địa chỉ.')
       }
       await navigator.clipboard.writeText(window.location.href)
-      setNotice('Đã sao chép liên kết video.')
+      setNotice('Đã sao chép liên kết video vào bộ nhớ tạm.')
     } catch (reason) {
       setActionError(errorMessage(reason, 'Không thể sao chép liên kết.'))
     }
@@ -227,7 +273,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[1040px] px-4 py-8">
+      <div className="ui-page-container py-8">
         <SkeletonLoader count={3} variant="card" />
       </div>
     )
@@ -235,7 +281,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-[1040px] px-4 py-12">
+      <div className="ui-page-container py-12">
         <AlertError title="Không thể tải video" message={error} />
       </div>
     )
@@ -243,7 +289,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
 
   if (!video) {
     return (
-      <div className="mx-auto max-w-[1040px] px-4 py-12">
+      <div className="ui-page-container py-12">
         <EmptyState
           title="Không tìm thấy video"
           description="Video chưa được công khai hoặc đã bị gỡ khỏi hệ thống."
@@ -286,301 +332,289 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
   )
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-slate-900">
-      <main className="mx-auto max-w-[1040px] px-4 py-6 sm:px-6">
-        {/* Breadcrumb với truncate khi tiêu đề dài */}
-        <nav className="mb-4 flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 min-w-0">
+    <div className="ui-page-container py-8 space-y-6">
+      {/* Header kho video cộng đồng */}
+      <PageHeading
+        title="Video nấu ăn chay"
+        description="Kho video hướng dẫn nấu ăn chay trực quan, hấp dẫn từ cộng đồng ẩm thực chay."
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+          { label: 'Video', onClick: () => onNavigate?.('/videos') },
+          { label: 'Chi tiết video' },
+        ]}
+        eyebrow={
+          <Badge icon={<VideoIcon size={14} className="text-[#2E7D32]" />}>
+            Kho video cộng đồng
+          </Badge>
+        }
+      />
+
+      {notice && (
+        <div className="rounded-[16px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 flex items-center justify-between shadow-2xs">
+          <span>{notice}</span>
           <button
             type="button"
-            onClick={() => onNavigate?.('/')}
-            className="hover:text-emerald-700 transition-colors shrink-0"
+            onClick={() => setNotice(null)}
+            className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold"
           >
-            Trang chủ
+            Đóng
           </button>
-          <span className="shrink-0">›</span>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/videos')}
-            className="hover:text-emerald-700 transition-colors shrink-0"
-          >
-            Video
-          </button>
-          <span className="shrink-0">›</span>
-          <span
-            className="truncate max-w-[200px] sm:max-w-md font-medium text-slate-700"
-            title={titleCleaned}
-          >
-            {titleCleaned}
-          </span>
-        </nav>
+        </div>
+      )}
+      {actionError && (
+        <AlertError title="Thao tác không thành công" message={actionError} />
+      )}
 
-        {/* Nút quay lại */}
-        <button
-          type="button"
-          onClick={() => onNavigate?.('/videos')}
-          className="mb-5 inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-600 hover:text-emerald-700 transition-colors"
-        >
-          <ArrowLeft size={16} /> Quay lại kho video
-        </button>
-
-        {/* Khung nội dung video chi tiết */}
-        <article className="w-full">
-            {/* ================= 1. VIDEO PLAYER & ERROR STATE ================= */}
-            <div className="aspect-video overflow-hidden rounded-2xl bg-slate-950 shadow-md">
-              {isVideoAvailable ? (
-                <video
-                  key={video.id}
-                  src={video.mediaUrl ?? undefined}
-                  poster={video.thumbnailUrl ?? getFallbackThumbnail(video.id)}
-                  controls
-                  preload="metadata"
-                  className="h-full w-full object-contain"
-                  onPlay={() => void recordView()}
-                  onError={() => setHasVideoError(true)}
+      {/* Main Video Container (đồng bộ hoàn toàn style bài viết) */}
+      <article className="rounded-[24px] border border-slate-200 bg-white overflow-hidden shadow-xs">
+        {/* Video Player */}
+        <div className="relative aspect-video max-h-[540px] w-full overflow-hidden bg-slate-950">
+          {isVideoAvailable ? (
+            <video
+              key={video.id}
+              src={video.mediaUrl ?? undefined}
+              poster={video.thumbnailUrl ?? getFallbackThumbnail(video.id)}
+              controls
+              preload="metadata"
+              className="h-full w-full object-contain"
+              onPlay={() => void recordView()}
+              onError={() => setHasVideoError(true)}
+            />
+          ) : (
+            <div className="relative flex h-full w-full flex-col items-center justify-center p-6 text-center text-white">
+              {video.thumbnailUrl && (
+                <img
+                  src={video.thumbnailUrl}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover opacity-15 blur-sm pointer-events-none"
                 />
-              ) : (
-                /* Khung Error State tử tế khi video chưa có sẵn hoặc lỗi định dạng */
-                <div className="relative flex h-full w-full flex-col items-center justify-center p-6 text-center text-white">
-                  {video.thumbnailUrl && (
-                    <img
-                      src={video.thumbnailUrl}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover opacity-15 blur-sm pointer-events-none"
-                    />
-                  )}
-                  <div className="relative z-10 flex flex-col items-center max-w-md mx-auto">
-                    <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/15 text-amber-400 ring-8 ring-amber-500/10">
-                      <AlertTriangle size={28} />
-                    </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white">
-                      Video này tạm thời không khả dụng
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-400 leading-relaxed max-w-sm">
-                      Tệp video đang được bảo trì hoặc định dạng chưa được trình duyệt của bạn hỗ trợ.
-                    </p>
-                    <div className="mt-4 flex items-center gap-3">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        leftIcon={<Flag size={14} />}
-                        onClick={handleReportVideo}
-                        className="!h-9 !rounded-xl !bg-white/10 !text-white hover:!bg-white/20 !border-white/20 text-xs font-semibold"
-                      >
-                        {hasReported ? 'Đã gửi báo lỗi' : 'Báo lỗi'}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        leftIcon={<RotateCcw size={14} />}
-                        onClick={() => setHasVideoError(false)}
-                        className="!h-9 !rounded-xl !border-slate-700 !text-slate-300 hover:!bg-slate-800 text-xs font-semibold"
-                      >
-                        Thử lại
-                      </Button>
-                    </div>
-                  </div>
-                </div>
               )}
-            </div>
-
-            {/* ================= 2. THÔNG TIN & TƯƠNG TÁC (INFO & ACTIONS) ================= */}
-            {/* Tiêu đề video chuẩn Desktop */}
-            <h1
-              className="mt-5 text-2xl lg:text-3xl font-extrabold text-slate-900 leading-snug line-clamp-2"
-              title={titleCleaned}
-            >
-              {titleCleaned}
-            </h1>
-
-            {/* Metadata Bar: Tác giả và các Action Buttons */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/90 pb-4">
-              {/* Tác giả */}
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 font-bold shadow-xs">
-                  <ChefHat size={22} />
+              <div className="relative z-10 flex flex-col items-center max-w-md mx-auto">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/15 text-amber-400 ring-8 ring-amber-500/10">
+                  <AlertTriangle size={28} />
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">{authorName}</h4>
-                </div>
-              </div>
-
-              {/* Các nút Hành động (Thích, Lưu, Chia sẻ) với gap căn đều và state UI rõ ràng */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Nút Thích: Ẩn số "0" nếu lượt thích = 0 */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={interactionsLoading}
-                  isLoading={liking}
-                  aria-pressed={reaction.reactedByMe}
-                  leftIcon={
-                    <ThumbsUp
-                      size={15}
-                      className="shrink-0"
-                      fill={reaction.reactedByMe ? 'currentColor' : 'none'}
-                    />
-                  }
-                  onClick={() => void toggleLike()}
-                  className={`!h-9 !rounded-xl !px-3.5 inline-flex items-center gap-2 font-medium text-xs sm:text-sm transition-all ${
-                    reaction.reactedByMe
-                      ? '!border-emerald-500 !bg-emerald-50 !text-emerald-700 font-semibold shadow-xs'
-                      : '!border-slate-300 !text-slate-700 hover:!bg-slate-50'
-                  }`}
-                >
-                  {reaction.count > 0 ? `${reaction.count} Thích` : 'Thích'}
-                </Button>
-
-                {/* Nút Lưu video: 2 state UI phân biệt hoàn toàn (chưa lưu vs đã lưu) */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={interactionsLoading}
-                  isLoading={saving}
-                  aria-pressed={saved}
-                  leftIcon={
-                    <Bookmark
-                      size={15}
-                      className="shrink-0"
-                      fill={saved ? 'currentColor' : 'none'}
-                    />
-                  }
-                  onClick={() => void toggleSave()}
-                  className={`!h-9 !rounded-xl !px-3.5 inline-flex items-center gap-2 font-medium text-xs sm:text-sm transition-all ${
-                    saved
-                      ? '!border-emerald-500 !bg-emerald-50 !text-emerald-700 font-semibold shadow-xs'
-                      : '!border-slate-300 !text-slate-700 hover:!bg-slate-50'
-                  }`}
-                >
-                  {saved ? 'Đã lưu' : 'Lưu video'}
-                </Button>
-
-                {/* Nút Chia sẻ */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Share2 size={15} className="shrink-0" />}
-                  onClick={() => void shareVideo()}
-                  className="!h-9 !rounded-xl !px-3.5 inline-flex items-center gap-2 font-medium text-xs sm:text-sm !border-slate-300 !text-slate-700 hover:!bg-slate-50"
-                >
-                  Chia sẻ
-                </Button>
-              </div>
-            </div>
-
-            {/* Thông báo thao tác hoặc lỗi tương tác */}
-            {actionError && (
-              <div className="mt-4">
-                <AlertError title="Thao tác không thành công" message={actionError} />
-              </div>
-            )}
-            {notice && (
-              <p
-                role="status"
-                className="mt-4 rounded-xl border border-emerald-200 bg-white p-3 text-xs sm:text-sm text-emerald-800 shadow-xs"
-              >
-                {notice}
-              </p>
-            )}
-
-            {/* Box Mô tả */}
-            <div className="mt-6 rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 sm:p-6 shadow-xs">
-              {/* Tags */}
-              <div className="mb-3.5 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200/60">
-                  Video Chay
-                </span>
-              </div>
-
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                Mô tả chi tiết
-              </h3>
-              <p className="mt-2.5 whitespace-pre-line text-sm leading-relaxed text-slate-800">
-                {cleanPrefix(video.description) ||
-                  'Người đăng chưa cung cấp thông tin mô tả chi tiết cho video nấu ăn này.'}
-              </p>
-
-              {/* Thông tin phụ trợ gom gọn trong box */}
-              <div className="mt-4 pt-3.5 border-t border-slate-200/70 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-600">
-                <span>
-                  ⏱ <strong>Thời lượng:</strong> {getItemDuration(video.id)}
-                </span>
-              </div>
-            </div>
-
-            {/* ================= KHỐI BÌNH LUẬN ================= */}
-            <section className="mt-8 rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
-              {/* Tiêu đề bình luận: Ẩn số (0) nếu comments.length === 0 */}
-              <h2 className="text-lg font-bold text-slate-900">
-                {comments.length === 0 ? 'Bình luận' : `Bình luận (${comments.length})`}
-              </h2>
-
-              {/* Khung nhập bình luận */}
-              <div className="mt-4">
-                {replyTo && (
-                  <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3 text-xs sm:text-sm text-emerald-900 border border-emerald-100">
-                    <span>Đang phản hồi bình luận của thành viên</span>
-                    <button
-                      type="button"
-                      disabled={sending}
-                      onClick={() => setReplyTo(null)}
-                      className="font-semibold text-emerald-700 hover:text-emerald-800"
-                    >
-                      Hủy phản hồi
-                    </button>
-                  </div>
-                )}
-                <Textarea
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  disabled={sending}
-                  placeholder={
-                    replyTo
-                      ? 'Nhập nội dung phản hồi của bạn...'
-                      : 'Chia sẻ cảm nghĩ hoặc đặt câu hỏi về món ăn này...'
-                  }
-                  rows={3}
-                  fullWidth
-                  className="!rounded-xl !border-slate-300 focus:!border-emerald-600 focus:!ring-emerald-500/20"
-                />
-
-                {/* Nút Gửi */}
-                <div className="mt-3 flex justify-end">
+                <h3 className="text-base sm:text-lg font-bold text-white">
+                  Video này tạm thời không khả dụng
+                </h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed max-w-sm">
+                  Tệp video đang được bảo trì hoặc định dạng chưa được trình duyệt hỗ trợ.
+                </p>
+                <div className="mt-4 flex items-center gap-3">
                   <Button
-                    variant="primary"
-                    disabled={!draft.trim() || sending}
-                    isLoading={sending}
-                    onClick={() => void sendComment()}
-                    className={`!h-9 !rounded-xl !px-5 text-xs sm:text-sm font-semibold transition-all ${
-                      !draft.trim()
-                        ? '!bg-slate-200 !text-slate-400 !border-slate-200 cursor-not-allowed shadow-none'
-                        : '!bg-emerald-700 hover:!bg-emerald-800 !text-white shadow-sm'
-                    }`}
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<Flag size={14} />}
+                    onClick={handleReportVideo}
+                    className="!h-9 !rounded-xl !bg-white/10 !text-white hover:!bg-white/20 !border-white/20 text-xs font-semibold"
                   >
-                    {replyTo ? 'Gửi phản hồi' : 'Gửi bình luận'}
+                    {hasReported ? 'Đã gửi báo lỗi' : 'Báo lỗi'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<RotateCcw size={14} />}
+                    onClick={() => setHasVideoError(false)}
+                    className="!h-9 !rounded-xl !border-slate-700 !text-slate-300 hover:!bg-slate-800 text-xs font-semibold"
+                  >
+                    Thử lại
                   </Button>
                 </div>
               </div>
+            </div>
+          )}
+        </div>
 
-              {/* Danh sách bình luận */}
-              <div className="mt-6 space-y-4">
-                {interactionsLoading && <SkeletonLoader count={2} variant="text" />}
-                {!interactionsLoading && comments.length === 0 && (
-                  <div className="py-6 text-center text-xs sm:text-sm text-slate-500">
-                    Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ về video!
-                  </div>
-                )}
-                {rootComments.map((comment) => (
-                  <div key={comment.id} className="space-y-3">
-                    {renderComment(comment)}
-                    {replies.get(comment.id)?.map((reply) => renderComment(reply, true))}
-                  </div>
-                ))}
+        {/* Nội dung chi tiết */}
+        <div className="p-6 sm:p-10 space-y-6">
+          {/* Tags */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-bold">
+              Video Hướng Dẫn
+            </span>
+            {video.dietType && (
+              <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 text-xs font-semibold">
+                {video.dietType}
+              </span>
+            )}
+            <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-3 py-1 text-xs font-medium">
+              ⏱ {getItemDuration(video.id)}
+            </span>
+          </div>
+
+          {/* Tiêu đề video lớn */}
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            {titleCleaned}
+          </h1>
+
+          {/* Author & Meta Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-slate-100 text-xs sm:text-sm text-slate-500">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 font-bold text-sm">
+                <ChefHat size={20} />
               </div>
-            </section>
-          </article>
-      </main>
+              <div>
+                <p className="font-bold text-slate-900 text-sm">{authorName}</p>
+                <p className="text-xs text-slate-400">
+                  {video.viewCount} lượt xem · Video nấu ăn chay
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-xs font-medium">
+              <span className="flex items-center gap-1.5">
+                <Calendar size={14} /> Xuất bản: {formatDate(video.createdAtUtc)}
+              </span>
+            </div>
+          </div>
+
+          {/* Mô tả video */}
+          <div className="prose prose-emerald max-w-none text-slate-800 leading-relaxed pt-2 whitespace-pre-line text-base">
+            {cleanPrefix(video.description) ||
+              'Người đăng chưa cung cấp thông tin mô tả chi tiết cho video nấu ăn này.'}
+          </div>
+
+          {/* Actions Footer */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={interactionsLoading || liking}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                  reaction.reactedByMe
+                    ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
+                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                } disabled:opacity-50`}
+                onClick={() => void toggleLike()}
+              >
+                <ThumbsUp
+                  size={16}
+                  className={reaction.reactedByMe ? 'fill-current' : ''}
+                />
+                <span>{reaction.reactedByMe ? 'Đã thích' : 'Thích'}</span>
+                <span className="px-2 py-0.5 rounded-full bg-black/10 text-xs font-bold">
+                  {reaction.count}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={interactionsLoading || saving}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                  saved
+                    ? 'bg-amber-500 text-white shadow-xs hover:bg-amber-600'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                } disabled:opacity-50`}
+                onClick={() => void toggleSave()}
+              >
+                <Bookmark size={16} className={saved ? 'fill-current' : ''} />
+                <span>{saved ? 'Đã lưu' : 'Lưu video'}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void shareVideo()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition"
+              >
+                <Share2 size={15} /> Chia sẻ
+              </button>
+              <button
+                type="button"
+                onClick={handleReportVideo}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition"
+              >
+                <Flag size={15} /> {hasReported ? 'Đã báo lỗi' : 'Báo lỗi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      {/* ================= KHỐI BÌNH LUẬN (ĐỒNG BỘ BÀI VIẾT) ================= */}
+      <section className="rounded-[24px] border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+            <MessageSquare size={16} />
+          </span>
+          <h2 className="text-xl font-bold text-slate-900">
+            {comments.length === 0 ? 'Bình luận' : `Bình luận (${comments.length})`}
+          </h2>
+        </div>
+
+        {/* Khung nhập bình luận */}
+        <div>
+          {replyTo && (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3 text-xs sm:text-sm text-emerald-900 border border-emerald-100">
+              <span>Đang phản hồi bình luận của thành viên</span>
+              <button
+                type="button"
+                disabled={sending}
+                onClick={() => setReplyTo(null)}
+                className="font-semibold text-emerald-700 hover:text-emerald-800"
+              >
+                Hủy phản hồi
+              </button>
+            </div>
+          )}
+          <Textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            disabled={sending}
+            placeholder={
+              replyTo
+                ? 'Nhập nội dung phản hồi của bạn...'
+                : 'Chia sẻ cảm nghĩ hoặc đặt câu hỏi về món ăn này...'
+            }
+            rows={3}
+            fullWidth
+            className="!rounded-xl !border-slate-300 focus:!border-emerald-600 focus:!ring-emerald-500/20"
+          />
+
+          <div className="mt-3 flex justify-end">
+            <Button
+              variant="primary"
+              disabled={!draft.trim() || sending}
+              isLoading={sending}
+              onClick={() => void sendComment()}
+              className="!h-9 !rounded-xl !bg-[#2E7D32] hover:!bg-[#1B5E20] !px-5 text-xs sm:text-sm font-semibold shadow-xs"
+            >
+              {replyTo ? 'Gửi phản hồi' : 'Gửi bình luận'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Danh sách bình luận */}
+        <div className="space-y-4 pt-2">
+          {interactionsLoading && <SkeletonLoader count={2} variant="text" />}
+          {!interactionsLoading && comments.length === 0 && (
+            <div className="py-6 text-center text-xs sm:text-sm text-slate-500">
+              Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ về video!
+            </div>
+          )}
+          {rootComments.map((comment) => (
+            <div key={comment.id} className="space-y-3">
+              {renderComment(comment)}
+              {replies.get(comment.id)?.map((reply) => renderComment(reply, true))}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Nút quay lại danh sách video ở cuối trang */}
+      <div className="mt-12 pt-6 border-t border-slate-200 flex justify-start">
+        <Button
+          type="button"
+          variant="outline"
+          size="md"
+          leftIcon={<ArrowLeft size={16} />}
+          onClick={() => onNavigate?.('/videos')}
+          className="!rounded-[12px] !border-slate-300 hover:!border-[#2E7D32] hover:!text-[#2E7D32] font-semibold"
+        >
+          Quay lại danh sách video
+        </Button>
+      </div>
     </div>
   )
 }
