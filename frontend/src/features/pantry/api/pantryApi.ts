@@ -23,7 +23,8 @@ export const CATEGORY_ORDER: Array<{ key: PantryCategory | 'all'; emoji: string;
 ]
 
 export const QUICK_ADD_CHIPS: Array<{ name: string; emoji: string; cls: string }> = [
-  { name: 'Đậu hũ', emoji: '🫘', cls: 'bg-[#FEF3C7] text-[#92400E]' },
+  { name: 'Đậu hũ chiên', emoji: '🫘', cls: 'bg-[#FEF3C7] text-[#92400E]' },
+  { name: 'Đậu hũ non', emoji: '🫘', cls: 'bg-[#FEF3C7] text-[#92400E]' },
   { name: 'Nấm rơm', emoji: '🍄', cls: 'bg-[#FEF3C7] text-[#92400E]' },
   { name: 'Cà chua', emoji: '🍅', cls: 'bg-[#FEF3C7] text-[#92400E]' },
   { name: 'Bí đỏ', emoji: '🎃', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
@@ -31,6 +32,54 @@ export const QUICK_ADD_CHIPS: Array<{ name: string; emoji: string; cls: string }
   { name: 'Hạt sen', emoji: '🌰', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
   { name: 'Dầu mè', emoji: '🍱', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
 ]
+
+export const INGREDIENT_RECIPE_MAP: Record<string, string[]> = {
+  'Đậu hũ chiên': ['Đậu hũ sốt cà chua truyền thống', 'Bún bò Huế chay', 'Gỏi ngó sen đậu hũ giòn'],
+  'Đậu hũ non': ['Canh chua chay Nam Bộ', 'Canh rong biển hạt sen đậu hũ non', 'Đậu hũ non chiên giòn sốt me chua ngọt', 'Canh cà chua đậu hũ trắng bồng bềnh'],
+  'Đậu hũ trắng': ['Bún riêu chay thuần thực vật', 'Canh cà chua đậu hũ trắng bồng bềnh'],
+  'Nấm rơm': ['Đậu hũ sốt cà chua truyền thống', 'Bún riêu chay thuần thực vật', 'Trứng hấp nấm rơm và bắp ngọt'],
+  'Nấm đùi gà': ['Bún xào trứng kiểu Singapore', 'Mì Ý Carbonara', 'Mì Ý sốt kem nấm', 'Nấm đùi gà kho tiêu xanh', 'Nấm đùi gà xào bơ tỏi', 'Phở nấm chay gia truyền', 'Súp kem nấm'],
+  'Nấm đông cô tươi': ['Cải thìa xào nấm đông cô', 'Trứng chưng nấm đông cô sốt tương', 'Phở nấm chay gia truyền'],
+  'Nấm kim châm': ['Trứng chiên nấm kim châm giòn thơm'],
+  'Nấm bào ngư': ['Chả giò chay giòn rụm', 'Canh chua chay Nam Bộ'],
+  'Cà chua': ['Đậu hũ sốt cà chua truyền thống', 'Canh chua chay Nam Bộ', 'Bún riêu chay thuần thực vật', 'Canh cà chua đậu hũ trắng bồng bềnh'],
+  'Bí đỏ': ['Súp bí đỏ kem tươi hạnh nhân', 'Canh bí đỏ đậu phộng'],
+  'Đậu cô ve': ['Cà ri rau củ Ấn Độ', 'Cơm chiên hoàng bào'],
+  'Hạt sen': ['Canh rong biển hạt sen đậu hũ non', 'Cơm chiên ngọc bích hạt sen'],
+  'Dầu mè': ['Gỏi ngó sen đậu hũ giòn', 'Bún xào trứng kiểu Singapore', 'Trứng cuộn rong biển mè rang kiểu Nhật', 'Cải thìa xào nấm đông cô'],
+  'Rau muống': ['Canh chua chay Nam Bộ', 'Rau muống xào tỏi'],
+  'Cải thìa': ['Cải thìa xào nấm đông cô'],
+  'Ngó sen tươi': ['Gỏi ngó sen đậu hũ giòn ngọt'],
+  'Đậu phộng rang': ['Cà tím nướng mỡ hành đậu phộng', 'Gỏi ngó sen đậu hũ giòn ngọt'],
+  'Cà tím': ['Cà tím nướng mỡ hành đậu phộng'],
+  'Khoai tây': ['Cà ri rau củ Ấn Độ với bơ và sữa chua', 'Khoai tây nghiền bơ sữa đút lò phô mai', 'Salad Nga chay'],
+  'Cà rốt': ['Bún xào trứng kiểu Singapore', 'Cà ri rau củ Ấn Độ', 'Chả giò chay giòn rụm nhân nấm củ quả', 'Gỏi ngó sen đậu hũ giòn ngọt', 'Phở nấm chay gia truyền', 'Salad Nga chay'],
+  'Bắp ngọt': ['Bún bò Huế chay', 'Bún riêu chay thuần thực vật', 'Cơm chiên hoàng bào vàng ươm', 'Cơm chiên ngọc bích hạt sen', 'Phở nấm chay', 'Súp ngô ngọt kem sữa tươi'],
+  'Gạo thơm': ['Cơm chiên hoàng bào vàng ươm', 'Cơm chiên ngọc bích hạt sen'],
+  'Bánh phở tươi': ['Phở nấm chay gia truyền'],
+  'Bánh tráng cuốn': ['Chả giò chay giòn rụm nhân nấm củ quả'],
+  'Bún tươi': ['Bún bò Huế chay', 'Bún riêu chay thuần thực vật', 'Bún xào trứng kiểu Singapore', 'Mì Ý sốt kem nấm'],
+  'Đậu gà': ['Cà ri rau củ Ấn Độ với bơ và sữa chua'],
+  'Đậu lăng đỏ': ['Súp đậu lăng đỏ Ấn Độ'],
+  'Hạt điều': ['Súp bí đỏ kem tươi hạnh nhân'],
+  'Yến mạch': ['Trà sữa yến mạch sữa tươi thanh mát'],
+  'Trứng gà tươi': ['Bánh mì kẹp trứng chiên hành thơm nức', 'Salad rau trộn trứng luộc lòng đào', 'Bánh kếp chuối trứng sữa (Pancake)', 'Cơm chiên hoàng bào vàng ươm', 'Khổ qua xào trứng gà', 'Trứng chiên nấm kim châm'],
+  'Sữa tươi thanh trùng': ['Bánh kếp chuối trứng sữa (Pancake)', 'Bánh flan caramel', 'Súp ngô ngọt kem sữa tươi', 'Trà sữa yến mạch'],
+  'Sữa chua không đường': ['Cà ri rau củ Ấn Độ với bơ và sữa chua', 'Salad rau củ sốt sữa chua mè rang'],
+  'Phô mai Mozzarella': ['Bánh mì bơ tỏi phô mai Mozzarella', 'Bông cải xanh đút lò sốt phô mai béo ngậy'],
+  'Phô mai Parmesan': ['Mì Ý Carbonara sốt trứng phô mai', 'Mì Ý sốt kem nấm và phô mai Parmesan'],
+  'Bơ lạt': ['Bánh kếp chuối trứng sữa (Pancake)', 'Bánh mì bơ tỏi phô mai Mozzarella', 'Khoai tây nghiền bơ sữa đút lò', 'Nấm đùi gà xào bơ tỏi'],
+}
+
+export function getRecipesForIngredient(name: string): string[] {
+  const trimmed = name.trim().toLowerCase()
+  for (const [key, recipes] of Object.entries(INGREDIENT_RECIPE_MAP)) {
+    if (key.toLowerCase() === trimmed || key.toLowerCase().includes(trimmed) || trimmed.includes(key.toLowerCase())) {
+      return recipes
+    }
+  }
+  return []
+}
 
 export async function getPantryCategories(): Promise<
   Array<{ key: PantryCategory | 'all'; emoji: string; label: string }>
@@ -332,16 +381,98 @@ export async function getPantryItems(category: PantryCategory | 'all' = 'all'): 
   return []
 }
 
-export async function addPantryItem(form: AddIngredientFormState): Promise<PantryItem> {
+export interface CatalogIngredient {
+  id: string
+  name: string
+  aliases?: string | null
+  defaultUnit?: string | null
+  caloriesPer100Gram?: number | null
+  origin?: string
+  allergens?: string | null
+  recipeNames?: string[]
+}
+
+export function removeVietnameseDiacritics(str: string): string {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+}
+
+let cachedCatalog: CatalogIngredient[] | null = null
+
+export async function fetchAllCatalogIngredients(): Promise<CatalogIngredient[]> {
+  if (cachedCatalog && cachedCatalog.length > 0) return cachedCatalog
+  try {
+    const res = await apiClient.get<{ items: CatalogIngredient[] }>(
+      '/api/ingredients?pageSize=100',
+      { requiresAuth: false },
+    )
+    if (res?.items && Array.isArray(res.items)) {
+      cachedCatalog = res.items.map((ing) => ({
+        ...ing,
+        recipeNames: getRecipesForIngredient(ing.name),
+      }))
+      return cachedCatalog
+    }
+  } catch (err) {
+    console.error('[pantryApi.fetchAllCatalogIngredients] Error:', err)
+  }
+  return []
+}
+
+export async function searchCatalogIngredients(keyword: string): Promise<CatalogIngredient[]> {
+  const term = keyword.trim()
+  if (!term) return []
+
+  const catalog = await fetchAllCatalogIngredients()
+  const normTerm = removeVietnameseDiacritics(term)
+
+  const matches = catalog.filter((ing) => {
+    const normName = removeVietnameseDiacritics(ing.name)
+    const normAliases = ing.aliases ? removeVietnameseDiacritics(ing.aliases) : ''
+    return normName.includes(normTerm) || normAliases.includes(normTerm)
+  })
+
+  if (matches.length > 0) {
+    return matches.slice(0, 15)
+  }
+
+  try {
+    const url = `/api/ingredients?search=${encodeURIComponent(term)}&pageSize=20`
+    const res = await apiClient.get<{ items: CatalogIngredient[] }>(url, { requiresAuth: false })
+    const items = res?.items || []
+    return items.map((ing) => ({
+      ...ing,
+      recipeNames: getRecipesForIngredient(ing.name),
+    }))
+  } catch (err) {
+    console.error('[pantryApi.searchCatalogIngredients] Error: ' + err)
+    return []
+  }
+}
+
+export async function addPantryItem(
+  form: AddIngredientFormState & { ingredientId?: string },
+): Promise<PantryItem> {
   const qty =
     Number.isFinite(Number(form.quantity)) && Number(form.quantity) > 0 ? Number(form.quantity) : 1
   const unitStr = form.unit.trim() || 'g'
 
-  const created = await apiClient.post<BackendPantryItem>('/api/pantry/items', {
-    name: form.name.trim(),
+  const payload: { name?: string; ingredientId?: string; quantity: number; unit: string } = {
     quantity: qty,
     unit: unitStr,
-  })
+  }
+
+  if (form.ingredientId) {
+    payload.ingredientId = form.ingredientId
+  } else {
+    payload.name = form.name.trim()
+  }
+
+  const created = await apiClient.post<BackendPantryItem>('/api/pantry/items', payload)
 
   if (created && created.id) {
     return mapBackendPantryItem(created)

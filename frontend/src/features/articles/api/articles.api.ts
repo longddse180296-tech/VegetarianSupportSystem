@@ -74,10 +74,12 @@ export interface Reaction {
 }
 export const articleCategories = [
   'Dinh dưỡng',
-  'Lối sống chay',
-  'Mẹo nấu ăn',
   'Sức khỏe',
-  'Nguyên liệu',
+  'Ẩm thực',
+  'Lối sống',
+  'Mẹo vặt',
+  'Thể thao',
+  'Kiến thức',
   'Kinh nghiệm',
 ]
 export const articleApi = {

@@ -5,7 +5,7 @@ import {
   RotateCcw,
   Sparkles,
 } from 'lucide-react'
-import { EmptyState, SkeletonCard } from '../../../shared/components'
+import { Badge, EmptyState, PageHeading, SkeletonCard } from '../../../shared/components'
 import {
   filterRestaurants,
   getRestaurantDetail,
@@ -177,32 +177,16 @@ export default function RestaurantsPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-[#121C2A] font-['Inter']">
-      <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">
-        {/* ===== Breadcrumbs ===== */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="breadcrumb" className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/')}
-              className="text-emerald-700 hover:underline font-semibold"
-            >
-              Trang chủ
-            </button>
-            <span className="text-slate-300">›</span>
-            <span className="font-bold text-slate-900">Nhà hàng chay</span>
-          </nav>
-        </div>
-
-        {/* ===== Header ===== */}
-        <header className="mb-5">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            Nhà hàng chay gần bạn
-          </h1>
-          <p className="mt-1.5 text-sm sm:text-base text-slate-600 max-w-[760px] leading-relaxed">
-            Khám phá các nhà hàng và quán ăn chay thanh tịnh, dinh dưỡng phù hợp quanh khu vực của bạn.
-          </p>
-        </header>
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Nhà hàng chay gần bạn"
+        description="Khám phá các nhà hàng và quán ăn chay thanh tịnh, dinh dưỡng phù hợp quanh khu vực của bạn."
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+          { label: 'Nhà hàng chay' },
+        ]}
+        eyebrow={<Badge icon={<MapPin size={14} />}>Địa điểm ẩm thực chay</Badge>}
+      />
 
         {/* ===== Location Banner with Fallback Manual Selection ===== */}
         {locationState === 'prompt' && (
@@ -375,7 +359,6 @@ export default function RestaurantsPage({
             </div>
           </div>
         </div>
-      </div>
 
       {/* Toast popup */}
       {toast && (

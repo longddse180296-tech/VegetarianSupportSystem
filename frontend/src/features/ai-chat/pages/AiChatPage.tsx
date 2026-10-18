@@ -20,7 +20,7 @@ import {
   User as UserIcon,
 } from 'lucide-react'
 
-import { Button, Modal } from '../../../shared/components'
+import { Badge, Button, Modal, PageHeading } from '../../../shared/components'
 import Markdown from 'react-markdown'
 import { useAuth } from '../../auth'
 
@@ -87,6 +87,7 @@ import type {
 interface AiChatPageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
+  initialQuery?: string
 }
 
 const EXTRA_FAQS: FaqItem[] = [
@@ -94,7 +95,7 @@ const EXTRA_FAQS: FaqItem[] = [
   { id: 'f-5', icon: 'HelpCircle', question: 'Gợi ý các loại hạt giàu Omega-3?' },
 ]
 
-export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) {
+export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }: AiChatPageProps) {
   const { user } = useAuth()
   const appRole: AppRole = isLoggedIn || !!user ? 'User' : 'Guest'
 
@@ -106,7 +107,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
   })
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(initialQuery)
   const [isBotBusy, setIsBotBusy] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -122,10 +123,10 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const cancelStreamRef = useRef<(() => void) | null>(null)
 
-  // Auto-scroll to bottom whenever messages update or bot finishes/streams
+  // Ensure page always starts at top when visiting AI Assistant
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isBotBusy, streamingMessageId])
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [])
 
   // Reactive reload of user profile fields
   const refreshProfileFields = useCallback(async () => {
@@ -290,35 +291,16 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2937] font-['Inter']">
-      <div className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">
-        {/* ============= BREADCRUMBS ============= */}
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-4 flex items-center gap-2 text-[14px] text-[#6B7280]"
-        >
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/')}
-            className="hover:text-[#2E7D32] transition"
-          >
-            Trang chủ
-          </button>
-          <span className="text-[#9CA3AF]" aria-hidden>
-            ›
-          </span>
-          <span className="text-[#1F2937] font-medium">Trợ lý AI</span>
-        </nav>
-
-        {/* ============= PAGE HEADER ============= */}
-        <header className="mb-6 flex flex-col gap-2">
-          <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-[#111827]">
-            Trợ lý dinh dưỡng AI
-          </h1>
-          <p className="text-[14px] sm:text-[15px] text-gray-600 max-w-[720px] font-normal leading-relaxed">
-            Hỏi đáp về dinh dưỡng chay, nguyên liệu thay thế, BMI, calo và nhận gợi ý bữa ăn khoa học được cá nhân hóa cho bạn.
-          </p>
-        </header>
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Trợ lý dinh dưỡng AI"
+        description="Hỏi đáp về dinh dưỡng chay, nguyên liệu thay thế, BMI, calo và nhận gợi ý bữa ăn khoa học được cá nhân hóa cho bạn."
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+          { label: 'Trợ lý AI' },
+        ]}
+        eyebrow={<Badge icon={<Sparkles size={14} />}>Trợ lý AI thông minh</Badge>}
+      />
 
         {/* ============= MAIN 2 COLUMNS ============= */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -761,7 +743,6 @@ export default function AiChatPage({ onNavigate, isLoggedIn }: AiChatPageProps) 
             </div>
           </aside>
         </div>
-      </div>
 
       {/* ============= MODAL ĐĂNG NHẬP (KHI HẾT LƯỢT GUEST) ============= */}
       <Modal

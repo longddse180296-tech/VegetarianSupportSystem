@@ -4,7 +4,7 @@ import { profileApi } from '../../profile/api/profileApi'
 import type { UserProfile } from '../../profile/types'
 import { mealPlanApi, nextMonday } from '../api/mealPlanApi'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
-import { Breadcrumb } from '../../../shared/components'
+import { Badge, Breadcrumb, PageHeading } from '../../../shared/components'
 
 interface PersonalizationSetupPageProps { onNavigate?: (path: string) => void }
 
@@ -38,17 +38,17 @@ export const PersonalizationSetupPage = ({ onNavigate }: PersonalizationSetupPag
 
   if (loading) return <div className="ui-page-container py-8"><Breadcrumb items={[{ label: 'Trang chủ', onClick: () => onNavigate?.('/') }, { label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') }, { label: 'Tạo thực đơn' }]} /><MealPlanSkeleton /></div>
   return (
-    <div className="ui-page-container py-8 space-y-7">
-      <Breadcrumb items={[
-        { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
-        { label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') },
-        { label: 'Tạo thực đơn' },
-      ]} />
-      <section className="rounded-3xl bg-gradient-to-br from-[#0f4a24] to-[#22874a] p-8 text-white space-y-3">
-        <Sparkles className="w-7 h-7 text-emerald-200" />
-        <h1 className="text-3xl font-black">Thực đơn cá nhân hóa 7 ngày</h1>
-        <p className="text-sm text-white/80">21 bữa sáng, trưa và tối từ công thức đang hoạt động, theo chế độ ăn, dị ứng và thực phẩm cần tránh trong hồ sơ của bạn.</p>
-      </section>
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Thực đơn cá nhân hóa 7 ngày"
+        description="21 bữa sáng, trưa và tối từ công thức đang hoạt động, theo chế độ ăn, dị ứng và thực phẩm cần tránh trong hồ sơ của bạn."
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+          { label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') },
+          { label: 'Tạo thực đơn' },
+        ]}
+        eyebrow={<Badge icon={<Sparkles size={14} />}>Thiết lập thực đơn</Badge>}
+      />
       <div className="grid md:grid-cols-2 gap-6">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 space-y-4">
           <h2 className="font-bold text-lg">Hồ sơ dùng cho kế hoạch</h2>

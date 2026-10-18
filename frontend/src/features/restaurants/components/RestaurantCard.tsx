@@ -103,7 +103,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Top badges row: diet type */}
           <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-            {restaurant.dietTypes.slice(0, 2).map((d) => (
+            {restaurant.dietTypes.map((d) => (
               <span
                 key={d}
                 className={`inline-flex items-center rounded-full border px-2.5 py-[2px] text-[11px] font-bold leading-none ${dietPillClass(

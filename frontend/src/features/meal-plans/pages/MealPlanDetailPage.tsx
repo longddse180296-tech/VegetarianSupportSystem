@@ -3,7 +3,7 @@ import { Calendar, Check, FileDown, Loader2, Plus, RefreshCw, ShoppingCart, X } 
 import { addPlanDays, formatPlanDate, mealNutrition, mealPlanApi, nextMonday, PLAN_DIET_LABELS } from '../api/mealPlanApi'
 import type { PlanPage, ReplacementRecipe, SavedPlan, SavedPlanMeal } from '../types/mealPlanBackend.types'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
-import { Breadcrumb } from '../../../shared/components'
+import { Badge, Breadcrumb, Button, PageHeading } from '../../../shared/components'
 
 const slotLabels = { Breakfast: 'Bữa sáng', Lunch: 'Bữa trưa', Dinner: 'Bữa tối' }
 const slots = ['Breakfast', 'Lunch', 'Dinner'] as const
@@ -103,15 +103,25 @@ export const MealPlanDetailPage = ({ planId, onNavigate }: { planId?: string; on
     plan?.meals.some(meal => meal[key] === null) ? 'Chưa đầy đủ' : mealNutrition(total, 1)
 
   return (
-    <div className="ui-page-container py-8 space-y-7">
-      <Breadcrumb items={[
-        { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
-        ...(planId ? [{ label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') }, { label: 'Chi tiết thực đơn' }] : [{ label: 'Thực đơn' }]),
-      ]} />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h1 className="text-3xl font-black text-slate-900">Thực đơn của bạn</h1><p className="mt-2 text-sm text-slate-500">7 ngày · 3 bữa mỗi ngày · Lưu theo tài khoản</p></div>
-        <button className={primaryButtonClass} disabled={busy} onClick={() => onNavigate?.('/meal-plans/setup')}><Plus className="w-4 h-4" />Tạo thực đơn mới</button>
-      </div>
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Thực đơn của bạn"
+        description="7 ngày · 3 bữa mỗi ngày · Lưu theo tài khoản"
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+          ...(planId ? [{ label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') }, { label: 'Chi tiết thực đơn' }] : [{ label: 'Thực đơn' }]),
+        ]}
+        eyebrow={<Badge icon={<Calendar size={14} />}>Kế hoạch 7 ngày</Badge>}
+        actions={
+          <Button
+            leftIcon={<Plus size={16} />}
+            disabled={busy}
+            onClick={() => onNavigate?.('/meal-plans/setup')}
+          >
+            Tạo thực đơn mới
+          </Button>
+        }
+      />
       {error && <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error} <button disabled={busy} onClick={() => setRefresh(value => value + 1)} className="fe1-control ml-3 underline">Tải lại</button></div>}
       {notice && <p role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
       {!plan && !error && <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center space-y-4"><Calendar className="w-12 h-12 mx-auto text-emerald-700" /><h2 className="font-bold text-xl">Bạn chưa có thực đơn</h2><p className="text-sm text-slate-500">Kiểm tra chế độ ăn và dị ứng trong hồ sơ rồi tạo kế hoạch 21 bữa đầu tiên.</p></div>}

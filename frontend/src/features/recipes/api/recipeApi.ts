@@ -120,14 +120,35 @@ export interface RecipeFilterOptions {
   sortOptions: SelectOption[]
 }
 
-const CATEGORY_PILLS: CategoryPillOption[] = [
+export const CATEGORY_PILLS: CategoryPillOption[] = [
   { value: 'all', label: 'Tất cả' },
-  { value: 'main', label: 'Món chính' },
-  { value: 'salad', label: 'Salad' },
-  { value: 'soup', label: 'Món nước' },
-  { value: 'drink', label: 'Đồ uống' },
-  { value: 'dessert', label: 'Tráng miệng' },
+  { value: 'Cơm & Xôi', label: 'Cơm & Xôi' },
+  { value: 'Bún, Phở & Mì', label: 'Bún, Phở & Mì' },
+  { value: 'Canh & Súp', label: 'Canh & Súp' },
+  { value: 'Món Xào & Rau Củ', label: 'Món Xào & Rau Củ' },
+  { value: 'Món Kho & Rim', label: 'Món Kho & Rim' },
+  { value: 'Gỏi & Salad', label: 'Gỏi & Salad' },
+  { value: 'Món Cuốn & Chiên Giòn', label: 'Món Cuốn & Chiên Giòn' },
+  { value: 'Bánh & Tráng Miệng', label: 'Bánh & Tráng Miệng' },
+  { value: 'Đồ Uống Dinh Dưỡng', label: 'Đồ Uống Dinh Dưỡng' },
 ]
+
+export async function getCategoryOptions(): Promise<CategoryPillOption[]> {
+  try {
+    const res = await apiClient.get<{ items: Array<{ id: string; name: string }> }>('/api/categories?pageSize=50', {
+      requiresAuth: false,
+    })
+    if (res?.items && Array.isArray(res.items) && res.items.length > 0) {
+      return [
+        { value: 'all', label: 'Tất cả' },
+        ...res.items.map((c) => ({ value: c.name, label: c.name })),
+      ]
+    }
+  } catch (err) {
+    console.error('[recipeApi.getCategoryOptions] Lỗi khi gọi /api/categories', err)
+  }
+  return CATEGORY_PILLS
+}
 
 const DIET_PILLS: DietPillOption[] = [
   { value: 'all', label: 'Tất cả' },
@@ -299,7 +320,7 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
   const { dietType, dietCategory } = resolveDietType(summary.dietaryAssessments, summary.name)
   const img =
-    summary.imageUrl && !summary.imageUrl.includes('photo-1546069901-ba9599a7e63c')
+    summary.imageUrl && summary.imageUrl.startsWith('http')
       ? summary.imageUrl
       : getFallbackRecipeImage(summary.id, summary.name)
 
@@ -349,7 +370,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
   const { dietType, dietCategory } = resolveDietType(detail.dietaryAssessments, detail.name)
   const img =
-    detail.imageUrl && !detail.imageUrl.includes('photo-1546069901-ba9599a7e63c')
+    detail.imageUrl && detail.imageUrl.startsWith('http')
       ? detail.imageUrl
       : getFallbackRecipeImage(detail.id, detail.name)
 

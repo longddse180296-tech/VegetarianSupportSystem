@@ -10,7 +10,7 @@ import {
   Video as VideoIcon,
   X,
 } from 'lucide-react'
-import { Button, EmptyState, SkeletonCard } from '../../../shared/components'
+import { Badge, Button, EmptyState, PageHeading, SkeletonCard } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 import { getStoredToken } from '../../../shared/api/apiClient'
 import {
@@ -43,16 +43,6 @@ export default function VideoList({ onNavigate }: Props) {
   const [selectedDiet, setSelectedDiet] = useState('all')
   const [sort, setSort] = useState<'newest' | 'views'>('newest')
   const [page, setPage] = useState(1)
-  const [isScrolled, setIsScrolled] = useState(false)
-
-  // Track scroll position for sticky header shrinkage
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 40)
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   // Diet options with standardized labels
   const DIET_OPTIONS = useMemo(
@@ -173,102 +163,45 @@ export default function VideoList({ onNavigate }: Props) {
   }, [category, categoryPills])
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-slate-900">
-      {/* ================= STICKY MAIN HEADER ================= */}
-      <header
-        className={`sticky top-0 z-30 w-full transition-all duration-300 ${
-          isScrolled
-            ? 'border-b border-slate-200/80 bg-white/95 py-2.5 shadow-sm backdrop-blur-md sm:py-3'
-            : 'border-b border-transparent bg-transparent py-4 sm:py-6'
-        }`}
-      >
-        <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 transition-all ${
-                isScrolled ? 'h-9 w-9' : 'h-11 w-11'
-              }`}
-            >
-              <VideoIcon size={isScrolled ? 18 : 22} />
-            </span>
-            <div>
-              {!isScrolled && (
-                <span className="hidden text-[11px] font-bold tracking-wider text-emerald-700 uppercase sm:inline-block">
-                  Kho Video Cộng Đồng
-                </span>
-              )}
-              <h1
-                className={`font-extrabold text-slate-900 transition-all ${
-                  isScrolled ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
-                }`}
-              >
-                Video nấu ăn chay
-              </h1>
-            </div>
-          </div>
-
-          {/* Primary Action Button: "Đăng video" duy nhất */}
+    <div className="ui-page-container py-8 space-y-6">
+      <PageHeading
+        title="Video nấu ăn chay"
+        description="Kho video hướng dẫn nấu ăn chay trực quan, hấp dẫn từ cộng đồng ẩm thực chay."
+        breadcrumbs={[
+          { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
+          ...(currentCategoryLabel
+            ? [
+                {
+                  label: 'Video',
+                  onClick: () => {
+                    setCategory('all')
+                    setPage(1)
+                  },
+                },
+                { label: currentCategoryLabel },
+              ]
+            : [{ label: 'Video' }]),
+        ]}
+        eyebrow={<Badge icon={<VideoIcon size={14} />}>Kho video cộng đồng</Badge>}
+        actions={
           <Button
             variant="primary"
-            size={isScrolled ? 'sm' : 'md'}
             leftIcon={<Upload size={16} />}
             onClick={() =>
               onNavigate?.(
                 getStoredToken() ? '/profile/my-videos' : '/login?returnUrl=%2Fprofile%2Fmy-videos',
               )
             }
-            className="!rounded-[14px] !bg-emerald-700 hover:!bg-emerald-800 shadow-sm"
           >
             Đăng video
           </Button>
-        </div>
-      </header>
+        }
+      />
 
-      {/* ================= MAIN CONTAINER ================= */}
-      <main className="mx-auto max-w-[1240px] px-4 py-4 sm:px-6 sm:py-6">
-        {/* Dynamic Breadcrumb with category filter awareness */}
-        <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-slate-500">
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/')}
-            className="hover:text-emerald-700 transition-colors"
-          >
-            Trang chủ
-          </button>
-          <span>›</span>
-          <button
-            type="button"
-            onClick={() => {
-              setCategory('all')
-              setPage(1)
-            }}
-            className={`transition-colors ${
-              currentCategoryLabel ? 'hover:text-emerald-700' : 'font-semibold text-slate-800'
-            }`}
-          >
-            Video
-          </button>
-
-          {currentCategoryLabel && (
-            <>
-              <span>›</span>
-              <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-800 border border-emerald-200/60">
-                {currentCategoryLabel}
-              </span>
-            </>
-          )}
-
-          {selectedDiet !== 'all' && (
-            <span className="text-slate-400 text-xs">
-              (Chế độ: {DIET_OPTIONS.find((d) => d.value === selectedDiet)?.label || selectedDiet})
-            </span>
-          )}
-        </nav>
-
-        {/* ============== BỘ LỌC & TÌM KIẾM (FILTER BAR) ============== */}
-        <div
-          className="mb-8 rounded-[20px] border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs"
-        >
+      {/* ============== BỘ LỌC & TÌM KIẾM (FILTER BAR) ============== */}
+      <div
+        className="mb-8 rounded-[20px] border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs"
+      >
           {/* Hàng 1: Ô input có icon kính lúp bên trong + Dropdown Sort có icon */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             {/* Input tìm kiếm có icon kính lúp nằm bên trong */}
@@ -588,7 +521,6 @@ export default function VideoList({ onNavigate }: Props) {
             </div>
           </aside>
         </div>
-      </main>
     </div>
   )
 }

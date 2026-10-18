@@ -43,7 +43,7 @@ export const MyArticlesPage = ({
           </h1>
           <button
             className={primaryClass}
-            onClick={() => onNavigate('/articles/create')}
+            onClick={() => onNavigate('/articles/create?from=profile')}
           >
             Viết bài mới
           </button>
@@ -102,7 +102,7 @@ export const MyArticlesPage = ({
               <div className="flex flex-wrap gap-3">
                 <button
                   className={secondaryClass}
-                  onClick={() => onNavigate(`/articles/editor/${item.id}`)}
+                  onClick={() => onNavigate(`/articles/editor/${item.id}?from=profile`)}
                 >
                   Xem bản nháp / trạng thái
                 </button>
