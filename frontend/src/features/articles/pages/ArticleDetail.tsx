@@ -188,8 +188,9 @@ export const ArticleDetail = ({
                     <User size={18} />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">Tác giả cộng đồng</p>
-                    <p className="text-xs text-slate-400">ID: {article.data.authorId.slice(0, 8)}... · Phiên bản {article.data.version}</p>
+                    <p className="font-bold text-slate-900 text-sm">
+                      {article.data.authorId === user?.id ? (user?.fullName || 'Tôi') : 'Quản Trị Viên Hệ Thống'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs font-medium">

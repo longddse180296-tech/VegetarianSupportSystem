@@ -123,7 +123,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       userEmail={displayEmail}
       avatarUrl={displayAvatar}
       dietaryType={displayDiet}
-      statBadge={{ count: stats?.postCount ?? 0, label: 'Bài viết' }}
       breadcrumbs={[
         { label: 'Trang chủ', path: '/' },
         { label: 'Tài khoản', path: '/profile' },

@@ -22,6 +22,7 @@ import {
   type VideoDetails,
 } from '../api/backendVideos'
 import { getSavedVideo, toggleVideoLike, toggleVideoSave } from '../api/videoApi'
+import { useAuth } from '../../auth/hooks/useAuth'
 
 interface Props {
   videoId?: string
@@ -85,6 +86,7 @@ export default function VideoDetail(props: Props) {
 }
 
 function VideoDetailContent({ videoId, onNavigate }: Props) {
+  const { user } = useAuth()
   const [video, setVideo] = useState<VideoDetails | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
   const [reaction, setReaction] = useState<Reaction>({ count: 0, reactedByMe: false })
@@ -302,7 +304,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
 
   const titleCleaned = cleanPrefix(video.title)
   const isVideoAvailable = Boolean(video.mediaUrl) && !hasVideoError
-  const authorName = 'Bếp Chay An Lạc'
+  const authorName = (user?.role === 'Admin' ? user.fullName : null) || 'Quản Trị Viên Hệ Thống'
 
   const renderComment = (comment: Comment, isReply = false) => (
     <div key={comment.id} className={`border-t border-slate-100 pt-4 ${isReply ? 'ml-6' : ''}`}>
@@ -456,9 +458,6 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
               </div>
               <div>
                 <p className="font-bold text-slate-900 text-sm">{authorName}</p>
-                <p className="text-xs text-slate-400">
-                  {video.viewCount} lượt xem · Video nấu ăn chay
-                </p>
               </div>
             </div>
             <div className="flex items-center gap-3 text-xs font-medium">

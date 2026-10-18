@@ -29,6 +29,7 @@ interface RecipeDetailProps {
   recipeId?: string
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
+  fromSource?: string
 }
 
 // Curated distinct real food images for related recipes (replacing repetitive placeholder)
@@ -66,7 +67,38 @@ function isInstructionPlaceholder(text?: string): boolean {
 export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   recipeId = '',
   onNavigate,
+  fromSource,
 }) => {
+  const hashQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.hash.split('?')[1] || '').get('from')
+      : null
+  const locationQuery =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('from')
+      : null
+  const rawFrom = (fromSource || hashQuery || locationQuery || '')
+    .toLowerCase()
+    .trim()
+  const isFromMealPlans =
+    rawFrom === 'meal-plans' ||
+    rawFrom === 'meal-plan' ||
+    rawFrom === 'mealplans' ||
+    rawFrom === 'mealplan'
+
+  const handleBack = () => {
+    const target = isFromMealPlans ? '/meal-plans' : '/recipes'
+    if (onNavigate) {
+      onNavigate(target)
+    } else if (typeof window !== 'undefined') {
+      window.location.hash = target
+    }
+  }
+
+  const backLabel = isFromMealPlans
+    ? 'Quay lại thực đơn'
+    : 'Quay lại danh sách công thức'
+
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isNotFound, setIsNotFound] = useState(false)
@@ -184,9 +216,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
         <div className="mx-auto max-w-4xl px-4 text-center">
           <EmptyState
             title="Không tìm thấy công thức này"
-            description={`Công thức bạn tìm kiếm không tồn tại hoặc đã được cập nhật. Bạn có thể quay lại danh sách công thức chay để khám phá thêm nhiều món ngon.`}
-            actionLabel="Quay lại danh sách công thức"
-            onAction={() => onNavigate?.('/recipes')}
+            description={`Công thức bạn tìm kiếm không tồn tại hoặc đã được cập nhật. Bạn có thể quay lại để tiếp tục.`}
+            actionLabel={backLabel}
+            onAction={handleBack}
             icon={<ChefHat size={44} className="text-[#2E7D32]" />}
           />
         </div>
@@ -214,8 +246,14 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
         {/* Breadcrumb */}
         <Breadcrumb
           items={[
-            { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
-            { label: 'Công thức', onClick: () => onNavigate?.('/recipes') },
+            {
+              label: 'Trang chủ',
+              onClick: () =>
+                onNavigate ? onNavigate('/') : (window.location.hash = '/'),
+            },
+            ...(isFromMealPlans
+              ? [{ label: 'Thực đơn', onClick: handleBack }]
+              : [{ label: 'Công thức', onClick: handleBack }]),
             { label: cleanRecipeTitle },
           ]}
         />
@@ -501,7 +539,13 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                   <article
                     key={rel.id || idx}
                     onClick={() => {
-                      onNavigate?.(`/recipes/${encodeURIComponent(rel.id)}`)
+                      const query = isFromMealPlans ? '?from=meal-plans' : ''
+                      const target = `/recipes/${encodeURIComponent(rel.id)}${query}`
+                      if (onNavigate) {
+                        onNavigate(target)
+                      } else {
+                        window.location.hash = target
+                      }
                       window.scrollTo({ top: 0, behavior: 'smooth' })
                     }}
                     className="group flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md cursor-pointer"
@@ -732,17 +776,17 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
           </section>
         )}
 
-        {/* Nút quay lại danh sách công thức ở cuối trang */}
+        {/* Nút quay lại danh sách công thức / thực đơn ở cuối trang */}
         <div className="mt-10 pt-6 border-t border-slate-200 flex justify-start">
           <Button
             type="button"
             variant="outline"
             size="md"
             leftIcon={<ArrowLeft size={16} />}
-            onClick={() => onNavigate?.('/recipes')}
+            onClick={handleBack}
             className="!rounded-[12px] !border-slate-300 hover:!border-[#2E7D32] hover:!text-[#2E7D32] font-semibold"
           >
-            Quay lại danh sách công thức
+            {backLabel}
           </Button>
         </div>
       </div>

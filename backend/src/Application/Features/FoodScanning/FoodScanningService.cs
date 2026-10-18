@@ -124,7 +124,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
                 .Select(diet => new DietAssessment(diet, FoodScanAssessmentStatus.InsufficientInformation))
                 .ToArray(),
             ai.ErrorCode,
-            "AI chỉ gợi ý từ ảnh. Hãy xác nhận nguyên liệu và các thành phần ẩn trước khi đánh giá.");
+            "Hệ thống nhận diện sơ bộ qua hình ảnh. Vui lòng xác nhận và bổ sung đầy đủ nguyên liệu để có kết quả đánh giá chính xác nhất.");
     }
 
     public FoodScanEvaluation Evaluate(
@@ -139,7 +139,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             .ToArray();
         return new FoodScanEvaluation(
             assessments,
-            "Đánh giá dựa trên nguyên liệu User xác nhận; không xác minh thành phần ẩn hay an toàn dị ứng.");
+            "Kết quả phân tích dựa trên danh sách thành phần bạn đã kiểm tra và xác nhận. Do hình ảnh món ăn không thể hiện được các thành phần ẩn (như nước dùng, gia vị nêm, dầu mỡ), vui lòng đối chiếu thêm với người chế biến để đảm bảo chuẩn chay theo nhu cầu.");
     }
 }
 

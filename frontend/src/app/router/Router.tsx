@@ -131,11 +131,13 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     } catch {
       // Let RecipeDetail handle malformed IDs without crashing the router.
     }
+    const fromParam = searchParams.get('from') || undefined
     return withPublic(
       <RecipeDetail
         key={recipeId}
         recipeId={recipeId}
         onNavigate={onNavigate}
+        fromSource={fromParam}
       />,
       'recipes',
       ctx,

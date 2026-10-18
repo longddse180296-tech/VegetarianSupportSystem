@@ -73,6 +73,7 @@ export interface Restaurant {
   hasTakeAway: boolean
   acceptsBooking: boolean
   createdAt: string
+  relatedRecipes?: Array<{ id: string; name: string; imageUrl: string | null }>
 }
 
 export interface RestaurantFilter {
@@ -85,6 +86,8 @@ export interface RestaurantFilter {
   favoritesOnly: boolean
   /** Khoảng cách tối đa (km) theo pills Tất cả | <1 | <3 | <5 | <10. 0 = không lọc (Tất cả). */
   distanceMaxKm: 0 | 1 | 3 | 5 | 10
+  latitude?: number
+  longitude?: number
 }
 
 export const DEFAULT_RESTAURANT_FILTER: RestaurantFilter = {

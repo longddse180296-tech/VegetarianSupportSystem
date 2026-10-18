@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowRight, MapPin, Star } from 'lucide-react'
+import { ArrowRight, Clock, MapPin } from 'lucide-react'
 import type { Restaurant, RestaurantDietType } from '../types/restaurant.types'
 import { DIET_TYPE_LABELS } from '../types/restaurant.types'
 import { formatAddress } from '../utils/restaurantUtils'
@@ -60,8 +60,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
     restaurant.city,
   )
 
-  const ratingValue = restaurant.rating ? restaurant.rating.toFixed(1) : '4.8'
-
   // ---- Horizontal Variant (used on list page) ----
   if (variant === 'horizontal') {
     return (
@@ -102,8 +100,8 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         {/* ---- Right content ---- */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Top badges row: diet type */}
-          <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-            {restaurant.dietTypes.map((d) => (
+          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 min-h-[24px]">
+            {Array.from(new Set(restaurant.dietTypes)).map((d) => (
               <span
                 key={d}
                 className={`inline-flex items-center rounded-full border px-2.5 py-[2px] text-[11px] font-bold leading-none ${dietPillClass(
@@ -130,7 +128,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           >
             <h3 
               title={cleanName}
-              className="line-clamp-2 font-bold text-[16px] sm:text-[18px] leading-snug tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors"
+              className="line-clamp-2 min-h-[46px] font-bold text-[16px] sm:text-[18px] leading-snug tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors"
             >
               {cleanName}
             </h3>
@@ -142,16 +140,25 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
             <span className="line-clamp-1">{displayAddress}</span>
           </p>
 
-          {/* Đánh giá ⭐ */}
-          <div className="mt-2.5 flex items-center text-xs text-slate-600">
-            <span className="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
-              <Star size={12} className="fill-amber-400 text-amber-500" />
-              <span>{ratingValue}</span>
-              <span className="text-[10px] font-normal text-amber-600">
-                ({restaurant.reviewCount || 24})
-              </span>
-            </span>
-          </div>
+          {/* Giờ mở cửa & Khoảng giá thực tế từ Database */}
+          {(restaurant.openingHours || restaurant.priceRange) && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              {restaurant.openingHours && (
+                <span className="inline-flex items-center gap-1 font-medium text-slate-600">
+                  <Clock size={12} className="text-slate-400" />
+                  <span>{restaurant.openingHours}</span>
+                </span>
+              )}
+              {restaurant.openingHours && restaurant.priceRange && (
+                <span className="text-slate-300">•</span>
+              )}
+              {restaurant.priceRange && (
+                <span className="font-semibold text-emerald-800">
+                  {restaurant.priceRange}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Bottom actions: Outline/Ghost button */}
           <div className="mt-auto pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
@@ -169,11 +176,11 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                 </button>
               )}
 
-              {/* Nút Xem chi tiết: Outline / Ghost button thanh lịch */}
+              {/* Nút Xem chi tiết: đồng bộ chuẩn màu xanh #2E7D32 với bên Video */}
               <button
                 type="button"
                 onClick={handleCTAClick}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-50/60 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 transition-all hover:bg-emerald-600 hover:text-white hover:border-emerald-600 group/btn shadow-2xs"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] px-4 py-2 text-xs font-semibold text-white transition-all shadow-xs group/btn"
               >
                 <span>{ctaLabel}</span>
                 <ArrowRight
@@ -228,20 +235,20 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           <span className="truncate">{displayAddress}</span>
         </p>
 
-        {/* Đánh giá ⭐ */}
-        <div className="mt-1 flex items-center text-xs text-slate-600">
-          <span className="inline-flex items-center gap-1 font-semibold text-amber-700">
-            <Star size={11} className="fill-amber-400 text-amber-500" />
-            <span>{ratingValue}</span>
-          </span>
-        </div>
+        {/* Giờ mở cửa */}
+        {restaurant.openingHours && (
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
+            <Clock size={11} className="text-slate-400" />
+            <span>{restaurant.openingHours}</span>
+          </p>
+        )}
 
-        {/* Outline CTA button */}
+        {/* CTA button */}
         <div className="mt-auto pt-2 flex items-center justify-end">
           <button
             type="button"
             onClick={handleCTAClick}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition-colors group/btn"
+            className="inline-flex items-center gap-1 rounded-lg bg-[#2E7D32] hover:bg-[#1B5E20] px-3 py-1.5 text-xs font-semibold text-white transition-colors group/btn shadow-xs"
           >
             <span>{ctaLabel}</span>
             <ArrowRight

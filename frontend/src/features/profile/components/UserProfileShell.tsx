@@ -69,18 +69,18 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
       path: '/profile/my-articles',
     },
     {
-      id: 'my-comments',
-      label: 'Bình luận của tôi',
-      icon: MessageSquare,
-      badge: activeTab === 'my-comments' ? statBadge.count : undefined,
-      path: '/profile/my-comments',
-    },
-    {
       id: 'my-videos',
       label: 'Video của tôi',
       icon: Video,
       badge: activeTab === 'my-videos' ? statBadge.count : undefined,
       path: '/profile/my-videos',
+    },
+    {
+      id: 'my-comments',
+      label: 'Bình luận của tôi',
+      icon: MessageSquare,
+      badge: activeTab === 'my-comments' ? statBadge.count : undefined,
+      path: '/profile/my-comments',
     },
   ]
 
@@ -192,17 +192,19 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                 </div>
               </div>
 
-              {/* Right Column: Stat Badge Card */}
-              <div className="flex items-center gap-4 bg-[#f8faf8] border border-[#e5e7eb] rounded-[16px] px-6 py-3.5 shrink-0 text-center shadow-2xs">
-                <div>
-                  <div className="text-2xl font-black text-[#1b5e20] tracking-tight tabular-nums">
-                    {statBadge.count}
-                  </div>
-                  <div className="text-[11px] font-semibold text-[#2e7d32] uppercase tracking-wider mt-0.5">
-                    {statBadge.label}
+              {/* Right Column: Stat Badge Card (hidden in overview) */}
+              {activeTab !== 'overview' && statBadge && (
+                <div className="flex items-center gap-4 bg-[#f8faf8] border border-[#e5e7eb] rounded-[16px] px-6 py-3.5 shrink-0 text-center shadow-2xs">
+                  <div>
+                    <div className="text-2xl font-black text-[#1b5e20] tracking-tight tabular-nums">
+                      {statBadge.count}
+                    </div>
+                    <div className="text-[11px] font-semibold text-[#2e7d32] uppercase tracking-wider mt-0.5">
+                      {statBadge.label}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

@@ -107,7 +107,6 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
       const isSelected = selectedRestaurant?.id === r.id
       const cleanName = r.name.replace(/^\[Demo\]\s*/i, '')
       const address = formatAddress(r.address, r.district, r.city)
-      const rating = r.rating ? r.rating.toFixed(1) : '4.8'
       const distance = r.distanceKm ? `${r.distanceKm.toFixed(1)} km` : '1.2 km'
 
       // Custom HTML Pin Marker
@@ -164,8 +163,8 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
             📍 ${address}
           </p>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 11px; font-weight: 600; color: #166534;">
-            <span>⭐ ${rating}</span>
-            <span>🧭 ${distance}</span>
+            <span>${r.openingHours ? `🕒 ${r.openingHours}` : ''}</span>
+            <span>${r.distanceKm ? `🧭 ${distance}` : ''}</span>
           </div>
           <button id="btn-popup-${r.id}" style="
             width: 100%;
