@@ -373,12 +373,13 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
         .map((s) => s.trim())
         .filter(Boolean)
     : []
+  const stripStepPrefix = (line: string) => line.replace(/^(?:Bước\s*)?\d+[.)]\s*/i, '')
   const steps: RecipeStep[] = rawSteps.map((line, idx) => ({
     stepNo: idx + 1,
     stepNumber: idx + 1,
     title: `Bước ${idx + 1}`,
-    description: line.replace(/^\d+[.)]\s*/, ''),
-    instruction: line.replace(/^\d+[.)]\s*/, ''),
+    description: stripStepPrefix(line),
+    instruction: stripStepPrefix(line),
   }))
 
   const ingredients: RecipeIngredient[] = (detail.ingredients || []).map((ing) => ({
