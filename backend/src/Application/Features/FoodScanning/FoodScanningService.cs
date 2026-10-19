@@ -114,6 +114,14 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
     {
         var ai = await geminiService.AnalyzeDishImageAsync(
             new GeminiDishImageRequest(imageBytes, mimeType), cancellationToken);
+        var evidence = ai.IsAvailable && ai.VisibleIngredients.Count > 0
+            ? await repository.FindIngredientEvidenceAsync(ai.VisibleIngredients, cancellationToken)
+            : [];
+        var suggestedKinds = ai.VisibleIngredients.Select((ingredient, index) =>
+            evidence.FirstOrDefault(item => item.Name.Equals(ingredient,
+                StringComparison.OrdinalIgnoreCase))?.Kind
+            ?? (ai.SuggestedIngredientKinds?.Count > index
+                ? ai.SuggestedIngredientKinds[index] : IngredientKind.Unknown)).ToArray();
         return new DishImageScanResult(
             ai.IsAvailable ? "NeedsConfirmation" : "AnalysisFailed",
             ai.SuggestedDishName,
@@ -124,7 +132,8 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
                 .Select(diet => new DietAssessment(diet, FoodScanAssessmentStatus.InsufficientInformation))
                 .ToArray(),
             ai.ErrorCode,
-            "Hệ thống nhận diện sơ bộ qua hình ảnh. Vui lòng xác nhận và bổ sung đầy đủ nguyên liệu để có kết quả đánh giá chính xác nhất.");
+            "Hệ thống nhận diện sơ bộ qua hình ảnh. Loại nguyên liệu là gợi ý; vui lòng sửa và xác nhận trước khi đánh giá.",
+            suggestedKinds);
     }
 
     public FoodScanEvaluation Evaluate(
@@ -151,7 +160,8 @@ public sealed record DishImageScanResult(
     IReadOnlyList<string> FollowUpQuestions,
     IReadOnlyList<DietAssessment> Assessments,
     string? ErrorCode,
-    string Note);
+    string Note,
+    IReadOnlyList<IngredientKind> SuggestedIngredientKinds);
 
 public sealed record ConfirmedIngredient(string Name, IngredientKind Kind,
     string Source = "UserConfirmed");

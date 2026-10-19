@@ -45,14 +45,35 @@ public sealed class Be3FoodScanServiceTests
             item => Assert.Equal(FoodScanAssessmentStatus.InsufficientInformation, item.Status));
     }
 
+    [Fact]
+    public async Task DishImagePrefillsKindsButLeavesConfirmationToTheUser()
+    {
+        var repository = new MemoryScanRepository
+        {
+            Evidence = [new ScanIngredientEvidence(Guid.NewGuid(), "Thịt xông khói",
+                IngredientKind.Animal, null, null)]
+        };
+        var service = new FoodScanningService(new SuggestionAi(), repository);
+
+        var result = await service.AnalyzeDishAsync([1], "image/png", CancellationToken.None);
+
+        Assert.Equal("NeedsConfirmation", result.ProcessingStatus);
+        Assert.Equal(["Cơm", "Thịt xông khói", "Gia vị không rõ"], result.VisibleIngredients);
+        Assert.Equal([IngredientKind.Plant, IngredientKind.Animal, IngredientKind.Unknown],
+            result.SuggestedIngredientKinds);
+        Assert.All(result.Assessments,
+            item => Assert.Equal(FoodScanAssessmentStatus.InsufficientInformation, item.Status));
+    }
+
     private sealed class MemoryScanRepository : IFoodScanRepository
     {
         private readonly List<FoodScanRecord> records = [];
         public ScanProfileSnapshot Profile { get; set; } = new(VegetarianDiet.Vegan, [], DateTimeOffset.UtcNow);
+        public IReadOnlyList<ScanIngredientEvidence> Evidence { get; set; } = [];
         public Task<ScanProfileSnapshot> GetProfileAsync(string userId, CancellationToken ct) => Task.FromResult(Profile);
         public Task<IReadOnlyList<ScanIngredientEvidence>> FindIngredientEvidenceAsync(
             IReadOnlyList<string> names, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<ScanIngredientEvidence>>([]);
+            Task.FromResult(Evidence);
         public Task AddAsync(FoodScanRecord record, CancellationToken ct)
         {
             records.Add(record);
@@ -67,6 +88,21 @@ public sealed class Be3FoodScanServiceTests
             return Task.FromResult(((IReadOnlyList<FoodScanRecord>)owned.Skip((page - 1) * pageSize)
                 .Take(pageSize).ToArray(), owned.Length));
         }
+    }
+
+    private sealed class SuggestionAi : IGeminiService
+    {
+        public Task<GeminiDishImageResponse> AnalyzeDishImageAsync(GeminiDishImageRequest request,
+            CancellationToken cancellationToken = default) => Task.FromResult(new GeminiDishImageResponse(
+            true, "Cơm thịt", ["Cơm", "Thịt xông khói", "Gia vị không rõ"],
+            ["Nguồn gia vị"], [], SuggestedIngredientKinds:
+            [IngredientKind.Plant, IngredientKind.Plant, IngredientKind.Unknown]));
+        public Task<GeminiModerationResponse> CheckContentAsync(GeminiModerationRequest request,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<GeminiChatResponse> GenerateChatReplyAsync(GeminiChatRequest request,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<GeminiLabelResponse> ReadIngredientLabelAsync(GeminiDishImageRequest request,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed class UnusedAi : IGeminiService

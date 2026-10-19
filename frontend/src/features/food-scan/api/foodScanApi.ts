@@ -12,6 +12,7 @@ export interface DishImageScanResult {
   processingStatus: 'NeedsConfirmation' | 'AnalysisFailed'
   suggestedDishName: string | null
   visibleIngredients: string[]
+  suggestedIngredientKinds?: IngredientKind[]
   unknownFactors: string[]
   followUpQuestions: string[]
   errorCode: string | null

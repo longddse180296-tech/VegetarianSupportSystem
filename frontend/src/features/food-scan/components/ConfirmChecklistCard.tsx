@@ -148,9 +148,27 @@ export default function ConfirmChecklistCard({
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Chỉ các nguyên liệu đã xác nhận loại (Thực vật, Sữa, Trứng, Động vật...) mới được đưa vào phân tích.
+              Loại nguyên liệu đã được gợi ý sẵn. Hãy sửa mục chưa đúng rồi xác nhận trước khi đánh giá.
             </p>
           </div>
+          {ingredients.some((item) => item.name.trim() && item.kind !== 'Unknown'
+            && (item.source === 'AiSuggested' || item.source === 'LabelOcr')) && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              leftIcon={<CheckCircle2 size={13} />}
+              onClick={() => onIngredientsChange(ingredients.map((item) =>
+                item.name.trim() && item.kind !== 'Unknown'
+                  && (item.source === 'AiSuggested' || item.source === 'LabelOcr')
+                  ? { ...item, source: 'UserConfirmed' }
+                  : item,
+              ))}
+              className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+            >
+              Xác nhận các loại đã chọn
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
