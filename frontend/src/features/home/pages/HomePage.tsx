@@ -177,6 +177,30 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
         if (articleResult.status === 'fulfilled') {
           setArticles(articleResult.value.slice(0, 3))
+          if (articleResult.value.length === 0) {
+            try {
+              const fallback = await apiClient.get<{ items: Array<{
+                id: string; title: string; category: string; categories?: string[]
+                coverImageUrl: string | null; publishedAt: string | null
+                dietaryTypes?: string[]
+              }> }>('/api/articles?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
+              setArticles(fallback.items.map((article) => ({
+                id: article.id,
+                contentType: 'Article' as const,
+                title: article.title,
+                description: article.category,
+                imageUrl: article.coverImageUrl,
+                isPinned: false,
+                authorName: null,
+                publishedAt: article.publishedAt,
+                viewCount: null,
+                address: null,
+                dietaryTypes: article.dietaryTypes || [],
+              })))
+            } catch {
+              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'articles'])])
+            }
+          }
         }
         const sections: HomeSection[] = ['recipes', 'restaurants', 'videos', 'articles']
         setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [sections[index]] : []))
