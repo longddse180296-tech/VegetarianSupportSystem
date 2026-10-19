@@ -1,15 +1,16 @@
 using Application.Features.Videos;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace Infrastructure.Storage;
 
 public sealed class LocalPrivateMediaStore : IPrivateMediaStore
 {
     private readonly string root;
-    public LocalPrivateMediaStore(IConfiguration configuration)
+    public LocalPrivateMediaStore(IConfiguration configuration, IHostEnvironment environment)
     {
         root = Path.GetFullPath(configuration["Storage:PrivateRoot"] ??
-            Path.Combine(AppContext.BaseDirectory, ".local", "media"));
+            Path.Combine(environment.ContentRootPath, ".local", "media"));
     }
 
     public async Task<string> SaveAsync(Stream source, string extension, long maxBytes, CancellationToken cancellationToken)

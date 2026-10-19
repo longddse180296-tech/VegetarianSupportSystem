@@ -1,5 +1,6 @@
 using Application.Features.Media;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace Infrastructure.Storage;
 
@@ -7,10 +8,10 @@ public sealed class LocalPublicImageStore : IPublicImageStore
 {
     private readonly string root;
 
-    public LocalPublicImageStore(IConfiguration configuration)
+    public LocalPublicImageStore(IConfiguration configuration, IHostEnvironment environment)
     {
         root = Path.GetFullPath(configuration["Storage:PublicImageRoot"] ??
-            Path.Combine(AppContext.BaseDirectory, ".local", "public-images"));
+            Path.Combine(environment.ContentRootPath, ".local", "public-images"));
     }
 
     public async Task<string> SaveAsync(Stream source, string extension, long maxBytes, CancellationToken cancellationToken)
