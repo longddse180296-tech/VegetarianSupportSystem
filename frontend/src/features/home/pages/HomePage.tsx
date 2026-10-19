@@ -17,7 +17,6 @@ import { getPublicFeaturedContent, type FeaturedContentItem } from '../../../sha
 import { Badge, EmptyState, SkeletonLoader } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 
-import { resolveDietType } from '../../recipes/api/recipeApi'
 import { inferVideoDietType } from '../../videos/api/backendVideos'
 
 interface HomePageProps {
@@ -46,7 +45,6 @@ interface HomeRecipeItem {
 
 function extractRecipeDietaryTypes(
   assessments?: Array<{ dietaryType: number | string; status: number | string }>,
-  title?: string,
 ): string[] {
   if (assessments && assessments.length > 0) {
     const isCompat = (typeNum: number, name: string) =>
@@ -64,12 +62,7 @@ function extractRecipeDietaryTypes(
     if (list.length > 0) return list
   }
 
-  const resolved = resolveDietType(assessments, title)
-  if (resolved.dietCategory === 'vegan') return ['Vegan']
-  if (resolved.dietCategory === 'lacto') return ['LactoVegetarian']
-  if (resolved.dietCategory === 'ovo') return ['OvoVegetarian']
-  if (resolved.dietCategory === 'ovo-lacto') return ['LactoOvoVegetarian']
-  return ['Vegan']
+  return []
 }
 
 type HomeSection = 'recipes' | 'restaurants' | 'videos' | 'articles'
@@ -123,7 +116,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               cookTime: `${r.cookTimeMinutes} phút`,
               calories: r.caloriesPerServing == null ? 'Chưa có dữ liệu calo' : `${Math.round(r.caloriesPerServing)} kcal`,
               imageUrl: r.imageUrl || '',
-              dietaryTypes: extractRecipeDietaryTypes(r.dietaryAssessments, r.name),
+              dietaryTypes: extractRecipeDietaryTypes(r.dietaryAssessments),
             })),
           )
         }

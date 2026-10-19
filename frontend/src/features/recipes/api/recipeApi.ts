@@ -196,8 +196,7 @@ export type CoreDietType =
 
 export function resolveDietType(
   assessments?: Array<{ dietaryType: number | string; status: number | string }>,
-  title?: string,
-): { dietType: CoreDietType; dietCategory: RecipeDietCategory } {
+): { dietType?: CoreDietType; dietCategory?: RecipeDietCategory; compatibleDietCategories: RecipeDietCategory[] } {
   if (assessments && assessments.length > 0) {
     const isCompatible = (typeNum: number, typeName: string) =>
       assessments.some(
@@ -207,9 +206,16 @@ export function resolveDietType(
           (a.status === 1 || String(a.status).toLowerCase() === 'compatible'),
       )
 
-    // Vegan is strictest
+    const compatibleDietCategories: RecipeDietCategory[] = []
+    if (isCompatible(1, 'Vegan')) compatibleDietCategories.push('vegan')
+    if (isCompatible(2, 'LactoVegetarian')) compatibleDietCategories.push('lacto')
+    if (isCompatible(3, 'OvoVegetarian')) compatibleDietCategories.push('ovo')
+    if (isCompatible(4, 'LactoOvoVegetarian')) compatibleDietCategories.push('ovo-lacto')
+
+    // The label names the strictest compatible diet. The full compatibility list remains
+    // available for filtering, so a vegan recipe is also returned for lacto/ovo filters.
     if (isCompatible(1, 'Vegan')) {
-      return { dietType: 'Thuần chay (Vegan)', dietCategory: 'vegan' }
+      return { dietType: 'Thuần chay (Vegan)', dietCategory: 'vegan', compatibleDietCategories }
     }
 
     const isLacto = isCompatible(2, 'LactoVegetarian')
@@ -217,33 +223,19 @@ export function resolveDietType(
     const isLactoOvo = isCompatible(4, 'LactoOvoVegetarian')
 
     if (isLacto && !isOvo) {
-      return { dietType: 'Ăn chay có sữa (Lacto)', dietCategory: 'lacto' }
+      return { dietType: 'Ăn chay có sữa (Lacto)', dietCategory: 'lacto', compatibleDietCategories }
     }
     if (isOvo && !isLacto) {
-      return { dietType: 'Chay có trứng (Ovo)', dietCategory: 'ovo' }
+      return { dietType: 'Chay có trứng (Ovo)', dietCategory: 'ovo', compatibleDietCategories }
     }
     if (isLactoOvo || (isLacto && isOvo)) {
-      return { dietType: 'Trứng & Sữa (Lacto-ovo)', dietCategory: 'ovo-lacto' }
+      return { dietType: 'Trứng & Sữa (Lacto-ovo)', dietCategory: 'ovo-lacto', compatibleDietCategories }
     }
+
+    return { compatibleDietCategories }
   }
 
-  // Fallback heuristics by title if assessments is empty or unknown
-  if (title) {
-    const lower = title.toLowerCase()
-    const hasEgg = lower.includes('trứng')
-    const hasMilk = lower.includes('sữa') || lower.includes('phô mai') || lower.includes('bơ')
-    if (hasEgg && hasMilk) {
-      return { dietType: 'Trứng & Sữa (Lacto-ovo)', dietCategory: 'ovo-lacto' }
-    }
-    if (hasMilk) {
-      return { dietType: 'Ăn chay có sữa (Lacto)', dietCategory: 'lacto' }
-    }
-    if (hasEgg) {
-      return { dietType: 'Chay có trứng (Ovo)', dietCategory: 'ovo' }
-    }
-  }
-
-  return { dietType: 'Thuần chay (Vegan)', dietCategory: 'vegan' }
+  return { compatibleDietCategories: [] }
 }
 
 // ---------- Real Backend Interfaces & Adapters ----------
@@ -318,7 +310,7 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   const cookMin = summary.cookTimeMinutes || 20
   const prepMin = summary.prepTimeMinutes || 10
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
-  const { dietType, dietCategory } = resolveDietType(summary.dietaryAssessments, summary.name)
+  const { dietType, dietCategory, compatibleDietCategories } = resolveDietType(summary.dietaryAssessments)
   const img =
     summary.imageUrl && summary.imageUrl.startsWith('http')
       ? summary.imageUrl
@@ -341,6 +333,7 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
     prepTimeMinutes: prepMin,
     servingSize: summary.servings || 2,
     dietCategory,
+    compatibleDietCategories,
     difficulty,
     isFavorite: false,
     favoriteCount: 0,
@@ -348,7 +341,7 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
     authorName: 'Bếp Chay An Yên',
     authorAvatar:
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    tags: [summary.categoryName, dietType].filter(Boolean),
+    tags: [summary.categoryName, dietType].filter((tag): tag is string => Boolean(tag)),
     ingredients: [],
     steps: [],
     nutrition: {
@@ -368,7 +361,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   const cookMin = detail.cookTimeMinutes || 20
   const prepMin = detail.prepTimeMinutes || 10
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
-  const { dietType, dietCategory } = resolveDietType(detail.dietaryAssessments, detail.name)
+  const { dietType, dietCategory, compatibleDietCategories } = resolveDietType(detail.dietaryAssessments)
   const img =
     detail.imageUrl && detail.imageUrl.startsWith('http')
       ? detail.imageUrl
@@ -425,6 +418,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
     prepTimeMinutes: prepMin,
     servingSize: detail.servings || 2,
     dietCategory,
+    compatibleDietCategories,
     difficulty,
     isFavorite: false,
     favoriteCount: 0,
@@ -432,7 +426,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
     authorName: 'Bếp Chay An Yên',
     authorAvatar:
       'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    tags: [detail.categoryName, dietType].filter(Boolean),
+    tags: [detail.categoryName, dietType].filter((tag): tag is string => Boolean(tag)),
     ingredients,
     steps,
     nutrition: {

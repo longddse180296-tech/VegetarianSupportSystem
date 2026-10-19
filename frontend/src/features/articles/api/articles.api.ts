@@ -15,7 +15,9 @@ export interface PublicArticleSummary {
   id: string
   title: string
   category: string
+  categories: string[]
   dietaryTypes: BackendDietaryType[]
+  dietaryType: BackendDietaryType | null
   coverImageUrl: string | null
   authorId: string
   version: number
@@ -30,7 +32,9 @@ export interface MyArticleRecord {
   title: string
   content: string
   category: string
+  categories: string[]
   dietaryTypes: BackendDietaryType[]
+  dietaryType: BackendDietaryType | null
   coverImageUrl: string | null
   createdAt: string
   updatedAt: string
@@ -49,9 +53,9 @@ export interface MyArticleRecord {
 export interface ArticleInput {
   title: string
   content: string
-  category: string
+  categories: string[]
   coverImageUrl: string | null
-  dietaryTypes: BackendDietaryType[]
+  dietaryType: BackendDietaryType | null
 }
 export interface CommentRecord {
   id: string

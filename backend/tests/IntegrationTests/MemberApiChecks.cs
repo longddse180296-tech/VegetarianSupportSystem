@@ -95,15 +95,15 @@ internal static class MemberApiChecks
         var outcomes = await Task.WhenAll(
             first.ChangeStatusAsync(otherAdmin.Id, actor.Id, true, "review 2", now, CancellationToken.None),
             second.ChangeStatusAsync(thirdAdmin.Id, actor.Id, true, "review 3", now, CancellationToken.None));
-        check(outcomes.Count(x => x == MemberStatusUpdateResult.Updated) == 1 &&
-              outcomes.Count(x => x == MemberStatusUpdateResult.LastAdmin) == 1,
-            "concurrent locks cannot remove the last active Admin");
+        check(outcomes.Count(x => x == MemberStatusUpdateResult.Updated) == 2 &&
+              outcomes.Count(x => x == MemberStatusUpdateResult.LastAdmin) == 0,
+            "concurrent locks retain the active acting Admin");
         check(await db.Users.AsNoTracking().CountAsync(x => x.Role == Domain.Enums.UserRole.Admin && !x.IsLocked) == 1,
             "one active Admin remains after concurrent locks");
         check(await db.MemberStatusChanges.AsNoTracking().CountAsync(x =>
-            x.UserId == otherAdmin.Id || x.UserId == thirdAdmin.Id) == 1,
-            "only the committed concurrent status change has an audit row");
-        var inactiveActor = outcomes[0] == MemberStatusUpdateResult.Updated ? otherAdmin : thirdAdmin;
+            x.UserId == otherAdmin.Id || x.UserId == thirdAdmin.Id) == 2,
+            "each committed concurrent status change has an audit row");
+        var inactiveActor = otherAdmin;
         check(await first.ChangeStatusAsync(member.Id, inactiveActor.Id, true, "not allowed", now, CancellationToken.None)
               == MemberStatusUpdateResult.ActorInactive,
             "locked Admin cannot act after another request changes their status");

@@ -5,13 +5,12 @@ import {
   Coins,
   Globe,
   Leaf,
-  BookOpen,
-  Trash2,
+  UtensilsCrossed,
   Check,
   LoaderCircle,
   AlertCircle,
 } from 'lucide-react'
-import { RecordPicker, Feedback } from '../../components/ApiWorkspace'
+import { Feedback } from '../../components/ApiWorkspace'
 import {
   primaryClass,
   secondaryClass,
@@ -23,6 +22,7 @@ import {
   type RestaurantDetail,
   type RestaurantInput,
 } from '../api/restaurantContract'
+import { uploadPublicImage } from '../../../../shared/api/publicImageApi'
 
 interface FormErrors {
   name?: string
@@ -33,9 +33,9 @@ interface FormErrors {
   priceFrom?: string
   priceTo?: string
   websiteUrl?: string
-  imageUrl?: string
-  dietaryTypes?: string
+  dietaryType?: string
   amenities?: string
+  featuredDishes?: string
 }
 
 export function RestaurantApiForm({
@@ -63,9 +63,14 @@ export function RestaurantApiForm({
           priceToVnd: restaurant.priceToVnd,
           imageUrl: restaurant.imageUrl,
           source: restaurant.source,
-          dietaryTypes: restaurant.dietaryTypes,
+          dietaryType:
+            restaurant.dietaryType ??
+            (restaurant.dietaryTypes.length === 1 ? restaurant.dietaryTypes[0] : null),
           amenities: restaurant.amenities,
-          relatedRecipeIds: restaurant.relatedRecipes.map((item) => item.id),
+          featuredDishes: Array.from({ length: 3 }, (_, index) => {
+            const dish = restaurant.featuredDishes[index]
+            return dish ? { name: dish.name, imageUrl: dish.imageUrl } : { name: '', imageUrl: null }
+          }),
         }
       : {
           name: '',
@@ -81,9 +86,9 @@ export function RestaurantApiForm({
           priceToVnd: null,
           imageUrl: null,
           source: null,
-          dietaryTypes: [],
+          dietaryType: null,
           amenities: [],
-          relatedRecipeIds: [],
+          featuredDishes: Array.from({ length: 3 }, () => ({ name: '', imageUrl: null })),
         },
   )
 
@@ -109,8 +114,9 @@ export function RestaurantApiForm({
       : '',
   )
 
-  const [related, setRelated] = useState(restaurant?.relatedRecipes || [])
   const [busy, setBusy] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadingFeaturedDishIndex, setUploadingFeaturedDishIndex] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -249,23 +255,12 @@ export function RestaurantApiForm({
       }
     }
 
-    // 9. Image URL
-    if (currentForm.imageUrl?.trim()) {
-      const url = currentForm.imageUrl.trim()
-      if (!/^https?:\/\/.+/i.test(url)) {
-        errs.imageUrl =
-          'URL ảnh phải là đường dẫn hợp lệ bắt đầu bằng http:// hoặc https://'
-      } else if (url.length > 2048) {
-        errs.imageUrl = 'URL ảnh không được vượt quá 2048 ký tự.'
-      }
+    // 9. Chế độ ăn
+    if (!currentForm.dietaryType) {
+      errs.dietaryType = 'Vui lòng chọn đúng một chế độ ăn được khai báo.'
     }
 
-    // 10. Chế độ ăn
-    if (!currentForm.dietaryTypes.length) {
-      errs.dietaryTypes = 'Vui lòng chọn ít nhất một chế độ ăn được khai báo.'
-    }
-
-    // 11. Tiện ích
+    // 10. Tiện ích
     const validAmenities = currentForm.amenities
       .map((a) => a.trim())
       .filter(Boolean)
@@ -273,6 +268,18 @@ export function RestaurantApiForm({
       errs.amenities = 'Tối đa 30 tiện ích.'
     } else if (validAmenities.some((a) => a.length > 120)) {
       errs.amenities = 'Mỗi tiện ích không được vượt quá 120 ký tự.'
+    }
+
+    // 11. Món ăn nổi bật: chính xác ba món, tự nhập và ảnh từ thiết bị
+    if (currentForm.featuredDishes.length !== 3) {
+      errs.featuredDishes = 'Nhà hàng phải có đúng 3 món ăn nổi bật.'
+    } else if (currentForm.featuredDishes.some((dish) => !dish.name.trim() || !dish.imageUrl)) {
+      errs.featuredDishes = 'Nhập tên và tải ảnh từ thiết bị cho cả 3 món ăn nổi bật.'
+    } else if (
+      new Set(currentForm.featuredDishes.map((dish) => dish.name.trim().toLocaleLowerCase())).size !==
+      currentForm.featuredDishes.length
+    ) {
+      errs.featuredDishes = 'Tên 3 món ăn nổi bật không được trùng nhau.'
     }
 
     return errs
@@ -305,6 +312,41 @@ export function RestaurantApiForm({
         ? 'admin-field-error !border-rose-500 bg-rose-50/20 text-rose-900 !ring-2 !ring-rose-400/20 focus:!border-rose-600 focus:!ring-rose-500/20'
         : 'border-slate-200 text-slate-800 hover:border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
     }`
+  }
+
+  const uploadImage = async (file?: File) => {
+    if (!file || busy || uploadingImage) return
+    setUploadingImage(true)
+    setError(null)
+    try {
+      const imageUrl = await uploadPublicImage(file)
+      const next = { ...form, imageUrl }
+      setForm(next)
+      runValidation(next)
+    } catch (reason) {
+      setError(errorMessage(reason))
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const uploadFeaturedDishImage = async (index: number, file?: File) => {
+    if (!file || busy || uploadingFeaturedDishIndex !== null) return
+    setUploadingFeaturedDishIndex(index)
+    setError(null)
+    try {
+      const imageUrl = await uploadPublicImage(file)
+      const featuredDishes = form.featuredDishes.map((dish, dishIndex) =>
+        dishIndex === index ? { ...dish, imageUrl } : dish,
+      )
+      const next = { ...form, featuredDishes }
+      setForm(next)
+      runValidation(next)
+    } catch (reason) {
+      setError(errorMessage(reason))
+    } finally {
+      setUploadingFeaturedDishIndex(null)
+    }
   }
 
   const renderError = (field: keyof FormErrors) => {
@@ -369,7 +411,10 @@ export function RestaurantApiForm({
             priceFromVnd: pf,
             priceToVnd: pt,
             amenities,
-            relatedRecipeIds: related.map((item) => item.id),
+            featuredDishes: form.featuredDishes.map((dish) => ({
+              name: dish.name.trim(),
+              imageUrl: dish.imageUrl,
+            })),
           }
           if (restaurant) await restaurantApi.update(restaurant.id, input)
           else await restaurantApi.create(input)
@@ -660,27 +705,26 @@ export function RestaurantApiForm({
             </label>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
-                URL ảnh đại diện <span className="font-normal text-slate-400">(tùy chọn)</span>
+              <label htmlFor="restaurant-image-file" className="block text-sm font-medium text-slate-700">
+                Ảnh đại diện <span className="font-normal text-slate-400">(tùy chọn)</span>
                 <input
-                  type="url"
-                  className={inputClass('imageUrl')}
-                  aria-invalid={isInvalid('imageUrl') ? 'true' : undefined}
-                  aria-describedby={isInvalid('imageUrl') ? 'imageUrl-error' : undefined}
-                  placeholder="https://..."
-                  value={form.imageUrl || ''}
-                  onBlur={() => markTouched('imageUrl')}
-                  onChange={(e) => {
-                    const next = { ...form, imageUrl: e.target.value || null }
-                    setForm(next)
-                    markTouched('imageUrl')
-                    runValidation(next)
+                  id="restaurant-image-file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={uploadingImage}
+                  className="admin-field mt-1 h-auto w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 transition-all outline-none file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-emerald-700 hover:border-slate-300 hover:file:bg-emerald-100 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-slate-50"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    event.target.value = ''
+                    void uploadImage(file)
                   }}
                 />
-                {renderError('imageUrl')}
+                <span className="mt-1.5 block text-xs font-normal leading-relaxed text-slate-400">
+                  Chọn ảnh JPG, PNG hoặc WEBP từ thiết bị, tối đa 10 MB.
+                </span>
               </label>
 
-              {form.imageUrl && !fieldErrors.imageUrl && (
+              {form.imageUrl && (
                 <div className="mt-2 flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
                   <img
                     src={form.imageUrl}
@@ -690,7 +734,20 @@ export function RestaurantApiForm({
                       ;(e.target as HTMLElement).style.display = 'none'
                     }}
                   />
-                  <span className="text-xs text-slate-500">Xem trước ảnh đại diện</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-xs text-slate-500">Xem trước ảnh đại diện</span>
+                    <button
+                      type="button"
+                      className="mt-1 text-xs font-semibold text-rose-600 hover:underline"
+                      onClick={() => {
+                        const next = { ...form, imageUrl: null }
+                        setForm(next)
+                        runValidation(next)
+                      }}
+                    >
+                      Bỏ ảnh
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -707,7 +764,7 @@ export function RestaurantApiForm({
               <h4 className="text-sm font-bold text-slate-800">
                 Chế độ ăn & Tiện ích <span className="text-rose-500" aria-hidden="true">*</span>
               </h4>
-              <p className="mt-0.5 text-xs text-slate-400">Chọn các chế độ ăn phục vụ tại nhà hàng và các tiện ích đi kèm.</p>
+              <p className="mt-0.5 text-xs text-slate-400">Chọn đúng một chế độ ăn mà nhà hàng khai báo và các tiện ích đi kèm.</p>
             </div>
           </div>
 
@@ -717,7 +774,7 @@ export function RestaurantApiForm({
             </span>
             <div className="grid gap-2.5 sm:grid-cols-2">
               {Object.entries(dietLabels).map(([value, label]) => {
-                const checked = form.dietaryTypes.includes(value as DietaryType)
+                const checked = form.dietaryType === value as DietaryType
                 return (
                   <label
                     key={value}
@@ -728,16 +785,14 @@ export function RestaurantApiForm({
                     }`}
                   >
                     <input
-                      type="checkbox"
-                      className="size-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      type="radio"
+                      name="restaurant-dietary-type"
+                      className="size-4 border-slate-300 text-emerald-600 focus:ring-emerald-500"
                       checked={checked}
-                      onChange={(e) => {
-                        const updatedDiets = e.target.checked
-                          ? [...form.dietaryTypes, value as DietaryType]
-                          : form.dietaryTypes.filter((item) => item !== value)
-                        const next = { ...form, dietaryTypes: updatedDiets }
+                      onChange={() => {
+                        const next = { ...form, dietaryType: value as DietaryType }
                         setForm(next)
-                        markTouched('dietaryTypes')
+                        markTouched('dietaryType')
                         runValidation(next)
                       }}
                     />
@@ -746,7 +801,7 @@ export function RestaurantApiForm({
                 )
               })}
             </div>
-            {renderError('dietaryTypes')}
+            {renderError('dietaryType')}
             <p className="mt-2 text-xs text-slate-400">
               Thông tin do nguồn khai báo, không phải chứng nhận món ăn hoặc an toàn dị ứng.
             </p>
@@ -790,57 +845,97 @@ export function RestaurantApiForm({
           </div>
         </section>
 
-        {/* Section 5: Công thức liên quan */}
-        <section aria-label="Công thức liên quan" className="space-y-4 pb-2">
+        {/* Section 5: Món ăn nổi bật */}
+        <section aria-label="Món ăn nổi bật" className="space-y-4 pb-2">
           <div className="flex items-center gap-2.5">
             <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-              <BookOpen size={17} aria-hidden="true" />
+              <UtensilsCrossed size={17} aria-hidden="true" />
             </span>
             <div>
-              <h4 className="text-sm font-bold text-slate-800">Công thức liên quan</h4>
-              <p className="mt-0.5 text-xs text-slate-400">Gợi ý các công thức món ăn đặc trưng của nhà hàng.</p>
+              <h4 className="text-sm font-bold text-slate-800">
+                Món ăn nổi bật <span className="text-rose-500" aria-hidden="true">*</span>
+              </h4>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Nhập đúng 3 món đặc trưng của nhà hàng. Đây là thực đơn riêng, không liên kết công thức hệ thống.
+              </p>
             </div>
           </div>
 
-          <RecordPicker
-            resource="recipes"
-            label="Chọn công thức liên kết"
-            value=""
-            onChange={(item) => {
-              if (
-                !related.some((recipe) => recipe.id === item.id) &&
-                related.length < 100
-              )
-                setRelated([...related, { ...item, imageUrl: null }])
-            }}
-          />
-
-          {related.length > 0 ? (
-            <div className="space-y-2 rounded-xl border border-slate-200/80 bg-slate-50/50 p-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Đã liên kết ({related.length})
-              </span>
-              <div className="divide-y divide-slate-200/60">
-                {related.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-2 text-sm">
-                    <span className="font-medium text-slate-800">{item.name}</span>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 transition-colors hover:text-rose-800"
-                      onClick={() =>
-                        setRelated(related.filter((recipe) => recipe.id !== item.id))
-                      }
-                    >
-                      <Trash2 size={13} aria-hidden="true" />
-                      Bỏ liên kết
-                    </button>
+          <div className="space-y-3">
+            {form.featuredDishes.map((dish, index) => (
+              <div key={index} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Món nổi bật {index + 1}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Tên món <span className="text-rose-500" aria-hidden="true">*</span>
+                    <input
+                      required
+                      maxLength={120}
+                      className={inputClass('featuredDishes')}
+                      placeholder={`Ví dụ: Món chay đặc trưng ${index + 1}`}
+                      value={dish.name}
+                      onBlur={() => markTouched('featuredDishes')}
+                      onChange={(event) => {
+                        const featuredDishes = form.featuredDishes.map((currentDish, dishIndex) =>
+                          dishIndex === index ? { ...currentDish, name: event.target.value } : currentDish,
+                        )
+                        const next = { ...form, featuredDishes }
+                        setForm(next)
+                        markTouched('featuredDishes')
+                        runValidation(next)
+                      }}
+                    />
+                  </label>
+                  <div>
+                    <label htmlFor={`restaurant-featured-dish-${index}`} className="block text-sm font-medium text-slate-700">
+                      Ảnh món ăn <span className="text-rose-500" aria-hidden="true">*</span>
+                      <input
+                        id={`restaurant-featured-dish-${index}`}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        disabled={uploadingFeaturedDishIndex !== null}
+                        className="admin-field mt-1 h-auto w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 transition-all outline-none file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-emerald-700 hover:border-slate-300 hover:file:bg-emerald-100 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          event.target.value = ''
+                          void uploadFeaturedDishImage(index, file)
+                        }}
+                      />
+                    </label>
+                    {uploadingFeaturedDishIndex === index && (
+                      <p className="mt-1.5 text-xs font-medium text-emerald-700">Đang tải ảnh...</p>
+                    )}
+                    {dish.imageUrl && (
+                      <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
+                        <img
+                          src={dish.imageUrl}
+                          alt={`Xem trước món nổi bật ${index + 1}`}
+                          className="size-10 rounded-md border border-slate-200 object-cover"
+                        />
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-rose-600 hover:underline"
+                          onClick={() => {
+                            const featuredDishes = form.featuredDishes.map((currentDish, dishIndex) =>
+                              dishIndex === index ? { ...currentDish, imageUrl: null } : currentDish,
+                            )
+                            const next = { ...form, featuredDishes }
+                            setForm(next)
+                            runValidation(next)
+                          }}
+                        >
+                          Bỏ ảnh
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 italic">Chưa có công thức nào được liên kết.</p>
-          )}
+            ))}
+          </div>
+          {renderError('featuredDishes')}
         </section>
       </fieldset>
 

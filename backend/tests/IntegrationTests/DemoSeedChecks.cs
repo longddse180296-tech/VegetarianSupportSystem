@@ -52,7 +52,7 @@ internal static class DemoSeedChecks
             "Admin can view inactive demo recipe and retained references");
 
         var restaurants = await db.Restaurants.Where(x => x.Name.StartsWith("[Demo]"))
-            .Include(x => x.Amenities).Include(x => x.DietaryTypes).Include(x => x.RelatedRecipes).ToListAsync();
+            .Include(x => x.Amenities).Include(x => x.DietaryTypes).Include(x => x.FeaturedDishes).ToListAsync();
         check(restaurants.Count == 12 && restaurants.Count(x => x.IsActive) == 11, "12 demo restaurants including one inactive");
         client.DefaultRequestHeaders.Remove("Test-Role");
         var restaurantPage = (await client.GetFromJsonAsync<RestaurantPage>("/api/restaurants?search=%5BDemo%5D&pageSize=100"))!;
@@ -70,8 +70,8 @@ internal static class DemoSeedChecks
             "restaurant missing details remain unknown");
         var linked = restaurants.Single(x => x.Name.Contains("Bếp Lá"));
         var linkedDetail = (await client.GetFromJsonAsync<RestaurantResponse>("/api/restaurants/" + linked.Id))!;
-        check(linkedDetail.RelatedRecipes.Count == 3 && linkedDetail.RelatedRecipes.All(x => recipes.Any(recipe => recipe.Id == x.Id)) &&
-            linkedDetail.Amenities.Count == 3 && linkedDetail.Source!.Contains("giả lập"), "restaurant detail has real recipe links, amenities and demo source");
+        check(linkedDetail.FeaturedDishes.Count == 3 && linkedDetail.FeaturedDishes.All(x => !string.IsNullOrWhiteSpace(x.Name) && !string.IsNullOrWhiteSpace(x.ImageUrl)) &&
+            linkedDetail.Amenities.Count == 3 && linkedDetail.Source!.Contains("giả lập"), "restaurant detail has three featured dishes, amenities and demo source");
         var inactiveRestaurant = restaurants.Single(x => !x.IsActive);
         check((await client.GetAsync("/api/restaurants/" + inactiveRestaurant.Id)).StatusCode == HttpStatusCode.NotFound,
             "inactive demo restaurant public detail returns 404");
@@ -92,7 +92,7 @@ internal static class DemoSeedChecks
         var counts = (await db.Categories.CountAsync(), await db.Ingredients.CountAsync(),
             await db.Recipes.CountAsync(), await db.RecipeIngredients.CountAsync());
         var restaurantCounts = (await db.Restaurants.CountAsync(), await db.RestaurantAmenities.CountAsync(),
-            await db.RestaurantDietaryTypes.CountAsync(), await db.RestaurantRecipes.CountAsync());
+            await db.RestaurantDietaryTypes.CountAsync(), await db.RestaurantFeaturedDishes.CountAsync());
         db.ChangeTracker.Clear();
         await DemoDataSeeder.SeedAsync(db);
         db.ChangeTracker.Clear();
@@ -105,9 +105,9 @@ internal static class DemoSeedChecks
             !await db.Recipes.Where(x => x.Id == recipes[0].Id).Select(x => x.IsActive).SingleAsync(),
             "demo rerun preserves Admin edits, renamed categories and inactive statuses");
         check(restaurantCounts == (await db.Restaurants.CountAsync(), await db.RestaurantAmenities.CountAsync(),
-            await db.RestaurantDietaryTypes.CountAsync(), await db.RestaurantRecipes.CountAsync()) &&
+            await db.RestaurantDietaryTypes.CountAsync(), await db.RestaurantFeaturedDishes.CountAsync()) &&
             (await db.Restaurants.SingleAsync(x => x.Id == linked.Id)).Name == linked.Name &&
             !await db.Restaurants.Where(x => x.Id == linked.Id).Select(x => x.IsActive).SingleAsync(),
-            "demo rerun preserves restaurant edits and does not restore removed amenities or duplicate links");
+            "demo rerun preserves restaurant edits and does not restore removed amenities or duplicate featured dishes");
     }
 }

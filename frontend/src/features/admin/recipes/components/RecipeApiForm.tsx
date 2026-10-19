@@ -9,10 +9,12 @@ import {
   errorMessage,
 } from '../../utils/apiUi'
 import {
+  dietLabels,
   type RecipeDetail,
   type RecipeInput,
   recipeApi,
 } from '../api/recipeContract'
+import { uploadPublicImage } from '../../../../shared/api/publicImageApi'
 
 const VALID_UNITS = ['g', 'kg', 'ml'] as const
 
@@ -46,6 +48,7 @@ export function RecipeApiForm({
           proteinGramPerServing: recipe.proteinGramPerServing,
           carbohydrateGramPerServing: recipe.carbohydrateGramPerServing,
           fatGramPerServing: recipe.fatGramPerServing,
+          declaredDietaryType: recipe.declaredDietaryType,
           ingredients: recipe.ingredients.map(
             ({ ingredientId, quantity, unit, note }) => ({
               ingredientId,
@@ -68,6 +71,7 @@ export function RecipeApiForm({
           proteinGramPerServing: null,
           carbohydrateGramPerServing: null,
           fatGramPerServing: null,
+          declaredDietaryType: null,
           ingredients: [
             { ingredientId: '', quantity: 1, unit: 'g', note: null },
           ],
@@ -80,7 +84,21 @@ export function RecipeApiForm({
   )
   const [categoryName, setCategoryName] = useState(recipe?.categoryName || '')
   const [busy, setBusy] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const uploadImage = async (file?: File) => {
+    if (!file || busy || uploadingImage) return
+    setUploadingImage(true)
+    setError(null)
+    try {
+      const imageUrl = await uploadPublicImage(file)
+      setForm((current) => ({ ...current, imageUrl }))
+    } catch (reason) {
+      setError(errorMessage(reason))
+    } finally {
+      setUploadingImage(false)
+    }
+  }
   const changeIngredient = (
     index: number,
     patch: Partial<RecipeInput['ingredients'][number]>,
@@ -100,9 +118,10 @@ export function RecipeApiForm({
         if (busy) return
         if (
           !form.categoryId ||
+          !form.declaredDietaryType ||
           form.ingredients.some((item) => !item.ingredientId)
         ) {
-          setError('Vui lòng chọn danh mục và đầy đủ nguyên liệu.')
+          setError('Vui lòng chọn danh mục, một chế độ ăn và đầy đủ nguyên liệu.')
           return
         }
         if (
@@ -167,30 +186,49 @@ export function RecipeApiForm({
                 setCategoryName(item.name)
               }}
             />
+            <label className="block text-sm font-medium text-slate-700">
+              Chế độ ăn <span className="text-rose-500" aria-hidden="true">*</span>
+              <select
+                required
+                className={fieldClass}
+                value={form.declaredDietaryType ?? ''}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    declaredDietaryType: e.target.value
+                      ? e.target.value as RecipeInput['declaredDietaryType']
+                      : null,
+                  })
+                }
+              >
+                <option value="">Chọn một chế độ ăn</option>
+                {Object.entries(dietLabels).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <span className="mt-1.5 block text-xs font-normal leading-relaxed text-slate-400">
+                Hệ thống sẽ đối chiếu lựa chọn này với toàn bộ nguyên liệu trước khi lưu.
+              </span>
+            </label>
             <div className="space-y-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <label
-                  htmlFor="recipe-image-url"
-                  className="text-sm font-semibold text-slate-700"
-                >
-                  URL ảnh <span className="font-normal text-slate-400">(tùy chọn)</span>
-                </label>
-              </div>
+              <label htmlFor="recipe-image-file" className="text-sm font-semibold text-slate-700">
+                Ảnh đại diện <span className="font-normal text-slate-400">(tùy chọn)</span>
+              </label>
               <div className="w-full">
                 <input
-                  id="recipe-image-url"
-                  type="url"
-                  pattern="https?://.*"
-                  maxLength={2048}
-                  className={`${fieldClass} !mt-0 !h-[46px]`}
-                  placeholder="https://..."
-                  value={form.imageUrl || ''}
-                  onChange={(e) =>
-                    setForm({ ...form, imageUrl: e.target.value || null })
-                  }
+                  id="recipe-image-file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={uploadingImage}
+                  className={`${fieldClass} !mt-0 !h-auto cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100 disabled:cursor-not-allowed`}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    event.target.value = ''
+                    void uploadImage(file)
+                  }}
                 />
                 <span className="mt-1.5 block text-xs font-normal leading-relaxed text-slate-400">
-                  Đường dẫn ảnh đại diện của món ăn (URL HTTP/HTTPS).
+                  Chọn ảnh JPG, PNG hoặc WEBP từ thiết bị, tối đa 10 MB.
                 </span>
                 {form.imageUrl && (
                   <div className="mt-2 flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
@@ -202,7 +240,16 @@ export function RecipeApiForm({
                         ;(e.target as HTMLElement).style.display = 'none'
                       }}
                     />
-                    <span className="text-xs text-slate-500">Xem trước ảnh món ăn</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-xs text-slate-500">Xem trước ảnh món ăn</span>
+                      <button
+                        type="button"
+                        className="mt-1 text-xs font-semibold text-rose-600 hover:underline"
+                        onClick={() => setForm((current) => ({ ...current, imageUrl: null }))}
+                      >
+                        Bỏ ảnh
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

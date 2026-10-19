@@ -9,6 +9,7 @@ import {
 } from '../../../shared/components'
 import type { UploadVideoFormState, VideoCategory } from '../types/video.types'
 import { CATEGORY_LABELS, INITIAL_UPLOAD_FORM } from '../types/video.types'
+import { uploadPublicImage } from '../../../shared/api/publicImageApi'
 
 interface UploadVideoModalProps {
   isOpen: boolean
@@ -29,6 +30,7 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
 }) => {
   const [form, setForm] = useState<UploadVideoFormState>(INITIAL_UPLOAD_FORM)
   const [errors, setErrors] = useState<Partial<Record<keyof UploadVideoFormState, string>>>({})
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
 
   const updateField = <K extends keyof UploadVideoFormState>(
     key: K,
@@ -48,6 +50,23 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
       next.duration = 'Thời lượng phải là số (giây)'
     setErrors(next)
     return Object.keys(next).length === 0
+  }
+
+  const uploadThumbnail = async (file?: File) => {
+    if (!file || submitting || uploadingThumbnail) return
+    setUploadingThumbnail(true)
+    setErrors((previous) => ({ ...previous, thumbnailUrl: undefined }))
+    try {
+      const thumbnailUrl = await uploadPublicImage(file)
+      updateField('thumbnailUrl', thumbnailUrl)
+    } catch (reason) {
+      setErrors((previous) => ({
+        ...previous,
+        thumbnailUrl: reason instanceof Error ? reason.message : 'Không thể tải ảnh lên. Vui lòng thử lại.',
+      }))
+    } finally {
+      setUploadingThumbnail(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -124,13 +143,39 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
           />
         </div>
         <div className="sm:col-span-2">
-          <Input
-            label="URL ảnh thumbnail (tùy chọn)"
-            placeholder="https://.../anh-bia.jpg"
-            value={form.thumbnailUrl}
-            onChange={(e) => updateField('thumbnailUrl', e.target.value)}
-            helperText="Để trống hệ thống sẽ tự tạo thumbnail theo tiêu đề."
+          <label htmlFor="legacy-video-thumbnail" className="mb-1 block text-[12px] font-bold text-[#1f2937]">
+            Ảnh thumbnail <span className="font-normal text-[#6b7280]">(tùy chọn)</span>
+          </label>
+          <input
+            id="legacy-video-thumbnail"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={submitting || uploadingThumbnail}
+            className="block w-full cursor-pointer rounded-[10px] border border-[#e5e7eb] bg-white px-3.5 py-2.5 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[#e8f5e9] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[#2e7d32] hover:file:bg-[#d8f0da] disabled:cursor-not-allowed disabled:opacity-60"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              void uploadThumbnail(file)
+            }}
           />
+          <p className="mt-1 text-[11px] text-[#6b7280]">
+            {uploadingThumbnail
+              ? 'Đang tải ảnh lên...'
+              : 'Chọn JPG, PNG hoặc WEBP từ thiết bị, tối đa 10 MB.'}
+          </p>
+          {errors.thumbnailUrl && <p className="mt-1 text-[11px] text-red-500">{errors.thumbnailUrl}</p>}
+          {form.thumbnailUrl && (
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-2">
+              <img src={form.thumbnailUrl} alt="Xem trước ảnh thumbnail" className="size-12 rounded-md object-cover" />
+              <button
+                type="button"
+                className="text-xs font-semibold text-red-600 hover:underline"
+                onClick={() => updateField('thumbnailUrl', '')}
+              >
+                Bỏ ảnh
+              </button>
+            </div>
+          )}
         </div>
         <div>
           <Select

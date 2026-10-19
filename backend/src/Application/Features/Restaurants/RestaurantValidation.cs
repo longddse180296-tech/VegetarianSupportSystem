@@ -21,14 +21,9 @@ internal static class RestaurantValidation
             Fail(nameof(request.WebsiteUrl), "Website URL must use http or https.");
         if (!IsHttpUrl(request.ImageUrl))
             Fail(nameof(request.ImageUrl), "Image URL must use http or https.");
-        var dietaryTypes = request.DietaryTypes ?? [];
-        if (dietaryTypes.Length == 0 || dietaryTypes.Any(type => !Enum.IsDefined(type)))
-            Fail(nameof(request.DietaryTypes), "Select at least one supported dietary type.");
-        if (dietaryTypes.Distinct().Count() != dietaryTypes.Length)
-            Fail(nameof(request.DietaryTypes), "Dietary types must not be duplicated.");
+        GetSelectedDietaryType(request);
         ValidateNames(request.Amenities, nameof(request.Amenities), 120);
-        if (request.RelatedRecipeIds is null || request.RelatedRecipeIds.Any(id => id == Guid.Empty) || request.RelatedRecipeIds.Distinct().Count() != request.RelatedRecipeIds.Length)
-            Fail(nameof(request.RelatedRecipeIds), "Related recipe IDs must be non-empty and unique.");
+        ValidateFeaturedDishes(request.FeaturedDishes);
     }
 
     public static void Validate(RestaurantListQuery query)
@@ -40,6 +35,32 @@ internal static class RestaurantValidation
             Fail(nameof(query.MaxDistanceKm), "Distance filtering requires latitude and longitude.");
     }
 
+    public static DietaryType GetSelectedDietaryType(RestaurantRequest request)
+    {
+        var legacyTypes = request.DietaryTypes ?? [];
+        if (request.DietaryType is not DietaryType dietaryType)
+        {
+            if (legacyTypes.Length == 1 && Enum.IsDefined(legacyTypes[0]))
+                return legacyTypes[0];
+
+            Fail(nameof(request.DietaryType), "Select exactly one supported dietary type.");
+            return default;
+        }
+
+        if (!Enum.IsDefined(dietaryType))
+        {
+            Fail(nameof(request.DietaryType), "Select exactly one supported dietary type.");
+            return default;
+        }
+
+        if (legacyTypes.Length > 0 && (legacyTypes.Length != 1 || legacyTypes[0] != dietaryType))
+        {
+            Fail(nameof(request.DietaryType), "Only one dietary type may be selected.");
+        }
+
+        return dietaryType;
+    }
+
     private static bool IsHttpUrl(string? value) => string.IsNullOrWhiteSpace(value) ||
         Uri.TryCreate(value, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
@@ -48,6 +69,26 @@ internal static class RestaurantValidation
         if (values is null || values.Any(value => string.IsNullOrWhiteSpace(value) || value.Trim().Length > maxLength) ||
             values.Select(value => value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != values.Length)
             Fail(field, "Amenities must be non-empty, unique and within the supported length.");
+    }
+
+    private static void ValidateFeaturedDishes(RestaurantFeaturedDishRequest[]? dishes)
+    {
+        if (dishes is null)
+        {
+            Fail(nameof(RestaurantRequest.FeaturedDishes), "Enter exactly three featured dishes, each with a name and an uploaded image.");
+            return;
+        }
+
+        if (dishes.Length != 3 || dishes.Any(dish => dish is null || string.IsNullOrWhiteSpace(dish.Name) ||
+                dish.Name.Trim().Length > 120 || string.IsNullOrWhiteSpace(dish.ImageUrl) ||
+                dish.ImageUrl.Trim().Length > 2048 || !IsHttpUrl(dish.ImageUrl)))
+        {
+            Fail(nameof(RestaurantRequest.FeaturedDishes), "Enter exactly three featured dishes, each with a name and an uploaded image.");
+            return;
+        }
+
+        if (dishes.Select(dish => dish.Name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != dishes.Length)
+            Fail(nameof(RestaurantRequest.FeaturedDishes), "Featured dish names must be unique.");
     }
 
     public static void Fail(string member, string message) =>

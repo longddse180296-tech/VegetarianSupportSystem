@@ -1,4 +1,5 @@
 using Domain.ValueObjects;
+using Domain.Enums;
 
 namespace Application.Features.Recipes;
 
@@ -16,6 +17,7 @@ public sealed record RecipeResponse(
     decimal? ProteinGramPerServing,
     decimal? CarbohydrateGramPerServing,
     decimal? FatGramPerServing,
+    DietaryType? DeclaredDietaryType,
     bool IsActive, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt,
     string CategoryName, IReadOnlyList<RecipeIngredientResponse> Ingredients,
     IReadOnlyList<DietaryAssessment> DietaryAssessments);

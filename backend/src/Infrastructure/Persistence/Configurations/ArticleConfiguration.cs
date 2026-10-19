@@ -23,6 +23,8 @@ public sealed class ArticleConfiguration : IEntityTypeConfiguration<Article>
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(x => x.DietaryTypes).WithOne(x => x.Article).HasForeignKey(x => x.ArticleId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(x => x.Categories).WithOne(x => x.Article).HasForeignKey(x => x.ArticleId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -43,6 +45,19 @@ public sealed class ArticleVersionConfiguration : IEntityTypeConfiguration<Artic
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(x => x.DietaryTypes).WithOne(x => x.ArticleVersion).HasForeignKey(x => x.ArticleVersionId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(x => x.Categories).WithOne(x => x.ArticleVersion).HasForeignKey(x => x.ArticleVersionId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class ArticleCategoryConfiguration : IEntityTypeConfiguration<ArticleCategory>
+{
+    public void Configure(EntityTypeBuilder<ArticleCategory> builder)
+    {
+        builder.ToTable("ArticleCategories");
+        builder.HasKey(x => new { x.ArticleId, x.Category });
+        builder.Property(x => x.Category).HasMaxLength(120);
+        builder.HasIndex(x => x.ArticleId);
     }
 }
 
@@ -62,6 +77,17 @@ public sealed class ArticleVersionDietaryTypeConfiguration : IEntityTypeConfigur
     {
         builder.ToTable("ArticleVersionDietaryTypes");
         builder.HasKey(x => new { x.ArticleVersionId, x.DietaryType });
+        builder.HasIndex(x => x.ArticleVersionId);
+    }
+}
+
+public sealed class ArticleVersionCategoryConfiguration : IEntityTypeConfiguration<ArticleVersionCategory>
+{
+    public void Configure(EntityTypeBuilder<ArticleVersionCategory> builder)
+    {
+        builder.ToTable("ArticleVersionCategories");
+        builder.HasKey(x => new { x.ArticleVersionId, x.Category });
+        builder.Property(x => x.Category).HasMaxLength(120);
         builder.HasIndex(x => x.ArticleVersionId);
     }
 }

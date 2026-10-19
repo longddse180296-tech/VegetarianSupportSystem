@@ -11,7 +11,7 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         if (string.IsNullOrWhiteSpace(ownerId) || ownerId.Length > 450)
             throw new ArticleException(ArticleError.Validation, "A valid owner is required.");
         Validate(request);
-        var article = new Article(ownerId, request.Title.Trim(), request.Content.Trim(), request.Category.Trim(),
+        var article = new Article(ownerId, request.Title.Trim(), request.Content.Trim(), Categories(request),
             request.CoverImageUrl?.Trim(), DietaryTypes(request), DateTimeOffset.UtcNow);
         await repository.AddAsync(article, ct);
         await repository.SaveAsync(ct);
@@ -23,7 +23,7 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         Validate(request);
         var article = await GetOwnedAsync(id, ownerId, ct);
         EnsureEditable(article);
-        article.SetDraft(request.Title.Trim(), request.Content.Trim(), request.Category.Trim(),
+        article.SetDraft(request.Title.Trim(), request.Content.Trim(), Categories(request),
             request.CoverImageUrl?.Trim(), DietaryTypes(request), DateTimeOffset.UtcNow);
         await repository.SaveAsync(ct);
         return ToMine(article);
@@ -81,9 +81,10 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
     {
         var version = await repository.GetPublicAsync(id, ct)
             ?? throw new ArticleException(ArticleError.NotFound, "Article was not found.");
-        var related = await repository.GetRelatedAsync(id, version.Category, 4, ct);
-        return new(version.ArticleId, version.Title, version.Content, version.Category, ToDietaryTypes(version.DietaryTypes),
-            version.CoverImageUrl, version.Submission.OwnerUserId, version.Version,
+        var related = await repository.GetRelatedAsync(id, Categories(version.Categories), 4, ct);
+        var dietaryTypes = ToDietaryTypes(version.DietaryTypes);
+        return new(version.ArticleId, version.Title, version.Content, version.Category, Categories(version.Categories), dietaryTypes,
+            dietaryTypes.Count == 1 ? dietaryTypes[0] : null, version.CoverImageUrl, version.Submission.OwnerUserId, version.Version,
             PublishedAt(version), related.Select(ToSummary).ToArray());
     }
 
@@ -109,8 +110,9 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         var versions = article.Versions.OrderByDescending(x => x.Version).ToArray();
         var published = versions.FirstOrDefault(x => x.Submission.AdminReviewStatus == AdminReviewStatus.Published
             && x.Submission.IsCurrentPublished);
-        return new(article.Id, article.DraftTitle, article.DraftContent, article.DraftCategory, ToDietaryTypes(article.DietaryTypes),
-            article.DraftCoverImageUrl, article.CreatedAt, article.UpdatedAt,
+        var dietaryTypes = ToDietaryTypes(article.DietaryTypes);
+        return new(article.Id, article.DraftTitle, article.DraftContent, article.DraftCategory, Categories(article.Categories),
+            dietaryTypes, dietaryTypes.Count == 1 ? dietaryTypes[0] : null, article.DraftCoverImageUrl, article.CreatedAt, article.UpdatedAt,
             versions.FirstOrDefault()?.Submission.AdminReviewStatus ?? AdminReviewStatus.Draft,
             published is null ? null : ToSummary(published),
             versions.Select(x => new ArticleVersionInfo(x.Version, x.SubmissionId,
@@ -119,9 +121,13 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
                 x.SubmittedAt)).ToArray());
     }
 
-    private static ArticleSummary ToSummary(ArticleVersion version) =>
-        new(version.ArticleId, version.Title, version.Category, ToDietaryTypes(version.DietaryTypes), version.CoverImageUrl,
-            version.Submission.OwnerUserId, version.Version, PublishedAt(version));
+    private static ArticleSummary ToSummary(ArticleVersion version)
+    {
+        var dietaryTypes = ToDietaryTypes(version.DietaryTypes);
+        return new(version.ArticleId, version.Title, version.Category, Categories(version.Categories), dietaryTypes,
+            dietaryTypes.Count == 1 ? dietaryTypes[0] : null, version.CoverImageUrl, version.Submission.OwnerUserId, version.Version,
+            PublishedAt(version));
+    }
 
     private static DateTimeOffset PublishedAt(ArticleVersion version) =>
         version.Submission.Decisions.Where(x => x.Decision == ModerationDecisionType.Approve)
@@ -131,22 +137,50 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
     {
         if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Trim().Length > 200
             || string.IsNullOrWhiteSpace(request.Content) || request.Content.Trim().Length > 50_000
-            || string.IsNullOrWhiteSpace(request.Category) || request.Category.Trim().Length > 120
             || request.CoverImageUrl?.Length > 2_000
             || (request.CoverImageUrl is { Length: > 0 } image &&
                 (!Uri.TryCreate(image, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))))
-            throw new ArticleException(ArticleError.Validation, "Title, content, category and cover image URL are invalid.");
+            throw new ArticleException(ArticleError.Validation, "Title, content and cover image URL are invalid.");
 
+        _ = Categories(request);
         _ = DietaryTypes(request);
     }
 
     private static IReadOnlyList<DietaryType> DietaryTypes(ArticleDraftRequest request)
     {
-        var dietaryTypes = request.DietaryTypes ?? [];
-        if (dietaryTypes.Count > 4 || dietaryTypes.Distinct().Count() != dietaryTypes.Count ||
+        var dietaryTypes = request.DietaryType is { } dietaryType
+            ? [dietaryType]
+            : request.DietaryTypes ?? [];
+        if (dietaryTypes.Count > 1 || dietaryTypes.Distinct().Count() != dietaryTypes.Count ||
             dietaryTypes.Any(type => !Enum.IsDefined(type)))
-            throw new ArticleException(ArticleError.Validation, "Dietary types are invalid.");
-        return dietaryTypes.OrderBy(type => type).ToArray();
+            throw new ArticleException(ArticleError.Validation, "Choose at most one dietary type.");
+        return dietaryTypes;
+    }
+
+    private static IReadOnlyList<string> Categories(ArticleDraftRequest request)
+    {
+        var categories = request.Categories is { Count: > 0 }
+            ? request.Categories
+            : string.IsNullOrWhiteSpace(request.Category) ? [] : [request.Category];
+        return NormalizeCategories(categories);
+    }
+
+    private static IReadOnlyList<string> Categories(IEnumerable<ArticleCategory> source) =>
+        NormalizeCategories(source.Select(item => item.Category));
+
+    private static IReadOnlyList<string> Categories(IEnumerable<ArticleVersionCategory> source) =>
+        NormalizeCategories(source.Select(item => item.Category));
+
+    private static IReadOnlyList<string> NormalizeCategories(IEnumerable<string> source)
+    {
+        var categories = source.Select(category => category?.Trim() ?? string.Empty)
+            .Where(category => category.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(category => category, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (categories.Length is 0 or > 8 || categories.Any(category => category.Length > 120))
+            throw new ArticleException(ArticleError.Validation, "Choose one to eight categories, each up to 120 characters.");
+        return categories;
     }
 
     private static IReadOnlyList<DietaryType> ToDietaryTypes(IEnumerable<ArticleDietaryType> source) =>

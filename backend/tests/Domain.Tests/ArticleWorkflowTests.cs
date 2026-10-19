@@ -87,7 +87,7 @@ public sealed class ArticleWorkflowTests
         public Task<ArticlePage<Article>> ListMineAsync(string ownerId, MyArticleListQuery query, CancellationToken ct) => throw new NotImplementedException();
         public Task<ArticlePage<ArticleVersion>> ListPublicAsync(ArticleListQuery query, CancellationToken ct) => throw new NotImplementedException();
         public Task<ArticleVersion?> GetPublicAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-        public Task<IReadOnlyList<ArticleVersion>> GetRelatedAsync(Guid articleId, string category, int count, CancellationToken ct) => throw new NotImplementedException();
+        public Task<IReadOnlyList<ArticleVersion>> GetRelatedAsync(Guid articleId, IReadOnlyCollection<string> categories, int count, CancellationToken ct) => throw new NotImplementedException();
         public Task AddAsync(Article value, CancellationToken ct) => throw new NotImplementedException();
         public void Remove(Article value) => throw new NotImplementedException();
         public Task SaveAsync(CancellationToken ct) => Task.CompletedTask;

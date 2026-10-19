@@ -3,6 +3,8 @@ using Application.Common.Validation;
 using Domain.Entities;
 using Application.Features.Categories;
 using Application.Features.Ingredients;
+using Domain.Enums;
+using Domain.Rules;
 
 namespace Application.Features.Recipes;
 
@@ -81,6 +83,14 @@ public sealed class RecipeService(
         {
             RecipeValidation.Fail(nameof(request.Ingredients), "Select existing, active ingredients.");
         }
+        var declaredDietaryType = request.DeclaredDietaryType!.Value;
+        var assessment = DietaryRules.Classify(selected).Single(item => item.DietaryType == declaredDietaryType);
+        if (assessment.Status != DietaryCompatibility.Compatible)
+        {
+            RecipeValidation.Fail(
+                nameof(request.DeclaredDietaryType),
+                "The selected dietary type must be compatible with every ingredient in this recipe.");
+        }
         entity.Category = category;
         UpdateIngredients(entity, request.Ingredients, selected);
 
@@ -96,6 +106,7 @@ public sealed class RecipeService(
         entity.ProteinGramPerServing = request.ProteinGramPerServing;
         entity.CarbohydrateGramPerServing = request.CarbohydrateGramPerServing;
         entity.FatGramPerServing = request.FatGramPerServing;
+        entity.DeclaredDietaryType = declaredDietaryType;
     }
 
     private static void UpdateIngredients(

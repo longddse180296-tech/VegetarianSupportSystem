@@ -8,6 +8,8 @@ Hợp đồng backend nhận ảnh món ăn và đánh giá sau khi User xác nh
 
 Hợp đồng video nháp/upload riêng tư, xem công khai và quyền owner/Admin ở [videos.md](videos.md).
 
+Hợp đồng upload ảnh đại diện từ thiết bị ở [media.md](media.md).
+
 Hợp đồng đăng ký, đăng nhập, JWT và Admin seed ở [auth.md](auth.md).
 
 Hợp đồng nhà hàng public/Admin, lọc theo khu vực/chế độ ăn/khoảng cách và trạng thái dữ liệu ở [restaurants.md](restaurants.md).

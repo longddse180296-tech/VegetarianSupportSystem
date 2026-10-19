@@ -346,8 +346,8 @@ export default function RestaurantDetail({
           </div>
         </section>
 
-        {/* ===== MÓN CHAY LIÊN QUAN / THỰC ĐƠN TỪ HỆ THỐNG ===== */}
-        {restaurant.relatedRecipes && restaurant.relatedRecipes.length > 0 && (
+        {/* ===== MÓN ĂN NỔI BẬT CỦA NHÀ HÀNG ===== */}
+        {restaurant.featuredDishes && restaurant.featuredDishes.length > 0 && (
           <section className="rounded-[20px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -355,20 +355,20 @@ export default function RestaurantDetail({
                   <Sparkles size={16} />
                 </span>
                 <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Món chay đặc sắc tại quán
+                  Món ăn nổi bật tại quán
                 </h2>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {restaurant.relatedRecipes.map((item) => (
+              {restaurant.featuredDishes.map((item) => (
                 <article
                   key={item.id}
                   className="group relative flex flex-col overflow-hidden rounded-[16px] border border-slate-200/90 bg-white p-3.5 shadow-2xs transition-all hover:border-emerald-400/80 hover:shadow-md"
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[12px] bg-slate-900 mb-3">
                     <img
-                      src={item.imageUrl || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'}
+                      src={item.imageUrl}
                       alt={item.name}
                       loading="lazy"
                       onError={(e) => {
@@ -382,20 +382,6 @@ export default function RestaurantDetail({
                   <h4 className="line-clamp-2 text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
                     {item.name}
                   </h4>
-
-                  <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-end text-xs">
-                    <button
-                      type="button"
-                      onClick={() => onNavigate?.(`/recipes/${item.id}`)}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#2E7D32] hover:text-[#1B5E20] transition-colors group/cta"
-                    >
-                      <span>Xem công thức</span>
-                      <ArrowRight
-                        size={12}
-                        className="transition-transform group-hover/cta:translate-x-0.5"
-                      />
-                    </button>
-                  </div>
                 </article>
               ))}
             </div>

@@ -9,7 +9,7 @@ public interface IArticleRepository
     Task<ArticlePage<Article>> ListMineAsync(string ownerId, MyArticleListQuery query, CancellationToken ct);
     Task<ArticlePage<ArticleVersion>> ListPublicAsync(ArticleListQuery query, CancellationToken ct);
     Task<ArticleVersion?> GetPublicAsync(Guid id, CancellationToken ct);
-    Task<IReadOnlyList<ArticleVersion>> GetRelatedAsync(Guid articleId, string category, int count, CancellationToken ct);
+    Task<IReadOnlyList<ArticleVersion>> GetRelatedAsync(Guid articleId, IReadOnlyCollection<string> categories, int count, CancellationToken ct);
     Task AddAsync(Article article, CancellationToken ct);
     void Remove(Article article);
     Task SaveAsync(CancellationToken ct);
