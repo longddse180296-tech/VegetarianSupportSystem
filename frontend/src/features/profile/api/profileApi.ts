@@ -341,8 +341,9 @@ export const profileApi = {
         category: string
         title: string
         updatedAt: string
+        status?: RecentPost['status']
       }>
-    }>('/api/me/articles?status=Published&page=1&pageSize=3')
+    }>('/api/me/articles?page=1&pageSize=3')
     return result.items.map((item) => ({
       id: item.id,
       category: item.category,
@@ -350,6 +351,7 @@ export const profileApi = {
       publishedDate: new Date(item.updatedAt).toLocaleDateString('vi-VN'),
       likeCount: null,
       commentCount: null,
+      status: item.status,
     }))
   },
 }

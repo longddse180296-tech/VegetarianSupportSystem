@@ -73,4 +73,5 @@ export interface RecentPost {
   publishedDate: string
   likeCount: number | null
   commentCount: number | null
+  status?: 'Draft' | 'Submitted' | 'PendingAdminReview' | 'Published' | 'RevisionRequested' | 'Rejected' | 'Removed'
 }

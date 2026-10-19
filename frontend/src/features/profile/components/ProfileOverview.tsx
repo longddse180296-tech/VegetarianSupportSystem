@@ -554,9 +554,9 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => onNavigate?.(`/articles/${post.id}`)}
+                    onClick={() => onNavigate?.(post.status === 'Published' ? `/articles/${post.id}` : `/articles/editor/${post.id}?from=profile`)}
                   >
-                    Xem bài
+                    {post.status === 'Published' ? 'Xem bài' : 'Mở bài'}
                   </Button>
                   <Button
                     type="button"
