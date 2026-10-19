@@ -10,6 +10,7 @@ import type {
   VideoSortOption,
 } from '../types/video.types'
 import { DEFAULT_VIDEO_FILTER } from '../types/video.types'
+import { inferVideoDietType } from './backendVideos'
 
 interface BackendVideoDetails {
   id: string
@@ -28,6 +29,7 @@ interface BackendVideoDetails {
   viewCount: number
   favoriteCount: number
   createdAtUtc: string
+  dietType?: string | null
 }
 
 interface BackendVideoPage {
@@ -43,6 +45,7 @@ function mapBackendVideo(d: BackendVideoDetails): Video {
     title: d.title,
     description: d.description,
     category: 'cooking-tutorial',
+    dietType: d.dietType || inferVideoDietType(d.title, d.description),
     videoUrl: d.mediaUrl || `/api/videos/${d.id}/media`,
     thumbnailUrl:
       d.thumbnailUrl ||
@@ -198,9 +201,10 @@ export async function getVideos(
   inputFilter: Partial<VideoListFilter> = {},
 ): Promise<VideoListResponse> {
   const applied: VideoListFilter = { ...DEFAULT_VIDEO_FILTER, ...inputFilter }
+  const url = '/api/videos?page=1&pageSize=50'
 
   try {
-    const res = await apiClient.get<BackendVideoPage>('/api/videos?page=1&pageSize=50', {
+    const res = await apiClient.get<BackendVideoPage>(url, {
       requiresAuth: false,
     })
     if (res && Array.isArray(res.items)) {
@@ -212,23 +216,25 @@ export async function getVideos(
         appliedFilter: applied,
       }
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[videoApi.getVideos] Lỗi khi gọi API: ' + url, err)
   }
 
   return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
 export async function getVideoDetail(id: string): Promise<Video | null> {
+  const url = `/api/videos/${id}`
   try {
-    const res = await apiClient.get<BackendVideoDetails>(`/api/videos/${id}`, {
+    const res = await apiClient.get<BackendVideoDetails>(url, {
       requiresAuth: false,
     })
     if (res && res.id) {
       return mapBackendVideo(res)
     }
-  } catch {
-    // Not found
+  } catch (err) {
+    console.error('[videoApi.getVideoDetail] Lỗi khi gọi API: ' + url, err)
+    return null
   }
 
   return null

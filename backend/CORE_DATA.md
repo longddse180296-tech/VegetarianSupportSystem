@@ -7,7 +7,7 @@
 - Có tạo/sửa/danh sách/chi tiết/ngừng sử dụng; DTO tách khỏi entity.
 - Có filter category/chế độ ăn/thời gian nấu/calo, tìm tên recipe hoặc tên/aliases ingredient.
 - Phân loại tính từ ingredient hiện tại, trả kết quả riêng cho bốn chế độ và giữ trạng thái chưa rõ.
-- Seed: 3 category, 7 ingredient, 6 recipe mẫu. Tên có nhãn [Mẫu], dinh dưỡng chỉ để kiểm thử.
+- Seed kiểm thử: 3 category, 7 ingredient, 6 recipe có nhãn [Mẫu]. Seed demo riêng: 8 category, 36 ingredient, 32 recipe, 12 restaurant có nhãn [Demo]. Dinh dưỡng chỉ để minh họa/kiểm thử.
 - Migration hiện có bao phủ toàn bộ entity hiện diện trong repository. Chưa có entity/config BE 1 hoặc BE 3 để ghép; không coi đây là xác nhận hoàn tất tích hợp toàn nhóm.
 - API Admin chờ xác thực thật của BE 1; kiểm tra quyền không có đường bypass trong API.
 
@@ -24,7 +24,9 @@
 | Entity, enum, kết quả phân loại | Domain/Entities, Domain/Enums, Domain/ValueObjects |
 | Query SQL và lưu DB | Infrastructure/Persistence/Repositories |
 | Khóa/quan hệ/kiểu cột | Infrastructure/Persistence/Configurations |
-| Seed mẫu | Infrastructure/Persistence/Seeding/CoreDataSeeder.cs |
+| Seed mẫu | tests/IntegrationTests/Fixtures/CoreDataSeeder.cs |
+| Dữ liệu và seed demo | tests/IntegrationTests/Fixtures/DemoDataCatalog.cs, DemoDataSeeder.cs |
+| Dữ liệu nhà hàng demo | tests/IntegrationTests/Fixtures/DemoRestaurantCatalog.cs |
 | HTTP endpoint | Api/Controllers/{Categories,Ingredients,Recipes}Controller.cs |
 | Kiểm tra quyền Admin | Api/Authorization/CoreDataAdminAttribute.cs |
 | Chuyển lỗi HTTP dùng chung | Api/Controllers/CoreDataControllerBase.cs |
@@ -32,18 +34,14 @@
 
 Mỗi DTO nằm trong file riêng; không gom request, response, mapping và exception vào một file Contracts. Không dùng generic repository hoặc base service để che logic feature. Chỉ dùng chung validation số thập phân, lỗi conflict và chuyển lỗi HTTP có hành vi giống nhau.
 
-File shared đã thay đổi: Application/DependencyInjection và Infrastructure/DependencyInjection đăng ký service/repository; AppDbContext nạp entity config; Program nhận lệnh seed Development; Backend.sln thêm chương trình kiểm thử. Application/Common chứa các tiện ích validation và exception dùng chung cho ba feature.
+File shared đã thay đổi: Application/DependencyInjection và Infrastructure/DependencyInjection đăng ký service/repository; AppDbContext nạp entity config; API không nhận lệnh seed mẫu/demo; Backend.sln thêm chương trình kiểm thử. Application/Common chứa các tiện ích validation và exception dùng chung cho ba feature.
 
-## Chạy database và seed
+## Database và dữ liệu kiểm thử
 
-Tại repository root, cấu hình connection string local qua user secrets hoặc biến môi trường `ConnectionStrings__DefaultConnection`; không ghi secrets vào source. Sau đó:
+Áp dụng migration bằng `dotnet ef database update --project backend/src/Infrastructure --startup-project backend/src/Api`.
+Dữ liệu thật được nhập qua Admin. API không còn hỗ trợ `--seed-core-data` hoặc `--seed-demo-data`.
 
-```powershell
-dotnet ef database update --project backend/src/Infrastructure --startup-project backend/src/Api
-dotnet run --project backend/src/Api --launch-profile http -- --seed-core-data
-```
-
-Seed chỉ chấp nhận môi trường Development, chạy xong thoát. Seed không chạy migration tự động. ID cố định, chạy lại không nhân đôi/ghi đè dữ liệu Admin đã sửa; toàn bộ thao tác trong transaction. Nếu gặp xung đột tên do bản ghi khác dùng cùng tên mẫu, transaction thất bại và cần xử lý dữ liệu xung đột trước khi chạy lại.
+Các catalog và seeder mẫu/demo đã chuyển sang `tests/IntegrationTests/Fixtures/`, chỉ được biên dịch vào project kiểm thử. Chạy `dotnet run --project backend/tests/IntegrationTests -c Release` trên database thử nghiệm riêng. Test host tự tạo database ngẫu nhiên và xóa sau khi kiểm tra, không seed vào database vận hành.
 
 ## Quy trình migration chung
 

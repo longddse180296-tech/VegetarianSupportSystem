@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Application\Application.csproj" />
+    <InternalsVisibleTo Include="Domain.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -6,7 +6,7 @@ JSON dùng camelCase, enum trả tên chuỗi. `id` là UUID. API public không 
 
 | Method | Path | Chức năng |
 |---|---|---|
-| GET | `/api/articles?search=&category=&page=1&pageSize=20` | Danh sách bản đang công khai; tìm trong tiêu đề/nội dung, lọc danh mục, phân trang. |
+| GET | `/api/articles?search=&category=&dietaryType=&page=1&pageSize=20` | Danh sách bản đang công khai; tìm trong tiêu đề/nội dung, lọc danh mục và kiểu ăn chay, phân trang. |
 | GET | `/api/articles/{id}` | Chi tiết bản đang công khai và tối đa 4 bài liên quan cùng danh mục. |
 | GET | `/api/me/articles?status=&aiStatus=&page=1&pageSize=20` | Bài của tôi, lọc theo trạng thái Admin/AI của bản gửi gần nhất. `Draft` chỉ gồm bản chưa gửi lần nào. |
 | GET | `/api/me/articles/{id}` | Bản nháp hiện tại, lịch sử phiên bản, trạng thái AI/Admin, phản hồi Admin, bản đang công khai. |
@@ -19,11 +19,11 @@ JSON dùng camelCase, enum trả tên chuỗi. `id` là UUID. API public không 
 
 ## Dữ liệu
 
-Request tạo/sửa: `{ "title": "...", "content": "...", "category": "Dinh dưỡng", "coverImageUrl": "https://..." }`. Ba trường đầu bắt buộc; tiêu đề tối đa 200, nội dung tối đa 50.000, danh mục tối đa 120 ký tự. Ảnh đại diện là URL HTTP/HTTPS tùy chọn tối đa 2.000 ký tự; upload/storage do module media dùng chung quản lý, API này không nhận binary. URL gửi vào `mediaReference` của submission; việc xác minh tệp thuộc người gửi và kiểm tra ảnh thật phụ thuộc tích hợp BE3.
+Request tạo/sửa: `{ "title": "...", "content": "...", "category": "Dinh dưỡng", "dietaryTypes": ["Vegan", "LactoVegetarian"], "coverImageUrl": "https://..." }`. Ba trường đầu bắt buộc; tiêu đề tối đa 200, nội dung tối đa 50.000, danh mục tối đa 120 ký tự. `dietaryTypes` là danh sách không trùng gồm `Vegan`, `LactoVegetarian`, `OvoVegetarian`, `LactoOvoVegetarian`; danh sách rỗng giữ nghĩa chưa phân loại để tương thích bài cũ. Ảnh đại diện là URL HTTP/HTTPS tùy chọn tối đa 2.000 ký tự; upload/storage do module media dùng chung quản lý, API này không nhận binary. URL gửi vào `mediaReference` của submission; việc xác minh tệp thuộc người gửi và kiểm tra ảnh thật phụ thuộc tích hợp BE3.
 
-Public list item: `{ id, title, category, coverImageUrl, authorId, version, publishedAt }`. Chi tiết thêm `content` và `relatedArticles`. Chỉ bản có `adminReviewStatus=Published` và `isCurrentPublished=true` ở Moderation được trả. Một bản sửa đang kiểm tra không đổi bản công khai.
+Public list item: `{ id, title, category, dietaryTypes, coverImageUrl, authorId, version, publishedAt }`. Chi tiết thêm `content` và `relatedArticles`. `dietaryType` trong query nhận một trong bốn enum trên; bài chưa phân loại không khớp bộ lọc. Chỉ bản có `adminReviewStatus=Published` và `isCurrentPublished=true` ở Moderation được trả. Một bản sửa đang kiểm tra không đổi bản công khai.
 
-Chi tiết của tôi: `{ id, title, content, category, coverImageUrl, createdAt, updatedAt, status, publishedVersion, versions }`. Mỗi `versions` có `{ version, submissionId, aiStatus, adminStatus, aiSummary, adminFeedback, submittedAt }`; `adminFeedback` là lý do quyết định mới nhất của Admin trên phiên bản đó. `publishedVersion` null khi chưa có bản đang công khai. `status` là trạng thái Admin của phiên bản gần nhất hoặc `Draft` trước lần gửi đầu tiên. AI và Admin là hai trạng thái độc lập.
+Chi tiết của tôi: `{ id, title, content, category, dietaryTypes, coverImageUrl, createdAt, updatedAt, status, publishedVersion, versions }`. Mỗi `versions` có `{ version, submissionId, aiStatus, adminStatus, aiSummary, adminFeedback, submittedAt }`; `adminFeedback` là lý do quyết định mới nhất của Admin trên phiên bản đó. `publishedVersion` null khi chưa có bản đang công khai. `status` là trạng thái Admin của phiên bản gần nhất hoặc `Draft` trước lần gửi đầu tiên. AI và Admin là hai trạng thái độc lập.
 
 Gửi duyệt dùng `ModerationService.SubmitAsync` với `contentType=Article`. Sau gửi, AI `Checking`, Admin `Submitted`. Khi AI trả `Passed`, `Flagged`, `Partial` hoặc `Failed`, bản gửi vào hàng đợi Admin; với `Failed`, Admin phải xem trực tiếp toàn bộ nội dung vì AI chưa có kết luận. BE3 xử lý AI và quyết định qua `/api/moderation/submissions` và `/api/admin/moderation/submissions`; không có endpoint xuất bản trực tiếp ở Articles. Khi Admin duyệt, phiên bản được công khai; khi yêu cầu sửa/từ chối, tác giả có thể sửa và gửi lại; khi sửa bản đã xuất bản, bản cũ vẫn công khai đến lúc bản mới được duyệt. Bản đang chờ xử lý không được sửa/gửi lại; bản đã gỡ không được sửa/gửi lại. Chỉ xóa được nháp chưa gửi.
 

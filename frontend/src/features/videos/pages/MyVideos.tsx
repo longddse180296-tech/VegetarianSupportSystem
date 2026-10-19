@@ -202,7 +202,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
             <h1 className="text-2xl font-bold text-slate-900">Video của tôi</h1>
             <p className="mt-1 text-sm text-slate-500">Tải video lên, lưu bản nháp và gửi Admin duyệt.</p>
           </div>
-          <Button variant="primary" onClick={startCreate}>+ Tải video mới</Button>
+          <Button variant="primary" onClick={() => onNavigate?.('/videos/create?from=profile')}>+ Tải video mới</Button>
         </div>
 
         {notice && <p className="my-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}

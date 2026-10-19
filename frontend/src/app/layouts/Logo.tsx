@@ -4,7 +4,7 @@ import logoIcon from '../../assets/LOGO_ICON.png'
 
 interface LogoProps {
   className?: string
-  iconSize?: 'sm' | 'md' | 'lg'
+  iconSize?: 'sm' | 'md' | 'lg' | 'xl' | number
   showText?: boolean
 }
 
@@ -13,17 +13,17 @@ export const Logo: React.FC<LogoProps> = ({
   iconSize = 'md',
   showText = true,
 }) => {
-  const heightPx = {
-    sm: 26,
-    md: 32,
-    lg: 40,
-  }[iconSize]
+  const iconPx =
+    typeof iconSize === 'number'
+      ? iconSize
+      : {
+          sm: 26,
+          md: 32,
+          lg: 40,
+          xl: 44,
+        }[iconSize] ?? 32
 
-  const iconPx = {
-    sm: 26,
-    md: 32,
-    lg: 40,
-  }[iconSize]
+  const heightPx = iconPx
 
   if (!showText) {
     return (

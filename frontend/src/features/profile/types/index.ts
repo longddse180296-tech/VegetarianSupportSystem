@@ -1,9 +1,4 @@
-export type DietaryType =
-  | ''
-  | 'Vegan'
-  | 'Lacto-vegetarian'
-  | 'Ovo-vegetarian'
-  | 'Lacto-ovo vegetarian'
+export type DietaryType = '' | import('../../../shared/constants').DietaryType
 
 export type GoalType =
   | ''

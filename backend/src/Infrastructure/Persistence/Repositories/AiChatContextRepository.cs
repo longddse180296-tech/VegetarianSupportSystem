@@ -1,18 +1,15 @@
 using Application.Features.AiChat;
+using Application.Features.Profiles;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
 
-public sealed class AiChatContextRepository(AppDbContext db) : IAiChatContextRepository
+public sealed class AiChatContextRepository(AppDbContext db, IProfileContextReader profiles) : IAiChatContextRepository
 {
     public async Task<string?> GetProfileContextAsync(string userId, CancellationToken ct)
     {
-        var profile = await db.UserProfiles.AsNoTracking().Include(x => x.Allergies)
-            .FirstOrDefaultAsync(x => x.UserId == userId, ct);
-        if (profile is null) return null;
-        return $"Chế độ ăn: {profile.Diet?.ToString() ?? "chưa khai báo"}; " +
-            $"dị ứng do người dùng khai báo: {string.Join(", ", profile.Allergies.Select(x => x.Name))}. " +
-            "Không suy đoán các chỉ số chưa khai báo.";
+        var profile = await profiles.GetContextAsync(userId, ct);
+        return AiChatProfileContext.Format(profile);
     }
 
     public async Task<IReadOnlyList<ChatRecipeSuggestion>> GetActiveRecipesAsync(CancellationToken ct) =>

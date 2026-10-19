@@ -24,6 +24,14 @@ builder.Configuration["ConnectionStrings:DefaultConnection"] = connection.Connec
 builder.Configuration["PasswordReset:ResetPageUrl"] = "http://localhost:5173/#/auth/reset-password";
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+if (args.Contains("--profile-only", StringComparer.Ordinal))
+{
+    builder.Services.AddSingleton<ProfileContextCapture>();
+    builder.Services.AddSingleton<Application.Features.AiChat.IAiChatAnswerService>(provider =>
+        provider.GetRequiredService<ProfileContextCapture>());
+    builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+}
 builder.Services.AddSingleton<IAccessTokenIssuer>(
     new JwtAccessTokenIssuer("integration-tests", "integration-tests", new string('k', 32)));
 builder.Services.AddSingleton<CapturingResetEmailSender>();
@@ -60,6 +68,27 @@ void Check(bool condition, string name)
 
 try
 {
+    if (args.Contains("--profile-only", StringComparer.Ordinal))
+    {
+        await db.Database.EnsureCreatedAsync();
+        await app.StartAsync();
+        using var profileClient = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+        await ProfileApiChecks.RunAsync(profileClient, db,
+            app.Services.GetRequiredService<ProfileContextCapture>(), Check);
+        Console.WriteLine($"ALL {checks} PROFILE CHECKS PASSED");
+        return;
+    }
+
+    if (args.Contains("--demo-seed-only", StringComparer.Ordinal))
+    {
+        await db.Database.MigrateAsync();
+        await app.StartAsync();
+        using var demoClient = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+        await DemoSeedChecks.RunAsync(demoClient, db, Check);
+        Console.WriteLine($"ALL {checks} DEMO SEED CHECKS PASSED");
+        return;
+    }
+
     if (args.Contains("--dashboard-only", StringComparer.Ordinal))
     {
         await db.Database.EnsureCreatedAsync();
@@ -88,6 +117,7 @@ try
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
     await CoreDataApiChecks.RunAsync(client, db, Check);
     await SeedFilterChecks.RunAsync(client, db, Check);
+    await DemoSeedChecks.RunAsync(client, db, Check);
     await PasswordResetApiChecks.RunAsync(client,
         app.Services.GetRequiredService<CapturingResetEmailSender>(), Check);
     await SmtpTransportChecks.RunAsync(Check);

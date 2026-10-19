@@ -21,6 +21,8 @@ public sealed class ArticleConfiguration : IEntityTypeConfiguration<Article>
         builder.HasIndex(x => x.ModerationContentId).IsUnique().HasFilter("[ModerationContentId] IS NOT NULL");
         builder.HasMany(x => x.Versions).WithOne().HasForeignKey(x => x.ArticleId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(x => x.DietaryTypes).WithOne(x => x.Article).HasForeignKey(x => x.ArticleId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -39,5 +41,27 @@ public sealed class ArticleVersionConfiguration : IEntityTypeConfiguration<Artic
         builder.HasIndex(x => x.SubmissionId).IsUnique();
         builder.HasOne(x => x.Submission).WithMany().HasForeignKey(x => x.SubmissionId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(x => x.DietaryTypes).WithOne(x => x.ArticleVersion).HasForeignKey(x => x.ArticleVersionId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class ArticleDietaryTypeConfiguration : IEntityTypeConfiguration<ArticleDietaryType>
+{
+    public void Configure(EntityTypeBuilder<ArticleDietaryType> builder)
+    {
+        builder.ToTable("ArticleDietaryTypes");
+        builder.HasKey(x => new { x.ArticleId, x.DietaryType });
+        builder.HasIndex(x => x.ArticleId);
+    }
+}
+
+public sealed class ArticleVersionDietaryTypeConfiguration : IEntityTypeConfiguration<ArticleVersionDietaryType>
+{
+    public void Configure(EntityTypeBuilder<ArticleVersionDietaryType> builder)
+    {
+        builder.ToTable("ArticleVersionDietaryTypes");
+        builder.HasKey(x => new { x.ArticleVersionId, x.DietaryType });
+        builder.HasIndex(x => x.ArticleVersionId);
     }
 }

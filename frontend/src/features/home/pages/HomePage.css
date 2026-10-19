@@ -1,8 +1,7 @@
 .home-page {
   background: #fbfdfb;
   color: #0f2418;
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    Arial, sans-serif;
+  font-family: var(--font-sans);
   padding-bottom: 20px;
 }
 

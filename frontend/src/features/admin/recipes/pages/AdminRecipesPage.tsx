@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { Plus, Pencil, Power, Eye } from 'lucide-react'
+import { Plus, Pencil, Lock, Unlock, Eye, BookOpen } from 'lucide-react'
 import {
   SharedDataTable,
   type ColumnDef,
 } from '../../../../shared/components/SharedDataTable'
 import { Modal } from '../../../../shared/components/Modal'
+import { Select } from '../../../../shared/components/Select'
 import { AdminFrame, Feedback } from '../../components/ApiWorkspace'
 import { useApiData } from '../../hooks/useApiData'
 import {
   fieldClass,
   primaryClass,
-  secondaryClass,
   errorMessage,
 } from '../../utils/apiUi'
 import {
@@ -32,9 +32,10 @@ export const AdminRecipesPage = ({
   const result = useApiData<{ items: RecipeSummary[]; totalCount: number }>(
     `/api/admin/recipes?pageNumber=${page}&pageSize=10&search=${encodeURIComponent(search)}${diet ? `&dietaryType=${diet}` : ''}`,
   )
+  const total = result.data?.totalCount ?? 0
   const [editing, setEditing] = useState<RecipeDetail | null | undefined>()
   const [viewing, setViewing] = useState<RecipeDetail | null>(null)
-  const [deactivating, setDeactivating] = useState<RecipeSummary | null>(null)
+  const [statusTarget, setStatusTarget] = useState<RecipeSummary | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -81,34 +82,60 @@ export const AdminRecipesPage = ({
     {
       key: 'isActive',
       header: 'Trạng thái',
-      render: (item) => (item.isActive ? 'Đang sử dụng' : 'Ngừng sử dụng'),
+      render: (item) => (
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${
+            item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+          }`}
+        >
+          {item.isActive ? 'Đang sử dụng' : 'Ngừng sử dụng'}
+        </span>
+      ),
     },
     {
       key: 'actions',
       header: 'Thao tác',
       render: (item) => (
-        <div className="flex gap-3">
-          <button className="fe1-control"
+        <div className="flex gap-2">
+          <button
+            className="fe1-control p-1.5 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
             disabled={busy}
             title="Xem công thức"
             onClick={() => void open(item.id, false)}
           >
-            <Eye size={17} />
+            <Eye className="w-4 h-4" />
           </button>
-          <button className="fe1-control"
+          <button
+            className="fe1-control p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-700 transition-colors"
             disabled={busy}
             title="Sửa công thức"
             onClick={() => void open(item.id, true)}
           >
-            <Pencil size={17} />
+            <Pencil className="w-4 h-4" />
           </button>
-          {item.isActive && (
-            <button className="fe1-control"
+          {item.isActive ? (
+            <button
+              className="fe1-control p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-700 transition-colors"
               disabled={busy}
-              title="Ngừng sử dụng"
-              onClick={() => setDeactivating(item)}
+              title="Đang mở (Bấm để khóa / ngừng sử dụng)"
+              onClick={() => {
+                setError(null)
+                setStatusTarget(item)
+              }}
             >
-              <Power size={17} />
+              <Unlock className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              className="fe1-control p-1.5 rounded-lg hover:bg-amber-50 text-amber-700 transition-colors"
+              disabled={busy}
+              title="Đang khóa (Bấm để mở khóa / kích hoạt lại)"
+              onClick={() => {
+                setError(null)
+                setStatusTarget(item)
+              }}
+            >
+              <Lock className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -123,10 +150,14 @@ export const AdminRecipesPage = ({
       onNavigate={onNavigate}
     >
       <Feedback error={error} notice={notice} />
-      <div className="flex flex-wrap justify-between gap-3">
+      <div className="admin-filter-bar flex flex-wrap items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-amber-700">
+          <BookOpen aria-hidden="true" className="h-4 w-4" />
+          <span className="text-sm font-semibold">{total} công thức</span>
+        </div>
         <input
           aria-label="Tìm công thức"
-          className={`${fieldClass} max-w-md`}
+          className={`${fieldClass} flex-1 basis-60`}
           placeholder="Tên công thức hoặc nguyên liệu..."
           maxLength={120}
           value={search}
@@ -135,22 +166,23 @@ export const AdminRecipesPage = ({
             setPage(1)
           }}
         />
-        <select
-          aria-label="Lọc chế độ ăn"
-          className="rounded-xl border p-3 text-sm"
-          value={diet}
-          onChange={(e) => {
-            setDiet(e.target.value)
-            setPage(1)
-          }}
-        >
-          <option value="">Tất cả chế độ ăn</option>
-          {Object.values(dietLabels).map((label, index) => (
-            <option key={label} value={index + 1}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <div className="min-w-44 flex-1 basis-44">
+          <Select
+            aria-label="Lọc chế độ ăn"
+            value={diet}
+            onChange={(e) => {
+              setDiet(e.target.value)
+              setPage(1)
+            }}
+            options={[
+              { value: '', label: 'Tất cả chế độ ăn' },
+              ...Object.values(dietLabels).map((label, index) => ({
+                value: String(index + 1),
+                label,
+              })),
+            ]}
+          />
+        </div>
         <button
           disabled={busy}
           className={primaryClass}
@@ -179,6 +211,7 @@ export const AdminRecipesPage = ({
         onClose={() => setEditing(undefined)}
         title={editing ? 'Sửa công thức' : 'Thêm công thức'}
         maxWidth="2xl"
+        className="admin-recipe-dialog"
       >
         {editing !== undefined && (
           <RecipeApiForm
@@ -232,37 +265,68 @@ export const AdminRecipesPage = ({
         )}
       </Modal>
       <Modal
-        isOpen={!!deactivating}
+        isOpen={!!statusTarget}
         onClose={() => {
-          if (!busy) setDeactivating(null)
+          if (!busy) setStatusTarget(null)
         }}
-        title="Ngừng sử dụng công thức"
+        title={statusTarget?.isActive ? 'Khóa / Ngừng sử dụng công thức' : 'Mở khóa / Kích hoạt lại công thức'}
       >
-        <p className="mb-4 text-sm">
-          Ngừng sử dụng “{deactivating?.name}”? Các kế hoạch đã lưu vẫn giữ dữ
-          liệu cũ.
+        <p className="mb-4 text-sm text-slate-600">
+          {statusTarget?.isActive ? (
+            <>Ngừng sử dụng “<strong className="font-bold text-slate-900">{statusTarget?.name}</strong>”? Các kế hoạch đã lưu vẫn giữ dữ liệu cũ.</>
+          ) : (
+            <>Mở khóa và kích hoạt lại công thức “<strong className="font-bold text-slate-900">{statusTarget?.name}</strong>” để hiển thị và sử dụng bình thường?</>
+          )}
         </p>
         <Feedback error={error} />
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex justify-end gap-2">
           <button
+            type="button"
             disabled={busy}
-            className={secondaryClass}
-            onClick={() => setDeactivating(null)}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+            onClick={() => setStatusTarget(null)}
           >
             Hủy
           </button>
           <button
             disabled={busy}
-            className={primaryClass}
+            className={`px-4 py-2 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-50 ${
+              statusTarget?.isActive
+                ? 'bg-amber-700 hover:bg-amber-800'
+                : 'bg-emerald-700 hover:bg-emerald-800'
+            }`}
             onClick={async () => {
-              if (!deactivating || busy) return
+              if (!statusTarget || busy) return
               setBusy(true)
               setError(null)
               try {
-                await recipeApi.deactivate(deactivating.id)
-                setDeactivating(null)
-                setNotice('Đã ngừng sử dụng công thức.')
-                result.reload()
+                if (statusTarget.isActive) {
+                  await recipeApi.deactivate(statusTarget.id)
+                  result.setData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          items: prev.items.map((it) =>
+                            it.id === statusTarget.id ? { ...it, isActive: false } : it,
+                          ),
+                        }
+                      : prev,
+                  )
+                  setNotice(`Đã ngừng sử dụng công thức “${statusTarget.name}”.`)
+                } else {
+                  result.setData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          items: prev.items.map((it) =>
+                            it.id === statusTarget.id ? { ...it, isActive: true } : it,
+                          ),
+                        }
+                      : prev,
+                  )
+                  setNotice(`Đã mở khóa và kích hoạt lại công thức “${statusTarget.name}”.`)
+                }
+                setStatusTarget(null)
               } catch (reason) {
                 setError(errorMessage(reason))
               } finally {
@@ -270,7 +334,7 @@ export const AdminRecipesPage = ({
               }
             }}
           >
-            Xác nhận
+            {busy ? 'Đang lưu...' : (statusTarget?.isActive ? 'Xác nhận khóa' : 'Xác nhận mở khóa')}
           </button>
         </div>
       </Modal>

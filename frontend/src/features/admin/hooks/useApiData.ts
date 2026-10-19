@@ -39,6 +39,10 @@ export function useApiData<T>(path: string | null) {
     loading,
     error,
     setData,
-    reload: () => setRevision((value) => value + 1),
+    reload: () => {
+      setLoading(true)
+      setError(null)
+      setRevision((value) => value + 1)
+    },
   }
 }

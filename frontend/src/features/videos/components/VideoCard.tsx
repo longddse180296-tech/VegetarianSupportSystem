@@ -1,14 +1,47 @@
-import React from 'react'
-import { PlayCircle, User as UserIcon } from 'lucide-react'
+import React, { useState } from 'react'
+import { Play, PlayCircle } from 'lucide-react'
 import { Button, StatusBadge } from '../../../shared/components'
 import type { Video, VideoModerationStatus } from '../types/video.types'
 import { CATEGORY_LABELS, MODERATION_STATUS_LABELS, formatDuration } from '../types/video.types'
+import type { VideoDetails } from '../api/backendVideos'
 
-interface VideoCardProps {
-  video: Video
+export interface VideoCardProps {
+  video: Video | VideoDetails
+  categoryName?: string
+  authorName?: string
+  durationText?: string
   onSelect?: (id: string) => void
   onPlay?: (url: string) => void
   onNavigate?: (path: string) => void
+  isLarge?: boolean
+}
+
+// Curated high-resolution culinary photography for default vegetarian video covers
+const CURATED_THUMBNAILS = [
+  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80', // Vibrant green salad bowl
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80', // Tofu Buddha bowl
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', // Colorful veggie plate
+  'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=800&q=80', // Vegan stir fry
+  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80', // Fragrant plant-based soup
+  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80', // Fresh roasted vegetables
+]
+
+function cleanPrefix(text?: string | null): string {
+  if (!text) return ''
+  return text
+    .replace(/^\[Chế độ:[^\]]+\]\s*/i, '')
+    .replace(/^\[Mẫu\]\s*/i, '')
+    .trim()
+}
+
+function cleanDietLabel(diet?: string | null): string {
+  if (!diet) return ''
+  const cleaned = cleanPrefix(diet)
+  if (/trứng\s*&\s*sữa|lacto-ovo/i.test(cleaned)) return 'Trứng & Sữa (Lacto-ovo)'
+  if (/có sữa|lacto/i.test(cleaned)) return 'Ăn chay có sữa (Lacto)'
+  if (/có trứng|ovo/i.test(cleaned)) return 'Chay có trứng (Ovo)'
+  if (/thuần chay|vegan/i.test(cleaned)) return 'Thuần chay (Vegan)'
+  return cleaned
 }
 
 function mapStatusBadge(
@@ -39,9 +72,20 @@ function mapStatusBadge(
   }
 }
 
-export const VideoCard: React.FC<VideoCardProps> = ({ video, onSelect, onPlay, onNavigate }) => {
+export const VideoCard: React.FC<VideoCardProps> = ({
+  video,
+  categoryName: customCategoryName,
+  authorName: _customAuthorName,
+  durationText: customDuration,
+  onSelect,
+  onPlay,
+  onNavigate,
+  isLarge = false,
+}) => {
+  const [imgError, setImgError] = useState(false)
+
   const handleOpen = () => {
-    if (onPlay) {
+    if (onPlay && 'videoUrl' in video && video.videoUrl) {
       onPlay(video.videoUrl)
       return
     }
@@ -59,21 +103,50 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onSelect, onPlay, o
     }
   }
 
-  const categoryLabel =
-    CATEGORY_LABELS[video.category as keyof typeof CATEGORY_LABELS] ||
-    video.category ||
-    'Món chính'
+  // Fallback calculations based on ID hash for consistent mock visuals
+  const hash = (video.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  const defaultThumbnail = CURATED_THUMBNAILS[hash % CURATED_THUMBNAILS.length]
+  const thumbnailSrc = !imgError && video.thumbnailUrl?.trim() ? video.thumbnailUrl : defaultThumbnail
 
-  const authorName = video.author?.name || video.creatorName || 'Bếp Chay'
-  const viewsText = video.views
-    ? String(video.views)
-    : `${(video.viewCount || 0).toLocaleString('vi-VN')} xem`
+  // Duration
+  let durationDisplay = customDuration || ''
+  if (!durationDisplay) {
+    if ('duration' in video && video.duration) {
+      durationDisplay = video.duration
+    } else if ('durationSeconds' in video && video.durationSeconds) {
+      durationDisplay = formatDuration(video.durationSeconds)
+    } else {
+      const minutes = 4 + (hash % 9) // 4 to 12 minutes
+      const seconds = 12 + (hash % 45) // 12 to 56 seconds
+      durationDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    }
+  }
 
-  const durationText =
-    video.duration ||
-    (video.durationSeconds ? formatDuration(video.durationSeconds) : '10:00')
+  // Category label
+  let categoryLabel = customCategoryName || ''
+  if (!categoryLabel) {
+    if ('category' in video && video.category) {
+      categoryLabel =
+        CATEGORY_LABELS[video.category as keyof typeof CATEGORY_LABELS] ||
+        cleanPrefix(video.category)
+    }
+  }
+  if (!categoryLabel) {
+    categoryLabel = 'Video Chay'
+  }
+  categoryLabel = cleanPrefix(categoryLabel)
 
+  // Diet label
+  const dietRaw = video.dietType
+  const dietBadge = cleanDietLabel(dietRaw)
+
+  // Clean title & description
+  const title = cleanPrefix(video.title)
+  const description = cleanPrefix(video.description)
+
+  // Moderation status (for profile/admin views)
   const isModeratedNonPublished =
+    'moderationStatus' in video &&
     video.moderationStatus &&
     video.moderationStatus !== 'approved' &&
     video.moderationStatus !== 'published'
@@ -86,89 +159,108 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onSelect, onPlay, o
       onKeyDown={handleKey}
       className="group focus:outline-none"
     >
-      <article className="flex h-full flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-[#2E7D32]/40">
-        {/* Thumbnail wrapper with aspect-video */}
-        <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
+      <article
+        className={`flex h-full flex-col overflow-hidden rounded-[20px] border border-slate-200/90 bg-white shadow-xs transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl ${
+          isLarge ? 'p-1' : ''
+        }`}
+      >
+        {/* Thumbnail container */}
+        <div className="relative aspect-video w-full overflow-hidden rounded-t-[19px] bg-slate-900">
           <img
-            src={video.thumbnailUrl}
-            alt={video.title}
+            src={thumbnailSrc}
+            alt={title}
             loading="lazy"
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+            onError={() => setImgError(true)}
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-60 transition group-hover:opacity-80" />
+          {/* Subtle gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-75" />
 
-          {/* Duration badge bottom-right */}
-          <span className="absolute bottom-2 right-2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-            {durationText}
+          {/* Duration badge: Bottom-Right (Black background, white text) */}
+          <span className="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-md bg-black/85 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm backdrop-blur-xs">
+            {durationDisplay}
           </span>
 
-          {/* Hover play overlay */}
-          <span className="absolute inset-0 flex items-center justify-center text-white opacity-0 transition group-hover:opacity-100">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#2E7D32] shadow-lg ring-4 ring-white/30">
-              <PlayCircle size={22} className="fill-white stroke-white text-white" />
+          {/* Centered Play button with hover animation */}
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-emerald-700 shadow-xl ring-4 ring-white/30 transition-all duration-300 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white">
+              <Play size={20} fill="currentColor" className="ml-0.5" />
             </span>
           </span>
         </div>
 
-        {/* Body */}
-        <div className="flex flex-1 flex-col gap-2.5 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]">
+        {/* Content Body */}
+        <div className="flex flex-1 flex-col p-4 sm:p-5 min-w-0">
+          {/* Category & Diet Tag Row */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200/60">
               {categoryLabel}
             </span>
-            {isModeratedNonPublished && (
-              <StatusBadge
-                size="sm"
-                status={mapStatusBadge(video.moderationStatus)}
-                label={MODERATION_STATUS_LABELS[video.moderationStatus] || 'Đang duyệt'}
-              />
-            )}
+
+            <div className="flex items-center gap-1.5">
+              {dietBadge && (
+                <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32] border border-[#A5D6A7]">
+                  {dietBadge}
+                </span>
+              )}
+              {isModeratedNonPublished && (
+                <StatusBadge
+                  size="sm"
+                  status={mapStatusBadge(video.moderationStatus)}
+                  label={MODERATION_STATUS_LABELS[video.moderationStatus] || 'Đang duyệt'}
+                />
+              )}
+            </div>
           </div>
 
-          <h3 className="line-clamp-2 text-[14.5px] font-bold leading-snug tracking-tight text-[#111827] group-hover:text-[#2E7D32] transition-colors">
-            {video.title}
+          {/* Title: Line-clamp 2 for uniform card height */}
+          <h3
+            className={`mt-2.5 line-clamp-2 font-bold leading-snug tracking-tight text-slate-900 transition-colors duration-200 group-hover:text-emerald-700 ${
+              isLarge ? 'text-lg sm:text-xl min-h-[56px]' : 'text-[15px] sm:text-base min-h-[46px]'
+            }`}
+            title={title}
+          >
+            {title}
           </h3>
 
-          <div className="mt-auto flex items-center justify-between gap-2 text-[12px] text-[#6B7280]">
-            <span className="inline-flex items-center gap-1.5 truncate font-medium">
-              <UserIcon size={13} className="text-[#9CA3AF] shrink-0" />
-              <span className="truncate">{authorName}</span>
-            </span>
-            <span className="shrink-0 font-medium text-[#6B7280]">
-              {viewsText}
-            </span>
-          </div>
+          {/* Optional Short Description */}
+          {description && (
+            <p className="mt-1 line-clamp-2 text-xs sm:text-sm text-slate-500 leading-relaxed">
+              {description}
+            </p>
+          )}
 
-          {/* AI / Admin flag notes if present */}
-          {(video.aiFlagNote || video.flagReason || video.adminNote) && (
-            <div className="mt-1 space-y-1">
+          {/* AI / Admin notes if present */}
+          {'aiFlagNote' in video && (video.aiFlagNote || video.flagReason || video.adminNote) && (
+            <div className="mt-2 space-y-1">
               {(video.flagReason || video.aiFlagNote) && (
-                <div className="rounded-[8px] border border-amber-200 bg-amber-50/90 px-2.5 py-1.5 text-[11px] text-amber-900 leading-4">
+                <div className="rounded-[8px] border border-amber-200 bg-amber-50/90 px-2.5 py-1 text-[11px] text-amber-900 leading-4">
                   <strong>⚠️ AI Flag:</strong> {video.flagReason || video.aiFlagNote}
                 </div>
               )}
               {video.adminNote && (
-                <div className="rounded-[8px] border border-blue-200 bg-blue-50/90 px-2.5 py-1.5 text-[11px] text-blue-900 leading-4">
+                <div className="rounded-[8px] border border-blue-200 bg-blue-50/90 px-2.5 py-1 text-[11px] text-blue-900 leading-4">
                   <strong>👮 Admin:</strong> {video.adminNote}
                 </div>
               )}
             </div>
           )}
 
-          <div className="pt-2">
+          {/* Quick CTA button */}
+          <div className="mt-auto pt-3.5">
             <Button
               type="button"
               variant="secondary"
               size="sm"
               fullWidth
-              leftIcon={<PlayCircle size={13} />}
+              leftIcon={<PlayCircle size={14} />}
               onClick={(e) => {
                 e.stopPropagation()
                 handleOpen()
               }}
-              className="!h-8 !rounded-[8px] !bg-[#E8F5E9] !text-[#2E7D32] hover:!bg-[#2E7D32] hover:!text-white transition-colors text-[12px] font-semibold"
+              className="!h-8 !rounded-[10px] !bg-emerald-50 !text-emerald-800 hover:!bg-emerald-600 hover:!text-white border border-emerald-200/50 transition-colors text-xs font-semibold"
             >
-              Xem video
+              Xem ngay
             </Button>
           </div>
         </div>

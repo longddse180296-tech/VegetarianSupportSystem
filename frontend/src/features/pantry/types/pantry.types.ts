@@ -53,6 +53,7 @@ export interface AddIngredientFormState {
   quantity: string
   unit: string
   category: PantryCategory | ''
+  ingredientId?: string
 }
 
 export const DEFAULT_UNITS: string[] = [
