@@ -32,6 +32,8 @@ npm run dev
 - Thử scan ảnh món ăn: lấy token role `User` ở `POST /api/dev-auth/token`, bấm Authorize trong Swagger, rồi gửi ảnh ở `POST /api/food-scans/dish-image`. Xác nhận nguyên liệu và gọi `POST /api/food-scans/evaluate`. Xem [hợp đồng scan](contracts/food-scanning.md).
 - Dừng mỗi tiến trình bằng Ctrl+C trong terminal tương ứng.
 
+Dữ liệu mẫu/demo chỉ dùng trong `backend/tests/IntegrationTests/Fixtures/` cho database kiểm thử riêng. API không còn hỗ trợ `--seed-core-data` hoặc `--seed-demo-data`. Nhập dữ liệu thật qua các trang Admin; thiếu dữ liệu sẽ hiển thị trạng thái trống.
+
 Vite chuyển tiếp `/api` sang backend nên không cần cấu hình CORS để chạy local theo cách này. Có thể sao chép `frontend/.env.example` thành `frontend/.env.local` để đổi đích proxy; không đặt secrets vào frontend. Nếu cổng 5173 đã có ứng dụng khác, Vite báo lỗi thay vì âm thầm đổi cổng.
 
 ## Build và kiểm tra

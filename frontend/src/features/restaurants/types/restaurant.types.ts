@@ -18,12 +18,12 @@ export type RestaurantSortOption =
 
 // ---------- Labels ----------
 export const DIET_TYPE_LABELS: Record<RestaurantDietType, string> = {
-  vegan: 'Thuần thực vật (100% chay)',
-  'ovo-lacto': 'Lạc trứng sữa',
-  ovo: 'Lạc trứng',
-  lacto: 'Lạc sữa',
-  raw: 'Thực phẩm sống',
-  'vegetarian-friendly': 'Có nhiều món chay',
+  vegan: 'Thuần chay (Vegan)',
+  'ovo-lacto': 'Trứng & Sữa (Lacto-ovo)',
+  ovo: 'Chay có trứng (Ovo)',
+  lacto: 'Ăn chay có sữa (Lacto)',
+  raw: 'Thuần chay (Vegan)',
+  'vegetarian-friendly': 'Trứng & Sữa (Lacto-ovo)',
   all: 'Tất cả chế độ ăn',
 }
 
@@ -73,6 +73,7 @@ export interface Restaurant {
   hasTakeAway: boolean
   acceptsBooking: boolean
   createdAt: string
+  relatedRecipes?: Array<{ id: string; name: string; imageUrl: string | null }>
 }
 
 export interface RestaurantFilter {
@@ -85,6 +86,8 @@ export interface RestaurantFilter {
   favoritesOnly: boolean
   /** Khoảng cách tối đa (km) theo pills Tất cả | <1 | <3 | <5 | <10. 0 = không lọc (Tất cả). */
   distanceMaxKm: 0 | 1 | 3 | 5 | 10
+  latitude?: number
+  longitude?: number
 }
 
 export const DEFAULT_RESTAURANT_FILTER: RestaurantFilter = {

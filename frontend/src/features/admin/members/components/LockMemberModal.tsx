@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Lock, Unlock, X, Loader2, AlertCircle } from 'lucide-react'
+import { Select } from '../../../../shared/components/Select'
 import type { MemberSummary } from '../types'
 
 interface LockMemberModalProps {
@@ -103,22 +104,15 @@ export const LockMemberModal: React.FC<LockMemberModalProps> = ({
               </p>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="lock-reason" className="text-xs font-semibold text-slate-700">
-                  Lý do khóa tài khoản <span className="text-rose-500">*</span>
-                </label>
-                <select
+                <Select
+                  label="Lý do khóa tài khoản"
+                  required
                   id="lock-reason"
                   value={selectedReason}
                   onChange={(e) => setSelectedReason(e.target.value)}
                   disabled={isLoading}
-                  className="w-full p-2.5 text-xs rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                >
-                  {DEFAULT_REASONS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                  options={DEFAULT_REASONS.map((r) => ({ value: r, label: r }))}
+                />
 
                 {selectedReason === 'Lý do khác' && (
                   <textarea

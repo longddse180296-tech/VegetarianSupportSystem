@@ -6,6 +6,7 @@ interface ShoppingListModalProps {
   onClose: () => void
   weekRange: string
   onDownloadPdf?: () => void
+  items?: Item[]
 }
 
 interface Item {
@@ -15,26 +16,12 @@ interface Item {
   category: 'Rau củ tươi' | 'Đậu & Hạt đạm' | 'Gia vị & Ngũ cốc'
 }
 
-const DEFAULT_SHOPPING_ITEMS: Item[] = [
-  { id: '1', name: 'Yến mạch cán dẹt', qty: '500g', category: 'Gia vị & Ngũ cốc' },
-  { id: '2', name: 'Gạo lứt huyết rồng', qty: '1kg', category: 'Gia vị & Ngũ cốc' },
-  { id: '3', name: 'Chuối tiêu chín', qty: '1 nải', category: 'Rau củ tươi' },
-  { id: '4', name: 'Hạt chia hữu cơ', qty: '100g', category: 'Đậu & Hạt đạm' },
-  { id: '5', name: 'Hạnh nhân lát nướng', qty: '150g', category: 'Đậu & Hạt đạm' },
-  { id: '6', name: 'Đậu hũ non sạch', qty: '4 miếng', category: 'Đậu & Hạt đạm' },
-  { id: '7', name: 'Nấm đùi gà baby', qty: '300g', category: 'Rau củ tươi' },
-  { id: '8', name: 'Nấm hương tươi', qty: '200g', category: 'Rau củ tươi' },
-  { id: '9', name: 'Bí đỏ hồ lô', qty: '1 quả (800g)', category: 'Rau củ tươi' },
-  { id: '10', name: 'Đậu gà (Chickpeas) ngâm sẵn', qty: '300g', category: 'Đậu & Hạt đạm' },
-  { id: '11', name: 'Quả bơ sáp Đắk Lắk', qty: '2 quả', category: 'Rau củ tươi' },
-  { id: '12', name: 'Rong biển Wakame khô', qty: '50g', category: 'Gia vị & Ngũ cốc' },
-]
-
 export const ShoppingListModal: React.FC<ShoppingListModalProps> = ({
   isOpen,
   onClose,
   weekRange,
   onDownloadPdf,
+  items = [],
 }) => {
   const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState(false)
@@ -46,7 +33,7 @@ export const ShoppingListModal: React.FC<ShoppingListModalProps> = ({
   }
 
   const handleCopy = () => {
-    const text = DEFAULT_SHOPPING_ITEMS.map(
+    const text = items.map(
       (item) => `- ${item.name}: ${item.qty} (${item.category})`,
     ).join('\n')
     navigator.clipboard.writeText(`DANH SÁCH ĐI CHỢ TUẦN (${weekRange}):\n\n${text}`)
@@ -70,7 +57,7 @@ export const ShoppingListModal: React.FC<ShoppingListModalProps> = ({
                 Danh sách đi chợ tuần
               </h3>
               <p className="text-xs text-slate-500 font-medium">
-                {weekRange} • 12 nguyên liệu cần mua
+                {weekRange} • {items.length} nguyên liệu cần mua
               </p>
             </div>
           </div>
@@ -87,7 +74,7 @@ export const ShoppingListModal: React.FC<ShoppingListModalProps> = ({
         {/* Scrollable list grouped by category */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
           {categories.map((cat) => {
-            const catItems = DEFAULT_SHOPPING_ITEMS.filter((i) => i.category === cat)
+            const catItems = items.filter((i) => i.category === cat)
             return (
               <div key={cat} className="space-y-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -142,6 +129,7 @@ export const ShoppingListModal: React.FC<ShoppingListModalProps> = ({
           <button
             type="button"
             onClick={onDownloadPdf}
+            disabled={!onDownloadPdf || items.length === 0}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-[#184d28] hover:bg-[#123e1f] py-2.5 text-xs font-bold text-white shadow-2xs transition-all"
           >
             <Download className="h-3.5 w-3.5" />

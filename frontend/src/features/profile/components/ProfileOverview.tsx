@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { UserProfile, ProfileStats, RecentPost } from '../types'
 import { Button } from '../../../shared/components'
+import { getDietaryTypeLabel } from '../../../shared/constants'
 
 interface ProfileOverviewProps {
   profile: UserProfile
@@ -107,7 +108,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
               </div>
               <p className="text-[11px] text-[#6b7280] mt-0.5">
                 Tham khảo hồ sơ thể trạng &amp; chế độ{' '}
-                {profile.dietaryType || 'chưa chọn'}
+                {getDietaryTypeLabel(profile.dietaryType)}
               </p>
             </div>
           </div>
@@ -149,14 +150,14 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
             onClick={() => onNavigate?.('/ai-chat')}
             className="fe1-btn fe1-btn-outline h-8 px-3 rounded-full text-xs font-semibold bg-white border border-[#e5e7eb] text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer"
           >
-            <span>Hỏi AI về lượng Protein</span>
+            <span>Trợ lí AI</span>
           </button>
           <button
             type="button"
             onClick={() => onNavigate?.('/food-scan')}
             className="fe1-btn fe1-btn-outline h-8 px-3 rounded-full text-xs font-semibold bg-white border border-[#e5e7eb] text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer"
           >
-            <span>Quét nhãn thực phẩm an toàn</span>
+            <span>Kiểm tra nhãn thực phẩm</span>
           </button>
         </div>
       </div>
@@ -167,7 +168,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-[#2e7d32]" />
             <h3 className="text-sm font-bold text-[#1f2937]">
-              Phổ BMI người lớn theo ngưỡng backend
+              Đánh giá thể trạng theo chỉ số BMI
             </h3>
           </div>
           <span
@@ -242,7 +243,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </div>
           <div>
             <div className="text-base font-bold text-[#1f2937] leading-snug">
-              {profile.dietaryType || 'Chưa chọn'}
+              {getDietaryTypeLabel(profile.dietaryType)}
             </div>
             <p className="text-[11px] text-[#6b7280] mt-1">
               Đồng bộ toàn bộ công thức
@@ -299,7 +300,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
         <div className="p-4 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">
-              Bảo vệ Dị ứng
+              Dị ứng đã khai báo
             </span>
             <div className="w-8 h-8 rounded-[10px] bg-rose-50 text-rose-600 flex items-center justify-center">
               <ShieldAlert className="w-4 h-4" />
@@ -313,7 +314,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-[#6b7280] mt-0.5">
-              Tự động cảnh báo khi quét
+              Danh sách trong hồ sơ
             </p>
           </div>
         </div>
@@ -325,7 +326,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-[#2e7d32]" />
             <span>
-              Khu vực ẩm thực ưu tiên:{' '}
+              Khu vực tìm nhà hàng:{' '}
               <strong className="text-[#1f2937] font-semibold">
                 {profile.preferredRegion}
               </strong>
@@ -341,6 +342,67 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </button>
         </div>
       )}
+
+      <section className="ui-card p-5 sm:p-6 space-y-4" aria-label="Thực phẩm trong hồ sơ">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h3 className="text-base font-bold text-[#1f2937]">Dị ứng &amp; Thực phẩm cần tránh</h3>
+            <p className="text-xs text-[#6b7280] mt-0.5">Dữ liệu được đồng bộ an toàn với bộ lọc thực đơn và cảnh báo món ăn</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onGoToSettings}
+            leftIcon={<Settings className="w-3.5 h-3.5 text-[#2e7d32]" />}
+          >
+            Chỉnh sửa
+          </Button>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+              <ShieldAlert size={14} className="text-rose-500" />
+              <span>Dị ứng ({profile.allergies.length})</span>
+            </div>
+            {profile.allergies.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">Chưa khai báo mục nào (An toàn / Chưa có dị ứng)</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {profile.allergies.map((allergy) => (
+                  <span
+                    key={allergy}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs"
+                  >
+                    <span>{allergy}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+              <Sparkles size={14} className="text-amber-500" />
+              <span>Thực phẩm cần tránh ({profile.avoidedFoods?.length || 0})</span>
+            </div>
+            {!profile.avoidedFoods || profile.avoidedFoods.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">Chưa khai báo mục nào (Không kiêng nguyên liệu đặc thù)</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {profile.avoidedFoods.map((item) => (
+                  <span
+                    key={item.name}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs"
+                  >
+                    <span>{item.name}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* 4. Three Activity Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -369,31 +431,6 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </div>
         </div>
 
-        {/* Comments */}
-        <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] hover:shadow-[0_8px_20px_-4px_rgba(46,125,50,0.08),0_4px_12px_-2px_rgba(31,41,55,0.04)] transition-all flex flex-col justify-between gap-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-[#1f2937]">
-              Bình luận &amp; Thảo luận
-            </span>
-            <div className="w-9 h-9 rounded-[10px] bg-amber-50 text-amber-700 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-black text-[#1f2937] tabular-nums tracking-tight">
-              {stats.commentCount ?? '—'}
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/profile/my-comments')}
-              className="fe1-link inline-flex items-center gap-1.5 text-xs font-semibold text-[#2e7d32] hover:text-[#1b5e20] hover:underline mt-2 cursor-pointer"
-            >
-              <span>Xem lịch sử bình luận</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
         {/* Videos */}
         <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] hover:shadow-[0_8px_20px_-4px_rgba(46,125,50,0.08),0_4px_12px_-2px_rgba(31,41,55,0.04)] transition-all flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
@@ -414,6 +451,31 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
               className="fe1-link inline-flex items-center gap-1.5 text-xs font-semibold text-[#2e7d32] hover:text-[#1b5e20] hover:underline mt-2 cursor-pointer"
             >
               <span>Xem video đã đăng</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Comments */}
+        <div className="p-5 rounded-[16px] bg-white border border-[#e5e7eb] shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)] hover:shadow-[0_8px_20px_-4px_rgba(46,125,50,0.08),0_4px_12px_-2px_rgba(31,41,55,0.04)] transition-all flex flex-col justify-between gap-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-[#1f2937]">
+              Bình luận &amp; Thảo luận
+            </span>
+            <div className="w-9 h-9 rounded-[10px] bg-amber-50 text-amber-700 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+          </div>
+          <div>
+            <div className="text-3xl font-black text-[#1f2937] tabular-nums tracking-tight">
+              {stats.commentCount ?? '—'}
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/profile/my-comments')}
+              className="fe1-link inline-flex items-center gap-1.5 text-xs font-semibold text-[#2e7d32] hover:text-[#1b5e20] hover:underline mt-2 cursor-pointer"
+            >
+              <span>Xem lịch sử bình luận</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -488,20 +550,22 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onNavigate?.(`/articles/${post.id}`)}
-                    className="fe1-control px-3 py-1.5 text-xs font-semibold text-[#2e7d32] hover:bg-[#e8f5e9] rounded-[10px] transition-colors cursor-pointer"
                   >
                     Xem bài
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={() => onNavigate?.(`/articles/edit/${post.id}`)}
-                    className="fe1-control px-3 py-1.5 text-xs font-semibold text-[#1f2937] hover:bg-slate-200 rounded-[10px] transition-colors cursor-pointer"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onNavigate?.(`/articles/editor/${post.id}?from=profile`)}
                   >
                     Chỉnh sửa
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

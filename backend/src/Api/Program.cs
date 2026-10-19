@@ -10,16 +10,26 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
-using Infrastructure.Persistence;
-using Infrastructure.Persistence.Seeding;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 if (builder.Environment.IsDevelopment())
 {
-    var envPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"));
-    DotEnvLoader.Load(envPath);
+    var candidatePaths = new[]
+    {
+        Path.Combine(builder.Environment.ContentRootPath, ".env"),
+        Path.Combine(builder.Environment.ContentRootPath, "..", ".env"),
+        Path.Combine(builder.Environment.ContentRootPath, "..", "..", ".env"),
+    };
+    foreach (var path in candidatePaths)
+    {
+        var fullPath = Path.GetFullPath(path);
+        if (File.Exists(fullPath))
+        {
+            DotEnvLoader.Load(fullPath);
+        }
+    }
     // Keep environment variables and command-line arguments above appsettings.
     builder.Configuration.AddEnvironmentVariables();
     builder.Configuration.AddCommandLine(args);
@@ -129,20 +139,14 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
-await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
 
-if (args.Contains("--seed-core-data", StringComparer.Ordinal))
+if (args.Contains("--seed-core-data", StringComparer.Ordinal) ||
+    args.Contains("--seed-demo-data", StringComparer.Ordinal))
 {
-    if (!app.Environment.IsDevelopment())
-    {
-        throw new InvalidOperationException("Sample data can only be seeded in Development.");
-    }
-
-    await using var scope = app.Services.CreateAsyncScope();
-    await CoreDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
-    app.Logger.LogInformation("Core Data sample seed completed.");
-    return;
+    throw new InvalidOperationException("Sample seeding is disabled in the application. Use isolated test fixtures instead.");
 }
+
+await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
 
 app.UseExceptionHandler();
 

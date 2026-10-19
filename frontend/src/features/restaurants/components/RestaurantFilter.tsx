@@ -1,4 +1,5 @@
-import { Filter, Search } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { RotateCcw, Search, X } from 'lucide-react'
 import { Button, Input } from '../../../shared/components'
 import type {
   RestaurantDietType,
@@ -10,7 +11,7 @@ interface RestaurantFilterBarProps {
   filter: RestaurantFilterState
   onChange: (next: Partial<RestaurantFilterState>) => void
   onReset: () => void
-  totalCount: number
+  totalCount?: number
   isLoading?: boolean
   onSearch?: () => void
 }
@@ -19,7 +20,11 @@ interface RestaurantFilterBarProps {
 
 type DistancePillValue = 'all' | '1' | '3' | '5' | '10'
 
-const DISTANCE_OPTIONS: Array<{ value: DistancePillValue; label: string; km: 0 | 1 | 3 | 5 | 10 }> = [
+const DISTANCE_OPTIONS: Array<{
+  value: DistancePillValue
+  label: string
+  km: 0 | 1 | 3 | 5 | 10
+}> = [
   { value: 'all', label: 'Tất cả', km: 0 },
   { value: '1', label: '< 1 km', km: 1 },
   { value: '3', label: '< 3 km', km: 3 },
@@ -28,15 +33,12 @@ const DISTANCE_OPTIONS: Array<{ value: DistancePillValue; label: string; km: 0 |
 ]
 
 const DIET_PILL_OPTIONS: Array<{ value: RestaurantDietType; label: string }> = [
+  { value: 'all', label: 'Tất cả' },
   { value: 'vegan', label: 'Thuần chay (Vegan)' },
   { value: 'lacto', label: 'Ăn chay có sữa (Lacto)' },
-  { value: 'ovo', label: 'Ăn chay có trứng (Ovo)' },
-  { value: 'ovo-lacto', label: 'Ăn chay có trứng sữa (Lacto-ovo)' },
-  { value: 'raw', label: 'Chay dưỡng sinh' },
-  { value: 'vegetarian-friendly', label: 'Cà phê chay' },
+  { value: 'ovo', label: 'Chay có trứng (Ovo)' },
+  { value: 'ovo-lacto', label: 'Trứng & Sữa (Lacto-ovo)' },
 ]
-
-/* ---------- Helpers ---------- */
 
 function activeDistancePill(km: RestaurantFilterState['distanceMaxKm']): DistancePillValue {
   switch (km) {
@@ -54,67 +56,137 @@ function activeDistancePill(km: RestaurantFilterState['distanceMaxKm']): Distanc
   }
 }
 
-/* ---------- Exported Component ---------- */
-
 export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
   filter,
   onChange,
   onReset,
-  totalCount,
-  isLoading = false,
-  onSearch,
 }) => {
-  const activeDist = activeDistancePill(filter.distanceMaxKm)
+  const [searchInput, setSearchInput] = useState(filter.search)
 
-  const runSearch = () => {
-    if (typeof onSearch === 'function') onSearch()
-    else onChange({ ...filter })
+  useEffect(() => {
+    setSearchInput(filter.search)
+  }, [filter.search])
+
+  const handleSearchSubmit = () => {
+    onChange({ search: searchInput.trim() })
   }
 
+  const activeDist = activeDistancePill(filter.distanceMaxKm)
+  const isFiltering = Boolean(
+    filter.search.trim() ||
+      filter.diet !== 'all' ||
+      filter.distanceMaxKm > 0 ||
+      filter.city !== 'all',
+  )
+
   return (
-    <div
-      className="rounded-[16px] border border-[#E3EFE5] bg-white p-4 shadow-[0_8px_26px_-22px_rgba(16,52,30,0.25)] sm:p-5"
-    >
-      {/* ===== Search row ===== */}
-      <div className="mb-4 flex items-center gap-2 rounded-[14px] border border-[#DDEAE0] bg-[#F5F9F6] px-3.5 py-1.5">
-        <Search size={17} className="shrink-0 text-[#6B7280]" />
-        <Input
-          placeholder="Tìm kiếm nhà hàng hoặc khu vực (quận, phố, tên quán)..."
-          value={filter.search}
-          onChange={(e) => onChange({ search: e.target.value })}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') runSearch()
-          }}
-          className="!h-10 !border-0 !bg-transparent !p-0 !shadow-none focus:!ring-0"
-          fullWidth
-        />
-        <Button
-          type="button"
-          size="sm"
-          variant="primary"
-          leftIcon={<Search size={14} />}
-          onClick={runSearch}
-          className="!bg-[#2E7D32] hover:!bg-[#1B5E20]"
-        >
-          Tìm kiếm
-        </Button>
+    <section className="rounded-[20px] border border-slate-200 bg-white p-5 md:p-6 shadow-xs">
+      {/* Row 1: Search bar */}
+      <div className="border-b border-slate-100 pb-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="flex-1 w-full relative">
+            <Input
+              aria-label="Tìm nhà hàng"
+              placeholder="Tìm kiếm nhà hàng hoặc khu vực (quận, tên đường, tên quán)..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearchSubmit()
+              }}
+              leftIcon={<Search size={16} className="text-slate-400" />}
+              className="!h-11 !rounded-[12px] !border-slate-300 !pl-10 !pr-9 w-full text-[14px]"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput('')
+                  onChange({ search: '' })
+                }}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors"
+                title="Xóa từ khóa"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            leftIcon={<Search size={15} />}
+            onClick={handleSearchSubmit}
+            className="!h-11 !rounded-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20] !px-6 whitespace-nowrap w-full md:w-auto font-semibold shadow-xs"
+          >
+            Tìm kiếm
+          </Button>
+          {isFiltering && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              leftIcon={<RotateCcw size={14} />}
+              onClick={onReset}
+              className="!h-11 !rounded-[12px] !text-[#2E7D32] hover:!bg-emerald-50 !font-semibold text-[13px] whitespace-nowrap w-full md:w-auto"
+            >
+              Xóa bộ lọc
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* ===== Filter pills ===== */}
-      <div className="flex flex-col gap-4">
-        {/* Row 1: Khoảng cách pills */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-          <span className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#3E5146] min-w-[96px]">
-            Khoảng cách:
+      {/* Row 2: Chế độ ăn chay (Diet pills) */}
+      <div className="border-b border-slate-100 pt-5 pb-5 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] font-bold uppercase tracking-wider text-slate-700">
+            CHẾ ĐỘ ĂN CHAY
           </span>
+          <span className="text-[11.5px] text-slate-500">
+            Chọn để lọc theo trường phái ăn
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {DIET_PILL_OPTIONS.map((opt) => {
+            const active = filter.diet === opt.value
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() =>
+                  onChange({
+                    diet: (active && opt.value !== 'all' ? 'all' : opt.value) as RestaurantDietType,
+                  })
+                }
+                className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] transition-all duration-150 ${
+                  active
+                    ? 'border-2 border-[#2E7D32] bg-[#2E7D32] font-bold text-white shadow-xs'
+                    : 'border-2 border-slate-300 bg-white font-semibold text-slate-800 hover:border-emerald-600 hover:bg-emerald-50/60 hover:text-emerald-900'
+                }`}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Row 3: Khoảng cách tìm kiếm (Distance pills) */}
+      <div className="pt-5 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] font-bold uppercase tracking-wider text-slate-700">
+            KHOẢNG CÁCH TÌM KIẾM
+          </span>
+          <span className="text-[11.5px] text-slate-500">
+            Lọc quán theo bán kính vị trí
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           {DISTANCE_OPTIONS.map((opt) => {
             const active = activeDist === opt.value
             return (
-              <Button
-                type="button"
+              <button
                 key={opt.value}
-                variant="ghost"
-                size="sm"
+                type="button"
                 onClick={() =>
                   onChange({
                     distanceMaxKm: active
@@ -122,73 +194,44 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
                       : opt.km,
                   })
                 }
-                className={`rounded-full !h-[26px] !px-3 !py-[5px] !text-[12px] font-bold !leading-[16px] transition
-                  ${
-                    active
-                      ? '!bg-[#2E7D32] !border-[#2E7D32] !text-white shadow-sm !hover:bg-[#1B5E20]'
-                      : '!bg-[#F0F4F8] border border-[#DDE5EC] !text-[#324253] hover:!border-[#B7D9C1] hover:!bg-[#EAF5EC]'
-                  }
-                `}
+                className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] transition-all duration-150 ${
+                  active
+                    ? 'border-2 border-[#2E7D32] bg-[#2E7D32] font-bold text-white shadow-xs'
+                    : 'border-2 border-slate-300 bg-white font-semibold text-slate-800 hover:border-emerald-600 hover:bg-emerald-50/60 hover:text-emerald-900'
+                }`}
               >
                 {opt.label}
-              </Button>
+              </button>
             )
           })}
-        </div>
-
-        {/* Row 2: Tiện ích diet pills */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-          <span className="text-[12px] font-bold uppercase tracking-[0.02em] text-[#3E5146] min-w-[96px]">
-            Tiện ích:
-          </span>
-          {DIET_PILL_OPTIONS.map((opt, idx) => {
-            const active = filter.diet === opt.value
-            return (
-              <span key={opt.value} className="inline-flex items-center gap-2">
-                {idx === 2 && <span className="text-slate-300 font-light select-none">|</span>}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    onChange({
-                      diet: (active ? 'all' : opt.value) as RestaurantDietType,
-                    })
-                  }
-                  className={`rounded-full !h-[28px] !px-3 !py-[5px] !text-[12px] font-semibold !leading-[16px] transition
-                    ${
-                      active
-                        ? '!bg-[#2E7D32] !border-[#2E7D32] !text-white shadow-sm !hover:bg-[#1B5E20]'
-                        : '!bg-[#F0F4F8] border border-[#DDE5EC] !text-[#324253] hover:!border-[#B7D9C1] hover:!bg-[#EAF5EC]'
-                    }
-                  `}
-                >
-                  {active && <span className="mr-1">✓</span>}
-                  {opt.label}
-                </Button>
-              </span>
-            )
-          })}
-        </div>
-
-        {/* Row 3: Tổng số quán ăn + nút Xóa bộ lọc */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11px] font-extrabold text-[#2E7D32]">
-            <Filter size={11} />
-            {isLoading ? 'Đang tải...' : `${totalCount} địa điểm`}
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onReset}
-            className="!rounded-full !text-[#6B7280] hover:!bg-[#F3F4F6] hover:!text-[#1F2937] text-xs font-semibold"
-          >
-            <span className="mr-1">↺</span> Xóa bộ lọc
-          </Button>
         </div>
       </div>
-    </div>
+
+      {/* Row 4: Active filters status */}
+      {isFiltering && (
+        <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <span>
+            Đang lọc theo:{' '}
+            {[
+              filter.search && `"${filter.search}"`,
+              filter.distanceMaxKm > 0 && `Bán kính: < ${filter.distanceMaxKm} km`,
+              filter.diet !== 'all' && `Chế độ: ${DIET_PILL_OPTIONS.find((d) => d.value === filter.diet)?.label ?? filter.diet}`,
+              filter.city !== 'all' && `Khu vực: ${filter.city}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
+          <button
+            type="button"
+            onClick={onReset}
+            className="font-bold text-[#2E7D32] hover:underline flex items-center gap-1"
+          >
+            <RotateCcw size={12} />
+            <span>Xóa bộ lọc</span>
+          </button>
+        </div>
+      )}
+    </section>
   )
 }
 

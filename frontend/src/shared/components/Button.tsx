@@ -23,7 +23,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-semibold transition-all duration-150 ease-out select-none rounded-[10px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]'
+    'ui-control inline-flex items-center justify-center font-semibold transition-all duration-150 ease-out select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]'
 
   const sizeStyles = {
     sm: 'h-8 px-3 text-xs gap-1.5',
@@ -33,11 +33,11 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantStyles = {
     primary:
-      'bg-[#2e7d32] text-white hover:bg-[#1b5e20] shadow-sm hover:shadow active:bg-[#1b5e20] focus-visible:ring-2 focus-visible:ring-[#2e7d32] focus-visible:ring-offset-2',
+      'bg-primary text-white hover:bg-primary-hover shadow-sm hover:shadow active:bg-primary-hover focus-visible:ring-2 focus-visible:ring-[#2e7d32] focus-visible:ring-offset-2',
     secondary:
-      'bg-[#e8f5e9] text-[#2e7d32] hover:bg-[#d8eedb] active:bg-[#c9e7ce] focus-visible:ring-2 focus-visible:ring-[#2e7d32] focus-visible:ring-offset-2',
+      'bg-primary-light text-primary hover:bg-[#d8eedb] active:bg-[#c9e7ce] focus-visible:ring-2 focus-visible:ring-[#2e7d32] focus-visible:ring-offset-2',
     outline:
-      'bg-transparent text-[#1f2937] border border-[#e5e7eb] hover:bg-[#f8faf8] hover:border-[#2e7d32] hover:text-[#2e7d32] focus-visible:ring-2 focus-visible:ring-[#2e7d32]',
+      'bg-transparent text-text-main border border-border-subtle hover:bg-[#f8faf8] hover:border-[#2e7d32] hover:text-primary focus-visible:ring-2 focus-visible:ring-[#2e7d32]',
     danger:
       'bg-[#dc2626] text-white hover:bg-[#b91c1c] active:bg-[#991b1b] focus-visible:ring-2 focus-visible:ring-[#dc2626] focus-visible:ring-offset-2',
     ghost:

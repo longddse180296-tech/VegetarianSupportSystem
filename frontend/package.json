@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
+    "@types/leaflet": "^1.9.22",
+    "leaflet": "^1.9.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.89.0",
+    "react-markdown": "^10.1.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -23,7 +23,7 @@ interface BackendRestaurantSummary {
   priceFromVnd: number | null
   priceToVnd: number | null
   isActive: boolean
-  dietaryTypes: number[]
+  dietaryTypes: Array<string | number>
   amenities: string[]
   distanceKm: number | null
 }
@@ -47,7 +47,7 @@ interface BackendRestaurantResponse {
   isActive: boolean
   createdAt: string
   updatedAt: string | null
-  dietaryTypes: number[]
+  dietaryTypes: Array<string | number>
   amenities: string[]
   relatedRecipes: Array<{ id: string; name: string; imageUrl: string | null }>
   distanceKm: number | null
@@ -60,51 +60,69 @@ interface BackendRestaurantPage {
   totalCount: number
 }
 
-function mapDietType(dt: number): Exclude<RestaurantDietType, 'all'> {
-  switch (dt) {
-    case 1:
-      return 'vegan'
-    case 2:
-      return 'lacto'
-    case 3:
-      return 'ovo'
-    case 4:
-      return 'ovo-lacto'
-    default:
-      return 'vegetarian-friendly'
+function mapDietType(dt: string | number): Exclude<RestaurantDietType, 'all'> {
+  if (typeof dt === 'string') {
+    const s = dt.trim().toLowerCase()
+    if (s === 'vegan' || s === 'raw') return 'vegan'
+    if (s === 'lactovegetarian' || s === 'lacto') return 'lacto'
+    if (s === 'ovovegetarian' || s === 'ovo') return 'ovo'
+    if (s === 'lactoovovegetarian' || s === 'ovo-lacto' || s === 'lacto-ovo') return 'ovo-lacto'
   }
+  if (typeof dt === 'number') {
+    switch (dt) {
+      case 1:
+        return 'vegan'
+      case 2:
+        return 'lacto'
+      case 3:
+        return 'ovo'
+      case 4:
+        return 'ovo-lacto'
+    }
+  }
+  return 'vegan'
 }
 
 function mapSummaryToRestaurant(item: BackendRestaurantSummary): Restaurant {
   const fallbackImg =
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
   const img = item.imageUrl || fallbackImg
-  const dist = item.distanceKm ? Number(item.distanceKm) : 1.5
+  const dist = item.distanceKm ? Number(item.distanceKm) : 0
   const dietTypes = (item.dietaryTypes || []).map(mapDietType)
+
+  let priceRange: string | undefined
+  if (item.priceFromVnd && item.priceToVnd) {
+    priceRange = `${item.priceFromVnd.toLocaleString('vi-VN')}đ - ${item.priceToVnd.toLocaleString('vi-VN')}đ`
+  } else if (item.priceFromVnd) {
+    priceRange = `Từ ${item.priceFromVnd.toLocaleString('vi-VN')}đ`
+  } else if (item.priceToVnd) {
+    priceRange = `Đến ${item.priceToVnd.toLocaleString('vi-VN')}đ`
+  }
 
   return {
     id: item.id,
     name: item.name,
     address: item.address,
-    city: item.district || 'TP.HCM',
+    city: item.district || '',
     district: item.district || '',
     distanceKm: dist,
-    openingHours: '08:00 - 21:30',
-    closingDay: 'Mở cả tuần',
-    phoneNumber: '028 1234 5678',
+    openingHours: '',
+    closingDay: '',
+    phoneNumber: '',
     priceRangeVND: {
-      min: item.priceFromVnd || 35000,
-      max: item.priceToVnd || 150000,
+      min: item.priceFromVnd || 0,
+      max: item.priceToVnd || 0,
     },
+    priceRange,
     dietTypes: dietTypes.length > 0 ? dietTypes : ['vegan'],
-    rating: 4.8,
-    reviewCount: 28,
+    rating: 0,
+    reviewCount: 0,
     imageUrl: img,
-    tags: item.amenities || ['Thực dưỡng', 'Yên tĩnh'],
-    highlights: ['Thực đơn thuần chay đa dạng', 'Không gian xanh mát'],
-    hasDelivery: true,
-    hasParking: true,
-    hasTakeAway: true,
+    tags: item.amenities || [],
+    highlights: [],
+    hasDelivery: false,
+    hasParking: false,
+    hasTakeAway: false,
     acceptsBooking: false,
     createdAt: new Date().toISOString(),
   }
@@ -114,39 +132,50 @@ function mapDetailToRestaurant(item: BackendRestaurantResponse): Restaurant {
   const fallbackImg =
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
   const img = item.imageUrl || fallbackImg
-  const dist = item.distanceKm ? Number(item.distanceKm) : 1.5
+  const dist = item.distanceKm ? Number(item.distanceKm) : 0
   const dietTypes = (item.dietaryTypes || []).map(mapDietType)
+
+  let priceRange: string | undefined
+  if (item.priceFromVnd && item.priceToVnd) {
+    priceRange = `${item.priceFromVnd.toLocaleString('vi-VN')}đ - ${item.priceToVnd.toLocaleString('vi-VN')}đ`
+  } else if (item.priceFromVnd) {
+    priceRange = `Từ ${item.priceFromVnd.toLocaleString('vi-VN')}đ`
+  } else if (item.priceToVnd) {
+    priceRange = `Đến ${item.priceToVnd.toLocaleString('vi-VN')}đ`
+  }
 
   return {
     id: item.id,
     name: item.name,
     address: item.address,
-    city: item.district || 'TP.HCM',
+    city: item.district || '',
     district: item.district || '',
     geoLat: item.latitude ? Number(item.latitude) : undefined,
     geoLng: item.longitude ? Number(item.longitude) : undefined,
     distanceKm: dist,
-    openingHours: item.openingHours || '08:00 - 22:00',
-    closingDay: 'Mở cả tuần',
-    phoneNumber: item.contactPhone || '028 1234 5678',
+    openingHours: item.openingHours || '',
+    closingDay: '',
+    phoneNumber: item.contactPhone || '',
     website: item.websiteUrl || undefined,
-    description: item.description || `Nhà hàng chay ${item.name} với không gian thanh tịnh.`,
+    description: item.description || '',
     priceRangeVND: {
-      min: item.priceFromVnd || 35000,
-      max: item.priceToVnd || 150000,
+      min: item.priceFromVnd || 0,
+      max: item.priceToVnd || 0,
     },
-    amenities: item.amenities || ['Wi-Fi', 'Chỗ đỗ xe'],
+    priceRange,
+    amenities: item.amenities || [],
     dietTypes: dietTypes.length > 0 ? dietTypes : ['vegan'],
-    rating: 4.9,
-    reviewCount: 36,
+    rating: 0,
+    reviewCount: 0,
     imageUrl: img,
-    tags: item.amenities || ['Thực dưỡng', 'Yên tĩnh'],
-    highlights: ['Thực phẩm sạch', 'Không bột ngọt'],
-    hasDelivery: true,
-    hasParking: true,
-    hasTakeAway: true,
+    tags: item.amenities || [],
+    highlights: [],
+    hasDelivery: false,
+    hasParking: false,
+    hasTakeAway: false,
     acceptsBooking: false,
     createdAt: item.createdAt,
+    relatedRecipes: item.relatedRecipes || [],
   }
 }
 
@@ -169,14 +198,24 @@ export async function getRestaurants(
   if (applied.diet !== 'all' && dietMap[applied.diet]) {
     params.set('dietaryType', String(dietMap[applied.diet]))
   }
+  if (applied.latitude !== undefined && applied.longitude !== undefined) {
+    params.set('latitude', String(applied.latitude))
+    params.set('longitude', String(applied.longitude))
+  }
   if (applied.distanceMaxKm > 0) {
     params.set('maxDistanceKm', String(applied.distanceMaxKm))
+    // Backend validation requires latitude and longitude if maxDistanceKm is supplied
+    if (!params.has('latitude') || !params.has('longitude')) {
+      params.set('latitude', '10.7769')
+      params.set('longitude', '106.7008')
+    }
   }
   params.set('pageNumber', '1')
   params.set('pageSize', '50')
 
+  const url = `/api/restaurants?${params.toString()}`
   try {
-    const res = await apiClient.get<BackendRestaurantPage>(`/api/restaurants?${params.toString()}`, {
+    const res = await apiClient.get<BackendRestaurantPage>(url, {
       requiresAuth: false,
     })
     if (res && Array.isArray(res.items)) {
@@ -187,23 +226,26 @@ export async function getRestaurants(
         appliedFilter: applied,
       }
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[restaurantApi.getRestaurants] Lỗi khi gọi API: ' + url, err)
+    throw err
   }
 
   return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
 export async function getRestaurantDetail(id: string): Promise<Restaurant | null> {
+  const url = `/api/restaurants/${id}`
   try {
-    const res = await apiClient.get<BackendRestaurantResponse>(`/api/restaurants/${id}`, {
+    const res = await apiClient.get<BackendRestaurantResponse>(url, {
       requiresAuth: false,
     })
     if (res && res.id) {
       return mapDetailToRestaurant(res)
     }
-  } catch {
-    // Not found
+  } catch (err) {
+    console.error('[restaurantApi.getRestaurantDetail] Lỗi khi gọi API: ' + url, err)
+    return null
   }
 
   return null
@@ -235,8 +277,9 @@ export async function getMapPins(): Promise<MapPinMarker[]> {
 }
 
 export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
+  const url = `/api/restaurants/${id}`
   try {
-    const res = await apiClient.get<BackendRestaurantResponse>(`/api/restaurants/${id}`, {
+    const res = await apiClient.get<BackendRestaurantResponse>(url, {
       requiresAuth: false,
     })
     if (res?.relatedRecipes && res.relatedRecipes.length > 0) {
@@ -250,49 +293,11 @@ export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
         imgSeed: r.name,
       }))
     }
-  } catch {
-    // API error
+  } catch (err) {
+    console.error('[restaurantApi.getRestaurantMenu] Lỗi khi gọi API: ' + url, err)
   }
 
-  // Fallback signature vegetarian dishes for the restaurant
-  return [
-    {
-      id: 'd1',
-      name: 'Đậu hũ sốt nấm hương',
-      desc: 'Đậu hũ non chiên vàng giòn rụm kết hợp sốt nấm hương đậm đà, thơm thảo mộc.',
-      priceVND: 55000,
-      tag: 'Bán chạy',
-      tagColor: 'bg-[#1F7A3F] text-white',
-      imgSeed: 'tofu mushroom vietnamese',
-    },
-    {
-      id: 'd2',
-      name: 'Lẩu nấm dưỡng sinh',
-      desc: 'Nước dùng rau củ hầm ngọt thanh tự nhiên, dùng kèm 5 loại nấm tươi hữu cơ.',
-      priceVND: 180000,
-      tag: 'Đặc sản',
-      tagColor: 'bg-[#EF6C00] text-white',
-      imgSeed: 'vietnamese hotpot vegan mushroom',
-    },
-    {
-      id: 'd3',
-      name: 'Gỏi ngó sen ngũ sắc',
-      desc: 'Ngó sen giòn ngọt, cà rốt, dưa leo, đậu phộng rang giòn sốt chua ngọt thanh tao.',
-      priceVND: 45000,
-      tag: 'Khai vị',
-      tagColor: 'bg-[#2E7D32] text-white',
-      imgSeed: 'lotus root salad vegan',
-    },
-    {
-      id: 'd4',
-      name: 'Cơm chiên hạt sen lá cẩm',
-      desc: 'Cơm gạo thơm xào hạt sen bùi béo, nấm hương và rau củ hạt lựu sắc tím tự nhiên.',
-      priceVND: 65000,
-      tag: 'Món chính',
-      tagColor: 'bg-[#1F7A3F] text-white',
-      imgSeed: 'fried rice lotus seeds vegan',
-    },
-  ]
+  return []
 }
 
 export async function getWeekHours(id: string): Promise<WeekHour[]> {
@@ -329,24 +334,7 @@ export async function getWeekHours(id: string): Promise<WeekHour[]> {
 }
 
 export async function getReviewComments(_id: string): Promise<ReviewComment[]> {
-  return [
-    {
-      id: 'c1',
-      userName: 'Nguyễn Minh Anh',
-      avatarSeed: 'vietnamese young smiling girl avatar',
-      rating: 5,
-      content: 'Không gian thanh tịnh, nhạc thiền êm dịu. Món ăn nêm nếm rất vừa vị, không dùng mì chính nên ăn xong nhẹ bụng.',
-      timeAgo: '2 ngày trước',
-    },
-    {
-      id: 'c2',
-      userName: 'Trần Văn Hoàng',
-      avatarSeed: 'vietnamese man smiling glasses portrait',
-      rating: 5,
-      content: 'Nhân viên phục vụ nhanh và lễ phép. Lẩu nấm nước dùng ngọt thanh từ rau củ tự nhiên, gia đình mình rất thích!',
-      timeAgo: '1 tuần trước',
-    },
-  ]
+  return []
 }
 
 export async function getRelatedContent(_id: string): Promise<RelatedContentCard[]> {

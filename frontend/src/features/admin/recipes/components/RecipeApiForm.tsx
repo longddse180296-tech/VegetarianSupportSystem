@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { BookOpen, Check, ChefHat, Leaf, LoaderCircle, Plus, BarChart3, Trash2 } from 'lucide-react'
+import { Select } from '../../../../shared/components/Select'
 import { RecordPicker, Feedback } from '../../components/ApiWorkspace'
 import {
   fieldClass,
@@ -11,6 +13,8 @@ import {
   type RecipeInput,
   recipeApi,
 } from '../api/recipeContract'
+
+const VALID_UNITS = ['g', 'kg', 'ml'] as const
 
 const nutrients = [
   ['caloriesPerServing', 'Năng lượng (kcal)'],
@@ -89,7 +93,8 @@ export function RecipeApiForm({
     }))
   return (
     <form
-      className="space-y-4"
+      className="admin-content-form admin-recipe-form"
+      aria-busy={busy}
       onSubmit={async (event) => {
         event.preventDefault()
         if (busy) return
@@ -107,6 +112,17 @@ export function RecipeApiForm({
           setError('Mỗi nguyên liệu chỉ được xuất hiện một lần.')
           return
         }
+        const invalidUnit = form.ingredients.find(
+          (item) =>
+            !item.unit ||
+            !(VALID_UNITS as readonly string[]).includes(
+              item.unit.trim().toLowerCase(),
+            ),
+        )
+        if (invalidUnit) {
+          setError('Đơn vị nguyên liệu không hợp lệ. Vui lòng chọn g, kg hoặc ml.')
+          return
+        }
         setBusy(true)
         setError(null)
         try {
@@ -120,212 +136,300 @@ export function RecipeApiForm({
         }
       }}
     >
-      <fieldset disabled={busy} className="space-y-4">
-        <label className="block text-sm">
-          Tên công thức
-          <input
-            required
-            maxLength={120}
-            className={fieldClass}
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </label>
-        <RecordPicker
-          resource="categories"
-          label="Danh mục"
-          value={form.categoryId}
-          selectedName={categoryName}
-          onChange={(item) => {
-            setForm({ ...form, categoryId: item.id })
-            setCategoryName(item.name)
-          }}
-        />
-        <label className="block text-sm">
-          Mô tả
-          <textarea
-            maxLength={2000}
-            className={fieldClass}
-            value={form.description || ''}
-            onChange={(e) =>
-              setForm({ ...form, description: e.target.value || null })
-            }
-          />
-        </label>
-        <div className="grid grid-cols-3 gap-3">
-          {(
-            [
-              ['servings', 'Khẩu phần', 1, 10000],
-              ['prepTimeMinutes', 'Chuẩn bị (phút)', 0, 10080],
-              ['cookTimeMinutes', 'Nấu (phút)', 0, 10080],
-            ] as const
-          ).map(([key, label, min, max]) => (
-            <label key={key} className="text-sm">
-              {label}
-              <input
-                required
-                type="number"
-                min={min}
-                max={max}
-                step={1}
-                className={fieldClass}
-                value={form[key]}
-                onChange={(e) =>
-                  setForm({ ...form, [key]: Number(e.target.value) })
-                }
-              />
-            </label>
-          ))}
-        </div>
-        <label className="block text-sm">
-          URL ảnh
-          <input
-            type="url"
-            pattern="https?://.*"
-            maxLength={2048}
-            className={fieldClass}
-            value={form.imageUrl || ''}
-            onChange={(e) =>
-              setForm({ ...form, imageUrl: e.target.value || null })
-            }
-          />
-        </label>
-        <label className="block text-sm">
-          Hướng dẫn nấu
-          <textarea
-            required
-            maxLength={20000}
-            rows={5}
-            className={fieldClass}
-            value={form.instructions}
-            onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-          />
-        </label>
-        <h4 className="font-bold">Thành phần và định lượng</h4>
-        {form.ingredients.map((ingredient, index) => (
-          <div key={index} className="rounded-xl border p-3 space-y-3">
+      <fieldset disabled={busy} className="admin-recipe-fields space-y-5">
+        <section aria-label="Thông tin chung" className="space-y-4 border-b border-slate-100 pb-5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+              <BookOpen size={17} aria-hidden="true" />
+            </span>
+            <h4 className="text-sm font-bold text-slate-800">Thông tin chung</h4>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">
+            Tên công thức <span className="text-rose-500" aria-hidden="true">*</span>
+            <input
+              required
+              maxLength={120}
+              className={fieldClass}
+              placeholder="Ví dụ: Đậu hũ sốt nấm"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+          </label>
+          <div className="grid items-start gap-4 sm:grid-cols-2">
             <RecordPicker
-              resource="ingredients"
-              label={`Nguyên liệu ${index + 1}`}
-              value={ingredient.ingredientId}
-              selectedName={names[ingredient.ingredientId]}
+              resource="categories"
+              label="Danh mục"
+              hideSearch
+              value={form.categoryId}
+              selectedName={categoryName}
               onChange={(item) => {
-                changeIngredient(index, { ingredientId: item.id })
-                setNames({ ...names, [item.id]: item.name })
+                setForm({ ...form, categoryId: item.id })
+                setCategoryName(item.name)
               }}
             />
-            <div className="grid grid-cols-2 gap-3">
-              <label className="text-sm">
-                Số lượng
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label
+                  htmlFor="recipe-image-url"
+                  className="text-sm font-semibold text-slate-700"
+                >
+                  URL ảnh <span className="font-normal text-slate-400">(tùy chọn)</span>
+                </label>
+              </div>
+              <div className="w-full">
+                <input
+                  id="recipe-image-url"
+                  type="url"
+                  pattern="https?://.*"
+                  maxLength={2048}
+                  className={`${fieldClass} !mt-0 !h-[46px]`}
+                  placeholder="https://..."
+                  value={form.imageUrl || ''}
+                  onChange={(e) =>
+                    setForm({ ...form, imageUrl: e.target.value || null })
+                  }
+                />
+                <span className="mt-1.5 block text-xs font-normal leading-relaxed text-slate-400">
+                  Đường dẫn ảnh đại diện của món ăn (URL HTTP/HTTPS).
+                </span>
+                {form.imageUrl && (
+                  <div className="mt-2 flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                    <img
+                      src={form.imageUrl}
+                      alt="Xem trước ảnh công thức"
+                      className="size-12 rounded-md object-cover border border-slate-200 bg-white"
+                      onError={(e) => {
+                        ;(e.target as HTMLElement).style.display = 'none'
+                      }}
+                    />
+                    <span className="text-xs text-slate-500">Xem trước ảnh món ăn</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">
+            Mô tả <span className="font-normal text-slate-400">(tùy chọn)</span>
+            <textarea
+              maxLength={2000}
+              rows={3}
+              className={`${fieldClass} resize-y`}
+              placeholder="Giới thiệu ngắn về món ăn..."
+              value={form.description || ''}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value || null })
+              }
+            />
+          </label>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(
+              [
+                ['servings', 'Khẩu phần', 1, 10000],
+                ['prepTimeMinutes', 'Chuẩn bị (phút)', 0, 10080],
+                ['cookTimeMinutes', 'Nấu (phút)', 0, 10080],
+              ] as const
+            ).map(([key, label, min, max]) => (
+              <label key={key} className="text-sm font-medium text-slate-700">
+                {label}
                 <input
                   required
                   type="number"
-                  min={0.001}
+                  min={min}
+                  max={max}
+                  step={1}
+                  className={fieldClass}
+                  value={form[key]}
+                  onChange={(e) =>
+                    setForm({ ...form, [key]: Number(e.target.value) })
+                  }
+                />
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section aria-label="Thành phần và định lượng" className="space-y-4 border-b border-slate-100 pb-5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+              <Leaf size={17} aria-hidden="true" />
+            </span>
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">Thành phần và định lượng</h4>
+              <p className="mt-0.5 text-xs text-slate-400">Chọn từng nguyên liệu và lượng dùng cho toàn bộ công thức.</p>
+            </div>
+          </div>
+          {form.ingredients.map((ingredient, index) => (
+            <div key={index} className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4">
+              <RecordPicker
+                resource="ingredients"
+                label={`Nguyên liệu ${index + 1}`}
+                value={ingredient.ingredientId}
+                selectedName={names[ingredient.ingredientId]}
+                onChange={(item) => {
+                  const rawUnit = item.defaultUnit ? item.defaultUnit.trim().toLowerCase() : ''
+                  const normalizedUnit = (VALID_UNITS as readonly string[]).includes(rawUnit) ? rawUnit : 'g'
+                  changeIngredient(index, { ingredientId: item.id, unit: normalizedUnit })
+                  setNames({ ...names, [item.id]: item.name })
+                }}
+              />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="block text-sm font-medium text-slate-700">
+                  <span className="block leading-5">Số lượng <span className="text-rose-500" aria-hidden="true">*</span></span>
+                  <input
+                    required
+                    type="number"
+                    min={0.001}
+                    max={999999999}
+                    step="0.001"
+                    value={ingredient.quantity}
+                    className={fieldClass}
+                    onChange={(e) =>
+                      changeIngredient(index, { quantity: Number(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="block text-sm font-medium text-slate-700">
+                  <span className="block leading-5">Đơn vị <span className="text-rose-500" aria-hidden="true">*</span></span>
+                  <div className="mt-1">
+                    <Select
+                      aria-label={`Đơn vị nguyên liệu ${index + 1}`}
+                      className="!h-[46px]"
+                      value={ingredient.unit || 'g'}
+                      onChange={(e) => changeIngredient(index, { unit: e.target.value })}
+                      options={[
+                        { value: 'g', label: 'g (Gam)' },
+                        { value: 'kg', label: 'kg (Kilôgam)' },
+                        { value: 'ml', label: 'ml (Mililít)' },
+                      ]}
+                    />
+                  </div>
+                </div>
+                <div className="col-span-2 block text-sm font-medium text-slate-700">
+                  <span className="block leading-5">Ghi chú <span className="font-normal text-slate-400">(tùy chọn)</span></span>
+                  <input
+                    maxLength={500}
+                    value={ingredient.note || ''}
+                    className={fieldClass}
+                    placeholder="Ví dụ: Thái nhỏ, để ráo..."
+                    onChange={(e) =>
+                      changeIngredient(index, { note: e.target.value || null })
+                    }
+                  />
+                </div>
+              </div>
+              {form.ingredients.length > 1 && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        ingredients: form.ingredients.filter((_, i) => i !== index),
+                      })
+                    }
+                  >
+                    <Trash2 size={14} aria-hidden="true" />
+                    Bỏ nguyên liệu {index + 1}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            disabled={form.ingredients.length >= 200}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 px-4 py-2.5 text-sm font-semibold text-emerald-800 transition-colors hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-50"
+            onClick={() =>
+              setForm({
+                ...form,
+                ingredients: [
+                  ...form.ingredients,
+                  { ingredientId: '', quantity: 1, unit: 'g', note: null },
+                ],
+              })
+            }
+          >
+            <Plus size={16} aria-hidden="true" />
+            Thêm nguyên liệu
+          </button>
+        </section>
+
+        <section aria-label="Hướng dẫn nấu" className="space-y-4 border-b border-slate-100 pb-5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+              <ChefHat size={17} aria-hidden="true" />
+            </span>
+            <h4 className="text-sm font-bold text-slate-800">Hướng dẫn nấu</h4>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">
+            Các bước thực hiện <span className="text-rose-500" aria-hidden="true">*</span>
+            <textarea
+              required
+              maxLength={20000}
+              rows={5}
+              className={`${fieldClass} resize-y`}
+              placeholder={'1. Sơ chế nguyên liệu...\n2. Chế biến món ăn...\n3. Hoàn thành và trình bày...'}
+              value={form.instructions}
+              onChange={(e) => setForm({ ...form, instructions: e.target.value })}
+            />
+          </label>
+        </section>
+
+        <section aria-label="Dinh dưỡng" className="space-y-4">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+              <BarChart3 size={17} aria-hidden="true" />
+            </span>
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">Dinh dưỡng mỗi khẩu phần</h4>
+              <p className="mt-0.5 text-xs text-slate-400">Để trống thông tin chưa biết.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {nutrients.map(([key, label]) => (
+              <label key={key} className="text-sm font-medium text-slate-700">
+                {label}
+                <input
+                  type="number"
+                  min={0}
                   max={999999999}
                   step="0.001"
-                  value={ingredient.quantity}
                   className={fieldClass}
+                  value={form[key] ?? ''}
                   onChange={(e) =>
-                    changeIngredient(index, {
-                      quantity: Number(e.target.value),
+                    setForm({
+                      ...form,
+                      [key]: e.target.value === '' ? null : Number(e.target.value),
                     })
                   }
                 />
               </label>
-              <label className="text-sm">
-                Đơn vị
-                <input
-                  required
-                  maxLength={40}
-                  value={ingredient.unit}
-                  className={fieldClass}
-                  onChange={(e) =>
-                    changeIngredient(index, { unit: e.target.value })
-                  }
-                />
-              </label>
-            </div>
-            <label className="block text-sm">
-              Ghi chú
-              <input
-                maxLength={500}
-                value={ingredient.note || ''}
-                className={fieldClass}
-                onChange={(e) =>
-                  changeIngredient(index, { note: e.target.value || null })
-                }
-              />
-            </label>
-            {form.ingredients.length > 1 && (
-              <button
-                type="button"
-                className="fe1-link text-sm text-rose-700"
-                onClick={() =>
-                  setForm({
-                    ...form,
-                    ingredients: form.ingredients.filter((_, i) => i !== index),
-                  })
-                }
-              >
-                Bỏ nguyên liệu {index + 1}
-              </button>
-            )}
+            ))}
           </div>
-        ))}
-        <button
-          type="button"
-          disabled={form.ingredients.length >= 200}
-          className={secondaryClass}
-          onClick={() =>
-            setForm({
-              ...form,
-              ingredients: [
-                ...form.ingredients,
-                { ingredientId: '', quantity: 1, unit: 'g', note: null },
-              ],
-            })
-          }
-        >
-          Thêm nguyên liệu
-        </button>
-        <p className="text-xs text-slate-500">
-          Dinh dưỡng theo mỗi khẩu phần. Để trống nếu chưa biết. Chế độ ăn được
-          xác định từ thành phần.
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          {nutrients.map(([key, label]) => (
-            <label key={key} className="text-sm">
-              {label}
-              <input
-                type="number"
-                min={0}
-                max={999999999}
-                step="0.001"
-                className={fieldClass}
-                value={form[key] ?? ''}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    [key]:
-                      e.target.value === '' ? null : Number(e.target.value),
-                  })
-                }
-              />
-            </label>
-          ))}
-        </div>
+          <p className="rounded-lg bg-emerald-50/60 px-3 py-2.5 text-xs leading-relaxed text-emerald-800">
+            Chế độ ăn được xác định từ thành phần của công thức.
+          </p>
+        </section>
       </fieldset>
-      <Feedback error={error} />
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          className={secondaryClass}
-          onClick={onCancel}
-        >
+      {error && (
+        <div className="admin-form-feedback">
+          <Feedback error={error} />
+        </div>
+      )}
+      <div className="admin-form-actions flex items-center justify-end gap-3">
+        <p className="mr-auto hidden text-xs text-slate-400 sm:block">
+          <span className="text-rose-500">*</span> Thông tin bắt buộc
+        </p>
+        <button type="button" disabled={busy} className={secondaryClass} onClick={onCancel}>
           Hủy
         </button>
-        <button className={primaryClass} disabled={busy}>
+        <button type="submit" className={`${primaryClass} inline-flex items-center justify-center gap-2`} disabled={busy}>
+          {busy ? (
+            <LoaderCircle size={16} className="motion-safe:animate-spin" aria-hidden="true" />
+          ) : (
+            <Check size={16} aria-hidden="true" />
+          )}
           {busy ? 'Đang lưu...' : 'Lưu công thức'}
         </button>
       </div>

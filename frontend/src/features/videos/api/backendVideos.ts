@@ -1,4 +1,26 @@
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
+import type { CoreDietType } from '../types/video.types'
+
+export function inferVideoDietType(title?: string, description?: string): CoreDietType {
+  const lower = `${title ?? ''} ${description ?? ''}`.toLowerCase()
+  if (
+    /(trứng)/.test(lower) &&
+    /(sữa|phô mai|bơ)/.test(lower) &&
+    !/(sữa hạt|sữa đậu|bơ đậu phộng|bơ thực vật)/.test(lower)
+  ) {
+    return 'Trứng & Sữa (Lacto-ovo)'
+  }
+  if (/(trứng|lòng đỏ|lòng trắng|mayonnaise)/.test(lower)) {
+    return 'Chay có trứng (Ovo)'
+  }
+  if (
+    /(sữa|phô mai|cheese|bơ|váng sữa)/.test(lower) &&
+    !/(sữa hạt|sữa đậu|bơ đậu phộng|bơ thực vật)/.test(lower)
+  ) {
+    return 'Ăn chay có sữa (Lacto)'
+  }
+  return 'Thuần chay (Vegan)'
+}
 
 export interface VideoDetails {
   id: string
@@ -15,6 +37,7 @@ export interface VideoDetails {
   viewCount: number
   favoriteCount: number
   createdAtUtc: string
+  dietType?: string | null
 }
 
 interface VideoPage {
@@ -32,17 +55,40 @@ export interface VideoCategoryOption {
 export async function listVideos(mine = false): Promise<VideoDetails[]> {
   const items: VideoDetails[] = []
   for (let page = 1; ; page++) {
-    const result = await apiClient.get<VideoPage>(
-      `/api/${mine ? 'me/' : ''}videos?page=${page}&pageSize=100`,
-      { requiresAuth: mine },
+    const url = `/api/${mine ? 'me/' : ''}videos?page=${page}&pageSize=100`
+    let result: VideoPage
+    try {
+      result = await apiClient.get<VideoPage>(url, { requiresAuth: mine })
+    } catch (err) {
+      console.error('[backendVideos.listVideos] Lỗi khi gọi API: ' + url, err)
+      throw err
+    }
+    items.push(
+      ...result.items.map((v: VideoDetails) => ({
+        ...v,
+        dietType: v.dietType || inferVideoDietType(v.title, v.description),
+      })),
     )
-    items.push(...result.items)
     if (items.length >= result.totalCount || result.items.length === 0) return items
   }
 }
 
-export const getPublicVideo = (id: string) =>
-  apiClient.get<VideoDetails>(`/api/videos/${encodeURIComponent(id)}`, { requiresAuth: false })
+export async function getPublicVideo(id: string): Promise<VideoDetails> {
+  const url = `/api/videos/${encodeURIComponent(id)}`
+  let video: VideoDetails
+  try {
+    video = await apiClient.get<VideoDetails>(url, {
+      requiresAuth: false,
+    })
+  } catch (err) {
+    console.error('[backendVideos.getPublicVideo] Lỗi khi gọi API: ' + url, err)
+    throw err
+  }
+  return {
+    ...video,
+    dietType: video.dietType || inferVideoDietType(video.title, video.description),
+  }
+}
 
 export const getMyVideo = (id: string) =>
   apiClient.get<VideoDetails>(`/api/me/videos/${encodeURIComponent(id)}`)

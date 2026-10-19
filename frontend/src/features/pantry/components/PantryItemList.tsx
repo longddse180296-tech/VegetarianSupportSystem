@@ -112,7 +112,7 @@ export const PantryItemList: React.FC<PantryItemListProps> = ({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <h3
-                  className="min-w-0 flex-1 font-semibold tracking-[-0.005em] text-[#1F2937]"
+                  className="min-w-0 flex-1 font-semibold tracking-[-0.005em] text-[#1F2937] break-words line-clamp-2"
                   style={{ fontSize: '18px', lineHeight: '26px' }}
                   title={item.name}
                 >

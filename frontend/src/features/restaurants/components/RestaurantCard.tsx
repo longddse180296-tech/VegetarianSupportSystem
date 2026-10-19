@@ -1,12 +1,8 @@
-import {
-  MapPin,
-  Star,
-  TrendingUp,
-  Wallet,
-} from 'lucide-react'
-import { Button } from '../../../shared/components'
+import React from 'react'
+import { ArrowRight, Clock, MapPin } from 'lucide-react'
 import type { Restaurant, RestaurantDietType } from '../types/restaurant.types'
 import { DIET_TYPE_LABELS } from '../types/restaurant.types'
+import { formatAddress } from '../utils/restaurantUtils'
 
 interface RestaurantCardProps {
   restaurant: Restaurant
@@ -16,47 +12,24 @@ interface RestaurantCardProps {
   variant?: 'default' | 'horizontal' | 'compact'
   ctaLabel?: string
   onNavigate?: (path: string) => void
+  isSelected?: boolean
 }
 
 /* ---------- Helpers ---------- */
 const DIET_TAG_CLASS: Record<string, string> = {
-  vegan: 'bg-[#E8F5E9] text-[#2E7D32] border-[#2E7D32]/30',
-  'ovo-lacto': 'bg-[#FFF8E1] text-[#8D6E00] border-[#FFD54F]/40',
-  ovo: 'bg-[#FFF3E0] text-[#BF6A00] border-[#FFB74D]/40',
-  lacto: 'bg-[#FFF8E1] text-[#8D6E00] border-[#FFD54F]/40',
-  raw: 'bg-[#E3F2FD] text-[#0D47A1] border-[#64B5F6]/40',
-  'vegetarian-friendly':
-    'bg-[#F3E5F5] text-[#6A1B9A] border-[#BA68C8]/40',
+  vegan: 'bg-[#E8F5E9] text-[#2E7D32] border-[#A5D6A7]',
+  'ovo-lacto': 'bg-[#FFF8E1] text-[#8D6E00] border-[#FFE082]',
+  ovo: 'bg-[#FFF3E0] text-[#BF6A00] border-[#FFCC80]',
+  lacto: 'bg-[#E8F5E9] text-[#2E7D32] border-[#A5D6A7]',
+  raw: 'bg-[#E3F2FD] text-[#0D47A1] border-[#90CAF9]',
+  'vegetarian-friendly': 'bg-[#F3E5F5] text-[#6A1B9A] border-[#CE93D8]',
 }
 
 function dietPillClass(d: string): string {
-  return (
-    DIET_TAG_CLASS[d] ??
-    'bg-[#F8FAF8] text-[#4B5563] border-[#E5E7EB]'
-  )
+  return DIET_TAG_CLASS[d] ?? 'bg-[#F8FAF8] text-[#4B5563] border-[#E5E7EB]'
 }
 
-function isOpenNow(openingHours: string): { open: boolean; label: string } {
-  try {
-    const m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(openingHours)
-    if (!m) return { open: true, label: 'Đang mở cửa' }
-    const openMin = +m[1] * 60 + +m[2]
-    const closeMin = +m[3] * 60 + +m[4]
-    const now = new Date()
-    const nowMin = now.getHours() * 60 + now.getMinutes()
-    if (nowMin >= openMin && nowMin <= closeMin) {
-      return { open: true, label: 'Đang mở cửa' }
-    }
-    const pad = (n: number) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`
-    return { open: false, label: `Mở cửa lúc ${pad(openMin)}` }
-  } catch {
-    return { open: true, label: 'Đang mở cửa' }
-  }
-}
-
-/* ====================================================================== */
-/* Main
-/* ====================================================================== */
+const FALLBACK_RESTAURANT_IMG = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
 
 export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   restaurant,
@@ -66,54 +39,44 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   variant = 'horizontal',
   ctaLabel = 'Xem chi tiết',
   onNavigate,
+  isSelected = false,
 }) => {
-  const status = isOpenNow(restaurant.openingHours)
-  const handleCTAClick = () => {
+  const [imgError, setImgError] = React.useState(false)
+  const displayImage = imgError || !restaurant.imageUrl ? FALLBACK_RESTAURANT_IMG : restaurant.imageUrl
+
+  const handleCTAClick = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
     if (onNavigate) {
       onNavigate(`/restaurants/${restaurant.id}`)
     } else {
       onSelect?.(restaurant.id)
     }
   }
-  const priceShort = (() => {
-    const fmt = (n: number) =>
-      n >= 1_000_000
-        ? `${(n / 1_000_000).toFixed(1)}M`
-        : `${Math.round(n / 1000)}.000đ`
-    return `${fmt(restaurant.priceRangeVND.min)} - ${fmt(restaurant.priceRangeVND.max)}`
-  })()
 
-  // ---- Horizontal Variant (used on list) ----
+  const cleanName = restaurant.name.replace(/^\[Demo\]\s*/i, '')
+  const displayAddress = formatAddress(
+    restaurant.address,
+    restaurant.district,
+    restaurant.city,
+  )
+
+  // ---- Horizontal Variant (used on list page) ----
   if (variant === 'horizontal') {
     return (
       <article
-        className={`group relative flex overflow-hidden rounded-[16px] border transition-all duration-200 p-4 gap-4
-          ${
-          featured
+        className={`group relative flex overflow-hidden rounded-[20px] border transition-all duration-300 p-4 gap-4 sm:gap-5 ${
+          isSelected
+            ? 'bg-emerald-50/40 border-emerald-500 shadow-md ring-2 ring-emerald-500/20'
+            : featured
             ? 'bg-gradient-to-br from-[#F1FAF3] via-white to-white border-[#C8E6C9]'
-            : 'bg-white border-[#E5E7EB] hover:border-[#2E7D32]/30 hover:-translate-y-[1px]'
-        }
-          shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)]
-          hover:shadow-[0_8px_20px_-4px_rgba(46,125,50,0.08),0_4px_12px_-2px_rgba(31,41,55,0.04)]
-        `}
+            : 'bg-white border-slate-200/90 hover:border-emerald-400/80 hover:-translate-y-0.5'
+        } shadow-xs hover:shadow-lg`}
       >
-        {featured && (
-          <span className="absolute -top-[9px] left-5 z-10 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-300 to-amber-400 px-2.5 py-[3px] text-[10px] font-extrabold uppercase tracking-wider text-amber-900 shadow-sm">
-            <TrendingUp size={10} className="stroke-[2.5px]" /> Gợi ý số 1
-          </span>
-        )}
-
-        {/* Open badge top-right */}
-        {status.open && (
-          <span className="absolute top-3 right-3 rounded-full bg-[#2E7D32] text-white px-2 py-0.5 text-[11px] font-bold z-10">
-            Đang mở cửa
-          </span>
-        )}
-
-        {/* ---- Thumbnail (168px, rounded-12) ---- */}
+        {/* ---- Thumbnail (160px width, rounded-16) ---- */}
         <div className="relative shrink-0">
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={handleCTAClick}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -121,59 +84,39 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                 handleCTAClick()
               }
             }}
-            className="relative block overflow-hidden rounded-[14px] w-[168px] h-[160px] focus:outline-none focus:ring-2 focus:ring-[#2E7D32]/40"
-            aria-label={`Mở chi tiết nhà hàng ${restaurant.name}`}
+            className="relative block overflow-hidden rounded-[16px] w-[130px] sm:w-[165px] h-[135px] sm:h-[145px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+            aria-label={`Mở chi tiết nhà hàng ${cleanName}`}
           >
             <img
-              src={restaurant.imageUrl}
-              alt={restaurant.name}
+              src={displayImage}
+              alt={cleanName}
               loading="lazy"
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+              onError={() => setImgError(true)}
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
-            {/* Rating badge on top-left of image */}
-            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-extrabold text-amber-700 shadow-sm backdrop-blur">
-              <Star size={11} className="fill-amber-400 stroke-amber-400" />
-              {restaurant.rating.toFixed(1)}
-            </span>
-          </button>
+          </div>
         </div>
 
         {/* ---- Right content ---- */}
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Top badges row */}
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            {restaurant.dietTypes.slice(0, 2).map((d) => (
+          {/* Top badges row: diet type */}
+          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 min-h-[24px]">
+            {Array.from(new Set(restaurant.dietTypes)).map((d) => (
               <span
                 key={d}
-                className={`inline-flex items-center rounded-full border px-2 py-[2px] text-[11px] font-bold leading-[16px] ${dietPillClass(d)}`}
+                className={`inline-flex items-center rounded-full border px-2.5 py-[2px] text-[11px] font-bold leading-none ${dietPillClass(
+                  d,
+                )}`}
               >
-                {DIET_TYPE_LABELS[d as RestaurantDietType]?.replace(
-                  /\s*\(.*\)\s*/g,
-                  '',
-                ) ?? d}
+                {DIET_TYPE_LABELS[d as RestaurantDietType] ?? d}
               </span>
             ))}
-            <span
-              className={`inline-flex items-center gap-1.5 text-[11px] font-bold leading-[16px] ${
-                status.open ? 'text-[#2E7D32]' : 'text-[#6B7280]'
-              }`}
-            >
-              <span
-                className={`relative inline-flex h-[7px] w-[7px] rounded-full ${
-                  status.open ? 'bg-[#34D399]' : 'bg-slate-400'
-                }`}
-              >
-                {status.open && (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#34D399]/60 opacity-75"></span>
-                )}
-              </span>
-              {status.label}
-            </span>
           </div>
 
           {/* Name */}
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={handleCTAClick}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -181,126 +124,140 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                 handleCTAClick()
               }
             }}
-            className="mb-1 w-full text-left focus:outline-none"
+            className="w-full text-left cursor-pointer focus:outline-none"
           >
-            <h3 className="line-clamp-2 font-semibold text-[18px] leading-[26px] tracking-tight text-[#121C2A] group-hover:text-[#2E7D32]">
-              {restaurant.name}
+            <h3 
+              title={cleanName}
+              className="line-clamp-2 min-h-[46px] font-bold text-[16px] sm:text-[18px] leading-snug tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors"
+            >
+              {cleanName}
             </h3>
-          </button>
-
-          {/* Address */}
-          <p className="mb-2 flex items-start gap-1.5 text-[13px] leading-[20px] text-[#6B7280]">
-            <MapPin
-              size={14}
-              className="mt-[2px] shrink-0 text-[#2E7D32]"
-            />
-            <span className="line-clamp-2">
-              {restaurant.address}, {restaurant.district}, {restaurant.city}
-            </span>
-          </p>
-
-          {/* Meta chips */}
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#E8F5E9] px-2 py-1 text-xs font-bold text-[#2E7D32]">
-              {restaurant.distanceKm.toFixed(1)} km
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#CFDCD3] bg-white px-2.5 py-[3px] text-[12px] font-semibold leading-[20px] text-[#4B5563]">
-              <Wallet size={12} className="text-[#2E7D32]" />
-              Khoảng giá: {priceShort}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-[3px] text-[12px] font-extrabold leading-[20px] text-amber-700">
-              <Star
-                size={12}
-                className="fill-amber-400 stroke-amber-400"
-              />
-              {restaurant.rating.toFixed(1)}
-              <span className="text-[#6B7280] font-medium">
-                ({restaurant.reviewCount.toLocaleString('vi-VN')})
-              </span>
-            </span>
           </div>
 
-          {/* Highlights tagline pills */}
-          {restaurant.highlights.length > 0 && (
-            <div className="mb-3 flex flex-wrap items-center gap-1.5">
-              {restaurant.highlights.slice(0, 3).map((h) => (
-                <span
-                  key={h}
-                  className="rounded-full border border-[#E5E7EB] bg-[#F8FAF8] px-2.5 py-[3px] text-[11px] font-semibold text-[#4B5563]"
-                >
-                  {h.split('·')[0].trim().length > 28
-                    ? `${h.split('·')[0].trim().slice(0, 28)}…`
-                    : h.split('·')[0].trim()}
+          {/* Address with formatted & deduplicated district/city */}
+          <p className="mt-1 flex items-start gap-1.5 text-xs text-slate-500 leading-normal">
+            <MapPin size={13} className="mt-[2px] shrink-0 text-emerald-600" />
+            <span className="line-clamp-1">{displayAddress}</span>
+          </p>
+
+          {/* Giờ mở cửa & Khoảng giá thực tế từ Database */}
+          {(restaurant.openingHours || restaurant.priceRange) && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              {restaurant.openingHours && (
+                <span className="inline-flex items-center gap-1 font-medium text-slate-600">
+                  <Clock size={12} className="text-slate-400" />
+                  <span>{restaurant.openingHours}</span>
                 </span>
-              ))}
+              )}
+              {restaurant.openingHours && restaurant.priceRange && (
+                <span className="text-slate-300">•</span>
+              )}
+              {restaurant.priceRange && (
+                <span className="font-semibold text-emerald-800">
+                  {restaurant.priceRange}
+                </span>
+              )}
             </div>
           )}
 
-          {/* Bottom actions */}
-          <div className="mt-auto flex items-center justify-between gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="primary"
-              onClick={handleCTAClick}
-            >
-              {ctaLabel}
-            </Button>
-            {onBook && restaurant.acceptsBooking && (
-              <Button
+          {/* Bottom actions: Outline/Ghost button */}
+          <div className="mt-auto pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+            <div className="flex items-center gap-2">
+              {onBook && restaurant.acceptsBooking && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onBook(restaurant.id)
+                  }}
+                  className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Đặt chỗ
+                </button>
+              )}
+
+              {/* Nút Xem chi tiết: đồng bộ chuẩn màu xanh #2E7D32 với bên Video */}
+              <button
                 type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => onBook?.(restaurant.id)}
+                onClick={handleCTAClick}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] px-4 py-2 text-xs font-semibold text-white transition-all shadow-xs group/btn"
               >
-                Đặt chỗ
-              </Button>
-            )}
+                <span>{ctaLabel}</span>
+                <ArrowRight
+                  size={13}
+                  className="transition-transform group-hover/btn:translate-x-0.5"
+                />
+              </button>
+            </div>
           </div>
         </div>
       </article>
     )
   }
 
-  // ---- Compact/grid card (used in Nearby on detail) ----
+  // ---- Compact/grid card (used in Nearby on detail page) ----
   return (
-    <article
-      className={`group flex flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white p-3
-        transition-all duration-200 hover:-translate-y-[1px] hover:border-[#2E7D32]/30
-        shadow-[0_2px_8px_-2px_rgba(31,41,55,0.04),0_1px_4px_-1px_rgba(31,41,55,0.02)]
-      `}
-    >
-      <div className="relative overflow-hidden rounded-[12px] aspect-[4/3]">
+    <article className="group flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/80 shadow-xs hover:shadow-md">
+      <div className="relative overflow-hidden rounded-[14px] aspect-[4/3] bg-slate-900">
         <img
-          src={restaurant.imageUrl}
-          alt={restaurant.name}
+          src={displayImage}
+          alt={cleanName}
           loading="lazy"
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+          onError={() => setImgError(true)}
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
         />
       </div>
 
-      <div className="mt-3 flex flex-col gap-1">
-          <h3 className="line-clamp-2 text-[15px] font-semibold leading-[22px] text-[#121C2A] group-hover:text-[#2E7D32]">
-            {restaurant.name}
-          </h3>
-          <p className="flex items-center gap-1 text-[12px] leading-[18px] text-[#6B7280]">
-            <MapPin size={12} className="text-[#2E7D32]" />
-            {restaurant.district}, {restaurant.city}
-          </p>
-          <div className="mt-2 flex items-center justify-between">
-            <span className="rounded-full bg-[#E8F5E9] px-2 py-1 text-xs font-bold text-[#2E7D32]">
-              {restaurant.distanceKm.toFixed(1)} km
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              variant="primary"
-              onClick={handleCTAClick}
+      <div className="mt-3 flex flex-1 flex-col gap-1.5">
+        {restaurant.dietTypes.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            <span
+              className={`inline-flex items-center rounded-full border px-2 py-[1px] text-[10px] font-bold ${dietPillClass(
+                restaurant.dietTypes[0],
+              )}`}
             >
-              {ctaLabel}
-            </Button>
+              {DIET_TYPE_LABELS[
+                restaurant.dietTypes[0] as RestaurantDietType
+              ] ?? restaurant.dietTypes[0]}
+            </span>
           </div>
+        )}
+
+        <h3
+          title={cleanName}
+          className="line-clamp-2 text-[15px] font-bold leading-snug text-slate-900 group-hover:text-emerald-700 transition-colors"
+        >
+          {cleanName}
+        </h3>
+
+        <p className="flex items-center gap-1 text-xs text-slate-500">
+          <MapPin size={12} className="shrink-0 text-emerald-600" />
+          <span className="truncate">{displayAddress}</span>
+        </p>
+
+        {/* Giờ mở cửa */}
+        {restaurant.openingHours && (
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
+            <Clock size={11} className="text-slate-400" />
+            <span>{restaurant.openingHours}</span>
+          </p>
+        )}
+
+        {/* CTA button */}
+        <div className="mt-auto pt-2 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={handleCTAClick}
+            className="inline-flex items-center gap-1 rounded-lg bg-[#2E7D32] hover:bg-[#1B5E20] px-3 py-1.5 text-xs font-semibold text-white transition-colors group/btn shadow-xs"
+          >
+            <span>{ctaLabel}</span>
+            <ArrowRight
+              size={12}
+              className="transition-transform group-hover/btn:translate-x-0.5"
+            />
+          </button>
         </div>
+      </div>
     </article>
   )
 }

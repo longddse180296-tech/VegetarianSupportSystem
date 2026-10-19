@@ -27,8 +27,8 @@ export const UserLayout: React.FC<UserLayoutProps> = ({
   children,
   activeMenu = 'profile',
   onNavigate,
-  userName = 'Nguyễn Văn An',
-  userEmail = 'nguyen.an@example.com',
+  userName = 'Tài khoản',
+  userEmail = '',
   userRole = 'User',
   onLogout,
 }) => {
@@ -118,7 +118,7 @@ export const UserLayout: React.FC<UserLayoutProps> = ({
       </header>
 
       {/* Main Container with Sidebar + Content */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 flex flex-col md:flex-row gap-6">
+      <div className="ui-page-container py-6 flex-1 flex flex-col md:flex-row gap-6">
         {/* User Sidebar */}
         <aside
           className={`${

@@ -99,6 +99,7 @@ export const AddIngredientModal: React.FC<AddIngredientModalProps> = ({
             type="button"
             variant="primary"
             isLoading={submitting}
+            disabled={submitting}
             onClick={handleSubmit}
             leftIcon={<Plus size={14} />}
           >

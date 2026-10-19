@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
-import { Search, Calendar, ChevronDown, Check } from 'lucide-react'
+import { Search, Calendar, Check } from 'lucide-react'
+import { Select } from '../../../shared/components/Select'
 import type { SavedMealPlanItem } from '../types/mealPlans.types'
 
 interface SavedPlansSectionProps {
@@ -72,19 +73,18 @@ export const SavedPlansSection: React.FC<SavedPlansSectionProps> = ({
             />
           </div>
 
-          <div className="relative">
-            <select
+          <div className="w-48">
+            <Select
               value={selectedGoalFilter}
               onChange={(e) => setSelectedGoalFilter(e.target.value)}
-              className="h-10 appearance-none rounded-xl border border-slate-200 bg-white pl-3.5 pr-8 text-xs font-semibold text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-2xs cursor-pointer"
-            >
-              <option value="all">Tất cả mục tiêu</option>
-              <option value="maintain">Duy trì cân nặng</option>
-              <option value="muscle-gain">Tăng cơ & thể lực</option>
-              <option value="weight-loss">Giảm cân khoa học</option>
-              <option value="detox">Thanh lọc cơ thể</option>
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              options={[
+                { value: 'all', label: 'Tất cả mục tiêu' },
+                { value: 'maintain', label: 'Duy trì cân nặng' },
+                { value: 'muscle-gain', label: 'Tăng cơ & thể lực' },
+                { value: 'weight-loss', label: 'Giảm cân khoa học' },
+                { value: 'detox', label: 'Thanh lọc cơ thể' },
+              ]}
+            />
           </div>
         </div>
       </div>

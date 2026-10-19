@@ -75,7 +75,7 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
             if (onCreateArticle) {
               onCreateArticle()
             } else {
-              window.location.hash = '/articles/create'
+              window.location.hash = '/articles/create?from=articles'
             }
           }}
           leftIcon={<span className="text-sm font-bold leading-none">+</span>}

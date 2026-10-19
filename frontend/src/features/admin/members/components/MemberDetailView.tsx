@@ -170,7 +170,7 @@ export const MemberDetailView: React.FC<MemberDetailViewProps> = ({
             </span>
             <span className="text-3xl font-extrabold text-slate-900">{member.postCount}</span>
             <span className="text-xs text-[#1E6531] font-semibold flex items-center gap-1 mt-0.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#1E6531]" /> 100% Đã được duyệt
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#1E6531]" /> Nội dung của thành viên
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center">

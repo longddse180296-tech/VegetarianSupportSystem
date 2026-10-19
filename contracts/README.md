@@ -24,6 +24,8 @@ Hợp đồng danh sách, chi tiết và khóa/mở khóa thành viên Admin ở
 
 Hợp đồng số liệu thực, hàng đợi và hoạt động gần đây của Admin Dashboard ở [admin-dashboard.md](admin-dashboard.md).
 
+Hợp đồng Admin ghim nội dung nổi bật và danh sách trang chủ công khai ở [featured-content.md](featured-content.md).
+
 Hợp đồng bài viết public, nháp của tôi, phiên bản và gửi kiểm duyệt ở [articles.md](articles.md).
 
 Hợp đồng bình luận, phản hồi, quản trị bình luận và helpful/like ở [comments.md](comments.md).

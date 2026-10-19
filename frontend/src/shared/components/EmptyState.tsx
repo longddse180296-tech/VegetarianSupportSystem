@@ -25,11 +25,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center text-center p-8 sm:p-12 bg-white rounded-[16px] border border-dashed border-[#e5e7eb] my-4 ${className}`}
+      className={`flex flex-col items-center justify-center text-center p-8 sm:p-12 bg-white rounded-[16px] border border-dashed border-border-subtle my-4 ${className}`}
       role="status"
       aria-live="polite"
     >
-      <div className="w-16 h-16 rounded-full bg-[#e8f5e9] text-[#2e7d32] flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-full bg-primary-light text-primary flex items-center justify-center mb-4">
         {icon || (
           <svg
             className="w-8 h-8 opacity-80"
@@ -48,8 +48,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         )}
       </div>
 
-      <h3 className="text-base font-bold text-[#1f2937] tracking-tight">{title}</h3>
-      <p className="text-sm text-[#6b7280] max-w-md mt-1.5 leading-relaxed">{description}</p>
+      <h3 className="text-base font-bold text-text-main tracking-tight">{title}</h3>
+      <p className="text-sm text-text-muted max-w-md mt-1.5 leading-relaxed">{description}</p>
 
       {handleAction && (
         <div className="mt-5">

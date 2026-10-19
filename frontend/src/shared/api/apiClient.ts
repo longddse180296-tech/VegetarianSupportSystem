@@ -105,6 +105,12 @@ export interface ApiClient {
   delete<T>(endpoint: string, options?: RequestOptions): Promise<T>
 }
 
+export const resolveApiUrl = (endpoint: string): string => {
+  const apiBase = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '') || ''
+  if (!apiBase || endpoint.startsWith('http')) return endpoint
+  return `${apiBase}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`
+}
+
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { requiresAuth = true, headers: customHeaders, ...restOptions } = options
 
@@ -123,15 +129,16 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
   }
 
+  const url = resolveApiUrl(endpoint)
   let response: Response
   try {
-    response = await fetch(endpoint, {
+    response = await fetch(url, {
       ...restOptions,
       headers,
     })
   } catch {
     throw new ApiError(
-      'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng.',
+      'Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại.',
       0
     )
   }
@@ -150,6 +157,14 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     const status = response.status
     let message = problem?.detail || problem?.title || ''
 
+    if (status === 401) {
+      clearStoredAuth()
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search)
+        window.location.href = `/login?returnUrl=${returnUrl}`
+      }
+    }
+
     if (!message) {
       if (status === 400) {
         message = 'Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin.'
@@ -161,11 +176,15 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
         message = 'Không tìm thấy tài nguyên yêu cầu.'
       } else if (status === 409) {
         message = 'Dữ liệu đã tồn tại trên hệ thống.'
+      } else if (status === 504 || status === 408) {
+        message = 'Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại.'
       } else if (status >= 500) {
         message = 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.'
       } else {
         message = `Đã xảy ra lỗi (${status}).`
       }
+    } else if (status === 504 || status === 408) {
+      message = 'Mất kết nối hoặc máy chủ phản hồi quá lâu, vui lòng thử lại.'
     }
 
     // If backend returned field errors dictionary, include first error in message if generic

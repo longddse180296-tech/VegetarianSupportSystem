@@ -28,7 +28,7 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ onNaviga
       isLoggedIn={!!user}
       userName={user?.fullName}
     >
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+      <div className="ui-page-container py-10 sm:py-16">
         <ForgotPasswordForm
           onSubmit={handleForgotPassword}
           onNavigateToLogin={() => onNavigate?.('/auth/login')}
