@@ -16,6 +16,17 @@ public sealed class MealPlanRepository(AppDbContext db) : IMealPlanRepository
         await RecipesWithIngredients().AsNoTracking().Where(recipe => recipe.IsActive)
             .OrderBy(recipe => recipe.Name).ToListAsync(ct);
 
+    public async Task<IReadOnlyDictionary<Guid, string?>> GetRecipeImagesAsync(
+        IReadOnlyCollection<Guid> recipeIds, CancellationToken ct)
+    {
+        if (recipeIds.Count == 0) return new Dictionary<Guid, string?>();
+
+        return await db.Recipes.AsNoTracking()
+            .Where(recipe => recipeIds.Contains(recipe.Id))
+            .Select(recipe => new { recipe.Id, recipe.ImageUrl })
+            .ToDictionaryAsync(recipe => recipe.Id, recipe => recipe.ImageUrl, ct);
+    }
+
     public async Task<IReadOnlyList<PantryItem>> GetPantryAsync(string userId, CancellationToken ct) =>
         await db.PantryItems.AsNoTracking().Where(item => item.UserId == userId).ToListAsync(ct);
 

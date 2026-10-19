@@ -29,7 +29,12 @@ public sealed class MealPlanService(IMealPlanRepository repository)
         var result = await repository.ListAsync(userId, query, ct);
         return new MealPlanPage(result.Items.Select(x => new MealPlanSummary(x.Id, x.Name, x.WeekStartDate, x.Meals.Count, x.CreatedAt)).ToArray(), query.Page, query.PageSize, result.TotalCount);
     }
-    public async Task<MealPlanResponse> GetAsync(string userId, Guid id, CancellationToken ct) => Map(await FindAsync(userId,id,ct));
+    public async Task<MealPlanResponse> GetAsync(string userId, Guid id, CancellationToken ct)
+    {
+        var plan = await FindAsync(userId, id, ct);
+        await RefreshRecipeImagesAsync(plan, ct);
+        return Map(plan);
+    }
     public async Task<MealPlanResponse> ReplaceMealAsync(string userId, Guid id, int day, MealSlot slot, MealReplacementRequest request, CancellationToken ct)
     {
         RequestValidation.Validate(request); if (day is < 1 or > 7 || !Enum.IsDefined(slot) || request.RecipeId == Guid.Empty) throw new ValidationException("Invalid meal position or recipe.");
@@ -56,6 +61,7 @@ public sealed class MealPlanService(IMealPlanRepository repository)
         RequestValidation.Validate(request);
         if (request.WeekStartDate == default) throw new ValidationException("Week start date is required.");
         var source = await FindAsync(userId, id, ct);
+        await RefreshRecipeImagesAsync(source, ct);
         var copy = new MealPlan
         {
             UserId = userId,
@@ -84,6 +90,18 @@ public sealed class MealPlanService(IMealPlanRepository repository)
     public async Task<IReadOnlyList<ShoppingItemResponse>> UpdatePurchaseAsync(string userId, Guid planId, Guid itemId, ShoppingPurchaseRequest request, CancellationToken ct)
     { var plan=await FindAsync(userId,planId,ct); var item=plan.ShoppingItems.SingleOrDefault(x=>x.Id==itemId)??throw new KeyNotFoundException("Shopping item not found."); item.IsPurchased=request.IsPurchased; plan.UpdatedAt=DateTimeOffset.UtcNow; await repository.SaveAsync(ct); return plan.ShoppingItems.Select(Map).ToArray(); }
     private async Task<MealPlan> FindAsync(string u,Guid id,CancellationToken ct)=>await repository.GetAsync(id,u,ct)??throw new KeyNotFoundException("Meal plan not found.");
+    private async Task RefreshRecipeImagesAsync(MealPlan plan, CancellationToken ct)
+    {
+        var recipeIds = plan.Meals.Select(meal => meal.RecipeId).Distinct().ToArray();
+        var images = await repository.GetRecipeImagesAsync(recipeIds, ct);
+        foreach (var meal in plan.Meals)
+        {
+            if (images.TryGetValue(meal.RecipeId, out var imageUrl))
+            {
+                meal.ImageUrl = imageUrl;
+            }
+        }
+    }
     private async Task RebuildShoppingAsync(MealPlan plan,string user,CancellationToken ct) { plan.ShoppingItems.Clear(); var pantry=(await repository.GetPantryAsync(user,ct)).Where(x=>x.IngredientId.HasValue&&x.Quantity.HasValue).GroupBy(x=>new{x.IngredientId,x.Unit}).ToDictionary(x=>x.Key,x=>x.Sum(y=>y.Quantity!.Value)); foreach(var g in plan.Meals.SelectMany(x=>x.Ingredients).GroupBy(x=>new{x.IngredientId,x.IngredientName,x.Unit})) { pantry.TryGetValue(new { IngredientId=(Guid?)g.Key.IngredientId, Unit=(string?)g.Key.Unit },out var have); var need=g.Sum(x=>x.Quantity); plan.ShoppingItems.Add(new MealPlanShoppingItem{IngredientId=g.Key.IngredientId,IngredientName=g.Key.IngredientName,Unit=g.Key.Unit,RequiredQuantity=need,PantryQuantity=have,QuantityToBuy=Math.Max(0,need-have)}); } }
     private static MealPlanMeal Snapshot(Recipe r,int day,MealSlot slot,int servings)=>new(){DayNumber=day,Slot=slot,RecipeId=r.Id,RecipeName=r.Name,ImageUrl=r.ImageUrl,Servings=servings,TotalTimeMinutes=r.PrepTimeMinutes+r.CookTimeMinutes,CaloriesPerServing=r.CaloriesPerServing,ProteinGramPerServing=r.ProteinGramPerServing,CarbohydrateGramPerServing=r.CarbohydrateGramPerServing,FatGramPerServing=r.FatGramPerServing,Ingredients=r.RecipeIngredients.Select(x=>new MealPlanMealIngredient{IngredientId=x.IngredientId,IngredientName=x.Ingredient!.Name,Quantity=x.Quantity*servings,Unit=x.Unit}).ToList()};
     private static bool IsUsable(Recipe recipe, ProfileSnapshot profile) => recipe.RecipeIngredients.All(ingredient => ingredient.Ingredient is not null &&

@@ -91,6 +91,7 @@ export const MealPlanDetailPage = ({
   const [recipeId, setRecipeId] = useState('')
   const [servings, setServings] = useState(1)
   const [refresh, setRefresh] = useState(0)
+  const [savedPlans, setSavedPlans] = useState<Array<{ id: string; name: string; weekStartDate: string }>>([])
   const planDiet = plan?.profileDiet
 
   useEffect(() => {
@@ -106,6 +107,7 @@ export const MealPlanDetailPage = ({
       setReplacement(null)
       try {
         const result = await mealPlanApi.list(1, controller.signal)
+        if (!controller.signal.aborted) setSavedPlans(result.items)
         const id = planId || result.items[0]?.id
         const detail = id ? await mealPlanApi.get(id, controller.signal) : null
         if (!controller.signal.aborted) {
@@ -269,6 +271,27 @@ export const MealPlanDetailPage = ({
           </button>
         }
       />
+
+      {savedPlans.length > 1 && (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Thực đơn đã lưu</p>
+            <p className="text-xs text-slate-600">Tạo mới không xoá các thực đơn trước đó.</p>
+          </div>
+          <select
+            value={plan?.id ?? planId ?? savedPlans[0]?.id}
+            onChange={(event) => onNavigate?.(`/meal-plans/${event.target.value}`)}
+            className="min-w-64 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
+            aria-label="Chọn thực đơn đã lưu"
+          >
+            {savedPlans.map((saved) => (
+              <option key={saved.id} value={saved.id}>
+                {saved.name} · {saved.weekStartDate}
+              </option>
+            ))}
+          </select>
+        </section>
+      )}
 
       {error && (
         <div

@@ -5,6 +5,7 @@ public interface IMealPlanRepository
 {
     Task<UserProfile?> GetProfileAsync(string userId, CancellationToken ct);
     Task<IReadOnlyList<Recipe>> GetActiveRecipesAsync(CancellationToken ct);
+    Task<IReadOnlyDictionary<Guid, string?>> GetRecipeImagesAsync(IReadOnlyCollection<Guid> recipeIds, CancellationToken ct);
     Task<IReadOnlyList<PantryItem>> GetPantryAsync(string userId, CancellationToken ct);
     Task<MealPlan?> GetAsync(Guid id, string userId, CancellationToken ct);
     Task<(IReadOnlyList<MealPlan> Items, int TotalCount)> ListAsync(string userId, MealPlanListQuery query, CancellationToken ct);
