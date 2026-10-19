@@ -11,7 +11,6 @@ import {
   FileText,
   Heading2,
   Heading3,
-  Image as ImageIcon,
   Info,
   Link as LinkIcon,
   List,
@@ -27,6 +26,7 @@ import {
   Italic,
   MessageSquare,
   ShieldCheck,
+  Upload,
 } from 'lucide-react'
 import { PublicLayout } from '../../../app/layouts/PublicLayout'
 import { useAuth } from '../../auth'
@@ -56,6 +56,7 @@ import {
 } from '../../../shared/constants'
 import { PageHeading, Badge } from '../../../shared/components/PageHeading'
 import { Button } from '../../../shared/components/Button'
+import { uploadPublicImage } from '../../../shared/api/publicImageApi'
 
 interface ArticleEditorPageProps {
   articleId?: string
@@ -144,9 +145,9 @@ export const ArticleEditorPage = ({
   const [form, setForm] = useState<ArticleInput>({
     title: '',
     content: '',
-    category: '',
+    categories: [],
     coverImageUrl: null,
-    dietaryTypes: [],
+    dietaryType: null,
   })
 
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit')
@@ -157,20 +158,24 @@ export const ArticleEditorPage = ({
   const [loadedRecord, setLoadedRecord] = useState<MyArticleRecord | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [customCategory, setCustomCategory] = useState('')
 
   if (record.data && record.data !== loadedRecord) {
-    const { title, content, category, coverImageUrl, dietaryTypes } = record.data
+    const { title, content, category, categories, coverImageUrl, dietaryTypes, dietaryType } = record.data
     setLoadedRecord(record.data)
     setForm({
       title,
       content,
-      category,
+      categories: categories?.length ? categories : category ? [category] : [],
       coverImageUrl,
-      dietaryTypes: dietaryTypes || [],
+      dietaryType: dietaryType ?? dietaryTypes?.[0] ?? null,
     })
-    if (category && !articleCategories.includes(category)) {
-      setCustomCategory(category)
+    const savedCustomCategory = (categories || [category]).find(
+      (item) => item && !articleCategories.includes(item),
+    )
+    if (savedCustomCategory) {
+      setCustomCategory(savedCustomCategory)
     }
   }
 
@@ -188,7 +193,7 @@ export const ArticleEditorPage = ({
 
   const canSubmit = Boolean(
     form.title.trim() &&
-    form.category.trim() &&
+    form.categories.length > 0 &&
     form.content.trim(),
   )
 
@@ -216,17 +221,44 @@ export const ArticleEditorPage = ({
     }, 0)
   }
 
-  const handleApplySampleImage = () => {
-    setImageError(false)
-    setForm((prev) => ({
-      ...prev,
-      coverImageUrl:
-        'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+  const toggleCategory = (category: string) => {
+    setForm((previous) => ({
+      ...previous,
+      categories: previous.categories.includes(category)
+        ? previous.categories.filter((item) => item !== category)
+        : [...previous.categories, category],
     }))
   }
 
+  const addCustomCategory = () => {
+    const category = customCategory.trim()
+    if (!category) return
+    setForm((previous) => ({
+      ...previous,
+      categories: previous.categories.includes(category)
+        ? previous.categories
+        : [...previous.categories, category],
+    }))
+    setCustomCategory('')
+  }
+
+  const uploadCoverImage = async (file?: File) => {
+    if (!file || busy || uploadingImage || !editable) return
+    setUploadingImage(true)
+    setError(null)
+    setImageError(false)
+    try {
+      const coverImageUrl = await uploadPublicImage(file)
+      setForm((previous) => ({ ...previous, coverImageUrl }))
+    } catch (reason) {
+      setError(errorMessage(reason))
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   async function save(submit: boolean) {
-    if (busy || !editable) return
+    if (busy || uploadingImage || !editable) return
     setBusy(true)
     setError(null)
     setNotice(null)
@@ -412,7 +444,7 @@ export const ArticleEditorPage = ({
               </p>
             </div>
 
-            <fieldset disabled={busy || !editable} className="space-y-6">
+            <fieldset disabled={busy || uploadingImage || !editable} className="space-y-6">
               {/* Tiêu đề */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -444,26 +476,23 @@ export const ArticleEditorPage = ({
                   <label className="text-sm font-bold text-slate-800">
                     Danh mục bài viết <span className="text-rose-500">*</span>
                   </label>
-                  {form.category && (
+                  {form.categories.length > 0 && (
                     <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                      Đã chọn: {form.category}
+                      Đã chọn: {form.categories.join(', ')}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-slate-500">
-                  Nhấp chọn danh mục có sẵn hoặc nhập danh mục riêng của bạn:
+                  Có thể chọn nhiều danh mục có sẵn hoặc thêm danh mục riêng:
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {articleCategories.map((cat) => {
-                    const isSelected = form.category === cat
+                    const isSelected = form.categories.includes(cat)
                     return (
                       <button
                         key={cat}
                         type="button"
-                        onClick={() => {
-                          setForm({ ...form, category: cat })
-                          setCustomCategory('')
-                        }}
+                        onClick={() => toggleCategory(cat)}
                         className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                           isSelected
                             ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600/30 font-bold'
@@ -477,18 +506,24 @@ export const ArticleEditorPage = ({
                     )
                   })}
                 </div>
-                <div className="pt-1">
+                <div className="flex gap-2 pt-1">
                   <input
                     type="text"
                     maxLength={120}
-                    placeholder="Hoặc nhập danh mục tùy biến khác..."
+                    placeholder="Nhập danh mục tùy biến..."
                     value={customCategory}
-                    onChange={(e) => {
-                      setCustomCategory(e.target.value)
-                      setForm({ ...form, category: e.target.value })
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addCustomCategory()
+                      }
                     }}
-                    className="w-full text-sm rounded-xl border border-slate-200 px-3.5 py-2 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none"
+                    className="min-w-0 flex-1 text-sm rounded-xl border border-slate-200 px-3.5 py-2 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none"
                   />
+                  <Button type="button" variant="outline" size="sm" onClick={addCustomCategory}>
+                    Thêm
+                  </Button>
                 </div>
               </div>
 
@@ -499,23 +534,18 @@ export const ArticleEditorPage = ({
                     Phù hợp với chế độ ăn nào?
                   </label>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Chọn các chế độ ăn áp dụng cho nội dung bài viết này (có thể chọn nhiều):
+                    Chọn tối đa một chế độ ăn áp dụng cho nội dung bài viết này:
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {BACKEND_DIETARY_TYPES.map((type) => {
-                    const isChecked = form.dietaryTypes.includes(type)
+                    const isChecked = form.dietaryType === type
                     return (
                       <button
                         key={type}
                         type="button"
                         onClick={() => {
-                          setForm({
-                            ...form,
-                            dietaryTypes: isChecked
-                              ? form.dietaryTypes.filter((t) => t !== type)
-                              : [...form.dietaryTypes, type],
-                          })
+                          setForm({ ...form, dietaryType: isChecked ? null : type })
                         }}
                         className={`text-left p-3.5 rounded-2xl border transition-all relative flex flex-col justify-between gap-2 ${
                           isChecked
@@ -549,37 +579,32 @@ export const ArticleEditorPage = ({
                 </div>
               </div>
 
-              {/* URL Ảnh đại diện */}
+              {/* Ảnh đại diện */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="article-cover" className="text-sm font-bold text-slate-800">
-                    Ảnh đại diện bài viết (Cover Image URL)
-                  </label>
-                  {!form.coverImageUrl && (
-                    <button
-                      type="button"
-                      onClick={handleApplySampleImage}
-                      className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold underline decoration-dashed transition"
-                    >
-                      Dùng ảnh mẫu gợi ý
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
+                <label htmlFor="article-cover" className="text-sm font-bold text-slate-800">
+                  Ảnh đại diện bài viết
+                </label>
+                <p className="text-xs text-slate-500">
+                  Tải ảnh từ thiết bị. Chấp nhận JPG, PNG hoặc WEBP, tối đa 10 MB.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
                   <input
                     id="article-cover"
-                    type="url"
-                    pattern="https?://.*"
-                    maxLength={2000}
-                    placeholder="https://images.unsplash.com/... hoặc link ảnh bất kỳ"
-                    className="w-full text-sm rounded-xl border border-slate-300 pl-10 pr-10 py-2.5 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none"
-                    value={form.coverImageUrl || ''}
-                    onChange={(e) => {
-                      setImageError(false)
-                      setForm({ ...form, coverImageUrl: e.target.value.trim() || null })
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(event) => {
+                      void uploadCoverImage(event.target.files?.[0])
+                      event.currentTarget.value = ''
                     }}
                   />
-                  <ImageIcon size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+                  <label
+                    htmlFor="article-cover"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-600 bg-white px-3.5 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                  >
+                    <Upload size={16} />
+                    {uploadingImage ? 'Đang tải ảnh...' : 'Chọn ảnh từ thiết bị'}
+                  </label>
                   {form.coverImageUrl && (
                     <button
                       type="button"
@@ -588,9 +613,11 @@ export const ArticleEditorPage = ({
                         setForm({ ...form, coverImageUrl: null })
                       }}
                       className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100"
-                      title="Xóa đường dẫn ảnh"
+                      title="Gỡ ảnh đã chọn"
                     >
-                      <X size={16} />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold">
+                        <X size={16} /> Gỡ ảnh
+                      </span>
                     </button>
                   )}
                 </div>
@@ -615,7 +642,7 @@ export const ArticleEditorPage = ({
                       <div className="p-6 text-center space-y-2">
                         <AlertCircle size={24} className="text-amber-500 mx-auto" />
                         <p className="text-xs text-slate-600">
-                          Không thể hiển thị ảnh từ liên kết này. Vui lòng kiểm tra lại URL ảnh công khai.
+                          Không thể hiển thị ảnh đã tải lên. Hãy chọn lại một tệp JPG, PNG hoặc WEBP hợp lệ.
                         </p>
                       </div>
                     )}
@@ -801,19 +828,18 @@ export const ArticleEditorPage = ({
                     {/* Header info in preview */}
                     <div className="space-y-3 border-b border-slate-100 pb-5">
                       <div className="flex flex-wrap items-center gap-2">
-                        {form.category && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                            {categoryIcons[form.category]} {form.category}
-                          </span>
-                        )}
-                        {form.dietaryTypes.map((type) => (
-                          <span
-                            key={type}
-                            className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700"
-                          >
-                            {dietaryIcons[type]} {BACKEND_DIETARY_TYPE_LABELS[type]}
+                        {form.categories.map((category) => (
+                          <span key={category} className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                            {categoryIcons[category] || '🏷️'} {category}
                           </span>
                         ))}
+                        {form.dietaryType && (
+                          <span
+                            className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700"
+                          >
+                            {dietaryIcons[form.dietaryType]} {BACKEND_DIETARY_TYPE_LABELS[form.dietaryType]}
+                          </span>
+                        )}
                       </div>
                       <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
                         {form.title || 'Tiêu đề bài viết'}

@@ -1,5 +1,16 @@
 import { apiClient } from '../../../../shared/api/apiClient'
 import type { DietaryType } from '../../recipes/api/recipeContract'
+
+export interface RestaurantFeaturedDishInput {
+  name: string
+  imageUrl: string | null
+}
+
+export interface RestaurantFeaturedDish extends RestaurantFeaturedDishInput {
+  id: string
+  displayOrder: number
+}
+
 export interface RestaurantInput {
   name: string
   description: string | null
@@ -14,9 +25,9 @@ export interface RestaurantInput {
   priceToVnd: number | null
   imageUrl: string | null
   source: string | null
-  dietaryTypes: DietaryType[]
+  dietaryType: DietaryType | null
   amenities: string[]
-  relatedRecipeIds: string[]
+  featuredDishes: RestaurantFeaturedDishInput[]
 }
 export interface RestaurantSummary {
   id: string
@@ -28,14 +39,15 @@ export interface RestaurantSummary {
   priceToVnd: number | null
   isActive: boolean
   dietaryTypes: DietaryType[]
+  dietaryType: DietaryType | null
   amenities: string[]
 }
-export type RestaurantDetail = Omit<RestaurantInput, 'relatedRecipeIds'> &
+export type RestaurantDetail = RestaurantInput &
   RestaurantSummary & {
     dataUpdatedAt: string
     createdAt: string
     updatedAt: string | null
-    relatedRecipes: Array<{ id: string; name: string; imageUrl: string | null }>
+    featuredDishes: RestaurantFeaturedDish[]
   }
 export const restaurantApi = {
   get: (id: string) =>

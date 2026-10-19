@@ -11,10 +11,14 @@ public sealed class Article
 
     public Article(string ownerUserId, string title, string content, string category, string? coverImageUrl,
         IReadOnlyCollection<DietaryType> dietaryTypes, DateTimeOffset now)
+        : this(ownerUserId, title, content, [category], coverImageUrl, dietaryTypes, now) { }
+
+    public Article(string ownerUserId, string title, string content, IReadOnlyCollection<string> categories,
+        string? coverImageUrl, IReadOnlyCollection<DietaryType> dietaryTypes, DateTimeOffset now)
     {
         Id = Guid.NewGuid();
         OwnerUserId = ownerUserId;
-        SetDraft(title, content, category, coverImageUrl, dietaryTypes, now);
+        SetDraft(title, content, categories, coverImageUrl, dietaryTypes, now);
         CreatedAt = now;
     }
 
@@ -28,6 +32,7 @@ public sealed class Article
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public byte[] RowVersion { get; private set; } = [];
+    public ICollection<ArticleCategory> Categories { get; private set; } = new List<ArticleCategory>();
     public ICollection<ArticleDietaryType> DietaryTypes { get; private set; } = new List<ArticleDietaryType>();
     public ICollection<ArticleVersion> Versions { get; private set; } = new List<ArticleVersion>();
 
@@ -36,11 +41,23 @@ public sealed class Article
 
     public void SetDraft(string title, string content, string category, string? coverImageUrl,
         IReadOnlyCollection<DietaryType> dietaryTypes, DateTimeOffset now)
+        => SetDraft(title, content, [category], coverImageUrl, dietaryTypes, now);
+
+    public void SetDraft(string title, string content, IReadOnlyCollection<string> categories,
+        string? coverImageUrl, IReadOnlyCollection<DietaryType> dietaryTypes, DateTimeOffset now)
     {
+        var normalizedCategories = categories
+            .Select(category => category.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(category => category, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         DraftTitle = title;
         DraftContent = content;
-        DraftCategory = category;
+        DraftCategory = normalizedCategories[0];
         DraftCoverImageUrl = coverImageUrl;
+        Categories.Clear();
+        foreach (var category in normalizedCategories)
+            Categories.Add(new ArticleCategory { ArticleId = Id, Category = category });
         DietaryTypes.Clear();
         foreach (var dietaryType in dietaryTypes.Distinct().OrderBy(x => x))
             DietaryTypes.Add(new ArticleDietaryType { ArticleId = Id, DietaryType = dietaryType });
@@ -53,7 +70,8 @@ public sealed class Article
             throw new InvalidOperationException("Moderation content identity cannot change.");
         ModerationContentId = submission.ContentId;
         Versions.Add(new ArticleVersion(Id, submission, DraftTitle, DraftContent,
-            DraftCategory, DraftCoverImageUrl, DietaryTypes.Select(x => x.DietaryType).ToArray(), now));
+            Categories.Select(x => x.Category).ToArray(), DraftCoverImageUrl,
+            DietaryTypes.Select(x => x.DietaryType).ToArray(), now));
         UpdatedAt = now;
     }
 
@@ -63,9 +81,17 @@ public sealed class Article
             throw new InvalidOperationException("Moderation content identity cannot change.");
         ModerationContentId = moderationContentId;
         Versions.Add(new ArticleVersion(Id, submissionId, version, DraftTitle, DraftContent,
-            DraftCategory, DraftCoverImageUrl, DietaryTypes.Select(x => x.DietaryType).ToArray(), now));
+            Categories.Select(x => x.Category).ToArray(), DraftCoverImageUrl,
+            DietaryTypes.Select(x => x.DietaryType).ToArray(), now));
         UpdatedAt = now;
     }
+}
+
+public sealed class ArticleCategory
+{
+    public Guid ArticleId { get; set; }
+    public Article? Article { get; set; }
+    public string Category { get; set; } = string.Empty;
 }
 
 public sealed class ArticleDietaryType

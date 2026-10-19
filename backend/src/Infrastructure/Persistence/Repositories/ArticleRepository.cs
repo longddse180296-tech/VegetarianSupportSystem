@@ -10,7 +10,9 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
 {
     private IQueryable<Article> WithVersions(bool tracking = false)
     {
-        var query = db.Articles.Include(x => x.DietaryTypes)
+        var query = db.Articles.Include(x => x.Categories)
+            .Include(x => x.DietaryTypes)
+            .Include(x => x.Versions).ThenInclude(x => x.Categories)
             .Include(x => x.Versions).ThenInclude(x => x.DietaryTypes)
             .Include(x => x.Versions).ThenInclude(x => x.Submission)
             .ThenInclude(x => x.Decisions).AsSplitQuery();
@@ -48,6 +50,7 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
                 && x.Submission.IsCurrentPublished);
 
     private IQueryable<ArticleVersion> PublicWithDetails() => PublicVersions()
+        .Include(x => x.Categories)
         .Include(x => x.DietaryTypes)
         .Include(x => x.Submission).ThenInclude(x => x.Decisions).AsSplitQuery();
 
@@ -62,7 +65,7 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
         if (!string.IsNullOrWhiteSpace(search.Category))
         {
             var category = search.Category.Trim();
-            query = query.Where(x => x.Category == category);
+            query = query.Where(x => x.Categories.Any(item => item.Category == category));
         }
         if (search.DietaryType is { } dietaryType)
             query = query.Where(x => x.DietaryTypes.Any(type => type.DietaryType == dietaryType));
@@ -77,8 +80,9 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
     public Task<ArticleVersion?> GetPublicAsync(Guid id, CancellationToken ct) =>
         PublicWithDetails().FirstOrDefaultAsync(x => x.ArticleId == id, ct);
 
-    public async Task<IReadOnlyList<ArticleVersion>> GetRelatedAsync(Guid articleId, string category, int count, CancellationToken ct) =>
-        await PublicWithDetails().Where(x => x.ArticleId != articleId && x.Category == category)
+    public async Task<IReadOnlyList<ArticleVersion>> GetRelatedAsync(Guid articleId, IReadOnlyCollection<string> categories, int count, CancellationToken ct) =>
+        await PublicWithDetails().Where(x => x.ArticleId != articleId &&
+                x.Categories.Any(item => categories.Contains(item.Category)))
             .OrderByDescending(x => x.SubmittedAt).ThenBy(x => x.Id).Take(count).ToListAsync(ct);
 
     public Task AddAsync(Article article, CancellationToken ct) => db.Articles.AddAsync(article, ct).AsTask();

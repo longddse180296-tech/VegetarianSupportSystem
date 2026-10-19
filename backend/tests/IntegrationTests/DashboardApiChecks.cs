@@ -94,10 +94,10 @@ internal static class DashboardApiChecks
               after.Content.PublishedArticles == before.Content.PublishedArticles + 1 &&
               after.PendingAdminReview.Videos == before.PendingAdminReview.Videos + 1,
             "dashboard counts change when persisted data changes");
-        check(after is not null && after.Content.Comments is null &&
+        check(after is not null && before is not null && after.Content.Comments == before.Content.Comments &&
               after.RecentActivity.Any(x => x.Type == "ArticleApprove" && x.Title == publishedTitle) &&
               after.RecentActivity.Any(x => x.Type == "VideoSubmitted" && x.Title == pendingTitle),
-            "dashboard activity reflects persisted moderation and unmeasured comments stay null");
+            "dashboard activity reflects persisted moderation and visible-comment count remains stable");
 
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"DELETE FROM ModerationDecisions WHERE Id = {decisionId}");

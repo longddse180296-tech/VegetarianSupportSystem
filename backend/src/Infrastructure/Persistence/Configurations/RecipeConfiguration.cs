@@ -29,6 +29,7 @@ public sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.Property(x => x.ProteinGramPerServing).HasPrecision(12, 3);
         builder.Property(x => x.CarbohydrateGramPerServing).HasPrecision(12, 3);
         builder.Property(x => x.FatGramPerServing).HasPrecision(12, 3);
+        builder.Property(x => x.DeclaredDietaryType);
         builder.HasOne(x => x.Category).WithMany(x => x.Recipes)
             .HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
     }

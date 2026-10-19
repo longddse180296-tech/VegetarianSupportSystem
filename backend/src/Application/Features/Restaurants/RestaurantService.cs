@@ -36,7 +36,7 @@ public sealed class RestaurantService(IRestaurantRepository repository)
         var entity = await FindAsync(id, ct);
         if (!includeInactive && !entity.IsActive)
             throw new KeyNotFoundException("Restaurant not found.");
-        return RestaurantMapping.ToResponse(entity, null, includeInactive);
+        return RestaurantMapping.ToResponse(entity, null);
     }
 
     public async Task<RestaurantResponse> CreateAsync(RestaurantRequest request, CancellationToken ct)
@@ -74,13 +74,9 @@ public sealed class RestaurantService(IRestaurantRepository repository)
     private async Task ApplyAsync(Restaurant entity, RestaurantRequest request, CancellationToken ct)
     {
         RestaurantValidation.Validate(request);
+        var dietaryType = RestaurantValidation.GetSelectedDietaryType(request);
         if (await repository.NameExistsAsync(request.Name.Trim(), entity.Id, ct))
             throw new ConflictException("Restaurant name already exists.");
-
-        var recipeIds = request.RelatedRecipeIds;
-        var recipes = await repository.GetActiveRecipesAsync(recipeIds, ct);
-        if (recipes.Count != recipeIds.Length)
-            RestaurantValidation.Fail(nameof(request.RelatedRecipeIds), "Related recipes must exist and be active.");
 
         entity.Name = request.Name.Trim();
         entity.Description = request.Description?.Trim();
@@ -98,16 +94,23 @@ public sealed class RestaurantService(IRestaurantRepository repository)
         entity.DataUpdatedAt = DateTimeOffset.UtcNow;
 
         entity.DietaryTypes.Clear();
-        foreach (var dietaryType in request.DietaryTypes.Distinct().OrderBy(x => x))
-            entity.DietaryTypes.Add(new RestaurantDietaryType { RestaurantId = entity.Id, DietaryType = dietaryType });
+        entity.DietaryTypes.Add(new RestaurantDietaryType { RestaurantId = entity.Id, DietaryType = dietaryType });
 
         entity.Amenities.Clear();
         foreach (var amenity in request.Amenities.Select(value => value.Trim()).OrderBy(value => value, StringComparer.OrdinalIgnoreCase))
             entity.Amenities.Add(new RestaurantAmenity { RestaurantId = entity.Id, Name = amenity });
 
-        entity.RelatedRecipes.Clear();
-        foreach (var recipe in recipes.OrderBy(recipe => recipe.Name).ThenBy(recipe => recipe.Id))
-            entity.RelatedRecipes.Add(new RestaurantRecipe { RestaurantId = entity.Id, RecipeId = recipe.Id });
+        entity.FeaturedDishes.Clear();
+        foreach (var (dish, index) in request.FeaturedDishes.Select((dish, index) => (dish, index)))
+        {
+            entity.FeaturedDishes.Add(new RestaurantFeaturedDish
+            {
+                RestaurantId = entity.Id,
+                Name = dish.Name.Trim(),
+                ImageUrl = dish.ImageUrl.Trim(),
+                DisplayOrder = index
+            });
+        }
     }
 
     private static decimal? GetDistanceKm(Restaurant restaurant, decimal? latitude, decimal? longitude)

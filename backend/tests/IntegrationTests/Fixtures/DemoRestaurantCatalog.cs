@@ -33,7 +33,7 @@ internal static class DemoRestaurantCatalog
     ];
 
     private static Restaurant Make(int id, string name, string district, decimal? latitude, decimal? longitude,
-        int? priceFrom, int? priceTo, string? hours, DietaryType[] diets, string[] amenities, int[] recipes) => new()
+        int? priceFrom, int? priceTo, string? hours, DietaryType[] diets, string[] amenities, int[] dishCodes) => new()
     {
         Id = DemoDataCatalog.Id(id), Name = $"[Demo] {name}", District = district,
         Address = $"{id - 300} Đường Demo, {district} (địa chỉ giả lập)",
@@ -49,9 +49,13 @@ internal static class DemoRestaurantCatalog
         {
             Id = DemoDataCatalog.Id(id * 10 + index), RestaurantId = DemoDataCatalog.Id(id), Name = name
         }).ToList(),
-        RelatedRecipes = recipes.Select(recipe => new RestaurantRecipe
+        FeaturedDishes = dishCodes.Concat([id * 1000 + 1, id * 1000 + 2, id * 1000 + 3]).Take(3).Select((code, index) => new RestaurantFeaturedDish
         {
-            RestaurantId = DemoDataCatalog.Id(id), RecipeId = DemoDataCatalog.Id(recipe)
+            Id = DemoDataCatalog.Id(id * 10 + index),
+            RestaurantId = DemoDataCatalog.Id(id),
+            Name = $"Món nổi bật {code}",
+            ImageUrl = $"https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q={80 + index}",
+            DisplayOrder = index
         }).ToList()
     };
 

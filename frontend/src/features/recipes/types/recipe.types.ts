@@ -136,7 +136,8 @@ export interface Recipe {
   cookTimeMinutes: number
   prepTimeMinutes?: number
   servingSize: number
-  dietCategory: RecipeDietCategory
+  dietCategory?: RecipeDietCategory
+  compatibleDietCategories?: RecipeDietCategory[]
   difficulty: RecipeDifficulty
   isFavorite: boolean
   favoriteCount: number

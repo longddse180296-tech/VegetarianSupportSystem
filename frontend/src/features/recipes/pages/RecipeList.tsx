@@ -4,7 +4,7 @@ import { Badge, EmptyState, PageHeading, SkeletonCard } from '../../../shared/co
 import { getRecipes, toggleFavorite } from '../api/recipeApi'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeFilterBar } from '../components/RecipeFilterBar'
-import type { Recipe, RecipeListFilter, RecipeSortOption } from '../types/recipe.types'
+import type { Recipe, RecipeDietCategory, RecipeListFilter, RecipeSortOption } from '../types/recipe.types'
 import { DEFAULT_RECIPE_FILTER } from '../types/recipe.types'
 
 interface RecipeListProps {
@@ -219,7 +219,8 @@ export default function RecipeList({
         matchesKcal(r, kcalTier),
     )
     if (dietPill !== 'all') {
-      arr = arr.filter((r) => r.dietCategory === dietPill)
+      const selectedDiet = dietPill as RecipeDietCategory
+      arr = arr.filter((r) => r.compatibleDietCategories?.includes(selectedDiet))
     }
     if (sort === 'newest') {
       arr = [...arr].sort(

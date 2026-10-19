@@ -73,7 +73,7 @@ export interface Restaurant {
   hasTakeAway: boolean
   acceptsBooking: boolean
   createdAt: string
-  relatedRecipes?: Array<{ id: string; name: string; imageUrl: string | null }>
+  featuredDishes?: Array<{ id: string; name: string; imageUrl: string; displayOrder: number }>
 }
 
 export interface RestaurantFilter {
@@ -129,6 +129,7 @@ export interface RestaurantDish {
   name: string
   desc: string
   imgSeed: string
+  imageUrl?: string
   priceVND?: number
 }
 

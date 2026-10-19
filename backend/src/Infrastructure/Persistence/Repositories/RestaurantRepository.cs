@@ -30,7 +30,7 @@ public sealed class RestaurantRepository(AppDbContext db) : IRestaurantRepositor
         return await query
             .Include(restaurant => restaurant.DietaryTypes)
             .Include(restaurant => restaurant.Amenities)
-            .Include(restaurant => restaurant.RelatedRecipes).ThenInclude(link => link.Recipe)
+            .Include(restaurant => restaurant.FeaturedDishes)
             .AsSplitQuery()
             .ToListAsync(ct);
     }
@@ -38,16 +38,11 @@ public sealed class RestaurantRepository(AppDbContext db) : IRestaurantRepositor
     public Task<Restaurant?> GetAsync(Guid id, CancellationToken ct) => db.Restaurants
         .Include(restaurant => restaurant.DietaryTypes)
         .Include(restaurant => restaurant.Amenities)
-        .Include(restaurant => restaurant.RelatedRecipes).ThenInclude(link => link.Recipe)
+        .Include(restaurant => restaurant.FeaturedDishes)
         .SingleOrDefaultAsync(restaurant => restaurant.Id == id, ct);
 
     public Task<bool> NameExistsAsync(string name, Guid? exceptId, CancellationToken ct) =>
         db.Restaurants.AnyAsync(restaurant => restaurant.Name == name && restaurant.Id != exceptId, ct);
-
-    public async Task<IReadOnlyList<Recipe>> GetActiveRecipesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
-        ids.Count == 0
-            ? []
-            : await db.Recipes.AsNoTracking().Where(recipe => ids.Contains(recipe.Id) && recipe.IsActive).ToListAsync(ct);
 
     public void Add(Restaurant entity) => db.Restaurants.Add(entity);
 
