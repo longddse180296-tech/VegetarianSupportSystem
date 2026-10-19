@@ -123,10 +123,56 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
 
         if (restaurantResult.status === 'fulfilled') {
           setRestaurants(restaurantResult.value.slice(0, 3))
+          if (restaurantResult.value.length === 0) {
+            try {
+              const fallback = await apiClient.get<{ items: Array<{
+                id: string; name: string; address: string | null; imageUrl: string | null
+                dietaryTypes?: string[]
+              }> }>('/api/restaurants?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
+              setRestaurants(fallback.items.map((restaurant) => ({
+                id: restaurant.id,
+                contentType: 'Restaurant' as const,
+                title: restaurant.name,
+                description: null,
+                imageUrl: restaurant.imageUrl,
+                isPinned: false,
+                authorName: null,
+                publishedAt: null,
+                viewCount: null,
+                address: restaurant.address,
+                dietaryTypes: restaurant.dietaryTypes || [],
+              })))
+            } catch {
+              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'restaurants'])])
+            }
+          }
         }
 
         if (videoResult.status === 'fulfilled') {
           setVideos(videoResult.value.slice(0, 3))
+          if (videoResult.value.length === 0) {
+            try {
+              const fallback = await apiClient.get<{ items: Array<{
+                id: string; title: string; description: string | null; thumbnailUrl: string | null
+                viewCount: number | null; createdAtUtc: string | null
+              }> }>('/api/videos?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
+              setVideos(fallback.items.map((video) => ({
+                id: video.id,
+                contentType: 'Video' as const,
+                title: video.title,
+                description: video.description,
+                imageUrl: video.thumbnailUrl,
+                isPinned: false,
+                authorName: null,
+                publishedAt: video.createdAtUtc,
+                viewCount: video.viewCount,
+                address: null,
+                dietaryTypes: [],
+              })))
+            } catch {
+              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'videos'])])
+            }
+          }
         }
 
         if (articleResult.status === 'fulfilled') {
