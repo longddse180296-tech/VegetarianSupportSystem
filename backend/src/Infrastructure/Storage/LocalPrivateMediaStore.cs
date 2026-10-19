@@ -7,10 +7,16 @@ namespace Infrastructure.Storage;
 public sealed class LocalPrivateMediaStore : IPrivateMediaStore
 {
     private readonly string root;
+    private readonly string[] legacyRoots;
     public LocalPrivateMediaStore(IConfiguration configuration, IHostEnvironment environment)
     {
         root = Path.GetFullPath(configuration["Storage:PrivateRoot"] ??
             Path.Combine(environment.ContentRootPath, ".local", "media"));
+        legacyRoots = new[]
+        {
+            Path.Combine(environment.ContentRootPath, "bin", "Debug", "net10.0", ".local", "media"),
+            Path.Combine(environment.ContentRootPath, "bin", "Release", "net10.0", ".local", "media"),
+        }.Select(Path.GetFullPath).Where(path => !string.Equals(path, root, StringComparison.OrdinalIgnoreCase)).ToArray();
     }
 
     public async Task<string> SaveAsync(Stream source, string extension, long maxBytes, CancellationToken cancellationToken)
@@ -51,10 +57,16 @@ public sealed class LocalPrivateMediaStore : IPrivateMediaStore
         if (string.IsNullOrWhiteSpace(key) || key != Path.GetFileName(key) ||
             !Guid.TryParseExact(Path.GetFileNameWithoutExtension(key), "N", out _))
             return Task.FromResult<Stream?>(null);
-        var path = Path.GetFullPath(Path.Combine(root, key));
-        if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
-            !File.Exists(path)) return Task.FromResult<Stream?>(null);
-        return Task.FromResult<Stream?>(new FileStream(path, FileMode.Open, FileAccess.Read,
-            FileShare.Read, 81920, FileOptions.Asynchronous));
+        foreach (var candidateRoot in new[] { root }.Concat(legacyRoots))
+        {
+            var path = Path.GetFullPath(Path.Combine(candidateRoot, key));
+            if (path.StartsWith(candidateRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) &&
+                File.Exists(path))
+            {
+                return Task.FromResult<Stream?>(new FileStream(path, FileMode.Open, FileAccess.Read,
+                    FileShare.Read, 81920, FileOptions.Asynchronous));
+            }
+        }
+        return Task.FromResult<Stream?>(null);
     }
 }
