@@ -8,6 +8,7 @@ public interface ICommentRepository
     Task<bool> IsPublicTargetAsync(CommentTargetType type, Guid id, CancellationToken ct);
     Task<Comment?> GetAsync(Guid id, CancellationToken ct);
     Task<(IReadOnlyList<Comment> Items, int Total)> ListAsync(CommentQuery query, string? ownerId, bool admin, CancellationToken ct);
+    Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> authorIds, CancellationToken ct);
     Task<IReadOnlyDictionary<Guid, int>> LikeCountsAsync(IEnumerable<Guid> ids, CancellationToken ct);
     Task<ContentReaction?> GetReactionAsync(string userId, ReactionTargetType type, Guid id, CancellationToken ct);
     Task<ReactionResponse> ReactionStatusAsync(string? userId, ReactionTargetType type, Guid id, CancellationToken ct);

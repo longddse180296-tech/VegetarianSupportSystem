@@ -29,6 +29,7 @@ interface BackendVideoDetails {
   viewCount: number
   favoriteCount: number
   createdAtUtc: string
+  authorName: string | null
   dietType?: string | null
 }
 
@@ -56,14 +57,14 @@ function mapBackendVideo(d: BackendVideoDetails): Video {
     views: String(d.viewCount),
     viewCount: d.viewCount,
     author: {
-      name: 'Thành viên Bếp Chay',
+      name: d.authorName || 'Người đăng',
       role: 'Đầu bếp',
       avatar:
         'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
       followers: '1.2K',
       verified: true,
     },
-    creatorName: 'Thành viên Bếp Chay',
+    creatorName: d.authorName || 'Người đăng',
     creatorAvatar:
       'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
     createdAt: d.createdAtUtc ? d.createdAtUtc.slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -261,10 +262,10 @@ export async function uploadVideo(form: UploadVideoFormState): Promise<Video> {
 export async function addVideoComment(
   videoId: string,
   content: string,
-  authorName = 'Bạn (Người dùng)',
+  authorName?: string,
 ): Promise<CommentItem> {
   const comment = await createVideoComment(videoId, content.trim())
-  return { ...comment, author: authorName }
+  return { ...comment, author: authorName || comment.author }
 }
 
 export async function getVideoListBrowseHelpers(): Promise<{
@@ -295,6 +296,7 @@ export async function getVideoDetailComments(videoId: string): Promise<CommentIt
         items: Array<{
           id: string
           authorId: string
+          authorName: string | null
           body: string | null
           createdAt: string
           likeCount: number
@@ -307,7 +309,7 @@ export async function getVideoDetailComments(videoId: string): Promise<CommentIt
         return res.items.map((c) => ({
           id: c.id,
           initials: 'TV',
-          author: 'Thành viên',
+          author: c.authorName || 'Người dùng',
           timeAgo: new Date(c.createdAt).toLocaleDateString('vi-VN'),
           content: c.body || '',
           likes: c.likeCount,
@@ -439,7 +441,7 @@ export async function createVideoComment(
   parentId?: string,
 ): Promise<CommentItem> {
   requireAuthenticatedTarget(videoId)
-  const res = await apiClient.post<{ id: string; createdAt: string; likeCount: number }>(
+  const res = await apiClient.post<{ id: string; authorName: string | null; createdAt: string; likeCount: number }>(
         '/api/comments',
         {
           targetType: 'Video',
@@ -452,7 +454,7 @@ export async function createVideoComment(
   return {
         id: res.id,
         initials: 'BẠN',
-        author: 'Bạn (Thành viên)',
+        author: res.authorName || 'Người dùng',
         badges: [{ label: 'Thành viên tích cực', tone: 'member' }],
         timeAgo: 'Vừa xong',
         content: body,

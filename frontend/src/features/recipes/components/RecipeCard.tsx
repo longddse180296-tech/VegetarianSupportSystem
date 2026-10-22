@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   Clock,
   Coffee,
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react'
 import { Button } from '../../../shared/components'
 import type { Recipe } from '../types/recipe.types'
+import { RecipeImage } from './RecipeImage'
 
 interface RecipeCardProps {
   recipe: Recipe
@@ -19,35 +19,6 @@ interface RecipeCardProps {
     next: boolean,
   ) => Promise<{ ok: boolean; next: boolean }> | { ok: boolean; next: boolean }
   isTogglingFavorite?: boolean
-}
-
-// Curated high quality diverse food images (replacing repetitive placeholder)
-const DIVERSE_FOOD_IMAGES = [
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80', // Rau xào nấm tươi
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', // Salad cầu vồng
-  'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80', // Phở súp thanh đạm
-  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80', // Cháo yến mạch hạt sen
-  'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=800&q=80', // Cà ri nấm rau củ
-  'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80', // Cuốn rau củ thanh mát
-  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80', // Món chay áp chảo sốt
-  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=800&q=80', // Salad ngũ cốc hạt
-  'https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?auto=format&fit=crop&w=800&q=80', // Cơm dinh dưỡng thực vật
-  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80', // Bánh ngũ cốc hạt
-  'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80', // Bún chay nóng hổi
-]
-
-function getDiverseFoodImage(recipeId: string, title?: string, currentUrl?: string): string {
-  if (currentUrl && currentUrl.startsWith('http')) {
-    return currentUrl
-  }
-  const keyStr = `${recipeId || ''}-${title || ''}`
-  let hash = 0
-  for (let i = 0; i < keyStr.length; i++) {
-    hash = (hash << 5) - hash + keyStr.charCodeAt(i)
-    hash |= 0
-  }
-  const index = Math.abs(hash) % DIVERSE_FOOD_IMAGES.length
-  return DIVERSE_FOOD_IMAGES[index]
 }
 
 interface CategoryBadgeInfo {
@@ -137,12 +108,8 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
   onToggleFavorite: _onToggleFavorite,
   isTogglingFavorite: _isTogglingFavorite = false,
 }) => {
-  const [imageSrc, setImageSrc] = useState<string>(() =>
-    getDiverseFoodImage(recipe.id, recipe.title, recipe.coverImage || recipe.imageUrl),
-  )
-
   const categoryBadge = resolveCategoryBadge(recipe)
-  const calories = recipe.nutrition?.kcal || recipe.calories || 320
+  const calories = recipe.nutrition.kcal ?? recipe.calories
 
   const handleSelect = () => onSelect(recipe.id)
   const handleSelectKey = (e: React.KeyboardEvent) => {
@@ -165,13 +132,9 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         className="relative block w-full cursor-pointer overflow-hidden bg-slate-100 focus:outline-none"
         aria-label={`Mở chi tiết món ${recipe.title}`}
       >
-        <img
-          src={imageSrc}
+        <RecipeImage
+          src={recipe.coverImage || recipe.imageUrl}
           alt={recipe.title}
-          loading="lazy"
-          onError={() => {
-            setImageSrc(getDiverseFoodImage(recipe.id, recipe.title))
-          }}
           className="h-[196px] w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />
 
@@ -210,20 +173,20 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         <p
           className="mt-1.5 line-clamp-2 text-[13px] font-normal leading-[19px] text-gray-500 h-[38px]"
         >
-          {recipe.description || 'Công thức chay ngon, thanh tịnh và giàu dinh dưỡng.'}
+          {recipe.description || 'Chưa có mô tả.'}
         </p>
 
         {/* Nutrition highlight: Prominent Calorie with clear "kcal" label and balanced Diet Tag */}
         <div className="mt-3.5 flex items-center justify-between border-t border-slate-100 pt-3 h-[40px] min-h-[40px]">
-          <div className="flex items-baseline gap-1.5 shrink-0">
-            <Flame size={15} className="text-amber-500 self-center" />
-            <span className="text-[17.5px] font-extrabold text-slate-900 leading-none">
-              {calories}
-            </span>
-            <span className="text-[11.5px] font-bold uppercase tracking-wider text-emerald-800">
-              kcal
-            </span>
-          </div>
+          {calories == null ? (
+            <span className="text-xs font-medium text-slate-500">Chưa có dữ liệu kcal</span>
+          ) : (
+            <div className="flex items-baseline gap-1.5 shrink-0">
+              <Flame size={15} className="text-amber-500 self-center" />
+              <span className="text-[17.5px] font-extrabold text-slate-900 leading-none">{calories}</span>
+              <span className="text-[11.5px] font-bold uppercase tracking-wider text-emerald-800">kcal</span>
+            </div>
+          )}
 
           {recipe.dietType && (
             <span

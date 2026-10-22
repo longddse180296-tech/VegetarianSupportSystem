@@ -282,51 +282,24 @@ interface BackendRecipePage {
   totalCount: number
 }
 
-const DIVERSE_RECIPE_IMAGES = [
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80',
-]
-
-function getFallbackRecipeImage(id: string, name?: string): string {
-  const str = `${id}-${name || ''}`
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i)
-    hash |= 0
-  }
-  return DIVERSE_RECIPE_IMAGES[Math.abs(hash) % DIVERSE_RECIPE_IMAGES.length]
-}
-
 function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   const cookMin = summary.cookTimeMinutes || 20
   const prepMin = summary.prepTimeMinutes || 10
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
   const { dietType, dietCategory, compatibleDietCategories } = resolveDietType(summary.dietaryAssessments)
-  const img =
-    summary.imageUrl && summary.imageUrl.startsWith('http')
-      ? summary.imageUrl
-      : getFallbackRecipeImage(summary.id, summary.name)
+  const img = summary.imageUrl?.trim() || ''
 
   return {
     id: summary.id,
     title: summary.name,
-    description: `Công thức ${summary.name} chuẩn vị, dinh dưỡng cân bằng và thanh đạm.`,
+    description: '',
     category: summary.categoryName,
     dietType,
     prepTime: `${prepMin} phút`,
     cookTime: `${cookMin} phút`,
     totalTime: `${prepMin + cookMin} phút`,
     servings: summary.servings || 2,
-    calories: summary.caloriesPerServing ? Math.round(summary.caloriesPerServing) : 320,
+    calories: summary.caloriesPerServing == null ? undefined : Math.round(summary.caloriesPerServing),
     imageUrl: img,
     coverImage: img,
     cookTimeMinutes: cookMin,
@@ -345,10 +318,10 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
     ingredients: [],
     steps: [],
     nutrition: {
-      kcal: summary.caloriesPerServing ? Math.round(summary.caloriesPerServing) : 320,
-      proteinG: 15,
-      carbsG: 35,
-      fatG: 10,
+      kcal: summary.caloriesPerServing == null ? null : Math.round(summary.caloriesPerServing),
+      proteinG: null,
+      carbsG: null,
+      fatG: null,
     },
     publishedAt: new Date().toISOString(),
     relatedBlogs: [],
@@ -362,10 +335,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   const prepMin = detail.prepTimeMinutes || 10
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
   const { dietType, dietCategory, compatibleDietCategories } = resolveDietType(detail.dietaryAssessments)
-  const img =
-    detail.imageUrl && detail.imageUrl.startsWith('http')
-      ? detail.imageUrl
-      : getFallbackRecipeImage(detail.id, detail.name)
+  const img = detail.imageUrl?.trim() || ''
 
   const rawSteps = detail.instructions
     ? detail.instructions
@@ -394,9 +364,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   const isMockDesc =
     rawDesc.includes('minh họa để kiểm thử') ||
     rawDesc.includes('không phải dữ liệu dinh dưỡng đã xác minh')
-  const description = isMockDesc
-    ? `Công thức ${detail.name} thanh đạm, dinh dưỡng cân bằng.`
-    : rawDesc || `Công thức ${detail.name} thanh đạm, dinh dưỡng cân bằng.`
+  const description = isMockDesc ? '' : rawDesc
 
   return {
     id: detail.id,
@@ -408,10 +376,10 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
     cookTime: `${cookMin} phút`,
     totalTime: `${prepMin + cookMin} phút`,
     servings: detail.servings || 2,
-    calories: detail.caloriesPerServing ? Math.round(detail.caloriesPerServing) : 320,
-    protein: detail.proteinGramPerServing ? Math.round(detail.proteinGramPerServing) : 15,
-    carbs: detail.carbohydrateGramPerServing ? Math.round(detail.carbohydrateGramPerServing) : 35,
-    fat: detail.fatGramPerServing ? Math.round(detail.fatGramPerServing) : 10,
+    calories: detail.caloriesPerServing == null ? undefined : Math.round(detail.caloriesPerServing),
+    protein: detail.proteinGramPerServing == null ? undefined : Math.round(detail.proteinGramPerServing),
+    carbs: detail.carbohydrateGramPerServing == null ? undefined : Math.round(detail.carbohydrateGramPerServing),
+    fat: detail.fatGramPerServing == null ? undefined : Math.round(detail.fatGramPerServing),
     plantRatio: '100%',
     imageUrl: img,
     coverImage: img,
@@ -431,10 +399,10 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
     ingredients,
     steps,
     nutrition: {
-      kcal: detail.caloriesPerServing ? Math.round(detail.caloriesPerServing) : 320,
-      proteinG: detail.proteinGramPerServing ? Math.round(detail.proteinGramPerServing) : 15,
-      carbsG: detail.carbohydrateGramPerServing ? Math.round(detail.carbohydrateGramPerServing) : 35,
-      fatG: detail.fatGramPerServing ? Math.round(detail.fatGramPerServing) : 10,
+      kcal: detail.caloriesPerServing == null ? null : Math.round(detail.caloriesPerServing),
+      proteinG: detail.proteinGramPerServing == null ? null : Math.round(detail.proteinGramPerServing),
+      carbsG: detail.carbohydrateGramPerServing == null ? null : Math.round(detail.carbohydrateGramPerServing),
+      fatG: detail.fatGramPerServing == null ? null : Math.round(detail.fatGramPerServing),
     },
     publishedAt: detail.createdAt,
     relatedBlogs: [],

@@ -14,6 +14,16 @@ Package SQL hiện có:
 
 Connection string mẫu nằm trong `src/Api/appsettings.json`. Khi làm thật nên chuyển giá trị local vào `appsettings.Development.json` hoặc user secrets tùy cách nhóm thống nhất. Chưa xác nhận migration đã áp dụng trên SQL Server; endpoint User/Admin cần JWT từ BE 1 và DB phù hợp để chạy end-to-end.
 
+## Quên mật khẩu qua email
+
+Backend đã có `POST /api/auth/forgot-password` để nhận email và gửi liên kết đặt lại mật khẩu, cùng `POST /api/auth/reset-password` để đổi mật khẩu bằng token trong liên kết. Hợp đồng request/response và giới hạn gửi nằm ở [`contracts/auth.md`](../contracts/auth.md). Áp dụng migration của backend lên SQL Server trước khi thử với tài khoản đã đăng ký.
+
+Trong môi trường Development, sao chép `.env.example` thành `.env` ở thư mục `backend`, rồi điền SMTP host, port, địa chỉ From và thông tin đăng nhập nếu máy chủ yêu cầu. `.env` đã được Git bỏ qua; không đưa mật khẩu SMTP vào source hoặc frontend. `PasswordReset__ResetPageUrl` phải trỏ tới trang đặt lại mật khẩu của frontend; khi triển khai thật dùng URL HTTPS. SMTP từ xa cần STARTTLS (`PasswordReset__Smtp__EnableSsl=true`); chỉ tắt SSL để thử với SMTP chạy trên loopback. Khởi động lại API sau khi đổi cấu hình.
+
+Với Gmail, mẫu đã dùng `smtp.gmail.com:587` và STARTTLS. Điền cùng địa chỉ Gmail vào `PasswordReset__Smtp__From` và `PasswordReset__Smtp__Username`, điền **mật khẩu ứng dụng** vào `PasswordReset__Smtp__Password` (không dùng mật khẩu đăng nhập Gmail). Google yêu cầu bật xác minh 2 bước để tạo mật khẩu ứng dụng; một số tài khoản tổ chức có thể không có tùy chọn này. Xem [hướng dẫn Gmail SMTP](https://support.google.com/a/answer/176600) và [mật khẩu ứng dụng](https://support.google.com/accounts/answer/185833) của Google.
+
+Nếu thiếu cấu hình SMTP, endpoint quên mật khẩu trả `503`; khi đã cấu hình, email hợp lệ trả `202` với cùng thông báo cho cả địa chỉ có và không có tài khoản. Việc nhận `202` không xác nhận máy chủ thư đã phát thư đến hộp thư. Cần thử bằng một tài khoản test và hộp thư test trên SMTP của môi trường triển khai.
+
 Để thử API cần quyền trước khi BE 1 làm đăng nhập: trong Swagger UI gọi `POST /api/dev-auth/token` với body `{ "userId": "local-user", "role": "User" }` (hoặc `Admin`), sao chép `accessToken` rồi dán vào **Authorize**. Endpoint cấp token mẫu chỉ tồn tại trong Development, token sống 1 giờ và có thể hết hiệu lực khi restart backend. Các endpoint lưu dữ liệu vẫn cần SQL Server và migration phù hợp.
 
 Gemini chat đọc `Gemini:ApiKey` và `Gemini:Model` từ cấu hình backend, gửi key trong header `x-goog-api-key` và dùng model `gemini-3.8-flash` mặc định. Để bật lời gọi thật ở máy local, cấu hình `Gemini__ApiKey` qua user secrets hoặc biến môi trường backend; không đưa key vào frontend. Câu hỏi Guest/User khi đó sẽ gửi tới Gemini và có thể dùng quota của key.

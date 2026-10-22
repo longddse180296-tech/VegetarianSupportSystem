@@ -37,6 +37,7 @@ export interface VideoDetails {
   viewCount: number
   favoriteCount: number
   createdAtUtc: string
+  authorName: string | null
   dietType?: string | null
 }
 

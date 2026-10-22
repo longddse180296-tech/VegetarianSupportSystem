@@ -13,10 +13,10 @@ public sealed record ArticlePage<T>(IReadOnlyList<T> Items, int TotalCount, int 
 
 public sealed record ArticleSummary(Guid Id, string Title, string Category, IReadOnlyList<string> Categories,
     IReadOnlyList<DietaryType> DietaryTypes, DietaryType? DietaryType, string? CoverImageUrl,
-    string AuthorId, int Version, DateTimeOffset PublishedAt);
+    string AuthorId, string? AuthorName, int Version, DateTimeOffset PublishedAt);
 public sealed record ArticleDetail(Guid Id, string Title, string Content, string Category, IReadOnlyList<string> Categories,
     IReadOnlyList<DietaryType> DietaryTypes, DietaryType? DietaryType, string? CoverImageUrl,
-    string AuthorId, int Version, DateTimeOffset PublishedAt,
+    string AuthorId, string? AuthorName, int Version, DateTimeOffset PublishedAt,
     IReadOnlyList<ArticleSummary> RelatedArticles);
 public sealed record ArticleVersionInfo(int Version, Guid SubmissionId, AiFlagStatus AiStatus,
     AdminReviewStatus AdminStatus, string? AiSummary, string? AdminFeedback, DateTimeOffset SubmittedAt);

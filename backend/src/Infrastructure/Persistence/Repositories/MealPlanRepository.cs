@@ -55,6 +55,8 @@ public sealed class MealPlanRepository(AppDbContext db) : IMealPlanRepository
 
     public void Add(MealPlan plan) => db.MealPlans.Add(plan);
 
+    public void Remove(MealPlan plan) => db.MealPlans.Remove(plan);
+
     public Task SaveAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
 
     private IQueryable<Recipe> RecipesWithIngredients() => db.Recipes

@@ -8,7 +8,7 @@ public sealed record ModerateCommentRequest(string Reason);
 public sealed record CommentQuery(CommentTargetType? TargetType = null, Guid? TargetId = null,
     string? Search = null, CommentStatus? Status = null, int Page = 1, int PageSize = 20);
 public sealed record CommentResponse(Guid Id, CommentTargetType TargetType, Guid TargetId, Guid? ParentId,
-    string AuthorId, string? Body, CommentStatus Status, DateTimeOffset CreatedAt,
+    string AuthorId, string? AuthorName, string? Body, CommentStatus Status, DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt, int LikeCount, string? ModerationReason = null,
     string? ModeratedBy = null, DateTimeOffset? ModeratedAt = null);
 public sealed record CommentPage(IReadOnlyList<CommentResponse> Items, int TotalCount, int Page, int PageSize);
