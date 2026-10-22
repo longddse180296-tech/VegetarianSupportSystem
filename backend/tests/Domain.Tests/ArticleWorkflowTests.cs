@@ -81,13 +81,43 @@ public sealed class ArticleWorkflowTests
         Assert.Equal("Unreviewed text", article.Versions.Single(x => x.Version == 2).Content);
     }
 
-    private sealed class SingleArticleRepository(Article article) : IArticleRepository
+    [Fact]
+    public async Task PublicArticleShowsThePublisherNameToAnyReader()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var article = new Article("owner", "Published title", "Text", "Health", null, now);
+        var submission = ModerationSubmission.Submit(Guid.NewGuid(), 1, ModeratedContentType.Article,
+            "owner", "Published title", "Text", null, now);
+        submission.RecordAiResult(AiFlagStatus.Passed, "Checked", "Text", null, now);
+        submission.Decide(ModerationDecisionType.Approve, "admin", "Approved", now);
+        article.LinkSubmission(submission, now);
+        var service = new ArticleService(new SingleArticleRepository(article, "Nguyễn Khánh Vĩnh"),
+            new ModerationService(new EmptyModerationRepository(), new EmptyVideoPublication()));
+
+        var detail = await service.GetPublicAsync(article.Id, default);
+        var page = await service.ListPublicAsync(new ArticleListQuery(), default);
+
+        Assert.Equal("Nguyễn Khánh Vĩnh", detail.AuthorName);
+        Assert.Equal("Nguyễn Khánh Vĩnh", Assert.Single(page.Items).AuthorName);
+    }
+
+    private sealed class SingleArticleRepository(Article article, string? ownerName = null) : IArticleRepository
     {
         public Task<Article?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult<Article?>(article.Id == id ? article : null);
         public Task<ArticlePage<Article>> ListMineAsync(string ownerId, MyArticleListQuery query, CancellationToken ct) => throw new NotImplementedException();
-        public Task<ArticlePage<ArticleVersion>> ListPublicAsync(ArticleListQuery query, CancellationToken ct) => throw new NotImplementedException();
-        public Task<ArticleVersion?> GetPublicAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-        public Task<IReadOnlyList<ArticleVersion>> GetRelatedAsync(Guid articleId, IReadOnlyCollection<string> categories, int count, CancellationToken ct) => throw new NotImplementedException();
+        public Task<ArticlePage<ArticleVersion>> ListPublicAsync(ArticleListQuery query, CancellationToken ct)
+        {
+            var items = article.Versions.Where(x => x.Submission.IsCurrentPublished).ToArray();
+            return Task.FromResult(new ArticlePage<ArticleVersion>(items, items.Length, query.Page, query.PageSize));
+        }
+        public Task<ArticleVersion?> GetPublicAsync(Guid id, CancellationToken ct) =>
+            Task.FromResult(article.Id == id ? article.Versions.FirstOrDefault(x => x.Submission.IsCurrentPublished) : null);
+        public Task<IReadOnlyList<ArticleVersion>> GetRelatedAsync(Guid articleId, IReadOnlyCollection<string> categories, int count, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ArticleVersion>>([]);
+        public Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> authorIds, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyDictionary<string, string>>(ownerName is not null && authorIds.Contains(article.OwnerUserId)
+                ? new Dictionary<string, string> { [article.OwnerUserId] = ownerName }
+                : new Dictionary<string, string>());
         public Task AddAsync(Article value, CancellationToken ct) => throw new NotImplementedException();
         public void Remove(Article value) => throw new NotImplementedException();
         public Task SaveAsync(CancellationToken ct) => Task.CompletedTask;

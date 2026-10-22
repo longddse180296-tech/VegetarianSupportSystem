@@ -24,6 +24,7 @@ import type {
   RelatedRestaurantCard,
   RelatedVideoCard,
 } from '../types/recipe.types'
+import { RecipeImage } from '../components/RecipeImage'
 
 interface RecipeDetailProps {
   recipeId?: string
@@ -31,16 +32,6 @@ interface RecipeDetailProps {
   isLoggedIn?: boolean
   fromSource?: string
 }
-
-// Curated distinct real food images for related recipes (replacing repetitive placeholder)
-const DISTINCT_RELATED_IMAGES = [
-  'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80', // Phở / súp nấm thanh đạm
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', // Salad ngũ sắc bơ hạt
-  'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=800&q=80', // Cà ri rau củ cốt dừa
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80', // Món xào nấm tươi áp chảo
-  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80', // Cháo yến mạch hạt sen
-  'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80', // Gỏi cuốn rau củ sốt tương
-]
 
 // Utility function to remove [Mẫu] / [Demo] prefixes from backend seeder
 function cleanText(str?: string): string {
@@ -232,10 +223,14 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     recipe.totalTime ||
     `${(recipe.prepTimeMinutes || 10) + (recipe.cookTimeMinutes || 20)} phút`
   const servingsText = `${recipe.servings || recipe.servingSize || 2} người`
-  const caloriesText = `${recipe.calories || recipe.nutrition?.kcal || 320} kcal`
-  const proteinText = `${recipe.protein || recipe.nutrition?.proteinG || 18}g`
-  const carbsText = `${recipe.carbs || recipe.nutrition?.carbsG || 28}g`
-  const fatText = `${recipe.fat || recipe.nutrition?.fatG || 14}g`
+  const calories = recipe.calories ?? recipe.nutrition.kcal
+  const protein = recipe.protein ?? recipe.nutrition.proteinG
+  const carbs = recipe.carbs ?? recipe.nutrition.carbsG
+  const fat = recipe.fat ?? recipe.nutrition.fatG
+  const caloriesText = calories == null ? 'Chưa cập nhật' : `${calories} kcal`
+  const proteinText = protein == null ? 'Chưa cập nhật' : `${protein}g`
+  const carbsText = carbs == null ? 'Chưa cập nhật' : `${carbs}g`
+  const fatText = fat == null ? 'Chưa cập nhật' : `${fat}g`
 
   const cleanRecipeTitle = cleanText(recipe.title)
   const cleanRecipeDesc = cleanText(recipe.description)
@@ -262,13 +257,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
         <section className="mb-10 grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
           {/* Left: Dish Image */}
           <div className="overflow-hidden rounded-[20px] shadow-sm border border-slate-200/80 bg-slate-100 lg:col-span-6">
-            <img
+            <RecipeImage
               src={recipe.imageUrl || recipe.coverImage}
               alt={cleanRecipeTitle}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80'
-              }}
               className="h-[340px] w-full object-cover sm:h-[400px] transition-transform duration-500 hover:scale-[1.02]"
             />
           </div>
@@ -276,10 +267,12 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
           {/* Right: Info + Reordered Nutrition Grid (6 ô đảo ngược font) */}
           <div className="flex flex-col justify-between lg:col-span-6">
             <div>
-              <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3.5 py-1 text-xs font-bold text-[#2E7D32] border border-emerald-200">
-                <Sparkles size={12} />
-                {recipe.dietType || 'Thuần chay (Vegan)'}
-              </span>
+              {recipe.dietType && (
+                <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3.5 py-1 text-xs font-bold text-[#2E7D32] border border-emerald-200">
+                  <Sparkles size={12} />
+                  {recipe.dietType}
+                </span>
+              )}
 
               <h1 className="text-[28px] font-extrabold leading-[1.25] text-[#111827] sm:text-[34px] tracking-tight">
                 {cleanRecipeTitle}
@@ -516,7 +509,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
 
 
 
-        {/* 5. CÔNG THỨC LIÊN QUAN (Mảng ảnh thật đa dạng, không trùng lặp) */}
+        {/* 5. CÔNG THỨC LIÊN QUAN */}
         {relatedRecipes.length > 0 && (
           <section className="mb-12">
             <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
@@ -529,15 +522,11 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
-              {relatedRecipes.map((rel, idx) => {
-                const img =
-                  rel.imageUrl && !rel.imageUrl.includes('photo-1546069901-ba9599a7e63c')
-                    ? rel.imageUrl
-                    : DISTINCT_RELATED_IMAGES[idx % DISTINCT_RELATED_IMAGES.length]
-
+              {relatedRecipes.map((rel) => {
+                const relCalories = rel.nutrition.kcal ?? rel.calories
                 return (
                   <article
-                    key={rel.id || idx}
+                    key={rel.id}
                     onClick={() => {
                       const query = isFromMealPlans ? '?from=meal-plans' : ''
                       const target = `/recipes/${encodeURIComponent(rel.id)}${query}`
@@ -551,13 +540,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                     className="group flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md cursor-pointer"
                   >
                     <div className="h-[170px] w-full overflow-hidden bg-slate-100 relative">
-                      <img
-                        src={img}
+                      <RecipeImage
+                        src={rel.imageUrl || rel.coverImage}
                         alt={rel.title}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
-                        }}
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                       />
                       <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-slate-900/75 px-2.5 py-0.5 text-[11.5px] font-medium text-white backdrop-blur-md">
@@ -572,15 +557,15 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                       </h3>
 
                       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
-                        <div className="flex items-baseline gap-1">
-                          <Flame size={13} className="text-amber-500 self-center" />
-                          <span className="text-[15px] font-black text-slate-900">
-                            {rel.nutrition?.kcal || rel.calories || 300}
-                          </span>
-                          <span className="text-[11px] font-bold uppercase text-emerald-800">
-                            kcal
-                          </span>
-                        </div>
+                        {relCalories == null ? (
+                          <span className="text-xs text-slate-500">Chưa có dữ liệu kcal</span>
+                        ) : (
+                          <div className="flex items-baseline gap-1">
+                            <Flame size={13} className="text-amber-500 self-center" />
+                            <span className="text-[15px] font-black text-slate-900">{relCalories}</span>
+                            <span className="text-[11px] font-bold uppercase text-emerald-800">kcal</span>
+                          </div>
+                        )}
                         <span className="text-[12px] font-bold text-[#2E7D32] group-hover:underline">
                           Xem chi tiết →
                         </span>
@@ -655,11 +640,6 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
               {relatedVideos.slice(0, 3).map((vid, idx) => {
-                const vidImg =
-                  vid.imageUrl && !vid.imageUrl.includes('photo-1546069901-ba9599a7e63c')
-                    ? vid.imageUrl
-                    : DISTINCT_RELATED_IMAGES[(idx + 2) % DISTINCT_RELATED_IMAGES.length]
-
                 return (
                   <article
                     key={vid.id || idx}
@@ -667,11 +647,10 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                   >
                     <div className="relative flex h-[160px] w-full items-center justify-center overflow-hidden bg-slate-900">
                       <img
-                        src={vidImg}
+                        src={vid.imageUrl}
                         alt={vid.title}
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
+                          e.currentTarget.style.display = 'none'
                         }}
                         className="h-full w-full object-cover opacity-75 transition duration-300 group-hover:opacity-90"
                       />

@@ -1,5 +1,5 @@
 import { apiClient, ApiError, getStoredToken } from '../../../shared/api/apiClient'
-import type { PlanDiet, PlanPage, PlanShoppingItem, ReplacementRecipe, SavedPlan, SavedPlanMeal } from '../types/mealPlanBackend.types'
+import type { PlanDiet, PlanPage, PlanShoppingItem, ReplacementRecipe, SavedPlan, SavedPlanMeal, SavedPlanSummary } from '../types/mealPlanBackend.types'
 
 export const PLAN_DIET_LABELS: Record<PlanDiet, string> = {
   Vegan: 'Thuần chay (Vegan)', Lacto: 'Chay có sữa (Lacto)',
@@ -31,14 +31,23 @@ export function mealNutrition(value: number | null, servings: number): string {
 }
 
 export const mealPlanApi = {
-  list: (page = 1, signal?: AbortSignal) => apiClient.get<PlanPage>(`/api/meal-plans?page=${page}&pageSize=12`, { signal }),
+  list: (page = 1, signal?: AbortSignal) => apiClient.get<PlanPage>(`/api/meal-plans?page=${page}&pageSize=100`, { signal }),
+  async listAll(signal?: AbortSignal): Promise<SavedPlanSummary[]> {
+    const items: SavedPlanSummary[] = []
+    for (let page = 1; ; page += 1) {
+      const result = await mealPlanApi.list(page, signal)
+      items.push(...result.items)
+      if (items.length >= result.totalCount || result.items.length === 0) return items
+    }
+  },
   get: (id: string, signal?: AbortSignal) => apiClient.get<SavedPlan>(`/api/meal-plans/${encodeURIComponent(id)}`, { signal }),
+  remove: (id: string) => apiClient.delete<void>(`/api/meal-plans/${encodeURIComponent(id)}`),
   generate: (name: string, weekStartDate: string) => apiClient.post<SavedPlan>('/api/meal-plans/generate', { name, weekStartDate }),
   regenerate: (id: string) => apiClient.post<SavedPlan>(`/api/meal-plans/${id}/regenerate`),
   applyToWeek: (id: string, weekStartDate: string) => apiClient.post<SavedPlan>(`/api/meal-plans/${id}/apply-to-week`, { weekStartDate }),
   replace: (planId: string, meal: SavedPlanMeal, recipeId: string, servings: number) =>
     apiClient.put<SavedPlan>(`/api/meal-plans/${planId}/meals/${meal.dayNumber}/${meal.slot}`, { recipeId, servings }),
-  shoppingList: (planId: string, signal?: AbortSignal) => apiClient.get<PlanShoppingItem[]>(`/api/meal-plans/${planId}/shopping-list`, { signal }),
+  shoppingList: (planId: string, day?: number, signal?: AbortSignal) => apiClient.get<PlanShoppingItem[]>(`/api/meal-plans/${planId}/shopping-list${day ? `?day=${day}` : ''}`, { signal }),
   purchase: (planId: string, itemId: string, isPurchased: boolean) =>
     apiClient.put<PlanShoppingItem[]>(`/api/meal-plans/${planId}/shopping-list/${itemId}/purchase`, { isPurchased }),
   // The saved allergy/avoidance constraints are validated by the backend on replacement.

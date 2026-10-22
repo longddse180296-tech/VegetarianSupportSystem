@@ -20,6 +20,7 @@ export interface PublicArticleSummary {
   dietaryType: BackendDietaryType | null
   coverImageUrl: string | null
   authorId: string
+  authorName: string | null
   version: number
   publishedAt: string
 }
@@ -63,6 +64,7 @@ export interface CommentRecord {
   targetId: string
   parentId: string | null
   authorId: string
+  authorName: string | null
   body: string | null
   status: 'Visible' | 'Hidden' | 'Removed'
   createdAt: string

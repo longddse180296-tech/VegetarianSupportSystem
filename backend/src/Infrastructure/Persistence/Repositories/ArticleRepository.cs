@@ -85,6 +85,13 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
                 x.Categories.Any(item => categories.Contains(item.Category)))
             .OrderByDescending(x => x.SubmittedAt).ThenBy(x => x.Id).Take(count).ToListAsync(ct);
 
+    public async Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> authorIds, CancellationToken ct)
+    {
+        var ids = authorIds.Distinct().ToArray();
+        return await db.Users.AsNoTracking().Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.FullName, ct);
+    }
+
     public Task AddAsync(Article article, CancellationToken ct) => db.Articles.AddAsync(article, ct).AsTask();
     public void Remove(Article article) => db.Articles.Remove(article);
 

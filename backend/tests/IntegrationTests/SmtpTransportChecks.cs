@@ -10,6 +10,18 @@ public static class SmtpTransportChecks
 {
     public static async Task RunAsync(Action<bool, string> check)
     {
+        var gmailConfiguration = new ConfigurationManager
+        {
+            ["PasswordReset:Smtp:Host"] = "smtp.gmail.com",
+            ["PasswordReset:Smtp:Port"] = "587",
+            ["PasswordReset:Smtp:From"] = "sender@gmail.com"
+        };
+        var gmailSender = new SmtpPasswordResetEmailSender(gmailConfiguration);
+        check(!gmailSender.IsConfigured, "Gmail requires an app username and password");
+        gmailConfiguration["PasswordReset:Smtp:Username"] = "sender@gmail.com";
+        gmailConfiguration["PasswordReset:Smtp:Password"] = "test-only-placeholder";
+        check(gmailSender.IsConfigured, "Gmail STARTTLS configuration is recognized");
+
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;

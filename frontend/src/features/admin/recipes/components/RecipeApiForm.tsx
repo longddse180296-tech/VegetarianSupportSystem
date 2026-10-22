@@ -230,6 +230,9 @@ export function RecipeApiForm({
                 <span className="mt-1.5 block text-xs font-normal leading-relaxed text-slate-400">
                   Chọn ảnh JPG, PNG hoặc WEBP từ thiết bị, tối đa 10 MB.
                 </span>
+                {!form.imageUrl && (
+                  <span className="mt-2 block text-xs text-slate-500">Công thức này chưa có ảnh đại diện.</span>
+                )}
                 {form.imageUrl && (
                   <div className="mt-2 flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
                     <img
@@ -241,7 +244,7 @@ export function RecipeApiForm({
                       }}
                     />
                     <div className="min-w-0 flex-1">
-                      <span className="block text-xs text-slate-500">Xem trước ảnh món ăn</span>
+                      <span className="block text-xs text-slate-500">Ảnh đại diện hiện tại</span>
                       <button
                         type="button"
                         className="mt-1 text-xs font-semibold text-rose-600 hover:underline"
