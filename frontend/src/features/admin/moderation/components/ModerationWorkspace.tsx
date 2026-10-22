@@ -189,6 +189,7 @@ export function ModerationWorkspace({
   contentType: 'Article' | 'Video'
   onNavigate?: (path: string) => void
 }) {
+  const requestedSubmissionId = new URLSearchParams(window.location.hash.split('?')[1] || '').get('submissionId')
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState<'' | 'PendingAdminReview' | 'Rejected'>(
     'PendingAdminReview',
@@ -205,12 +206,33 @@ export function ModerationWorkspace({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  useEffect(() => {
+    if (!notice) return
+    const timeout = window.setTimeout(() => setNotice(null), 5000)
+    return () => window.clearTimeout(timeout)
+  }, [notice])
   const title =
     contentType === 'Article' ? 'Quản lý bài viết' : 'Quản lý video'
   const ContentIcon = contentType === 'Article' ? FileText : Video
+  useEffect(() => {
+    if (!requestedSubmissionId) return
+    let active = true
+    void adminModerationApi.get(requestedSubmissionId).then(submission => {
+      if (!active) return
+      if (submission.contentType !== contentType) {
+        setError('Phiên bản không thuộc loại nội dung này.')
+        return
+      }
+      setSelected(submission)
+      setDecision('')
+      setReason('')
+    }).catch(reason => { if (active) setError(errorMessage(reason)) })
+    return () => { active = false }
+  }, [requestedSubmissionId, contentType])
   async function open(id: string) {
     setBusy(true)
     setError(null)
+    setNotice(null)
     try {
       setSelected(await adminModerationApi.get(id))
       setDecision('')
@@ -235,6 +257,11 @@ export function ModerationWorkspace({
             {item.version}
             {item.isCurrentPublished ? ' · Đang công khai' : ''}
           </p>
+          {item.pendingReporterCount > 0 && (
+            <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-800">
+              {item.pendingReporterCount} người đang báo cáo
+            </span>
+          )}
         </div>
       ),
     },
@@ -284,7 +311,12 @@ export function ModerationWorkspace({
       subtitle="Xem đúng phiên bản đã gửi và lịch sử quyết định duyệt."
       onNavigate={onNavigate}
     >
-      <Feedback error={error} notice={notice} />
+      <Feedback error={error} />
+      {notice && (
+        <div role="status" className="fixed right-4 top-20 z-[110] max-w-sm rounded-xl border border-emerald-200 bg-white px-5 py-4 text-sm font-semibold text-emerald-800 shadow-xl">
+          {notice}
+        </div>
+      )}
       <section className="flex flex-col gap-5 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-start gap-3.5">
           <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
@@ -378,6 +410,11 @@ export function ModerationWorkspace({
               {adminStatusLabels[selected.adminReviewStatus]} ·{' '}
               {formatDate(selected.submittedAt)}
             </p>
+            {selected.pendingReporterCount > 0 && (
+              <p className="w-fit rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-800">
+                {selected.pendingReporterCount} người đang báo cáo nội dung này
+              </p>
+            )}
             {selected.contentType === 'Article' ? (
               <ArticleSubmissionPreview submission={selected} />
             ) : (
@@ -415,12 +452,12 @@ export function ModerationWorkspace({
                   setBusy(true)
                   setError(null)
                   try {
-                    const updated = await adminModerationApi.decide(
+                    await adminModerationApi.decide(
                       selected.id,
                       decision,
                       reason.trim(),
                     )
-                    setSelected(updated)
+                    setSelected(null)
                     setNotice('Đã lưu quyết định kiểm duyệt.')
                     setDecision('')
                     setReason('')

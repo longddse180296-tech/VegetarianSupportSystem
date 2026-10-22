@@ -292,11 +292,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           />
           <label htmlFor="reg-terms" className="text-xs text-slate-600 cursor-pointer select-none leading-relaxed">
             Tôi đồng ý với{' '}
-            <span className="font-semibold text-emerald-700 hover:underline">Điều khoản sử dụng</span>{' '}
+            <a href="#/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 hover:underline">Điều khoản sử dụng</a>{' '}
             và{' '}
-            <span className="font-semibold text-emerald-700 hover:underline">
+            <a href="#/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 hover:underline">
               Chính sách bảo mật
-            </span>{' '}
+            </a>{' '}
             của Vegetarian Support.
           </label>
         </div>

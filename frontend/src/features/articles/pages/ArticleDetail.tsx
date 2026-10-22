@@ -22,6 +22,7 @@ import {
 import { RichContentRenderer } from '../components/RichContentRenderer'
 import { BACKEND_DIETARY_TYPE_LABELS } from '../../../shared/constants'
 import { findFavorite, toggleFavorite } from '../../favorites/api/favoritesApi'
+import ReportContentButton from '../../reports/components/ReportContentButton'
 
 function CommentLike({
   comment,
@@ -291,6 +292,8 @@ export const ArticleDetail = ({
                     <Bookmark size={16} className={saved ? 'fill-current' : ''} />
                     <span>{saved ? 'Đã lưu' : 'Lưu bài viết'}</span>
                   </button>
+
+                  <ReportContentButton key={articleId} targetType="Article" targetId={articleId} />
 
                   {user?.id === article.data.authorId && (
                     <button

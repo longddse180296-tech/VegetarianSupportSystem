@@ -1,3 +1,13 @@
+.fsp-result-region {
+  scroll-margin-top: 100px;
+}
+
+.fsp-result-region:focus-visible {
+  outline: 2px solid #2e7d32;
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+
 .fsp-root {
   max-width: 1200px;
   margin: 0 auto;

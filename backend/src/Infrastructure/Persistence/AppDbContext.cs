@@ -6,6 +6,8 @@ namespace Infrastructure.Persistence;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<ContactFeedback> ContactFeedback => Set<ContactFeedback>();
+    public DbSet<ContentReport> ContentReports => Set<ContentReport>();
     public DbSet<Article> Articles => Set<Article>();
     public DbSet<ArticleVersion> ArticleVersions => Set<ArticleVersion>();
     public DbSet<Comment> Comments => Set<Comment>();

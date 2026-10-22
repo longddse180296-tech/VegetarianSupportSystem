@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
+        services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IFeaturedContentRepository, FeaturedContentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
@@ -58,6 +59,7 @@ public static class DependencyInjection
         services.AddSingleton(new PasswordResetOptions(configuration["PasswordReset:ResetPageUrl"]));
         services.AddSingleton<IAccountPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IModerationRepository, ModerationRepository>();
+        services.AddScoped<IContentReportRepository, ContentReportRepository>();
         services.AddScoped<VideoRepository>();
         services.AddScoped<IVideoRepository>(sp => sp.GetRequiredService<VideoRepository>());
         services.AddScoped<IVideoPublication>(sp => sp.GetRequiredService<VideoRepository>());

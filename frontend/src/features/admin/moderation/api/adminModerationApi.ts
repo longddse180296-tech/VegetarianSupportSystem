@@ -61,6 +61,7 @@ export interface Submission {
   createdAtUtc: string
   updatedAtUtc: string
   isCurrentPublished: boolean
+  pendingReporterCount: number
   decisions: Array<{
     id: string
     version: number

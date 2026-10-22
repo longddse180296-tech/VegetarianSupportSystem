@@ -1,5 +1,9 @@
 # Hợp đồng API
 
+Hợp đồng báo cáo bài viết/video và xử lý của Admin ở [content-reports.md](content-reports.md).
+
+Hợp đồng góp ý từ trang Liên hệ và hộp thư riêng của Admin ở [feedback.md](feedback.md).
+
 FE và BE thống nhất endpoint, request/response, mã lỗi, phân trang, trạng thái xử lý và ví dụ trước khi triển khai một tính năng.
 
 Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường Development tại `/openapi/v1.json`. Hợp đồng nghiệp vụ và giới hạn hiện hành cho Moderation/AiChat ở [moderation-aichat.md](moderation-aichat.md).

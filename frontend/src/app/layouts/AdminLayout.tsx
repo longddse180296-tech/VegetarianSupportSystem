@@ -4,6 +4,7 @@ import {
   FileText,
   Video,
   MessageSquare,
+  Flag,
   Tag,
   Apple,
   LogOut,
@@ -61,6 +62,8 @@ const nav = [
     icon: MessageSquare,
   },
   { id: 'members', label: 'Thành viên', path: '/admin/members', icon: Users },
+  { id: 'feedback', label: 'Góp ý', path: '/admin/feedback', icon: MessageSquare },
+  { id: 'reports', label: 'Báo cáo nội dung', path: '/admin/reports', icon: Flag },
 ]
 const menuAccents: Record<string, string> = {
   dashboard: 'bg-emerald-50 text-emerald-600',

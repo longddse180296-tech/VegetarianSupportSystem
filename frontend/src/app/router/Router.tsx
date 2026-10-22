@@ -18,6 +18,9 @@ import { AdminRestaurantsPage } from '../../features/admin/restaurants'
 import { AdminModerationPage } from '../../features/admin/moderation'
 import { PublicLayout } from '../layouts/PublicLayout'
 import HomePage from '../../features/home/pages/HomePage'
+import InformationPage, { type InformationPageKind } from '../../features/home/pages/InformationPage'
+import AdminFeedbackPage from '../../features/admin/dashboard/pages/AdminFeedbackPage'
+import AdminReportsPage from '../../features/admin/reports/pages/AdminReportsPage'
 import RecipeList from '../../features/recipes/pages/RecipeList'
 import RecipeDetail from '../../features/recipes/pages/RecipeDetail'
 import AiChatPage from '../../features/ai-chat/pages/AiChatPage'
@@ -108,6 +111,11 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       'home',
       ctx,
     )
+  }
+
+  const informationKind = path.replace(/^\//, '').replace(/\/$/, '')
+  if (['about', 'contact', 'privacy', 'terms'].includes(informationKind)) {
+    return withPublic(<InformationPage kind={informationKind as InformationPageKind} />, '', ctx)
   }
 
   const recipeMatch = path.match(/^\/recipes\/([^/]+)\/?$/)
@@ -526,6 +534,12 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   }
   if (path.startsWith('/admin/members')) {
     return <MembersPage onNavigate={onNavigate} />
+  }
+  if (path === '/admin/feedback') {
+    return <AdminFeedbackPage onNavigate={onNavigate} />
+  }
+  if (path === '/admin/reports') {
+    return <AdminReportsPage onNavigate={onNavigate} />
   }
   if (path.startsWith('/admin/ingredients')) {
     return <AdminIngredientsPage onNavigate={onNavigate} />

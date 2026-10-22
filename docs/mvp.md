@@ -12,6 +12,8 @@ Trạng thái: Đặc tả đã cập nhật. Chưa sửa canvas Figma vì công
 
 ### Đã được người dùng xác nhận
 
+- Bổ sung ngày 22/10/2026: User/Admin báo cáo bài viết và video công khai; Guest đăng nhập để gửi. Admin xem báo cáo riêng tư, ghi kết quả xử lý hoặc bác bỏ kèm lý do; báo cáo không tự động gỡ nội dung.
+
 - Chỉ có ba role: Guest, User, Admin. Chuyên gia, đầu bếp và tác giả không phải role riêng.
 - Chỉ sử dụng thương hiệu Vegetarian Support.
 - Không có chức năng thông báo, nhắc bữa ăn hoặc lịch ăn chay theo ngày lễ.

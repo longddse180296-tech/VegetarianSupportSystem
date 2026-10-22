@@ -21,6 +21,7 @@ import {
 } from '../api/backendVideos'
 import { getSavedVideo, toggleVideoLike, toggleVideoSave } from '../api/videoApi'
 import { useAuth } from '../../auth/hooks/useAuth'
+import ReportContentButton from '../../reports/components/ReportContentButton'
 
 interface Props {
   videoId?: string
@@ -476,6 +477,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
                 <Bookmark size={16} className={saved ? 'fill-current' : ''} />
                 <span>{saved ? 'Đã lưu' : 'Lưu video'}</span>
               </button>
+              {videoId && <ReportContentButton targetType="Video" targetId={videoId} />}
             </div>
 
           </div>

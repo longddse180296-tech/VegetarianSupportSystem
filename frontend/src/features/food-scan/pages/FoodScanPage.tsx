@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { History as HistoryIcon, LogIn, ScanLine } from 'lucide-react'
 import { Badge, Button, PageHeading, SkeletonLoader } from '../../../shared/components'
@@ -77,6 +77,21 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
   const [isScanning, setIsScanning] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const resultRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (tab !== 'result' || !result) return
+    const frame = requestAnimationFrame(() => {
+      const region = resultRef.current
+      if (!region) return
+      region.focus({ preventScroll: true })
+      region.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        block: 'start',
+      })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [tab, result])
 
   const [history, setHistory] = useState<ScanHistoryItem[]>([])
   const [historyState, setHistoryState] = useState<HistoryStatus>('idle')
@@ -489,6 +504,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
             )}
 
             {tab === 'result' && (
+              <section ref={resultRef} tabIndex={-1} aria-label="Kết quả đánh giá thực phẩm" className="fsp-result-region">
               <ScanResultCard
                 result={result}
                 onResetAll={resetScan}
@@ -496,6 +512,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
                 onLoadHistory={() => { setTab('scanner'); void handleLoadHistory(1) }}
                 isLoggedIn={isLoggedIn}
               />
+              </section>
             )}
           </>
         )}

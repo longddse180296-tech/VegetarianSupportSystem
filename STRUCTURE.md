@@ -79,6 +79,8 @@ frontend/src/app/router/
 frontend/src/assets/
 frontend/src/features/
 frontend/src/features/admin/
+frontend/src/features/admin/reports/
+frontend/src/features/admin/reports/pages/
 frontend/src/features/admin/categories/
 frontend/src/features/admin/comments/
 frontend/src/features/admin/dashboard/
@@ -97,6 +99,9 @@ frontend/src/features/meal-plans/
 frontend/src/features/pantry/
 frontend/src/features/profile/
 frontend/src/features/recipes/
+frontend/src/features/reports/
+frontend/src/features/reports/components/
+frontend/src/features/reports/api/
 frontend/src/features/restaurants/
 frontend/src/features/videos/
 frontend/src/shared/

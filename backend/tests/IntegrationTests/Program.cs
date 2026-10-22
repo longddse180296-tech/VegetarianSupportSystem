@@ -38,17 +38,41 @@ builder.Services.AddSingleton<CapturingResetEmailSender>();
 builder.Services.AddSingleton<IPasswordResetEmailSender>(provider =>
     provider.GetRequiredService<CapturingResetEmailSender>());
 builder.Services.AddControllers().AddApplicationPart(typeof(CategoriesController).Assembly);
+if (args.Contains("--reports-only", StringComparer.Ordinal))
+    builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(allowIntegerValues: false)));
 builder.Services.AddAuthentication("Test")
     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthenticationHandler>(
         "Test", _ => { });
 builder.Services.AddAuthorization(AccountAuthorization.AddAccountPolicies);
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("content-reports", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10, Window = TimeSpan.FromMinutes(15), QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("contact-feedback", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5, Window = TimeSpan.FromMinutes(15), QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 await using var app = builder.Build();
 app.UseExceptionHandler();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapControllers();
 app.MapOpenApi();
 app.Urls.Add("http://127.0.0.1:0");
@@ -68,6 +92,24 @@ void Check(bool condition, string name)
 
 try
 {
+    if (args.Contains("--reports-only", StringComparer.Ordinal))
+    {
+        await db.Database.MigrateAsync();
+        await app.StartAsync();
+        using var reportsClient = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+        await ContentReportApiChecks.RunAsync(reportsClient, db, Check);
+        Console.WriteLine($"ALL {checks} CONTENT REPORT CHECKS PASSED");
+        return;
+    }
+    if (args.Contains("--feedback-only", StringComparer.Ordinal))
+    {
+        await db.Database.MigrateAsync();
+        await app.StartAsync();
+        using var feedbackClient = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+        await FeedbackApiChecks.RunAsync(feedbackClient, db, Check);
+        Console.WriteLine($"ALL {checks} FEEDBACK CHECKS PASSED");
+        return;
+    }
     if (args.Contains("--profile-only", StringComparer.Ordinal))
     {
         await db.Database.EnsureCreatedAsync();
@@ -124,6 +166,7 @@ try
     await PasswordResetChecks.RunAsync(db, Check);
     await DashboardApiChecks.RunAsync(client, app.Services, Check);
     await MemberApiChecks.RunAsync(client, app.Services, Check);
+    await FeedbackApiChecks.RunAsync(client, db, Check);
 
     await app.StopAsync();
     await db.GetService<IMigrator>().MigrateAsync("0");

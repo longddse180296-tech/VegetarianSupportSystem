@@ -128,6 +128,7 @@ Moi tinh nang dat trong folder rieng:
 - `pantry`: tu bep, nguyen lieu dang co, goi y thay the.
 - `favorites`: luu cong thuc, video, nha hang.
 - `admin`: tat ca man hinh quan tri.
+- `reports`: form/API bao cao bai viet va video dung chung; Admin xu ly tai `admin/reports`. Backend thuoc `Application/Features/Moderation`, contract `contracts/content-reports.md` (yeu cau bo sung 22/10/2026).
 
 Trong moi feature co the tach:
 

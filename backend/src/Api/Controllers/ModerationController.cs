@@ -112,7 +112,7 @@ public sealed class ModerationController(ModerationService moderationService) : 
 [Authorize(Roles = "Admin")]
 [Route("api/admin/moderation/submissions")]
 public sealed class AdminModerationController(
-    ModerationService moderationService) : ControllerBase
+    ModerationService moderationService, ContentReportService contentReportService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll(
@@ -127,7 +127,13 @@ public sealed class AdminModerationController(
         {
             var result = await moderationService.GetAdminPageAsync(
                 contentType, aiStatus, adminStatus, page, pageSize, cancellationToken);
-            return Ok(ModerationPageResponse.From(result));
+            var counts = await contentReportService.GetPendingCountsAsync(
+                result.Items.Select(item => item.ContentId).Distinct().ToArray(), cancellationToken);
+            var response = ModerationPageResponse.From(result);
+            return Ok(response with { Items = response.Items.Select(item => item with
+            {
+                PendingReporterCount = counts.GetValueOrDefault((item.ContentType, item.ContentId))
+            }).ToArray() });
         }
         catch (ModerationException ex)
         {
@@ -152,7 +158,13 @@ public sealed class AdminModerationController(
                 page,
                 pageSize,
                 cancellationToken);
-            return Ok(ModerationPageResponse.From(result));
+            var counts = await contentReportService.GetPendingCountsAsync(
+                result.Items.Select(item => item.ContentId).Distinct().ToArray(), cancellationToken);
+            var response = ModerationPageResponse.From(result);
+            return Ok(response with { Items = response.Items.Select(item => item with
+            {
+                PendingReporterCount = counts.GetValueOrDefault((item.ContentType, item.ContentId))
+            }).ToArray() });
         }
         catch (ModerationException ex)
         {
@@ -166,7 +178,11 @@ public sealed class AdminModerationController(
         try
         {
             var submission = await moderationService.GetForAdminAsync(id, cancellationToken);
-            return Ok(ModerationSubmissionResponse.From(submission));
+            var counts = await contentReportService.GetPendingCountsAsync([submission.ContentId], cancellationToken);
+            return Ok(ModerationSubmissionResponse.From(submission) with
+            {
+                PendingReporterCount = counts.GetValueOrDefault((submission.ContentType, submission.ContentId))
+            });
         }
         catch (ModerationException ex)
         {
@@ -255,6 +271,7 @@ public sealed record ModerationSubmissionResponse(
     bool IsCurrentPublished,
     IReadOnlyList<ModerationDecisionResponse> Decisions)
 {
+    public int PendingReporterCount { get; init; }
     public static ModerationSubmissionResponse From(ModerationSubmission submission) => new(
         submission.Id,
         submission.ContentId,

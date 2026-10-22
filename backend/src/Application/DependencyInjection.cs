@@ -31,9 +31,11 @@ public static class DependencyInjection
         services.AddScoped<AiChatGuestService>();
         services.AddScoped<FoodScanningService>();
         services.AddScoped<ModerationService>();
+        services.AddScoped<ContentReportService>();
         services.AddScoped<ProfileService>();
         services.AddScoped<IProfileContextReader>(provider => provider.GetRequiredService<ProfileService>());
         services.AddScoped<MemberService>();
+        services.AddScoped<FeedbackService>();
         services.AddScoped<DashboardService>();
         services.AddScoped<FeaturedContentService>();
         services.AddScoped<CategoryService>();
