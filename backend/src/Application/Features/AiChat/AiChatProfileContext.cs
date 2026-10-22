@@ -21,7 +21,6 @@ public static class AiChatProfileContext
             bmi = profile.Bmi,
             adultBmiCategory = profile.AdultBmiCategory?.ToString(),
             estimatedTdeeKcal = profile.EstimatedTdeeKcal,
-            restaurantArea = profile.RestaurantArea,
             allergies = profile.Allergies,
             avoidedFoods = profile.AvoidedFoods,
             updatedAtUtc = profile.UpdatedAtUtc

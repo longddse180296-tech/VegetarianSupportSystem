@@ -9,12 +9,10 @@ import {
   Leaf,
   Activity,
   Flame,
-  MapPin,
   Sparkles,
   ChevronRight,
   ShieldAlert,
   Bot,
-  ExternalLink,
 } from 'lucide-react'
 import type { UserProfile, ProfileStats, RecentPost } from '../types'
 import { Button } from '../../../shared/components'
@@ -319,29 +317,6 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Preferred Location Strip if set */}
-      {profile.preferredRegion && (
-        <div className="bg-white rounded-[12px] border border-[#e5e7eb] px-4 py-3 text-xs text-[#6b7280] flex items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-[#2e7d32]" />
-            <span>
-              Khu vực tìm nhà hàng:{' '}
-              <strong className="text-[#1f2937] font-semibold">
-                {profile.preferredRegion}
-              </strong>
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/restaurants')}
-            className="fe1-link text-[11px] font-semibold text-[#2e7d32] hover:text-[#1b5e20] hover:underline inline-flex items-center gap-1 cursor-pointer"
-          >
-            <span>Tìm quán chay gần đây</span>
-            <ExternalLink className="w-3 h-3" />
-          </button>
-        </div>
-      )}
 
       <section className="ui-card p-5 sm:p-6 space-y-4" aria-label="Thực phẩm trong hồ sơ">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">

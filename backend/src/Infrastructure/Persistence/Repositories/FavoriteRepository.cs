@@ -45,6 +45,10 @@ public sealed class FavoriteRepository(AppDbContext db) : IFavoriteRepository
 
     public void Remove(Favorite favorite) => db.Favorites.Remove(favorite);
 
+    public void RemoveAllByTarget(FavoriteTargetType targetType, Guid targetId) =>
+        db.Favorites.RemoveRange(db.Favorites.Where(favorite =>
+            favorite.TargetType == targetType && favorite.TargetId == targetId));
+
     public async Task SaveAsync(CancellationToken ct)
     {
         try

@@ -11,6 +11,7 @@ public interface IFavoriteRepository
     Task<FavoriteTargetInfo?> GetPublicTargetAsync(FavoriteTargetType targetType, Guid targetId, CancellationToken ct);
     void Add(Favorite favorite);
     void Remove(Favorite favorite);
+    void RemoveAllByTarget(FavoriteTargetType targetType, Guid targetId);
     Task SaveAsync(CancellationToken ct);
 }
 

@@ -197,7 +197,6 @@ function mapProfile(data: BackendProfile): UserProfile {
     fullName: data.fullName,
     email: data.email,
     phoneNumber: data.phoneNumber ?? undefined,
-    preferredRegion: data.restaurantArea ?? undefined,
     dietaryType: data.diet ? dietFromBackend[data.diet] ?? '' : '',
     allergies: data.allergies.map((item) => item.name),
     allergyItems: data.allergies,
@@ -271,7 +270,9 @@ export const profileApi = {
     const request = {
       fullName: updates.fullName ?? current.fullName,
       phoneNumber: updates.phoneNumber ?? current.phoneNumber,
-      restaurantArea: updates.preferredRegion ?? current.restaurantArea,
+      // This legacy value is retained only to avoid erasing existing data when
+      // the rest of the profile is saved. It is no longer shown or used by FE.
+      restaurantArea: current.restaurantArea,
       diet: diet ? dietToBackend[diet] : null,
       ...bodyRequest(metrics),
     }

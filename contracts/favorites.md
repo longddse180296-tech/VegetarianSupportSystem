@@ -63,7 +63,7 @@ The API refuses an absent, inactive, unpublished, removed, or unsupported target
 }
 ```
 
-If a previously saved target is later inactive, unpublished, or removed, it is omitted from list results. The record stays private and can still be deleted by its owner.
+If Admin removes a published `Article` or `Video`, or deactivates a `Restaurant`, all saved links to that exact target are deleted in the same operation. The item disappears from every user's saved list and does not reappear if a new item with the same name is later created. An inactive recipe is only omitted from list results; its saved link is retained until the owner removes it.
 
 ## Errors
 

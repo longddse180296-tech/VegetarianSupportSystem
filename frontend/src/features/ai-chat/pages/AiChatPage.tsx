@@ -798,7 +798,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
                           {f.value}
                         </span>
                       ) : f.key === 'allergy' ? (
-                        f.value !== 'Không có' ? (
+                        f.tone === 'warn' ? (
                           <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
                             <TriangleAlert size={11} />
                             {f.value}

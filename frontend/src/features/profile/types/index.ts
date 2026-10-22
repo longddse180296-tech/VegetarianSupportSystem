@@ -48,7 +48,6 @@ export interface UserProfile {
   email: string
   avatarUrl?: string
   phoneNumber?: string
-  preferredRegion?: string
   dietaryType: DietaryType
   allergies: string[]
   allergyItems?: { id: string; name: string }[]

@@ -18,7 +18,6 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
             profile.SexForEnergyEstimate, profile.HeightCm, profile.WeightKg,
             profile.ActivityLevel, profile.WeightGoal, estimate.Bmi,
             estimate.AdultBmiCategory, estimate.EstimatedTdeeKcal,
-            profile.RestaurantArea,
             profile.Allergies.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
             profile.AvoidedFoods.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
             profile.UpdatedAtUtc);

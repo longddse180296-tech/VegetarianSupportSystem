@@ -57,7 +57,7 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
           LactoOvoVegetarian: 'Trứng & Sữa (Lacto-ovo)',
           'Lacto-ovo vegetarian': 'Trứng & Sữa (Lacto-ovo)',
         }
-        const dietLabel = p.diet && dietMap[p.diet] ? dietMap[p.diet] : 'Thuần chay (Vegan)'
+        const dietLabel = p.diet && dietMap[p.diet] ? dietMap[p.diet] : 'Chưa thiết lập'
 
         const categoryMap: Record<string, string> = {
           Underweight: 'Thiếu cân',
@@ -69,11 +69,12 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
           overweight: 'Thừa cân',
           obese: 'Béo phì',
         }
-        const catLabel =
-          p.adultBmiCategory && categoryMap[p.adultBmiCategory]
-            ? categoryMap[p.adultBmiCategory]
-            : 'Bình thường'
-        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${catLabel})` : '22.5 (Bình thường)'
+        const catLabel = p.adultBmiCategory && categoryMap[p.adultBmiCategory]
+          ? categoryMap[p.adultBmiCategory]
+          : 'Chưa phân loại'
+        const bmiVal = typeof p.bmi === 'number'
+          ? `${p.bmi.toFixed(1)} (${catLabel})`
+          : 'Chưa đủ dữ liệu'
 
         const goalMap: Record<string, string> = {
           Lose: 'Giảm mỡ & thanh lọc cơ thể',
@@ -87,14 +88,15 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
           muscle_gain: 'Tăng cân & phát triển cơ bắp',
           general_health: 'Khám phá món chay khoa học',
         }
-        const goalLabel =
-          p.weightGoal && goalMap[p.weightGoal] ? goalMap[p.weightGoal] : 'Duy trì cân nặng'
+        const goalLabel = p.weightGoal && goalMap[p.weightGoal]
+          ? goalMap[p.weightGoal]
+          : 'Chưa thiết lập'
 
         const allergies = p.allergies
         const hasAllergies = Boolean(allergies && allergies.length > 0)
         const allergiesLabel = allergies && allergies.length > 0
           ? allergies.map((a) => a.name).join(', ')
-          : 'Không có'
+          : 'Chưa khai báo'
 
         return [
           { key: 'diet', label: 'Chế độ ăn', value: dietLabel, tone: 'ok' },
@@ -104,7 +106,7 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
             key: 'allergy',
             label: 'Dị ứng cảnh báo',
             value: allergiesLabel,
-            tone: hasAllergies ? 'warn' : 'ok',
+            tone: hasAllergies ? 'warn' : 'soft',
           },
         ]
       }

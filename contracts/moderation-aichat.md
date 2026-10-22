@@ -57,7 +57,7 @@ Request Admin quyết định:
 }
 ```
 
-`decision`: `Approve`, `RequestRevision`, `Reject`, `Remove`; `reason` bắt buộc, tối đa 2.000 ký tự. Ba quyết định đầu áp dụng khi `PendingAdminReview`: bài viết sau khi AI có kết quả hoặc thất bại, video ngay sau submit. Với bài viết `Failed`, Admin xem trước tiêu đề, ảnh đại diện và toàn bộ nội dung của đúng phiên bản đã gửi từ moderation submission trước khi quyết định; không lấy nội dung từ API bài viết công khai vì bản này chưa được xuất bản. `Remove` chỉ áp dụng cho phiên bản đang được công khai. Mỗi quyết định lưu Admin ID, thời gian, version và lý do. Chỉ một phiên bản của cùng `contentId` được đánh dấu đang công khai.
+`decision`: `Approve`, `RequestRevision`, `Reject`, `Remove`; `reason` bắt buộc, tối đa 2.000 ký tự. Ba quyết định đầu áp dụng khi `PendingAdminReview`: bài viết sau khi AI có kết quả hoặc thất bại, video ngay sau submit. Với bài viết `Failed`, Admin xem trước tiêu đề, ảnh đại diện và toàn bộ nội dung của đúng phiên bản đã gửi từ moderation submission trước khi quyết định; không lấy nội dung từ API bài viết công khai vì bản này chưa được xuất bản. `Remove` chỉ áp dụng cho phiên bản đang được công khai. Khi `Remove` được áp dụng cho bài viết hoặc video, hệ thống xóa toàn bộ favorite trỏ đến đúng nội dung đó trong cùng giao dịch. Mỗi quyết định lưu Admin ID, thời gian, version và lý do. Chỉ một phiên bản của cùng `contentId` được đánh dấu đang công khai.
 
 Lỗi validation trả `400` kèm `ProblemDetails`; bản không tồn tại `404`; chuyển trạng thái sai/xung đột version `409`. Khung này chưa nối Article/Video repository, storage hoặc AI worker. `mediaReference` chưa được xác minh là tệp thuộc người gửi; module nội dung cần ràng buộc trước khi dùng để xuất bản thật.
 
@@ -89,7 +89,7 @@ Guest giữ tối đa 3 lượt **có câu trả lời thành công** trong sess
 
 ### Bổ sung Phase 2 (16/10/2026)
 
-Mỗi câu hỏi User đọc lại hồ sơ theo ID đã xác thực qua `IProfileContextReader` và dùng cùng BMI/TDEE với Profile. Context JSON nội bộ gồm chế độ ăn, mục tiêu cân nặng, chiều cao/cân nặng, mức vận động, BMI/phân loại BMI người lớn, TDEE ước tính, khu vực tìm nhà hàng, dị ứng, thực phẩm cần tránh và thời điểm cập nhật. Không gửi ID tài khoản, email, số điện thoại hoặc ngày sinh đầy đủ trong context provider. Trường chưa khai báo/không tính được giữ `null`; danh sách rỗng chỉ có nghĩa chưa khai báo mục nào, không chứng minh không dị ứng. Không tự suy đoán chế độ ăn/mục tiêu/chỉ số còn thiếu.
+Mỗi câu hỏi User đọc lại hồ sơ theo ID đã xác thực qua `IProfileContextReader` và dùng cùng BMI/TDEE với Profile. Context JSON nội bộ gồm chế độ ăn, mục tiêu cân nặng, chiều cao/cân nặng, mức vận động, BMI/phân loại BMI người lớn, TDEE ước tính, dị ứng, thực phẩm cần tránh và thời điểm cập nhật. Không gửi ID tài khoản, email, số điện thoại, ngày sinh đầy đủ hoặc khu vực tìm nhà hàng trong context provider. Trường chưa khai báo/không tính được giữ `null`; danh sách rỗng chỉ có nghĩa chưa khai báo mục nào, không chứng minh không dị ứng. Không tự suy đoán chế độ ăn/mục tiêu/chỉ số còn thiếu.
 
 FE dùng API Profile hiện có để hiển thị dữ liệu tham khảo trong sidebar, tách lỗi tải hồ sơ khỏi khung chat, có tải lại và cập nhật khi hồ sơ đổi. Guest không đọc hồ sơ tài khoản. Không thay request gửi câu hỏi, quota, cơ chế lưu/mở hội thoại, response hoặc provider Gemini. Không thêm endpoint hoặc migration. Thiếu key vẫn trả trạng thái Unavailable theo contract cũ. Test context có thể dùng provider chỉ dành cho test; câu trả lời thực tế của Gemini chưa được nghiệm thu trong Phase 2.
 

@@ -21,7 +21,7 @@ OpenAPI runtime tại `/openapi/v1.json` là schema máy đọc được. Tài l
 | PUT | `/api/admin/restaurants/{id}` | Admin | 200, thay toàn bộ dữ liệu nhập |
 | POST | `/api/admin/restaurants/{id}/deactivate` | Admin | 204; gọi lại vẫn 204 |
 
-Không xóa vật lý. Bản ghi ngừng sử dụng không còn nằm trong API public, nhưng Admin vẫn xem được để giữ lịch sử favorite/liên kết cũ.
+Không xóa vật lý. Bản ghi ngừng sử dụng không còn nằm trong API public, nhưng Admin vẫn xem được. Khi ngừng sử dụng, hệ thống xóa các favorite đang trỏ đến nhà hàng đó để không giữ liên kết đã bị ẩn.
 
 ## List và vị trí
 

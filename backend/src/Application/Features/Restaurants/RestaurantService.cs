@@ -1,9 +1,11 @@
 using Application.Common.Exceptions;
+using Application.Features.Favorites;
 using Domain.Entities;
+using Domain.Enums;
 
 namespace Application.Features.Restaurants;
 
-public sealed class RestaurantService(IRestaurantRepository repository)
+public sealed class RestaurantService(IRestaurantRepository repository, IFavoriteRepository? favorites = null)
 {
     public async Task<RestaurantPage> ListAsync(RestaurantListQuery query, bool includeInactive, CancellationToken ct)
     {
@@ -65,6 +67,7 @@ public sealed class RestaurantService(IRestaurantRepository repository)
 
         entity.IsActive = false;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        favorites?.RemoveAllByTarget(FavoriteTargetType.Restaurant, entity.Id);
         await repository.SaveAsync(ct);
     }
 

@@ -133,7 +133,6 @@ export function ProfileSettingsForm({
           await onSave({
             fullName: form.fullName.trim(),
             phoneNumber: form.phoneNumber?.trim() || '',
-            preferredRegion: form.preferredRegion?.trim() || '',
             dietaryType: form.dietaryType,
             metrics: form.metrics,
             allergies: allergyList,
@@ -196,18 +195,6 @@ export function ProfileSettingsForm({
                 phoneNumber: event.target.value,
               }))
             }
-          />
-          <Input
-            label="Khu vực tìm nhà hàng"
-            maxLength={200}
-            value={form.preferredRegion || ''}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                preferredRegion: event.target.value,
-              }))
-            }
-            helperText="Ví dụ: Quận 1, TP. Hồ Chí Minh; dùng để gợi ý quán chay gần bạn."
           />
         </fieldset>
 

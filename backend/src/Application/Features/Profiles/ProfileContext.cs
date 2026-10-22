@@ -22,7 +22,6 @@ public sealed record ProfileContext(
     decimal? Bmi,
     AdultBmiCategory? AdultBmiCategory,
     int? EstimatedTdeeKcal,
-    string? RestaurantArea,
     IReadOnlyList<string> Allergies,
     IReadOnlyList<string> AvoidedFoods,
     DateTimeOffset UpdatedAtUtc);

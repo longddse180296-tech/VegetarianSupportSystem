@@ -53,7 +53,7 @@ Quyền phải kiểm tra ở phía hệ thống, không chỉ ẩn nút trên g
 
 - Đăng ký bằng họ tên, email, mật khẩu và xác nhận mật khẩu; xác thực dữ liệu nhập.
 - Đăng nhập, ghi nhớ phiên, đăng xuất; quên và đặt lại mật khẩu qua email.
-- Chỉnh sửa thông tin cá nhân và khu vực tìm nhà hàng.
+- Chỉnh sửa thông tin cá nhân.
 - Chế độ ăn: Vegan, Lacto-vegetarian, Ovo-vegetarian, Lacto-ovo vegetarian.
 - Khai báo dị ứng và thực phẩm cần tránh; sửa hoặc xóa từng mục.
 - Khai báo tuổi, giới tính dùng trong công thức ước tính năng lượng, chiều cao, cân nặng, mức vận động và mục tiêu.
