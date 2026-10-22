@@ -47,12 +47,16 @@ public sealed class RestaurantRequest
     [StringLength(500)]
     public string? Source { get; init; }
 
-    [Required, MinLength(1), MaxLength(4)]
+    [Required]
+    public DietaryType? DietaryType { get; init; }
+
+    // Kept temporarily so older clients can complete an edit only when they send
+    // exactly one type. New clients must use dietaryType.
     public DietaryType[] DietaryTypes { get; init; } = [];
 
     [MaxLength(30)]
     public string[] Amenities { get; init; } = [];
 
-    [MaxLength(100)]
-    public Guid[] RelatedRecipeIds { get; init; } = [];
+    [MinLength(3), MaxLength(3)]
+    public RestaurantFeaturedDishRequest[] FeaturedDishes { get; init; } = [];
 }

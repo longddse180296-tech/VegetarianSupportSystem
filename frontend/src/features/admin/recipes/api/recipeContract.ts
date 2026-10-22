@@ -19,6 +19,7 @@ export interface RecipeInput {
   proteinGramPerServing: number | null
   carbohydrateGramPerServing: number | null
   fatGramPerServing: number | null
+  declaredDietaryType: DietaryType | null
   ingredients: Array<{
     ingredientId: string
     quantity: number
@@ -36,6 +37,7 @@ export interface RecipeSummary {
   cookTimeMinutes: number
   imageUrl: string | null
   caloriesPerServing: number | null
+  declaredDietaryType: DietaryType | null
   isActive: boolean
   dietaryAssessments: Array<{
     dietaryType: DietaryType

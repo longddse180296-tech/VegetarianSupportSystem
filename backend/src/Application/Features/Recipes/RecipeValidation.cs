@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
+using Domain.Enums;
 
 namespace Application.Features.Recipes;
 
@@ -8,6 +9,11 @@ internal static class RecipeValidation
     public static void Validate(RecipeRequest request)
     {
         RequestValidation.Validate(request);
+
+        if (request.DeclaredDietaryType is not DietaryType dietaryType || !Enum.IsDefined(dietaryType))
+        {
+            Fail(nameof(request.DeclaredDietaryType), "Select one supported dietary type.");
+        }
 
         if (request.ImageUrl is not null &&
             (!Uri.TryCreate(request.ImageUrl, UriKind.Absolute, out var uri) ||

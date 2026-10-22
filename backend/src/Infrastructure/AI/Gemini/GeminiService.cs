@@ -29,7 +29,10 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
             Phân tích ảnh món ăn cho Vegetarian Support. Chỉ gợi ý tên món và nguyên liệu NHÌN THẤY rõ trong ảnh.
             Không đoán nước dùng, nước mắm, dầu hào, mỡ, trứng, sữa, gelatin hoặc thành phần ẩn như thể đã nhìn thấy.
             Nếu ảnh mờ, không phải món ăn, hoặc không đủ thông tin để nhận diện, trả suggestedDishName rỗng và visibleIngredients rỗng.
-            Trả duy nhất JSON: {"suggestedDishName":"...","visibleIngredients":["..."],"unknownFactors":["..."],"followUpQuestions":["..."]}.
+            Trả duy nhất JSON: {"suggestedDishName":"...","visibleIngredients":["..."],"suggestedIngredientKinds":["Plant"],"unknownFactors":["..."],"followUpQuestions":["..."]}.
+            suggestedIngredientKinds có đúng một loại cho mỗi visibleIngredients, cùng thứ tự: Plant, Egg, Dairy, Honey, Animal hoặc Unknown.
+            Gợi ý loại dựa trên tên nguyên liệu nhìn thấy (ví dụ rau là Plant, thịt là Animal), không coi đây là xác nhận của người dùng.
+            Nếu tên nguyên liệu hoặc nguồn gốc còn mơ hồ, chọn Unknown. Không phân loại thành phần ẩn, nước dùng hay gia vị chưa nhìn thấy.
             unknownFactors nêu thành phần/nguồn gốc cần người dùng kiểm tra. followUpQuestions hỏi ngắn gọn về nước dùng, gia vị và thành phần động vật có thể có theo ngữ cảnh; cho phép trả lời không biết.
             Không đưa kết luận chay, tỷ lệ phần trăm hay cam kết an toàn dị ứng.
             """;
@@ -53,13 +56,15 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
                 return DishUnavailable("InvalidDishResponse");
             var name = ReadString(root, "suggestedDishName")?.Trim();
             var visible = ReadStringArray(root, "visibleIngredients");
+            var suggestedKinds = ReadIngredientKinds(root, visible?.Count ?? 0);
             var unknown = ReadStringArray(root, "unknownFactors");
             var questions = ReadStringArray(root, "followUpQuestions");
             if (visible is null || unknown is null || questions is null)
                 return DishUnavailable("InvalidDishResponse");
             if (string.IsNullOrWhiteSpace(name) && visible.Count == 0)
                 return DishUnavailable("UnrecognizableImage");
-            return new GeminiDishImageResponse(true, name, visible, unknown, questions);
+            return new GeminiDishImageResponse(true, name, visible, unknown, questions,
+                SuggestedIngredientKinds: suggestedKinds);
         }
         catch (JsonException)
         {
@@ -114,6 +119,18 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
             .Select(item => item!)
             .Take(20)
             .ToArray();
+    }
+
+    private static IReadOnlyList<IngredientKind> ReadIngredientKinds(JsonElement root, int count)
+    {
+        if (!root.TryGetProperty("suggestedIngredientKinds", out var value)
+            || value.ValueKind != JsonValueKind.Array || value.GetArrayLength() != count)
+            return Enumerable.Repeat(IngredientKind.Unknown, count).ToArray();
+
+        return value.EnumerateArray().Select(item =>
+            item.ValueKind == JsonValueKind.String
+            && Enum.TryParse<IngredientKind>(item.GetString(), true, out var kind)
+            && Enum.IsDefined(kind) ? kind : IngredientKind.Unknown).ToArray();
     }
 
     public async Task<GeminiChatResponse> GenerateChatReplyAsync(

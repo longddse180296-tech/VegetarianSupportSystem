@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X } from 'lucide-react'
 import { Select } from '../../../../shared/components/Select'
 import type { AdminVideoItem, VideoFormData } from '../types/adminVideos.types'
+import { uploadPublicImage } from '../../../../shared/api/publicImageApi'
 
 const videoSchema = z.object({
   title: z.string().min(5, 'Tiêu đề video phải từ 5 ký tự').max(150, 'Tối đa 150 ký tự'),
@@ -33,6 +34,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   onSubmit,
 }) => {
   const isEditing = Boolean(videoToEdit)
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
+  const [thumbnailUploadError, setThumbnailUploadError] = useState<string | null>(null)
 
   const {
     register,
@@ -57,8 +60,10 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 
   const categoryValue = watch('category')
   const resolutionValue = watch('resolution')
+  const thumbnailUrl = watch('thumbnailUrl')
 
   useEffect(() => {
+    setThumbnailUploadError(null)
     if (videoToEdit) {
       reset({
         title: videoToEdit.title,
@@ -83,6 +88,21 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       })
     }
   }, [videoToEdit, reset, isOpen])
+
+  const uploadThumbnail = async (file?: File) => {
+    if (!file || uploadingThumbnail) return
+    setUploadingThumbnail(true)
+    setThumbnailUploadError(null)
+    try {
+      setValue('thumbnailUrl', await uploadPublicImage(file), { shouldDirty: true })
+    } catch (reason) {
+      setThumbnailUploadError(
+        reason instanceof Error ? reason.message : 'Không thể tải ảnh lên. Vui lòng thử lại.',
+      )
+    } finally {
+      setUploadingThumbnail(false)
+    }
+  }
 
   if (!isOpen) return null
 
@@ -203,15 +223,37 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-700 block mb-1">
-                Ảnh Thumbnail URL (Tùy chọn)
+              <label htmlFor="admin-video-thumbnail" className="text-xs font-semibold text-gray-700 block mb-1">
+                Ảnh thumbnail <span className="font-normal text-gray-500">(tùy chọn)</span>
               </label>
               <input
-                type="url"
-                {...register('thumbnailUrl')}
-                placeholder="https://..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                id="admin-video-thumbnail"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isSubmitting || uploadingThumbnail}
+                className="w-full cursor-pointer px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-900 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-50 file:px-2.5 file:py-1 file:font-semibold file:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.target.value = ''
+                  void uploadThumbnail(file)
+                }}
               />
+              <p className="mt-1 text-[11px] text-gray-500">
+                {uploadingThumbnail ? 'Đang tải ảnh lên...' : 'JPG, PNG hoặc WEBP từ thiết bị, tối đa 10 MB.'}
+              </p>
+              {thumbnailUploadError && <p className="mt-1 text-[11px] text-red-500">{thumbnailUploadError}</p>}
+              {thumbnailUrl && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={thumbnailUrl} alt="Xem trước ảnh thumbnail" className="size-10 rounded-md object-cover" />
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-red-600 hover:underline"
+                    onClick={() => setValue('thumbnailUrl', '', { shouldDirty: true })}
+                  >
+                    Bỏ ảnh
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

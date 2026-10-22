@@ -2,6 +2,7 @@ import React from 'react'
 import {
   LayoutDashboard,
   FileText,
+  Bookmark,
   MessageSquare,
   Video,
   ChevronRight,
@@ -21,7 +22,7 @@ export interface BreadcrumbItem {
 }
 
 export interface UserProfileShellProps {
-  activeTab: 'overview' | 'my-articles' | 'my-comments' | 'my-videos'
+  activeTab: 'overview' | 'my-articles' | 'my-comments' | 'my-videos' | 'favorites'
   breadcrumbs?: BreadcrumbItem[]
   statBadge?: { count: number; label: string }
   userName?: string
@@ -81,6 +82,12 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
       icon: MessageSquare,
       badge: activeTab === 'my-comments' ? statBadge.count : undefined,
       path: '/profile/my-comments',
+    },
+    {
+      id: 'favorites',
+      label: 'Mục đã lưu',
+      icon: Bookmark,
+      path: '/favorites',
     },
   ]
 

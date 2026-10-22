@@ -17,7 +17,6 @@ import { getPublicFeaturedContent, type FeaturedContentItem } from '../../../sha
 import { Badge, EmptyState, SkeletonLoader } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 
-import { resolveDietType } from '../../recipes/api/recipeApi'
 import { inferVideoDietType } from '../../videos/api/backendVideos'
 
 interface HomePageProps {
@@ -46,7 +45,6 @@ interface HomeRecipeItem {
 
 function extractRecipeDietaryTypes(
   assessments?: Array<{ dietaryType: number | string; status: number | string }>,
-  title?: string,
 ): string[] {
   if (assessments && assessments.length > 0) {
     const isCompat = (typeNum: number, name: string) =>
@@ -64,12 +62,7 @@ function extractRecipeDietaryTypes(
     if (list.length > 0) return list
   }
 
-  const resolved = resolveDietType(assessments, title)
-  if (resolved.dietCategory === 'vegan') return ['Vegan']
-  if (resolved.dietCategory === 'lacto') return ['LactoVegetarian']
-  if (resolved.dietCategory === 'ovo') return ['OvoVegetarian']
-  if (resolved.dietCategory === 'ovo-lacto') return ['LactoOvoVegetarian']
-  return ['Vegan']
+  return []
 }
 
 type HomeSection = 'recipes' | 'restaurants' | 'videos' | 'articles'
@@ -123,21 +116,91 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               cookTime: `${r.cookTimeMinutes} phút`,
               calories: r.caloriesPerServing == null ? 'Chưa có dữ liệu calo' : `${Math.round(r.caloriesPerServing)} kcal`,
               imageUrl: r.imageUrl || '',
-              dietaryTypes: extractRecipeDietaryTypes(r.dietaryAssessments, r.name),
+              dietaryTypes: extractRecipeDietaryTypes(r.dietaryAssessments),
             })),
           )
         }
 
         if (restaurantResult.status === 'fulfilled') {
           setRestaurants(restaurantResult.value.slice(0, 3))
+          if (restaurantResult.value.length === 0) {
+            try {
+              const fallback = await apiClient.get<{ items: Array<{
+                id: string; name: string; address: string | null; imageUrl: string | null
+                dietaryTypes?: string[]
+              }> }>('/api/restaurants?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
+              setRestaurants(fallback.items.map((restaurant) => ({
+                id: restaurant.id,
+                contentType: 'Restaurant' as const,
+                title: restaurant.name,
+                description: null,
+                imageUrl: restaurant.imageUrl,
+                isPinned: false,
+                authorName: null,
+                publishedAt: null,
+                viewCount: null,
+                address: restaurant.address,
+                dietaryTypes: restaurant.dietaryTypes || [],
+              })))
+            } catch {
+              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'restaurants'])])
+            }
+          }
         }
 
         if (videoResult.status === 'fulfilled') {
           setVideos(videoResult.value.slice(0, 3))
+          if (videoResult.value.length === 0) {
+            try {
+              const fallback = await apiClient.get<{ items: Array<{
+                id: string; title: string; description: string | null; thumbnailUrl: string | null
+                viewCount: number | null; createdAtUtc: string | null
+              }> }>('/api/videos?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
+              setVideos(fallback.items.map((video) => ({
+                id: video.id,
+                contentType: 'Video' as const,
+                title: video.title,
+                description: video.description,
+                imageUrl: video.thumbnailUrl,
+                isPinned: false,
+                authorName: null,
+                publishedAt: video.createdAtUtc,
+                viewCount: video.viewCount,
+                address: null,
+                dietaryTypes: [],
+              })))
+            } catch {
+              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'videos'])])
+            }
+          }
         }
 
         if (articleResult.status === 'fulfilled') {
           setArticles(articleResult.value.slice(0, 3))
+          if (articleResult.value.length === 0) {
+            try {
+              const fallback = await apiClient.get<{ items: Array<{
+                id: string; title: string; category: string; categories?: string[]
+                coverImageUrl: string | null; publishedAt: string | null
+                dietaryTypes?: string[]
+              }> }>('/api/articles?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
+              setArticles(fallback.items.map((article) => ({
+                id: article.id,
+                contentType: 'Article' as const,
+                title: article.title,
+                description: article.category,
+                imageUrl: article.coverImageUrl,
+                isPinned: false,
+                authorName: null,
+                publishedAt: article.publishedAt,
+                viewCount: null,
+                address: null,
+                dietaryTypes: article.dietaryTypes || [],
+              })))
+            } catch {
+              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'articles'])])
+            }
+          }
         }
         const sections: HomeSection[] = ['recipes', 'restaurants', 'videos', 'articles']
         setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [sections[index]] : []))

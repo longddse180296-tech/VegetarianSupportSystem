@@ -19,6 +19,7 @@ internal static class RecipeMapping
         entity.ProteinGramPerServing,
         entity.CarbohydrateGramPerServing,
         entity.FatGramPerServing,
+        entity.DeclaredDietaryType,
         entity.IsActive,
         entity.CreatedAt,
         entity.UpdatedAt,
@@ -40,8 +41,16 @@ internal static class RecipeMapping
         entity.CookTimeMinutes,
         entity.ImageUrl,
         entity.CaloriesPerServing,
+        entity.DeclaredDietaryType,
         entity.IsActive,
-        DietaryRules.Classify(entity.RecipeIngredients.Select(x => x.Ingredient!)));
+        DietaryRules.Classify(entity.RecipeIngredients.Select(x => x.Ingredient!)),
+        entity.ProteinGramPerServing,
+        entity.CarbohydrateGramPerServing,
+        entity.FatGramPerServing,
+        entity.RecipeIngredients
+            .OrderBy(x => x.Ingredient!.Name)
+            .Select(x => x.Ingredient!.Name)
+            .ToArray());
 
     private static RecipeIngredientResponse ToIngredientResponse(RecipeIngredient row) => new(
         row.IngredientId,

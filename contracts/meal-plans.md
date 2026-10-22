@@ -77,7 +77,9 @@ Meal plans are available to authenticated `User` and `Admin` callers through `Au
       "caloriesPerServing": 360,
       "proteinGramPerServing": 20,
       "carbohydrateGramPerServing": 42,
-      "fatGramPerServing": 12
+      "fatGramPerServing": 12,
+      "swapCount": 0,
+      "ingredientNames": ["Đậu hũ", "Nấm"]
     }
   ],
   "shoppingItems": [

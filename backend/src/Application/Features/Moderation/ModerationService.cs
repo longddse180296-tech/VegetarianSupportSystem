@@ -1,10 +1,12 @@
 using Domain.Entities;
 using Domain.Enums;
+using Application.Features.Favorites;
 using Application.Features.Videos;
 
 namespace Application.Features.Moderation;
 
-public sealed class ModerationService(IModerationRepository repository, IVideoPublication videos)
+public sealed class ModerationService(IModerationRepository repository, IVideoPublication videos,
+    IFavoriteRepository? favorites = null)
 {
     public async Task<ModerationSubmission> SubmitFirstVideoAsync(Guid videoId, string ownerUserId,
         string title, string description, string mediaKey, CancellationToken ct)
@@ -267,6 +269,9 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
                 throw new ModerationException(ModerationError.Conflict, ex.Message);
             }
 
+            if (decision == ModerationDecisionType.Remove)
+                favorites?.RemoveAllByTarget(ToFavoriteTargetType(submission.ContentType), submission.ContentId);
+
             if (decision == ModerationDecisionType.Remove && submission.ContentType == ModeratedContentType.Video)
             {
                 await repository.ExecuteInTransactionAsync(async ct =>
@@ -279,6 +284,13 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         }
         return submission;
     }
+
+    private static FavoriteTargetType ToFavoriteTargetType(ModeratedContentType contentType) => contentType switch
+    {
+        ModeratedContentType.Article => FavoriteTargetType.Article,
+        ModeratedContentType.Video => FavoriteTargetType.Video,
+        _ => throw new ArgumentOutOfRangeException(nameof(contentType), contentType, "Unsupported favorite target.")
+    };
 
     private static void ValidatePage(int page, int pageSize)
     {

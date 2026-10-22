@@ -22,6 +22,7 @@ using Infrastructure.Documents;
 using Infrastructure.BackgroundJobs;
 using Application.Features.Videos;
 using Application.Features.FoodScanning;
+using Application.Features.Media;
 using Infrastructure.Storage;
 using Infrastructure.Email;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<IVideoRepository>(sp => sp.GetRequiredService<VideoRepository>());
         services.AddScoped<IVideoPublication>(sp => sp.GetRequiredService<VideoRepository>());
         services.AddSingleton<IPrivateMediaStore, LocalPrivateMediaStore>();
+        services.AddSingleton<IPublicImageStore, LocalPublicImageStore>();
         services.AddScoped<IFoodScanRepository, FoodScanRepository>();
         services.AddHostedService<ModerationAiWorker>();
         services.AddHttpClient<IGeminiService, GeminiService>(client =>

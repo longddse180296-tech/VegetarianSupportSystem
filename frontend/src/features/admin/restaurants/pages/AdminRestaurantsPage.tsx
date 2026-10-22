@@ -237,8 +237,8 @@ export const AdminRestaurantsPage = ({
               Tọa độ: {viewing.latitude ?? '—'}, {viewing.longitude ?? '—'}
             </p>
             <p>
-              Công thức liên quan:{' '}
-              {viewing.relatedRecipes.map((item) => item.name).join(', ') ||
+              Món ăn nổi bật:{' '}
+              {viewing.featuredDishes.map((item) => item.name).join(', ') ||
                 '—'}
             </p>
           </div>

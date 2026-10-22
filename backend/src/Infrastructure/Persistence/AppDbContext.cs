@@ -29,7 +29,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Restaurant> Restaurants => Set<Restaurant>();
     public DbSet<RestaurantDietaryType> RestaurantDietaryTypes => Set<RestaurantDietaryType>();
     public DbSet<RestaurantAmenity> RestaurantAmenities => Set<RestaurantAmenity>();
-    public DbSet<RestaurantRecipe> RestaurantRecipes => Set<RestaurantRecipe>();
+    public DbSet<RestaurantFeaturedDish> RestaurantFeaturedDishes => Set<RestaurantFeaturedDish>();
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<FeaturedContent> FeaturedContent => Set<FeaturedContent>();

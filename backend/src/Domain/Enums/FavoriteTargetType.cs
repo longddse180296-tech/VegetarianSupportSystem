@@ -4,5 +4,6 @@ public enum FavoriteTargetType
 {
     Recipe = 1,
     Video = 2,
-    Restaurant = 3
+    Restaurant = 3,
+    Article = 4
 }

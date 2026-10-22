@@ -61,7 +61,8 @@ public sealed record GeminiDishImageResponse(
     IReadOnlyList<string> VisibleIngredients,
     IReadOnlyList<string> UnknownFactors,
     IReadOnlyList<string> FollowUpQuestions,
-    string? ErrorCode = null);
+    string? ErrorCode = null,
+    IReadOnlyList<IngredientKind>? SuggestedIngredientKinds = null);
 
 public sealed record GeminiLabelResponse(bool IsAvailable, string? ExtractedText,
     bool IsIncomplete, string? ErrorCode = null);

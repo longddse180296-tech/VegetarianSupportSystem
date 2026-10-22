@@ -39,11 +39,12 @@ public sealed class AiChatProfileContextTests
         Assert.Equal(saved!.Bmi, root.GetProperty("bmi").GetDecimal());
         Assert.Equal(saved.EstimatedTdeeKcal, root.GetProperty("estimatedTdeeKcal").GetInt32());
         Assert.Equal("Maintain", root.GetProperty("weightGoal").GetString());
-        Assert.Equal("Quận 1", root.GetProperty("restaurantArea").GetString());
+        Assert.False(root.TryGetProperty("restaurantArea", out _));
         Assert.Equal("Đậu phộng", root.GetProperty("allergies")[0].GetString());
         Assert.Equal("Nấm", root.GetProperty("avoidedFoods")[0].GetString());
         Assert.DoesNotContain(user.Id, context);
         Assert.DoesNotContain(user.Email, context);
+        Assert.DoesNotContain("Quận 1", context);
         Assert.False(root.TryGetProperty("birthDate", out _));
     }
 

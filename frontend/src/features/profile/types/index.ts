@@ -48,7 +48,6 @@ export interface UserProfile {
   email: string
   avatarUrl?: string
   phoneNumber?: string
-  preferredRegion?: string
   dietaryType: DietaryType
   allergies: string[]
   allergyItems?: { id: string; name: string }[]
@@ -73,4 +72,5 @@ export interface RecentPost {
   publishedDate: string
   likeCount: number | null
   commentCount: number | null
+  status?: 'Draft' | 'Submitted' | 'PendingAdminReview' | 'Published' | 'RevisionRequested' | 'Rejected' | 'Removed'
 }

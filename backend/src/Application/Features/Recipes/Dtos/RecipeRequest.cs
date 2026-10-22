@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
+using Domain.Enums;
 
 namespace Application.Features.Recipes;
 
@@ -33,6 +34,8 @@ public sealed class RecipeRequest
     [Range(typeof(decimal), "0", "999999999", ParseLimitsInInvariantCulture = true)]
     [DecimalPrecision(3)]
     public decimal? FatGramPerServing { get; init; }
+    [Required]
+    public DietaryType? DeclaredDietaryType { get; init; }
     [Required, MinLength(1), MaxLength(200)]
     public RecipeIngredientRequest[] Ingredients { get; init; } = [];
 }

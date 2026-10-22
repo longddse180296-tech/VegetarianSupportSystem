@@ -72,7 +72,15 @@ internal static class CoreDataApiChecks
         Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Invalid origin", Origin = (IngredientOrigin)99 })).StatusCode == HttpStatusCode.BadRequest, "invalid origin 400");
         Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Negative calories", CaloriesPer100Gram = -1 })).StatusCode == HttpStatusCode.BadRequest, "negative nutrition 400");
         RecipeRequest Recipe(string name, params RecipeIngredientRequest[] rows) => new()
-        { CategoryId = category.Id, Name = name, Servings = 2, Instructions = "Cook", Ingredients = rows, CaloriesPerServing = 123.456m };
+        {
+            CategoryId = category.Id,
+            Name = name,
+            Servings = 2,
+            Instructions = "Cook",
+            DeclaredDietaryType = DietaryType.Vegan,
+            Ingredients = rows,
+            CaloriesPerServing = 123.456m
+        };
         RecipeIngredientRequest Row(Guid id, decimal quantity = 100) => new() { IngredientId = id, Quantity = quantity, Unit = "g" };
         foreach (var resource in new[] { "categories", "ingredients", "recipes" })
         {
@@ -80,7 +88,7 @@ internal static class CoreDataApiChecks
             {
                 "categories" => new CategoryRequest { Name = "Permission probe" },
                 "ingredients" => new IngredientRequest { Name = "Permission probe" },
-                "restaurants" => new RestaurantRequest { Name = "Permission probe", Address = "1 Test Street", DietaryTypes = [DietaryType.Vegan] },
+                "restaurants" => new RestaurantRequest { Name = "Permission probe", Address = "1 Test Street", DietaryType = DietaryType.Vegan },
                 _ => Recipe("Permission probe", Row(rice.Id))
             };
             foreach (var role in new[] { "Guest", "User" })
@@ -129,15 +137,22 @@ internal static class CoreDataApiChecks
             Longitude = 106.700806m,
             PriceFromVnd = 50_000,
             PriceToVnd = 180_000,
-            DietaryTypes = [DietaryType.Vegan, DietaryType.LactoOvoVegetarian],
+            DietaryType = DietaryType.Vegan,
             Amenities = ["Wi-Fi", "Parking"],
-            RelatedRecipeIds = [recipe.Id]
+            FeaturedDishes =
+            [
+                new RestaurantFeaturedDishRequest { Name = "Cơm đậu hũ", ImageUrl = "https://images.example.com/com-dau-hu.jpg" },
+                new RestaurantFeaturedDishRequest { Name = "Canh nấm", ImageUrl = "https://images.example.com/canh-nam.jpg" },
+                new RestaurantFeaturedDishRequest { Name = "Gỏi rau củ", ImageUrl = "https://images.example.com/goi-rau-cu.jpg" }
+            ]
         };
         var restaurantResult = await client.PostAsJsonAsync("/api/admin/restaurants", restaurantRequest);
         Check(restaurantResult.StatusCode == HttpStatusCode.Created && restaurantResult.Headers.Location is not null, "restaurant create 201 + Location");
         var restaurant = (await restaurantResult.Content.ReadFromJsonAsync<RestaurantResponse>())!;
-        Check(restaurant.Name == "Chay Moc" && restaurant.RelatedRecipes.Single().Id == recipe.Id && restaurant.DietaryTypes.Count == 2,
-            "restaurant trims data and retains related recipe");
+        Check(restaurant.Name == "Chay Moc" && restaurant.FeaturedDishes.Count == 3 &&
+            restaurant.FeaturedDishes.Select(dish => dish.Name).SequenceEqual(["Cơm đậu hũ", "Canh nấm", "Gỏi rau củ"]) &&
+            restaurant.DietaryType == DietaryType.Vegan,
+            "restaurant trims data and retains three featured dishes");
         var nearby = await client.GetFromJsonAsync<RestaurantPage>("/api/restaurants?latitude=10.776889&longitude=106.700806&maxDistanceKm=1");
         Check(nearby!.Items.Single().Id == restaurant.Id && nearby.Items.Single().DistanceKm == 0m, "restaurant distance filter uses supplied location");
         Check((await client.GetAsync("/api/restaurants?latitude=10")).StatusCode == HttpStatusCode.BadRequest, "restaurant rejects incomplete coordinates");
@@ -145,7 +160,8 @@ internal static class CoreDataApiChecks
         {
             Name = "CHAY MOC",
             Address = restaurantRequest.Address,
-            DietaryTypes = restaurantRequest.DietaryTypes
+            DietaryType = restaurantRequest.DietaryType,
+            FeaturedDishes = restaurantRequest.FeaturedDishes
         })).StatusCode == HttpStatusCode.Conflict,
             "restaurant duplicate name 409");
         var recipeFavoriteResult = await client.PostAsJsonAsync("/api/favorites", new FavoriteRequest

@@ -11,6 +11,7 @@ Available targets are:
 - `Recipe`: only an active recipe.
 - `Restaurant`: only an active restaurant.
 - `Video`: only a Video submission whose current version is published by the BE3 moderation module.
+- `Article`: only the currently published version of an article.
 
 The API refuses an absent, inactive, unpublished, removed, or unsupported target with `404`. This prevents a saved list from exposing unpublished content.
 
@@ -25,7 +26,7 @@ The API refuses an absent, inactive, unpublished, removed, or unsupported target
 }
 ```
 
-`targetType` is `Recipe`, `Video`, or `Restaurant`. A duplicate returns `409`. A successful request returns `201`:
+`targetType` is `Recipe`, `Video`, `Restaurant`, or `Article`. A duplicate returns `409`. A successful request returns `201`:
 
 ```json
 {
@@ -62,7 +63,7 @@ The API refuses an absent, inactive, unpublished, removed, or unsupported target
 }
 ```
 
-If a previously saved target is later inactive, unpublished, or removed, it is omitted from list results. The record stays private and can still be deleted by its owner.
+If Admin removes a published `Article` or `Video`, or deactivates a `Restaurant`, all saved links to that exact target are deleted in the same operation. The item disappears from every user's saved list and does not reappear if a new item with the same name is later created. An inactive recipe is only omitted from list results; its saved link is retained until the owner removes it.
 
 ## Errors
 

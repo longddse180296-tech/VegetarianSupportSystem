@@ -21,13 +21,13 @@ OpenAPI runtime tại `/openapi/v1.json` là schema máy đọc được. Tài l
 | PUT | `/api/admin/restaurants/{id}` | Admin | 200, thay toàn bộ dữ liệu nhập |
 | POST | `/api/admin/restaurants/{id}/deactivate` | Admin | 204; gọi lại vẫn 204 |
 
-Không xóa vật lý. Bản ghi ngừng sử dụng không còn nằm trong API public, nhưng Admin vẫn xem được để giữ lịch sử favorite/liên kết cũ.
+Không xóa vật lý. Bản ghi ngừng sử dụng không còn nằm trong API public, nhưng Admin vẫn xem được. Khi ngừng sử dụng, hệ thống xóa các favorite đang trỏ đến nhà hàng đó để không giữ liên kết đã bị ẩn.
 
 ## List và vị trí
 
 Danh sách nhận `pageNumber=1`, `pageSize=20` (1–100), `search`, `district`, `dietaryType`, `latitude`, `longitude`, `maxDistanceKm`.
 
-- `search` tìm tên, địa chỉ hoặc khu vực; `district` lọc khu vực; các filter kết hợp AND.
+- `search` tìm tên, địa chỉ hoặc khu vực; `district` lọc khu vực; các filter kết hợp AND. Tìm khu vực không phân biệt hoa/thường, dấu tiếng Việt hoặc dạng viết tắt phổ biến như `Quận 3`, `Quan 3`, `Q.3`.
 - `dietaryType`: `1` Vegan, `2` LactoVegetarian, `3` OvoVegetarian, `4` LactoOvoVegetarian.
 - `latitude` và `longitude` phải cùng có hoặc cùng không có. Latitude từ -90 đến 90, longitude từ -180 đến 180, tối đa 6 chữ số lẻ.
 - Khi có tọa độ, API tính `distanceKm` theo công thức Haversine và sắp xếp theo khoảng cách rồi tên. Không có tọa độ, sắp xếp theo tên rồi ID.
@@ -36,7 +36,7 @@ Danh sách nhận `pageNumber=1`, `pageSize=20` (1–100), `search`, `district`,
 
 ## Request Admin
 
-`name`, `address` và ít nhất một `dietaryTypes` là bắt buộc. `dietaryTypes` không trùng. `amenities` là danh sách tùy chọn, không trùng, mỗi mục tối đa 120 ký tự. `relatedRecipeIds` là danh sách công thức đang hoạt động, không trùng; dùng để hiển thị món/công thức liên quan.
+`name`, `address`, `dietaryType` và `featuredDishes` là bắt buộc. Admin chọn đúng một giá trị enum JSON: `"Vegan"`, `"LactoVegetarian"`, `"OvoVegetarian"`, `"LactoOvoVegetarian"`. `amenities` là danh sách tùy chọn, không trùng, mỗi mục tối đa 120 ký tự. `featuredDishes` phải có đúng 3 món, mỗi món nhập tên riêng, không trùng và ảnh món ăn đã tải từ thiết bị. Các món này là thực đơn nổi bật của nhà hàng, không liên kết với kho công thức hệ thống.
 
 ```json
 {
@@ -53,19 +53,23 @@ Danh sách nhận `pageNumber=1`, `pageSize=20` (1–100), `search`, `district`,
   "priceToVnd": 180000,
   "imageUrl": "https://images.example.com/chay-moc.jpg",
   "source": "Thông tin do Admin cập nhật",
-  "dietaryTypes": [1, 4],
+  "dietaryType": "Vegan",
   "amenities": ["Wi-Fi", "Chỗ đỗ xe"],
-  "relatedRecipeIds": []
+  "featuredDishes": [
+    { "name": "Cơm niêu nấm", "imageUrl": "https://app.example/api/public-images/abc" },
+    { "name": "Lẩu nấm chay", "imageUrl": "https://app.example/api/public-images/def" },
+    { "name": "Gỏi cuốn rau củ", "imageUrl": "https://app.example/api/public-images/ghi" }
+  ]
 }
 ```
 
-`priceFromVnd`/`priceToVnd` là giá tham khảo bằng VND, không âm; nếu có cả hai thì giá trên không nhỏ hơn giá dưới. `imageUrl`/`websiteUrl` chỉ nhận http/https. Không upload file qua endpoint này; xử lý storage riêng khi được triển khai.
+`priceFromVnd`/`priceToVnd` là giá tham khảo bằng VND, không âm; nếu có cả hai thì giá trên không nhỏ hơn giá dưới. `imageUrl`/`websiteUrl` chỉ nhận http/https. Ảnh đại diện và ảnh từng món được tải trước qua `POST /api/me/images`; endpoint nhà hàng chỉ nhận URL ảnh do storage trả về.
 
-Chi tiết trả địa chỉ/liên hệ/giờ mở cửa/khoảng giá/tiện ích/chế độ ăn khai báo, nguồn và `dataUpdatedAt`; `relatedRecipes` chỉ trả công thức đang hoạt động ở API public. Trường `isActive` có trong cả list Admin và chi tiết để Admin nhận biết trạng thái.
+Chi tiết trả địa chỉ/liên hệ/giờ mở cửa/khoảng giá/tiện ích/chế độ ăn khai báo, nguồn, `dataUpdatedAt` và `featuredDishes` theo thứ tự `displayOrder`. Response giữ `dietaryTypes` để đọc dữ liệu cũ và thêm `dietaryType` khi bản ghi có đúng một loại. Trường `isActive` có trong cả list Admin và chi tiết để Admin nhận biết trạng thái.
 
 ## Lỗi
 
-- 400: phân trang, filter/tọa độ không hợp lệ, dữ liệu request sai, công thức liên quan không tồn tại/đã ngừng dùng.
+- 400: phân trang, filter/tọa độ không hợp lệ, dữ liệu request sai, thiếu/không đúng 3 món nổi bật, tên món trùng hoặc ảnh món không hợp lệ.
 - 401: chưa đăng nhập ở Admin endpoint; 403: không có role Admin.
 - 404: nhà hàng không tồn tại hoặc đã ngừng dùng ở public endpoint.
 - 409: tên nhà hàng hoặc tiện ích bị trùng trong cùng nhà hàng.

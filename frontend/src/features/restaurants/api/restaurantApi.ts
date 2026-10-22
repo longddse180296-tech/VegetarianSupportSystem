@@ -49,7 +49,7 @@ interface BackendRestaurantResponse {
   updatedAt: string | null
   dietaryTypes: Array<string | number>
   amenities: string[]
-  relatedRecipes: Array<{ id: string; name: string; imageUrl: string | null }>
+  featuredDishes: Array<{ id: string; name: string; imageUrl: string; displayOrder: number }>
   distanceKm: number | null
 }
 
@@ -175,7 +175,7 @@ function mapDetailToRestaurant(item: BackendRestaurantResponse): Restaurant {
     hasTakeAway: false,
     acceptsBooking: false,
     createdAt: item.createdAt,
-    relatedRecipes: item.relatedRecipes || [],
+    featuredDishes: item.featuredDishes || [],
   }
 }
 
@@ -282,15 +282,16 @@ export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
     const res = await apiClient.get<BackendRestaurantResponse>(url, {
       requiresAuth: false,
     })
-    if (res?.relatedRecipes && res.relatedRecipes.length > 0) {
-      return res.relatedRecipes.map((r, idx) => ({
-        id: r.id || `dish_${idx}`,
-        name: r.name,
-        desc: 'Món chay đặc trưng thơm ngon, thanh đạm và giàu dinh dưỡng.',
-        priceVND: 45000 + idx * 15000,
+    if (res?.featuredDishes && res.featuredDishes.length > 0) {
+      return res.featuredDishes.map((dish, idx) => ({
+        id: dish.id || `dish_${idx}`,
+        name: dish.name,
+        desc: 'Món chay nổi bật do nhà hàng cung cấp.',
+        priceVND: undefined,
         tag: 'Món nổi bật',
         tagColor: 'bg-[#1F7A3F] text-white',
-        imgSeed: r.name,
+        imgSeed: dish.name,
+        imageUrl: dish.imageUrl,
       }))
     }
   } catch (err) {

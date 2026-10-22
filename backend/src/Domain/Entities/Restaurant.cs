@@ -25,7 +25,7 @@ public sealed class Restaurant
 
     public ICollection<RestaurantDietaryType> DietaryTypes { get; set; } = new List<RestaurantDietaryType>();
     public ICollection<RestaurantAmenity> Amenities { get; set; } = new List<RestaurantAmenity>();
-    public ICollection<RestaurantRecipe> RelatedRecipes { get; set; } = new List<RestaurantRecipe>();
+    public ICollection<RestaurantFeaturedDish> FeaturedDishes { get; set; } = new List<RestaurantFeaturedDish>();
 }
 
 public sealed class RestaurantDietaryType
@@ -43,10 +43,12 @@ public sealed class RestaurantAmenity
     public string Name { get; set; } = string.Empty;
 }
 
-public sealed class RestaurantRecipe
+public sealed class RestaurantFeaturedDish
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid RestaurantId { get; set; }
     public Restaurant? Restaurant { get; set; }
-    public Guid RecipeId { get; set; }
-    public Recipe? Recipe { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string ImageUrl { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
 }

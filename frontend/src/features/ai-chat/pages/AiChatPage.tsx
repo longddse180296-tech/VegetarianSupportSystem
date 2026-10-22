@@ -76,7 +76,9 @@ function AiMessageBubble({
 }
 import {
   buildUserMessage,
-  getChatHistoryFigma,
+  createChatConversation,
+  getChatHistory,
+  getConversationMessages,
   getFaqsFigma,
   getUserProfileFields,
   sendMessageToAi,
@@ -114,6 +116,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   })
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [draft, setDraft] = useState(initialQuery)
   const [isBotBusy, setIsBotBusy] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
@@ -125,6 +128,8 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   const [profileFields, setProfileFields] = useState<PersonalProfileField[]>([])
   const [faqs, setFaqs] = useState<FaqItem[]>([])
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
+  const [historyError, setHistoryError] = useState(false)
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   const [isLoadingInit, setIsLoadingInit] = useState(true)
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -146,6 +151,16 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
     }
   }, [])
 
+  const refreshHistory = useCallback(async () => {
+    if (appRole !== 'User') return
+    try {
+      setHistoryItems(await getChatHistory())
+      setHistoryError(false)
+    } catch {
+      setHistoryError(true)
+    }
+  }, [appRole])
+
   useEffect(() => {
     const handleProfileUpdate = () => {
       void refreshProfileFields()
@@ -164,9 +179,13 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
       const [fields, faqsData, historyData] = await Promise.all([
         getUserProfileFields(),
         getFaqsFigma(),
-        getChatHistoryFigma(),
+        appRole === 'User' ? getChatHistory().catch(() => {
+          if (alive) setHistoryError(true)
+          return []
+        }) : Promise.resolve([]),
       ])
       if (!alive) return
+      setActiveConversationId(null)
       setProfileFields(fields)
       setFaqs(faqsData)
       setHistoryItems(historyData)
@@ -236,7 +255,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   // Send message and trigger real-time typing stream
   const handleSend = async (forcedText?: string) => {
     const textToSend = (forcedText ?? draft).trim()
-    if (!textToSend || isBotBusy) return
+    if (!textToSend || isBotBusy || isLoadingConversation || isLoadingInit) return
 
     if (!consumeQuota()) return
 
@@ -246,7 +265,12 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
     setIsBotBusy(true)
 
     try {
-      const response = await sendMessageToAi('user', textToSend, null)
+      let conversationId = activeConversationId
+      if (appRole === 'User' && !conversationId) {
+        conversationId = await createChatConversation()
+        setActiveConversationId(conversationId)
+      }
+      const response = await sendMessageToAi('user', textToSend, conversationId)
 
       // Initialize empty bot message for streaming
       const botMsgId = response.id
@@ -294,14 +318,35 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
           timestamp: new Date().toISOString(),
         },
       ])
+    } finally {
+      void refreshHistory()
+    }
+  }
+
+  const handleSelectHistory = async (conversationId: string) => {
+    if (isBotBusy || isLoadingConversation) return
+    setIsLoadingConversation(true)
+    try {
+      const savedMessages = await getConversationMessages(conversationId)
+      setMessages(savedMessages)
+      setActiveConversationId(conversationId)
+      setDraft('')
+      setHistoryError(false)
+    } catch {
+      setHistoryError(true)
+    } finally {
+      setIsLoadingConversation(false)
     }
   }
 
   // Reset Conversation
   const handleResetChat = () => {
+    if (isBotBusy || isLoadingConversation) return
     if (cancelStreamRef.current) cancelStreamRef.current()
     setIsBotBusy(false)
     setStreamingMessageId(null)
+    setActiveConversationId(null)
+    setDraft('')
     setMessages([
       {
         id: `msg-${Date.now()}`,
@@ -360,6 +405,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
               <button
                 type="button"
                 onClick={handleResetChat}
+                disabled={isBotBusy || isLoadingConversation}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-[#2E7D32] hover:border-emerald-300 hover:bg-emerald-50/50 shadow-2xs transition active:scale-95 cursor-pointer"
                 title="Bắt đầu phiên hội thoại mới"
               >
@@ -374,7 +420,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
               onScroll={handleScrollMessages}
               className="flex-1 space-y-5 overflow-y-auto p-5 sm:p-6 bg-[#F8FAF9]"
             >
-              {isLoadingInit ? (
+              {isLoadingInit || isLoadingConversation ? (
                 <div className="space-y-4">
                   <div className="h-12 w-2/3 bg-slate-100 animate-pulse rounded-2xl" />
                   <div className="h-28 w-5/6 bg-slate-100 animate-pulse rounded-2xl" />
@@ -639,7 +685,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
                       void handleSend()
                     }
                   }}
-                  disabled={isBotBusy || guestState.locked}
+                  disabled={isBotBusy || isLoadingConversation || guestState.locked}
                   className="flex-1 bg-transparent border-none text-[14px] text-slate-800 placeholder:text-slate-400 px-3 focus:outline-none"
                 />
 
@@ -657,7 +703,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
                 {/* Send Button with anti-spam disabled and loading state */}
                 <button
                   type="button"
-                  disabled={isBotBusy || !draft.trim() || guestState.locked}
+                  disabled={isBotBusy || isLoadingConversation || !draft.trim() || guestState.locked}
                   onClick={() => void handleSend()}
                   aria-label="Gửi câu hỏi"
                   className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white disabled:opacity-40 transition-all cursor-pointer disabled:cursor-not-allowed shadow-xs active:scale-95"
@@ -752,7 +798,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
                           {f.value}
                         </span>
                       ) : f.key === 'allergy' ? (
-                        f.value !== 'Không có' ? (
+                        f.tone === 'warn' ? (
                           <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
                             <TriangleAlert size={11} />
                             {f.value}
@@ -831,7 +877,11 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
               </div>
 
               <div className="space-y-2">
-                {historyItems.length === 0 ? (
+                {historyError ? (
+                  <div className="py-4 text-center text-xs text-rose-600">
+                    Không thể tải lịch sử. <button type="button" onClick={() => void refreshHistory()} className="font-semibold underline">Thử lại</button>
+                  </div>
+                ) : historyItems.length === 0 ? (
                   <div className="py-4 text-center text-xs text-slate-400">
                     Chưa có lịch sử hội thoại nào.
                   </div>
@@ -840,8 +890,10 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => void handleSend(item.title)}
-                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 hover:border-emerald-200 border border-transparent transition group cursor-pointer"
+                      onClick={() => void handleSelectHistory(item.id)}
+                      disabled={isBotBusy || isLoadingConversation}
+                      aria-current={activeConversationId === item.id ? 'true' : undefined}
+                      className={`w-full text-left p-2.5 rounded-xl hover:bg-slate-50 hover:border-emerald-200 border transition group cursor-pointer disabled:cursor-not-allowed ${activeConversationId === item.id ? 'border-emerald-300 bg-emerald-50' : 'border-transparent'}`}
                     >
                       <div className="text-[13px] font-bold text-slate-800 group-hover:text-[#2E7D32] truncate max-w-full">
                         {item.title}

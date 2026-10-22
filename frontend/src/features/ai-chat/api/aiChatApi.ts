@@ -57,7 +57,7 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
           LactoOvoVegetarian: 'Trứng & Sữa (Lacto-ovo)',
           'Lacto-ovo vegetarian': 'Trứng & Sữa (Lacto-ovo)',
         }
-        const dietLabel = p.diet && dietMap[p.diet] ? dietMap[p.diet] : 'Thuần chay (Vegan)'
+        const dietLabel = p.diet && dietMap[p.diet] ? dietMap[p.diet] : 'Chưa thiết lập'
 
         const categoryMap: Record<string, string> = {
           Underweight: 'Thiếu cân',
@@ -69,11 +69,12 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
           overweight: 'Thừa cân',
           obese: 'Béo phì',
         }
-        const catLabel =
-          p.adultBmiCategory && categoryMap[p.adultBmiCategory]
-            ? categoryMap[p.adultBmiCategory]
-            : 'Bình thường'
-        const bmiVal = p.bmi ? `${p.bmi.toFixed(1)} (${catLabel})` : '22.5 (Bình thường)'
+        const catLabel = p.adultBmiCategory && categoryMap[p.adultBmiCategory]
+          ? categoryMap[p.adultBmiCategory]
+          : 'Chưa phân loại'
+        const bmiVal = typeof p.bmi === 'number'
+          ? `${p.bmi.toFixed(1)} (${catLabel})`
+          : 'Chưa đủ dữ liệu'
 
         const goalMap: Record<string, string> = {
           Lose: 'Giảm mỡ & thanh lọc cơ thể',
@@ -87,14 +88,15 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
           muscle_gain: 'Tăng cân & phát triển cơ bắp',
           general_health: 'Khám phá món chay khoa học',
         }
-        const goalLabel =
-          p.weightGoal && goalMap[p.weightGoal] ? goalMap[p.weightGoal] : 'Duy trì cân nặng'
+        const goalLabel = p.weightGoal && goalMap[p.weightGoal]
+          ? goalMap[p.weightGoal]
+          : 'Chưa thiết lập'
 
         const allergies = p.allergies
         const hasAllergies = Boolean(allergies && allergies.length > 0)
         const allergiesLabel = allergies && allergies.length > 0
           ? allergies.map((a) => a.name).join(', ')
-          : 'Không có'
+          : 'Chưa khai báo'
 
         return [
           { key: 'diet', label: 'Chế độ ăn', value: dietLabel, tone: 'ok' },
@@ -104,7 +106,7 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
             key: 'allergy',
             label: 'Dị ứng cảnh báo',
             value: allergiesLabel,
-            tone: hasAllergies ? 'warn' : 'ok',
+            tone: hasAllergies ? 'warn' : 'soft',
           },
         ]
       }
@@ -120,28 +122,31 @@ export async function getFaqsFigma(): Promise<FaqItem[]> {
   return FAQS_FIGMA
 }
 
-export async function getChatHistoryFigma(): Promise<HistoryItem[]> {
-  const token = getStoredToken()
-  if (token) {
-    try {
-      const page = await apiClient.get<{
-        items: Array<{ id: string; createdAtUtc: string; updatedAtUtc: string }>
-      }>('/api/ai-chat/conversations?page=1&pageSize=5')
-      if (page && Array.isArray(page.items) && page.items.length > 0) {
-        return page.items.map((c, idx) => ({
-          id: c.id,
-          title: `Tư vấn dinh dưỡng #${idx + 1}`,
-          messages: 4,
-          dateLabel: new Date(c.updatedAtUtc).toLocaleDateString('vi-VN'),
-          tone: idx === 0 ? 'recent' : idx === 1 ? 'mid' : 'old',
-        }))
-      }
-    } catch (err) {
-      console.error('[aiChatApi.getChatHistoryFigma] Lỗi khi gọi /api/ai-chat/conversations?page=1&pageSize=5', err);
-    }
-  }
+export async function getChatHistory(): Promise<HistoryItem[]> {
+  if (!getStoredToken()) return []
 
-  return []
+  const page = await apiClient.get<{
+    items: Array<{ id: string; updatedAtUtc: string }>
+  }>('/api/ai-chat/conversations?page=1&pageSize=5')
+  const details = await Promise.all((page?.items ?? []).map(async (conversation) => {
+    const firstPage = await apiClient.get<{
+      items: Array<{ role: string; content: string }>
+      totalCount: number
+    }>(`/api/ai-chat/conversations/${conversation.id}/messages?page=1&pageSize=1`)
+    if (!firstPage?.totalCount) return null
+    const firstMessage = firstPage.items[0]
+    const title = firstMessage?.role.toLowerCase() === 'user'
+      ? firstMessage.content.trim().replace(/\s+/g, ' ')
+      : 'Cuộc trò chuyện'
+    return {
+      id: conversation.id,
+      title: title.length > 48 ? `${title.slice(0, 48).trimEnd()}…` : title,
+      messages: firstPage.totalCount,
+      dateLabel: new Date(conversation.updatedAtUtc).toLocaleDateString('vi-VN'),
+      tone: 'recent',
+    } satisfies HistoryItem
+  }))
+  return details.filter((item): item is NonNullable<typeof item> => item !== null)
 }
 
 export async function getDefaultBmi(): Promise<BMIResult | null> {
@@ -254,6 +259,12 @@ export function buildUserMessage(content: string): ChatMessage {
   }
 }
 
+export async function createChatConversation(): Promise<string> {
+  const conversation = await apiClient.post<{ id: string }>('/api/ai-chat/conversations')
+  if (!conversation?.id) throw new Error('Không thể tạo hội thoại mới.')
+  return conversation.id
+}
+
 export async function sendMessageToAi(
   _role: ChatRole,
   content: string,
@@ -263,16 +274,8 @@ export async function sendMessageToAi(
 
   // 1. Try real User conversation if logged in
   if (token) {
-    let convId = _conversationId
-    if (!convId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(convId)) {
-      const created = await apiClient.post<{ id: string }>('/api/ai-chat/conversations')
-      if (created?.id) {
-        convId = created.id
-      }
-    }
-
-    if (convId) {
-      const userMsgUrl = `/api/ai-chat/conversations/${convId}/messages`
+    if (_conversationId) {
+      const userMsgUrl = `/api/ai-chat/conversations/${_conversationId}/messages`
       try {
         const sub = await apiClient.post<{
           userMessage: { id: string; content: string; createdAtUtc: string }
@@ -352,10 +355,11 @@ export async function getConversationMessages(
   conversationId: string,
 ): Promise<ChatMessage[]> {
   const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)
-  if (!isGuid || !getStoredToken()) return []
+  if (!isGuid || !getStoredToken()) throw new Error('Không thể mở hội thoại này.')
 
-  const convMsgsUrl = `/api/ai-chat/conversations/${conversationId}/messages?page=1&pageSize=50`
-  try {
+  const messages: ChatMessage[] = []
+  let page = 1
+  while (true) {
     const res = await apiClient.get<{
       items: Array<{
         id: string
@@ -363,10 +367,10 @@ export async function getConversationMessages(
         content: string
         createdAtUtc: string
       }>
-    }>(convMsgsUrl)
-
-    if (res && Array.isArray(res.items)) {
-      return res.items.map((m) => {
+      totalCount: number
+    }>(`/api/ai-chat/conversations/${conversationId}/messages?page=${page}&pageSize=100`)
+    if (!res || !Array.isArray(res.items)) throw new Error('Không thể tải tin nhắn của hội thoại.')
+    messages.push(...res.items.map((m): ChatMessage => {
         const isAsst = m.role.toLowerCase() === 'assistant'
         return {
           id: m.id,
@@ -375,10 +379,8 @@ export async function getConversationMessages(
           content: m.content,
           timestamp: m.createdAtUtc,
         }
-      })
-    }
-  } catch (err) {
-    console.error("[aiChatApi.getConversationMessages] Lỗi khi gọi API: " + convMsgsUrl, err);
+      }))
+    if (res.items.length === 0 || messages.length >= res.totalCount) return messages
+    page += 1
   }
-  return [];
 }

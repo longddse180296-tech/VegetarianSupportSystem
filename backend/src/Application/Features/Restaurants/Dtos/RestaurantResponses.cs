@@ -12,10 +12,11 @@ public sealed record RestaurantSummary(
     int? PriceToVnd,
     bool IsActive,
     IReadOnlyList<DietaryType> DietaryTypes,
+    DietaryType? DietaryType,
     IReadOnlyList<string> Amenities,
     decimal? DistanceKm);
 
-public sealed record RestaurantRelatedRecipe(Guid Id, string Name, string? ImageUrl);
+public sealed record RestaurantFeaturedDishResponse(Guid Id, string Name, string ImageUrl, int DisplayOrder);
 
 public sealed record RestaurantResponse(
     Guid Id,
@@ -37,8 +38,9 @@ public sealed record RestaurantResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     IReadOnlyList<DietaryType> DietaryTypes,
+    DietaryType? DietaryType,
     IReadOnlyList<string> Amenities,
-    IReadOnlyList<RestaurantRelatedRecipe> RelatedRecipes,
+    IReadOnlyList<RestaurantFeaturedDishResponse> FeaturedDishes,
     decimal? DistanceKm);
 
 public sealed record RestaurantPage(

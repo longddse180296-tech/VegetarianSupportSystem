@@ -129,6 +129,22 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Articles", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.ArticleCategory", b =>
+                {
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("ArticleId", "Category");
+
+                    b.HasIndex("ArticleId");
+
+                    b.ToTable("ArticleCategories", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.ArticleDietaryType", b =>
                 {
                     b.Property<Guid>("ArticleId")
@@ -189,6 +205,22 @@ namespace Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ArticleVersions", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ArticleVersionCategory", b =>
+                {
+                    b.Property<Guid>("ArticleVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("ArticleVersionId", "Category");
+
+                    b.HasIndex("ArticleVersionId");
+
+                    b.ToTable("ArticleVersionCategories", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.ArticleVersionDietaryType", b =>
@@ -607,6 +639,11 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
 
+                    b.Property<int>("SwapCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("TotalTimeMinutes")
                         .HasColumnType("int");
 
@@ -980,6 +1017,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<int?>("DeclaredDietaryType")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -1191,19 +1231,40 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("RestaurantDietaryTypes", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.RestaurantRecipe", b =>
+            modelBuilder.Entity("Domain.Entities.RestaurantFeaturedDish", b =>
                 {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .UseCollation("Latin1_General_100_CI_AS");
+
                     b.Property<Guid>("RestaurantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("RecipeId")
-                        .HasColumnType("uniqueidentifier");
+                    b.HasKey("Id");
 
-                    b.HasKey("RestaurantId", "RecipeId");
+                    b.HasIndex("RestaurantId", "DisplayOrder")
+                        .IsUnique();
 
-                    b.HasIndex("RecipeId");
+                    b.HasIndex("RestaurantId", "Name")
+                        .IsUnique();
 
-                    b.ToTable("RestaurantRecipes", (string)null);
+                    b.ToTable("RestaurantFeaturedDishes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RestaurantFeaturedDishes_DisplayOrder", "[DisplayOrder] BETWEEN 0 AND 2");
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.RevokedAccessToken", b =>
@@ -1476,6 +1537,17 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Entities.ArticleCategory", b =>
+                {
+                    b.HasOne("Domain.Entities.Article", "Article")
+                        .WithMany("Categories")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+                });
+
             modelBuilder.Entity("Domain.Entities.ArticleDietaryType", b =>
                 {
                     b.HasOne("Domain.Entities.Article", "Article")
@@ -1502,6 +1574,17 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Submission");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ArticleVersionCategory", b =>
+                {
+                    b.HasOne("Domain.Entities.ArticleVersion", "ArticleVersion")
+                        .WithMany("Categories")
+                        .HasForeignKey("ArticleVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ArticleVersion");
                 });
 
             modelBuilder.Entity("Domain.Entities.ArticleVersionDietaryType", b =>
@@ -1651,21 +1734,13 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Restaurant");
                 });
 
-            modelBuilder.Entity("Domain.Entities.RestaurantRecipe", b =>
+            modelBuilder.Entity("Domain.Entities.RestaurantFeaturedDish", b =>
                 {
-                    b.HasOne("Domain.Entities.Recipe", "Recipe")
-                        .WithMany()
-                        .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Domain.Entities.Restaurant", "Restaurant")
-                        .WithMany("RelatedRecipes")
+                        .WithMany("FeaturedDishes")
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Recipe");
 
                     b.Navigation("Restaurant");
                 });
@@ -1699,6 +1774,8 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.Article", b =>
                 {
+                    b.Navigation("Categories");
+
                     b.Navigation("DietaryTypes");
 
                     b.Navigation("Versions");
@@ -1706,6 +1783,8 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.ArticleVersion", b =>
                 {
+                    b.Navigation("Categories");
+
                     b.Navigation("DietaryTypes");
                 });
 
@@ -1747,7 +1826,7 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Navigation("DietaryTypes");
 
-                    b.Navigation("RelatedRecipes");
+                    b.Navigation("FeaturedDishes");
                 });
 
             modelBuilder.Entity("Domain.Entities.User", b =>

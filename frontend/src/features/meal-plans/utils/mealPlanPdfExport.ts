@@ -339,9 +339,10 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
 export function exportShoppingListPdf(plan: SavedPlan): void {
   const startDateStr = formatPlanDate(plan.weekStartDate)
   const endDateStr = formatPlanDate(addPlanDays(plan.weekStartDate, 6))
+  const itemsToBuy = plan.shoppingItems.filter((item) => item.quantityToBuy > 0)
 
   let itemsHtml = ''
-  plan.shoppingItems.forEach((item, index) => {
+  itemsToBuy.forEach((item, index) => {
     itemsHtml += `<tr>
       <td style="width: 40px; text-align: center;">
         <span class="checkbox-box"></span>
@@ -361,6 +362,9 @@ export function exportShoppingListPdf(plan: SavedPlan): void {
       </td>
     </tr>`
   })
+  if (!itemsHtml) {
+    itemsHtml = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: #64748b;">Bạn đã có đủ nguyên liệu cho thực đơn này.</td></tr>'
+  }
 
   const htmlBody = `
     <div class="header-bar">
@@ -376,7 +380,7 @@ export function exportShoppingListPdf(plan: SavedPlan): void {
 
     <h1 class="doc-title">Danh sách nguyên liệu cần mua (21 bữa)</h1>
     <div class="info-card">
-      <div class="info-item">Tổng số loại nguyên liệu: <strong>${plan.shoppingItems.length} loại</strong></div>
+      <div class="info-item">Tổng số loại nguyên liệu cần mua: <strong>${itemsToBuy.length} loại</strong></div>
       <div class="info-item">Chế độ ăn: <strong>${PLAN_DIET_LABELS[plan.profileDiet]}</strong></div>
       <div class="info-item" style="color: #2E7D32;">✓ Đã tự động đối soát và trừ số lượng sẵn có trong Tủ bếp</div>
     </div>

@@ -31,21 +31,21 @@ Recipes có các filter tùy chọn, kết hợp bằng AND và áp dụng trư�
 | `maxCookTimeMinutes` | Thời gian nấu tối đa (0–10080), không bao gồm thời gian chuẩn bị |
 | `maxCaloriesPerServing` | Calo mỗi khẩu phần tối đa (0–999999999); loại món có calo null |
 
-Sắp xếp tên rồi ID để phân trang ổn định. Response: `{ items: [...], pageNumber, pageSize, totalCount }`. Ví dụ: `GET /api/recipes?dietaryType=1&maxCookTimeMinutes=30&maxCaloriesPerServing=500&pageSize=20`.
+Sắp xếp tên rồi ID để phân trang ổn định. Response: `{ items: [...], pageNumber, pageSize, totalCount }`. Mỗi item danh sách công thức có dữ liệu dinh dưỡng theo khẩu phần (`caloriesPerServing`, `proteinGramPerServing`, `carbohydrateGramPerServing`, `fatGramPerServing`) và `ingredientNames` để màn hình thực đơn so sánh món thay thế; các trường dinh dưỡng có thể null nếu Admin chưa khai báo. Ví dụ: `GET /api/recipes?dietaryType=1&maxCookTimeMinutes=30&maxCaloriesPerServing=500&pageSize=20`.
 
 ## Dữ liệu nhập
 
 - Category: `name` bắt buộc, tối đa 120; `description` tối đa 500.
 - Ingredient: `name` bắt buộc, tối đa 120; `aliases`, `allergens`, `source` tối đa 1000; `defaultUnit` tối đa 40; `origin`: 0 Unknown, 1 Plant, 2 Animal; `containsEgg`, `containsMilk`, `containsHoney` boolean. Dinh dưỡng nullable: `caloriesPer100Gram`, `proteinGramPer100Gram`, `carbohydrateGramPer100Gram`, `fatGramPer100Gram`.
 - Ingredient bổ sung `containsOtherAnimalProducts`: true = có thịt/cá/gelatin hoặc thành phần động vật khác ngoài trứng/sữa/mật ong; false = đã xác minh không có; null = chưa xác minh. Animal chỉ có các cờ false không đủ để kết luận phù hợp. Origin Plant không được đồng thời khai báo có thành phần động vật (400).
-- Recipe: `categoryId`, `name` (120), `servings` (1–10000), `instructions` (20000) bắt buộc; `description` (2000), `imageUrl` (URL http/https, tối đa 2048) tùy chọn; `prepTimeMinutes`, `cookTimeMinutes` (0–10080). Dinh dưỡng nullable: `caloriesPerServing`, `proteinGramPerServing`, `carbohydrateGramPerServing`, `fatGramPerServing`. `ingredients` bắt buộc có ít nhất một dòng: `{ ingredientId, quantity, unit, note }`; ID không trùng, quantity > 0, unit bắt buộc tối đa 40, note tối đa 500. PUT cập nhật toàn bộ danh sách này.
+- Recipe: `categoryId`, `name` (120), `servings` (1–10000), `instructions` (20000) và `declaredDietaryType` bắt buộc; `declaredDietaryType` chọn đúng một trong các giá trị enum JSON: `"Vegan"`, `"LactoVegetarian"`, `"OvoVegetarian"`, `"LactoOvoVegetarian"`. `description` (2000), `imageUrl` (URL http/https, tối đa 2048) tùy chọn; `prepTimeMinutes`, `cookTimeMinutes` (0–10080). Dinh dưỡng nullable: `caloriesPerServing`, `proteinGramPerServing`, `carbohydrateGramPerServing`, `fatGramPerServing`. `ingredients` bắt buộc có ít nhất một dòng: `{ ingredientId, quantity, unit, note }`; ID không trùng, quantity > 0, unit bắt buộc tối đa 40, note tối đa 500. PUT cập nhật toàn bộ danh sách này.
 - Số thập phân tối đa 3 chữ số lẻ, tối đa 999999999; dinh dưỡng không âm. `null` nghĩa là chưa biết, không mặc định thành 0. Dinh dưỡng công thức do Admin nhập **theo mỗi khẩu phần**, không tự tính từ gram hoặc từ đơn vị tự do như muỗng/cốc.
 - Tên được trim và duy nhất không phân biệt hoa thường trong từng loại, kể cả bản ghi đã ngừng sử dụng. Response bổ sung `id`, `isActive`, `createdAt`, `updatedAt`; Recipe chi tiết bổ sung tên danh mục, tên và trạng thái của từng nguyên liệu. Danh sách Recipe trả tóm tắt, không gồm hướng dẫn và các dòng nguyên liệu.
 
 ## Phân loại chế độ ăn
 
-Recipe summary và detail trả `dietaryAssessments` gồm bốn phần tử `{ dietaryType, status }`.
-`status`: 0 Unknown, 1 Compatible, 2 Incompatible. Tính khi đọc từ ingredient hiện tại; không có trường để Admin nhập nhãn recipe và không lưu cache có thể lỗi thời.
+Recipe summary và detail trả `dietaryAssessments` gồm bốn phần tử `{ dietaryType, status }` cùng `declaredDietaryType` Admin đã chọn.
+`status`: 0 Unknown, 1 Compatible, 2 Incompatible. Backend tính khi đọc từ ingredient hiện tại, không lưu cache có thể lỗi thời. Backend chỉ nhận `declaredDietaryType` khi kết quả tương ứng là `Compatible`; không thể dùng lựa chọn trên form để gắn nhãn sai cho công thức.
 
 | Thành phần đã xác nhận | Vegan | Lacto | Ovo | Lacto-ovo |
 |---|---|---|---|---|

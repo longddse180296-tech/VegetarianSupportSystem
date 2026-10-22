@@ -55,15 +55,21 @@ public sealed class RestaurantAmenityConfiguration : IEntityTypeConfiguration<Re
     }
 }
 
-public sealed class RestaurantRecipeConfiguration : IEntityTypeConfiguration<RestaurantRecipe>
+public sealed class RestaurantFeaturedDishConfiguration : IEntityTypeConfiguration<RestaurantFeaturedDish>
 {
-    public void Configure(EntityTypeBuilder<RestaurantRecipe> builder)
+    public void Configure(EntityTypeBuilder<RestaurantFeaturedDish> builder)
     {
-        builder.ToTable("RestaurantRecipes");
-        builder.HasKey(x => new { x.RestaurantId, x.RecipeId });
-        builder.HasOne(x => x.Restaurant).WithMany(x => x.RelatedRecipes)
+        builder.ToTable("RestaurantFeaturedDishes", table =>
+        {
+            table.HasCheckConstraint("CK_RestaurantFeaturedDishes_DisplayOrder", "[DisplayOrder] BETWEEN 0 AND 2");
+        });
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
+        builder.Property(x => x.Name).UseCollation("Latin1_General_100_CI_AS").HasMaxLength(120).IsRequired();
+        builder.Property(x => x.ImageUrl).HasMaxLength(2048).IsRequired();
+        builder.HasIndex(x => new { x.RestaurantId, x.DisplayOrder }).IsUnique();
+        builder.HasIndex(x => new { x.RestaurantId, x.Name }).IsUnique();
+        builder.HasOne(x => x.Restaurant).WithMany(x => x.FeaturedDishes)
             .HasForeignKey(x => x.RestaurantId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(x => x.Recipe).WithMany()
-            .HasForeignKey(x => x.RecipeId).OnDelete(DeleteBehavior.Restrict);
     }
 }

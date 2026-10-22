@@ -53,7 +53,7 @@ public static class ComprehensiveDatabaseSeeder
             DELETE FROM [FoodScanRecords];
             DELETE FROM [AiChatMessages];
             DELETE FROM [AiChatConversations];
-            DELETE FROM [RestaurantRecipes];
+            DELETE FROM [RestaurantFeaturedDishes];
             DELETE FROM [RestaurantAmenities];
             DELETE FROM [RestaurantDietaryTypes];
             DELETE FROM [Restaurants];

@@ -8,13 +8,15 @@ Hợp đồng backend nhận ảnh món ăn và đánh giá sau khi User xác nh
 
 Hợp đồng video nháp/upload riêng tư, xem công khai và quyền owner/Admin ở [videos.md](videos.md).
 
+Hợp đồng upload ảnh đại diện từ thiết bị ở [media.md](media.md).
+
 Hợp đồng đăng ký, đăng nhập, JWT và Admin seed ở [auth.md](auth.md).
 
 Hợp đồng nhà hàng public/Admin, lọc theo khu vực/chế độ ăn/khoảng cách và trạng thái dữ liệu ở [restaurants.md](restaurants.md).
 
 Hợp đồng Pantry: kho nguyên liệu theo tài khoản, đối chiếu profile, gợi ý công thức và danh sách thay thế ở [pantry.md](pantry.md).
 
-Hợp đồng lưu yêu thích cho công thức, video và nhà hàng ở [favorites.md](favorites.md).
+Hợp đồng lưu yêu thích cho công thức, bài viết, video và nhà hàng ở [favorites.md](favorites.md).
 
 Hợp đồng thực đơn 7 ngày, thay món, danh sách đi chợ, áp dụng tuần mới và PDF ở [meal-plans.md](meal-plans.md).
 

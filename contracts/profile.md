@@ -73,7 +73,7 @@ Không trả `passwordHash`, trạng thái khóa hoặc dữ liệu tài khoản
 
 Để chọn nhanh thẻ chế độ ăn như trên màn hình hồ sơ, `PUT /api/profile/me/diet` nhận `{ "diet": "Vegan" }` và trả `200` với hồ sơ mới. Chỉ cập nhật `diet`, giữ nguyên các trường khác. Có thể gửi `null` để bỏ lựa chọn. Enum sai trả `400`, tài khoản/hồ sơ không tồn tại trả `404`.
 
-Khối “Thông tin tài khoản & liên hệ” dùng `PUT /api/profile/me/personal` với `{ "fullName": "Nguyen Van A", "phoneNumber": "0912 345 678", "restaurantArea": "Hà Nội" }`. Thành công trả `200` với hồ sơ mới; chỉ cập nhật ba trường này, giữ nguyên email, chế độ ăn, dị ứng và số đo cơ thể. Email hiển thị trên màn hình nhưng endpoint này không thay đổi hoặc tuyên bố email đã xác thực.
+Khối “Thông tin tài khoản & liên hệ” dùng `PUT /api/profile/me/personal` với `{ "fullName": "Nguyen Van A", "phoneNumber": "0912 345 678" }`. Thành công trả `200` với hồ sơ mới; cập nhật họ tên và số điện thoại, giữ nguyên email, chế độ ăn, dị ứng và số đo cơ thể. Email hiển thị trên màn hình nhưng endpoint này không thay đổi hoặc tuyên bố email đã xác thực. `restaurantArea` vẫn được API nhận để tương thích dữ liệu cũ, nhưng không còn thuộc giao diện hồ sơ.
 
 Khối “Chỉ số cơ thể & mục tiêu” dùng `PUT /api/profile/me/body` với `{ "birthDate": "2000-01-01", "sexForEnergyEstimate": "Female", "heightCm": 165.5, "weightKg": 60.2, "activityLevel": "ModeratelyActive", "weightGoal": "Maintain" }`. Endpoint thay toàn bộ sáu trường của khối này (`null` để xóa từng giá trị), giữ nguyên liên hệ, chế độ ăn, dị ứng và thực phẩm tránh; trả `200` với BMI/TDEE tính lại. Dữ liệu không hợp lệ trả `400`.
 
@@ -81,7 +81,7 @@ Khi chỉnh sửa nhưng chưa lưu, `POST /api/profile/me/body/estimate` nhận
 
 ## Dị ứng và thực phẩm cần tránh
 
-FE kiểm tra độ dài tên của cả hai danh sách trước khi ghi thông tin chính. Trong mỗi danh sách, FE thêm mục mới trước khi xóa mục cũ để lỗi thêm không làm mất các mục đã lưu. Các request không phải một transaction chung: nếu phần danh sách lỗi sau `PUT` chính thành công, UI nói rõ thông tin chính đã lưu nhưng chưa hoàn tất toàn bộ; giữ bản chỉnh sửa để thử lại, không hiển thị thành công toàn bộ. `restaurantArea` tiếp tục được lưu theo quyết định cuối của người dùng để tìm theo khu vực khi không có GPS; đây không phải tọa độ hay khoảng cách chính xác.
+FE kiểm tra độ dài tên của cả hai danh sách trước khi ghi thông tin chính. Trong mỗi danh sách, FE thêm mục mới trước khi xóa mục cũ để lỗi thêm không làm mất các mục đã lưu. Các request không phải một transaction chung: nếu phần danh sách lỗi sau `PUT` chính thành công, UI nói rõ thông tin chính đã lưu nhưng chưa hoàn tất toàn bộ; giữ bản chỉnh sửa để thử lại, không hiển thị thành công toàn bộ.
 
 | Thao tác | Dị ứng | Thực phẩm cần tránh | Kết quả |
 |---|---|---|---|
@@ -95,10 +95,12 @@ Schema gốc có trong migration `UserAccountsAndProfiles`: `Users` 1–1 `UserP
 
 ## Mapping cho FE và các module backend
 
-FE dùng `profileApi` để ánh xạ `userId → id`, `restaurantArea → preferredRegion`, `diet → dietaryType`, dữ liệu cơ thể vào `metrics`, `memberSinceUtc → createdAt`, `updatedAtUtc → updatedAt`. Profile dùng bốn giá trị API `Vegan/Lacto/Ovo/LactoOvo`; adapter giữ tương thích các giá trị UI cũ và dùng nhãn chung với AI. Người dùng nhập **ngày sinh thực tế** bằng ô date; FE giữ nguyên ngày này, không tạo ngày sinh từ tuổi. `allergies` và `avoidedFoods` đều được sửa qua CRUD từng mục, loại tên trống/trùng không phân biệt hoa thường trước khi gọi API.
+FE dùng `profileApi` để ánh xạ `userId → id`, `diet → dietaryType`, dữ liệu cơ thể vào `metrics`, `memberSinceUtc → createdAt`, `updatedAtUtc → updatedAt`. Profile dùng bốn giá trị API `Vegan/Lacto/Ovo/LactoOvo`; adapter giữ tương thích các giá trị UI cũ và dùng nhãn chung với AI. Người dùng nhập **ngày sinh thực tế** bằng ô date; FE giữ nguyên ngày này, không tạo ngày sinh từ tuổi. `allergies` và `avoidedFoods` đều được sửa qua CRUD từng mục, loại tên trống/trùng không phân biệt hoa thường trước khi gọi API.
 
 `bmi`, `adultBmiCategory` và `estimatedTdeeKcal` chỉ được đọc từ response backend. Khi chỉnh sửa số đo, giao diện cũ hiển thị kết quả xem trước từ `POST .../body/estimate`; sau `PUT` hiển thị kết quả hồ sơ đã lưu. FE dùng `0` nội bộ để biểu diễn kết quả `null` và hiển thị `—`/“Chưa đủ dữ liệu”, không dùng số mẫu. FE không tính BMR, TDEE, phân bổ đa lượng hoặc tự cộng/trừ calo theo mục tiêu. Nhãn BMI người lớn theo ngưỡng backend: 18.5, 25, 30. Luôn ghi rõ đây là ước tính tham khảo.
 
+`restaurantArea` vẫn có trong response/request API để tương thích dữ liệu cũ, nhưng không còn hiển thị hoặc được cập nhật từ màn hình hồ sơ. Giá trị này không được đưa vào context của Trợ lý AI.
+
 Ảnh đại diện, quy tắc nguyên liệu ẩn, nguồn protein ưa thích, BMR và phân bổ đa lượng chưa thuộc hợp đồng profile. Form hiện hành không cho chỉnh các trường chưa có backend và không mô tả chúng là dữ liệu đã đồng bộ. Khi không có ảnh đại diện, UI dùng ký tự đầu tên. Thống kê bài viết/bình luận/video lấy từ module nội dung tương ứng; không dùng số mẫu.
 
-Trong backend, `Application.Features.Profiles.IProfileContextReader.GetContextAsync(userId, ct)` cung cấp `ProfileContext` chỉ đọc cho chat, scan, thực đơn và tủ bếp. DTO gồm chế độ ăn, dữ liệu cơ thể, mục tiêu, BMI/TDEE, khu vực, tên dị ứng/thực phẩm tránh và thời điểm cập nhật; không gồm email, số điện thoại hoặc mật khẩu. Module gọi truyền ID người dùng đã xác thực và tự lưu bản sao các trường cần thiết vào snapshot của mình. Việc cập nhật hồ sơ sau đó không làm thay đổi snapshot đã lưu.
+Trong backend, `Application.Features.Profiles.IProfileContextReader.GetContextAsync(userId, ct)` cung cấp `ProfileContext` chỉ đọc cho chat, scan, thực đơn và tủ bếp. DTO gồm chế độ ăn, dữ liệu cơ thể, mục tiêu, BMI/TDEE, tên dị ứng/thực phẩm tránh và thời điểm cập nhật; không gồm email, số điện thoại, mật khẩu hoặc khu vực tìm nhà hàng. Module gọi truyền ID người dùng đã xác thực và tự lưu bản sao các trường cần thiết vào snapshot của mình. Việc cập nhật hồ sơ sau đó không làm thay đổi snapshot đã lưu.

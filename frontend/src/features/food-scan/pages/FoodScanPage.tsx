@@ -152,10 +152,10 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
       setResolvedQuestions([])
       setIngredientsComplete(false)
       if (response.sourceType === 'Dish') {
-        setIngredients(response.data.visibleIngredients.map((name) => ({
+        setIngredients(response.data.visibleIngredients.map((name, index) => ({
           id: crypto.randomUUID(),
           name: name.slice(0, 200),
-          kind: 'Unknown',
+          kind: response.data.suggestedIngredientKinds?.[index] ?? 'Unknown',
           source: 'AiSuggested',
         })))
         setCorrectedLabelText('')

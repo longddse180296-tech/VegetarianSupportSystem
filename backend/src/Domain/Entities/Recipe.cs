@@ -1,5 +1,7 @@
 namespace Domain.Entities;
 
+using Domain.Enums;
+
 public sealed class Recipe
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -16,6 +18,9 @@ public sealed class Recipe
     public decimal? ProteinGramPerServing { get; set; }
     public decimal? CarbohydrateGramPerServing { get; set; }
     public decimal? FatGramPerServing { get; set; }
+    // Admin chooses one intended vegetarian diet. The application service verifies it
+    // against the live ingredient-based classification before saving.
+    public DietaryType? DeclaredDietaryType { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }

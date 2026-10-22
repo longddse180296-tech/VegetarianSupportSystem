@@ -49,7 +49,17 @@
 
 html {
   overflow-y: scroll;
+  overflow-x: clip;
   scrollbar-gutter: stable;
+}
+
+#root {
+  min-width: 0;
+  overflow-x: clip;
+}
+
+img, video, canvas, svg {
+  max-width: 100%;
 }
 
 @media (max-width: 639px) {
@@ -88,6 +98,7 @@ button, input, select, textarea, option {
 /* Shared public hierarchy: page title, card title, breadcrumb and metadata tag. */
 .ui-page-heading { margin-bottom: 24px; }
 .ui-page-heading-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.ui-page-heading-row > * { min-width: 0; }
 .ui-page-eyebrow { margin-bottom: 12px; }
 .ui-page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ui-page-title, .fe1-ui .ui-page-title {
@@ -148,6 +159,13 @@ button, input, select, textarea, option {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+@media (max-width: 639px) {
+  .ui-page-heading { margin-bottom: 18px; }
+  .ui-page-description { font-size: 14px; }
+  .ui-page-actions { width: 100%; }
+  .ui-page-actions > * { flex: 1 1 auto; }
 }
 
 /* Base interactive focus rings matching DESIGN.md */

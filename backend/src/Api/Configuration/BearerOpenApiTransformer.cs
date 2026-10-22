@@ -40,10 +40,11 @@ public sealed class BearerOpenApiTransformer : IOpenApiDocumentTransformer
                 var isLabelImage = path.Equals("/api/food-scans/label-image", StringComparison.OrdinalIgnoreCase);
                 var isVideoMedia = path.Equals("/api/me/videos/{id}/media", StringComparison.OrdinalIgnoreCase);
                 var isVideoThumbnail = path.Equals("/api/me/videos/{id}/thumbnail", StringComparison.OrdinalIgnoreCase);
+                var isPublicImage = path.Equals("/api/me/images", StringComparison.OrdinalIgnoreCase);
 
-                if (isDishImage || isLabelImage || isVideoMedia || isVideoThumbnail)
+                if (isDishImage || isLabelImage || isVideoMedia || isVideoThumbnail || isPublicImage)
                 {
-                    SetFileUploadRequestBody(uploadOperation, isDishImage || isLabelImage ? "image" : "file");
+                    SetFileUploadRequestBody(uploadOperation, isDishImage || isLabelImage || isPublicImage ? "image" : "file");
                 }
 
                 if (isDishImage)
@@ -61,6 +62,7 @@ public sealed class BearerOpenApiTransformer : IOpenApiDocumentTransformer
                 && !path.StartsWith("/api/ai-chat/conversations", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/api/food-scans/", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/api/me/videos", StringComparison.OrdinalIgnoreCase)
+                && !path.Equals("/api/me/images", StringComparison.OrdinalIgnoreCase)
                 && !path.Equals("/api/auth/me", StringComparison.OrdinalIgnoreCase)
                 && !path.Equals("/api/auth/logout", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/api/profile/me", StringComparison.OrdinalIgnoreCase)
