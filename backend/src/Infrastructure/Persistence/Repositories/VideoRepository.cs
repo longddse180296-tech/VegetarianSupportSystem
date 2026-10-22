@@ -30,6 +30,12 @@ public sealed class VideoRepository(AppDbContext db) : IVideoRepository, IVideoP
     public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
     public Task<int> FavoriteCountAsync(Guid id, CancellationToken cancellationToken) =>
         db.Favorites.CountAsync(x => x.TargetType == FavoriteTargetType.Video && x.TargetId == id, cancellationToken);
+    public async Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> authorIds, CancellationToken cancellationToken)
+    {
+        var ids = authorIds.Distinct().ToArray();
+        return await db.Users.AsNoTracking().Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.FullName, cancellationToken);
+    }
     public async Task IncrementViewAsync(Guid id, CancellationToken cancellationToken) =>
         await db.Videos.Where(x => x.Id == id)
             .ExecuteUpdateAsync(update => update.SetProperty(x => x.ViewCount, x => x.ViewCount + 1), cancellationToken);

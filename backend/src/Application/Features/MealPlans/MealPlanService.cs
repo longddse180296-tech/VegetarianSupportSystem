@@ -35,6 +35,12 @@ public sealed class MealPlanService(IMealPlanRepository repository)
         await RefreshRecipeImagesAsync(plan, ct);
         return Map(plan);
     }
+    public async Task DeleteAsync(string userId, Guid id, CancellationToken ct)
+    {
+        var plan = await FindAsync(userId, id, ct);
+        repository.Remove(plan);
+        await repository.SaveAsync(ct);
+    }
     public async Task<MealPlanResponse> ReplaceMealAsync(string userId, Guid id, int day, MealSlot slot, MealReplacementRequest request, CancellationToken ct)
     {
         RequestValidation.Validate(request); if (day is < 1 or > 7 || !Enum.IsDefined(slot) || request.RecipeId == Guid.Empty) throw new ValidationException("Invalid meal position or recipe.");
@@ -89,6 +95,39 @@ public sealed class MealPlanService(IMealPlanRepository repository)
     }
     public async Task<IReadOnlyList<ShoppingItemResponse>> UpdatePurchaseAsync(string userId, Guid planId, Guid itemId, ShoppingPurchaseRequest request, CancellationToken ct)
     { var plan=await FindAsync(userId,planId,ct); var item=plan.ShoppingItems.SingleOrDefault(x=>x.Id==itemId)??throw new KeyNotFoundException("Shopping item not found."); item.IsPurchased=request.IsPurchased; plan.UpdatedAt=DateTimeOffset.UtcNow; await repository.SaveAsync(ct); return plan.ShoppingItems.Select(Map).ToArray(); }
+    public async Task<IReadOnlyList<ShoppingItemResponse>> GetShoppingListAsync(string userId, Guid planId, int? day, CancellationToken ct)
+    {
+        if (day is < 1 or > 7) throw new ValidationException("Day must be between 1 and 7.");
+        var plan = await FindAsync(userId, planId, ct);
+        if (day is null) return plan.ShoppingItems.OrderBy(x => x.IngredientName).Select(Map).ToArray();
+
+        // Use the saved meal snapshots. Allocate pantry stock to earlier days first,
+        // so daily quantities add up to the saved weekly shopping list.
+        var requirements = plan.Meals
+            .SelectMany(meal => meal.Ingredients.Select(ingredient => new
+            {
+                meal.DayNumber, ingredient.IngredientId, ingredient.IngredientName,
+                ingredient.Unit, ingredient.Quantity
+            }))
+            .GroupBy(x => new { x.DayNumber, x.IngredientId, x.IngredientName, x.Unit })
+            .ToDictionary(x => x.Key, x => x.Sum(ingredient => ingredient.Quantity));
+
+        var result = new List<ShoppingItemResponse>();
+        foreach (var item in plan.ShoppingItems.OrderBy(x => x.IngredientName))
+        {
+            var pantryRemaining = item.PantryQuantity;
+            for (var currentDay = 1; currentDay <= day.Value; currentDay++)
+            {
+                requirements.TryGetValue(new { DayNumber = currentDay, item.IngredientId, item.IngredientName, item.Unit }, out var required);
+                var pantryUsed = Math.Min(required, Math.Max(0, pantryRemaining));
+                pantryRemaining -= pantryUsed;
+                if (currentDay == day.Value && required > 0)
+                    result.Add(new ShoppingItemResponse(item.Id, item.IngredientId, item.IngredientName,
+                        required, pantryUsed, required - pantryUsed, item.Unit, item.IsPurchased));
+            }
+        }
+        return result;
+    }
     private async Task<MealPlan> FindAsync(string u,Guid id,CancellationToken ct)=>await repository.GetAsync(id,u,ct)??throw new KeyNotFoundException("Meal plan not found.");
     private async Task RefreshRecipeImagesAsync(MealPlan plan, CancellationToken ct)
     {

@@ -22,7 +22,6 @@ import {
   type VideoDetails,
 } from '../api/backendVideos'
 import { getSavedVideo, toggleVideoLike, toggleVideoSave } from '../api/videoApi'
-import { useAuth } from '../../auth/hooks/useAuth'
 
 interface Props {
   videoId?: string
@@ -34,6 +33,7 @@ interface Comment {
   id: string
   parentId: string | null
   authorId: string
+  authorName: string | null
   body: string | null
   createdAt: string
   likeCount: number
@@ -86,7 +86,6 @@ export default function VideoDetail(props: Props) {
 }
 
 function VideoDetailContent({ videoId, onNavigate }: Props) {
-  const { user } = useAuth()
   const [video, setVideo] = useState<VideoDetails | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
   const [reaction, setReaction] = useState<Reaction>({ count: 0, reactedByMe: false })
@@ -304,12 +303,12 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
 
   const titleCleaned = cleanPrefix(video.title)
   const isVideoAvailable = Boolean(video.mediaUrl) && !hasVideoError
-  const authorName = (user?.role === 'Admin' ? user.fullName : null) || 'Quản Trị Viên Hệ Thống'
+  const authorName = video.authorName || 'Người đăng'
 
   const renderComment = (comment: Comment, isReply = false) => (
     <div key={comment.id} className={`border-t border-slate-100 pt-4 ${isReply ? 'ml-6' : ''}`}>
       <div className="flex items-center gap-2 text-xs text-slate-500">
-        <span className="font-semibold text-slate-700">Thành viên Bếp Chay</span>
+        <span className="font-semibold text-slate-700">{comment.authorName || 'Người dùng'}</span>
         <span>•</span>
         <span>{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</span>
       </div>
@@ -546,7 +545,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
         <div>
           {replyTo && (
             <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3 text-xs sm:text-sm text-emerald-900 border border-emerald-100">
-              <span>Đang phản hồi bình luận của thành viên</span>
+              <span>Đang phản hồi bình luận của {comments.find((comment) => comment.id === replyTo)?.authorName || 'Người dùng'}</span>
               <button
                 type="button"
                 disabled={sending}

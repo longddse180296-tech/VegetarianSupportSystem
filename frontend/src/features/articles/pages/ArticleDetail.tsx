@@ -189,7 +189,7 @@ export const ArticleDetail = ({
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 text-sm">
-                      {article.data.authorId === user?.id ? (user?.fullName || 'Tôi') : 'Quản Trị Viên Hệ Thống'}
+                      {article.data.authorName || (article.data.authorId === user?.id ? user?.fullName : null) || 'Người đăng'}
                     </p>
                   </div>
                 </div>
@@ -301,7 +301,7 @@ export const ArticleDetail = ({
               >
                 {reply && (
                   <div className="p-3 bg-emerald-50 rounded-xl flex items-center justify-between text-xs text-emerald-800">
-                    <span>Đang trả lời bình luận của <strong>{reply.authorId.slice(0, 8)}</strong></span>
+                    <span>Đang trả lời bình luận của <strong>{reply.authorName || 'Người dùng'}</strong></span>
                     <button
                       className="font-bold underline text-emerald-900 hover:text-emerald-950"
                       type="button"
@@ -352,9 +352,9 @@ export const ArticleDetail = ({
                     <div className="flex items-center justify-between text-xs text-slate-500">
                       <div className="flex items-center gap-2">
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                          {comment.authorId.slice(0, 2).toUpperCase()}
+                          {(comment.authorName || 'ND').trim().slice(0, 2).toUpperCase()}
                         </div>
-                        <span className="font-semibold text-slate-700">Người dùng #{comment.authorId.slice(0, 6)}</span>
+                        <span className="font-semibold text-slate-700">{comment.authorName || 'Người dùng'}</span>
                       </div>
                       <span>{formatDate(comment.createdAt)}</span>
                     </div>

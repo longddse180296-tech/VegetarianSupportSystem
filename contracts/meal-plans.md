@@ -8,7 +8,7 @@ Meal plans are available to authenticated `User` and `Admin` callers through `Au
 - Generation only uses active recipes whose ingredients are compatible with the caller's required diet, allergy list, and avoided-food list. Unknown ingredient evidence is not accepted as compatible.
 - The profile constraints and recipe/ingredient values are snapshotted when a plan is generated. Editing a profile later does not modify an existing plan.
 - Replacing a meal and regenerating a plan keep using that saved profile snapshot. If no active recipe matches it, the API returns `409` rather than weakening a dietary or allergy condition.
-- The shopping list aggregates snapshot ingredient quantities and subtracts the matching measured pantry quantity. An unmatched pantry name is never used to reduce the required amount.
+- The shopping list aggregates snapshot ingredient quantities and subtracts the matching measured pantry quantity. An unmatched pantry name is never used to reduce the required amount. A daily view allocates the saved pantry quantity to earlier days first; its daily quantities to buy add up to the weekly quantity.
 
 ## Endpoints
 
@@ -17,10 +17,11 @@ Meal plans are available to authenticated `User` and `Admin` callers through `Au
 | `POST` | `/api/meal-plans/generate` | Validate profile and save a generated 7-day plan. |
 | `GET` | `/api/meal-plans?page=1&pageSize=20` | Page through the caller's saved plans. |
 | `GET` | `/api/meal-plans/{id}` | Read a plan, nutrition totals, meals, and shopping list. |
+| `DELETE` | `/api/meal-plans/{id}` | Delete one of the caller's saved plans, including its meal and shopping snapshots. |
 | `POST` | `/api/meal-plans/{id}/regenerate` | Rebuild the 21 positions using the saved profile snapshot. |
 | `POST` | `/api/meal-plans/{id}/apply-to-week` | Copy the saved plan snapshot to another week and rebuild its shopping list from current pantry quantities. |
 | `PUT` | `/api/meal-plans/{id}/meals/{day}/{slot}` | Replace a meal. `day` is 1–7 and `slot` is `Breakfast`, `Lunch`, or `Dinner`. |
-| `GET` | `/api/meal-plans/{id}/shopping-list` | Read the calculated shopping list. |
+| `GET` | `/api/meal-plans/{id}/shopping-list?day=1` | Read the calculated shopping list for the whole week (omit `day`) or one day (`day` from 1 to 7). Daily items use the same IDs and purchase status as their weekly items. |
 | `PUT` | `/api/meal-plans/{id}/shopping-list/{itemId}/purchase` | Mark a shopping item purchased or not purchased. |
 | `GET` | `/api/meal-plans/{id}/pdf` | Download a PDF for the saved plan. |
 
@@ -105,12 +106,15 @@ Meal plans are available to authenticated `User` and `Admin` callers through `Au
 
 The daily and weekly nutrition totals come from the same per-serving recipe snapshot used by the 21 meal positions. They are not a food-consumption log.
 
+For a daily shopping list, `requiredQuantity`, `pantryQuantity`, and `quantityToBuy` refer to that day. Marking an item purchased still marks the ingredient for the whole plan, including the weekly view and any other day containing it.
+
 ### Statuses
 
 | Status | Meaning |
 |---|---|
 | `201` | A generated plan or copied plan was saved. |
 | `200` | Read, replacement, regeneration, shopping update, or PDF export succeeded. |
+| `204` | The saved plan was deleted. |
 | `400` | Request format, date, day, slot, serving count, or pagination is invalid. |
 | `401` / `403` | Missing token or caller does not have `User`/`Admin` role. |
 | `404` | The plan, shopping item, or recipe cannot be accessed. |

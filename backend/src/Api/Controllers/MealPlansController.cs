@@ -25,6 +25,15 @@ public sealed class MealPlansController(MealPlanService service, IMealPlanPdfRen
     public Task<IActionResult> Get(Guid id, CancellationToken ct) =>
         Execute(async () => Ok(await service.GetAsync(CurrentUserId, id, ct)));
 
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public Task<IActionResult> Delete(Guid id, CancellationToken ct) =>
+        Execute(async () =>
+        {
+            await service.DeleteAsync(CurrentUserId, id, ct);
+            return NoContent();
+        });
+
     [HttpPost("generate")]
     [ProducesResponseType<MealPlanResponse>(StatusCodes.Status201Created)]
     public Task<IActionResult> Generate(MealPlanGenerateRequest request, CancellationToken ct) =>
@@ -55,8 +64,8 @@ public sealed class MealPlansController(MealPlanService service, IMealPlanPdfRen
 
     [HttpGet("{id:guid}/shopping-list")]
     [ProducesResponseType<IReadOnlyList<ShoppingItemResponse>>(StatusCodes.Status200OK)]
-    public Task<IActionResult> ShoppingList(Guid id, CancellationToken ct) =>
-        Execute(async () => Ok((await service.GetAsync(CurrentUserId, id, ct)).ShoppingItems));
+    public Task<IActionResult> ShoppingList(Guid id, [FromQuery] int? day, CancellationToken ct) =>
+        Execute(async () => Ok(await service.GetShoppingListAsync(CurrentUserId, id, day, ct)));
 
     [HttpPut("{id:guid}/shopping-list/{itemId:guid}/purchase")]
     [ProducesResponseType<IReadOnlyList<ShoppingItemResponse>>(StatusCodes.Status200OK)]

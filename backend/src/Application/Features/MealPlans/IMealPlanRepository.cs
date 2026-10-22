@@ -10,5 +10,7 @@ public interface IMealPlanRepository
     Task<MealPlan?> GetAsync(Guid id, string userId, CancellationToken ct);
     Task<(IReadOnlyList<MealPlan> Items, int TotalCount)> ListAsync(string userId, MealPlanListQuery query, CancellationToken ct);
     Task<Recipe?> GetUsableRecipeAsync(Guid id, CancellationToken ct);
-    void Add(MealPlan plan); Task SaveAsync(CancellationToken ct);
+    void Add(MealPlan plan);
+    void Remove(MealPlan plan);
+    Task SaveAsync(CancellationToken ct);
 }

@@ -4,7 +4,7 @@ import {
   mealNutrition,
   PLAN_DIET_LABELS,
 } from '../api/mealPlanApi'
-import type { SavedPlan } from '../types/mealPlanBackend.types'
+import type { PlanShoppingItem, SavedPlan } from '../types/mealPlanBackend.types'
 
 const slotLabels = {
   Breakfast: 'Bữa sáng',
@@ -336,12 +336,15 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
 /**
  * Xuất bản PDF Danh sách đi chợ (Checklist A4 tiện lợi)
  */
-export function exportShoppingListPdf(plan: SavedPlan): void {
+export function exportShoppingListPdf(plan: SavedPlan, items: PlanShoppingItem[] = plan.shoppingItems, day: number | null = null): void {
   const startDateStr = formatPlanDate(plan.weekStartDate)
   const endDateStr = formatPlanDate(addPlanDays(plan.weekStartDate, 6))
+  const period = day === null
+    ? `Tuần: ${startDateStr} – ${endDateStr}`
+    : `Ngày ${day}: ${formatPlanDate(addPlanDays(plan.weekStartDate, day - 1))}`
 
   let itemsHtml = ''
-  plan.shoppingItems.forEach((item, index) => {
+  items.forEach((item, index) => {
     itemsHtml += `<tr>
       <td style="width: 40px; text-align: center;">
         <span class="checkbox-box"></span>
@@ -370,13 +373,13 @@ export function exportShoppingListPdf(plan: SavedPlan): void {
       </div>
       <div class="doc-meta">
         <div>Áp dụng cho: <strong>${plan.name}</strong></div>
-        <div>Tuần: ${startDateStr} – ${endDateStr}</div>
+        <div>${period}</div>
       </div>
     </div>
 
-    <h1 class="doc-title">Danh sách nguyên liệu cần mua (21 bữa)</h1>
+    <h1 class="doc-title">Danh sách nguyên liệu cần mua (${day === null ? '21 bữa' : `Ngày ${day} · 3 bữa`})</h1>
     <div class="info-card">
-      <div class="info-item">Tổng số loại nguyên liệu: <strong>${plan.shoppingItems.length} loại</strong></div>
+      <div class="info-item">Tổng số loại nguyên liệu: <strong>${items.length} loại</strong></div>
       <div class="info-item">Chế độ ăn: <strong>${PLAN_DIET_LABELS[plan.profileDiet]}</strong></div>
       <div class="info-item" style="color: #2E7D32;">✓ Đã tự động đối soát và trừ số lượng sẵn có trong Tủ bếp</div>
     </div>
@@ -398,5 +401,5 @@ export function exportShoppingListPdf(plan: SavedPlan): void {
     </table>
   `
 
-  printHtmlContent(`Danh-Sach-Di-Cho-${plan.name}`, htmlBody)
+  printHtmlContent(`Danh-Sach-Di-Cho-${plan.name}${day === null ? '' : `-Ngay-${day}`}`, htmlBody)
 }

@@ -8,7 +8,7 @@ public sealed record VideoDetails(Guid Id, string Title, string Description, Gui
     string UploadStatus, AiFlagStatus? AiFlagStatus, AdminReviewStatus? AdminReviewStatus,
     int? Version, string? AiSummary, string? AiUncheckedScope, string? AdminReason,
     string? MediaUrl, string? ThumbnailUrl, long ViewCount, int FavoriteCount,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc, string? AuthorName);
 public sealed record VideoPage(IReadOnlyList<VideoDetails> Items, int TotalCount, int Page, int PageSize);
 
 public sealed class VideoService(IVideoRepository repository, IModerationRepository moderation)
@@ -118,12 +118,13 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
     {
         if (page < 1 || pageSize is < 1 or > 100) throw new ArgumentException("Invalid pagination.");
         var (items, total) = await repository.ListAsync(owner, publishedOnly, page, pageSize, ct);
+        var names = await repository.AuthorNamesAsync(items.Select(x => x.OwnerUserId), ct);
         var output = new List<VideoDetails>();
         foreach (var video in items)
         {
             var published = publishedOnly ? await moderation.GetCurrentPublishedAsync(video.Id, ct) : null;
             if (publishedOnly && published?.Id != video.PublishedSubmissionId) continue;
-            output.Add(await MapAsync(video, publishedOnly, ct, published));
+            output.Add(await MapAsync(video, publishedOnly, ct, published, names));
         }
         return new VideoPage(output, total, page, pageSize);
     }
@@ -171,10 +172,11 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
             throw new InvalidOperationException("Wait for review before changing this video.");
     }
     private async Task<VideoDetails> MapAsync(Video video, bool publicView, CancellationToken ct,
-        ModerationSubmission? published = null)
+        ModerationSubmission? published = null, IReadOnlyDictionary<string, string>? authorNames = null)
     {
         var submission = publicView ? published : await moderation.GetLatestForContentAsync(video.Id, ct);
         var decision = submission?.Decisions.OrderByDescending(x => x.DecidedAt).FirstOrDefault();
+        var names = authorNames ?? await repository.AuthorNamesAsync([video.OwnerUserId], ct);
         return new VideoDetails(video.Id, publicView ? published!.Title : video.Title,
             publicView ? published!.TextContent : video.Description,
             publicView ? video.PublishedCategoryId : video.CategoryId,
@@ -183,6 +185,7 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
             decision?.Reason,
             (publicView ? published?.MediaReference : video.MediaKey) is null ? null : $"/api/videos/{video.Id}/media",
             (publicView ? video.PublishedThumbnailKey : video.ThumbnailKey) is null ? null : $"/api/videos/{video.Id}/thumbnail",
-            video.ViewCount, await repository.FavoriteCountAsync(video.Id, ct), video.CreatedAtUtc);
+            video.ViewCount, await repository.FavoriteCountAsync(video.Id, ct), video.CreatedAtUtc,
+            names.GetValueOrDefault(video.OwnerUserId));
     }
 }

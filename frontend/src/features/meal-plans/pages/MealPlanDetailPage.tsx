@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   Sun,
   Sunrise,
+  Trash2,
   UtensilsCrossed,
   X,
 } from 'lucide-react'
@@ -25,8 +26,10 @@ import {
 } from '../api/mealPlanApi'
 import type {
   ReplacementRecipe,
+  PlanShoppingItem,
   SavedPlan,
   SavedPlanMeal,
+  SavedPlanSummary,
 } from '../types/mealPlanBackend.types'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
 import { Badge, Breadcrumb, PageHeading } from '../../../shared/components'
@@ -62,6 +65,11 @@ const message = (error: unknown) =>
     ? error.message
     : 'Thao tác chưa thành công. Vui lòng thử lại.'
 
+const formatSavedAt = (date: string) => new Date(date).toLocaleString('vi-VN', {
+  day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', second: '2-digit',
+})
+
 const actionButtonClass =
   'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs hover:border-slate-300 transition-all disabled:opacity-50 disabled:pointer-events-none'
 
@@ -79,6 +87,13 @@ export const MealPlanDetailPage = ({
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [shoppingOpen, setShoppingOpen] = useState(false)
+  const [shoppingDay, setShoppingDay] = useState<number | null>(null)
+  const [dailyShoppingItems, setDailyShoppingItems] = useState<PlanShoppingItem[]>([])
+  const [shoppingLoading, setShoppingLoading] = useState(false)
+  const [shoppingError, setShoppingError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<SavedPlan | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [copyDate, setCopyDate] = useState(nextMonday)
   const [copyOpen, setCopyOpen] = useState(false)
   const [replacement, setReplacement] = useState<SavedPlanMeal | null>(null)
@@ -91,8 +106,9 @@ export const MealPlanDetailPage = ({
   const [recipeId, setRecipeId] = useState('')
   const [servings, setServings] = useState(1)
   const [refresh, setRefresh] = useState(0)
-  const [savedPlans, setSavedPlans] = useState<Array<{ id: string; name: string; weekStartDate: string }>>([])
+  const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([])
   const planDiet = plan?.profileDiet
+  const shoppingPlanId = plan?.id
 
   useEffect(() => {
     const controller = new AbortController()
@@ -103,12 +119,13 @@ export const MealPlanDetailPage = ({
       setError(null)
       setPlan(null)
       setShoppingOpen(false)
+      setDeleteTarget(null)
       setCopyOpen(false)
       setReplacement(null)
       try {
-        const result = await mealPlanApi.list(1, controller.signal)
-        if (!controller.signal.aborted) setSavedPlans(result.items)
-        const id = planId || result.items[0]?.id
+        const items = await mealPlanApi.listAll(controller.signal)
+        if (!controller.signal.aborted) setSavedPlans(items)
+        const id = planId || items[0]?.id
         const detail = id ? await mealPlanApi.get(id, controller.signal) : null
         if (!controller.signal.aborted) {
           setPlan(detail)
@@ -123,6 +140,22 @@ export const MealPlanDetailPage = ({
     void load()
     return () => controller.abort()
   }, [planId, refresh])
+
+  useEffect(() => {
+    if (!shoppingOpen || !shoppingPlanId || shoppingDay === null) return
+    const controller = new AbortController()
+    mealPlanApi.shoppingList(shoppingPlanId, shoppingDay, controller.signal)
+      .then((items) => {
+        if (!controller.signal.aborted) setDailyShoppingItems(items)
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) setShoppingError(message(err))
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setShoppingLoading(false)
+      })
+    return () => controller.abort()
+  }, [shoppingOpen, shoppingDay, shoppingPlanId])
 
   useEffect(() => {
     if (!replacement || !planDiet) return
@@ -186,21 +219,49 @@ export const MealPlanDetailPage = ({
         item.id === itemId ? { ...item, isPurchased } : item,
       ),
     })
+    setDailyShoppingItems((items) => items.map((item) =>
+      item.id === itemId ? { ...item, isPurchased } : item,
+    ))
     void act(async () => {
       try {
+        const shoppingItems = await mealPlanApi.purchase(plan.id, itemId, isPurchased)
         setPlan({
           ...plan,
-          shoppingItems: await mealPlanApi.purchase(
-            plan.id,
-            itemId,
-            isPurchased,
-          ),
+          shoppingItems,
         })
       } catch (err) {
         setPlan(previous)
+        setDailyShoppingItems((items) => items.map((item) =>
+          item.id === itemId ? { ...item, isPurchased: !isPurchased } : item,
+        ))
         throw err
       }
     })
+  }
+
+  const selectShoppingDay = (selectedDay: number | null) => {
+    setShoppingDay(selectedDay)
+    setShoppingError(null)
+    setShoppingLoading(selectedDay !== null)
+    setDailyShoppingItems([])
+  }
+
+  const deleteSelectedPlan = async () => {
+    if (!deleteTarget || deleteBusy) return
+    setDeleteBusy(true)
+    setDeleteError(null)
+    try {
+      await mealPlanApi.remove(deleteTarget.id)
+      const remaining = savedPlans.filter((saved) => saved.id !== deleteTarget.id)
+      setSavedPlans(remaining)
+      setPlan(null)
+      setDeleteTarget(null)
+      onNavigate?.(remaining.length > 0 ? `/meal-plans/${remaining[0].id}` : '/meal-plans')
+    } catch (err) {
+      setDeleteError(message(err))
+    } finally {
+      setDeleteBusy(false)
+    }
   }
 
   if (loading) {
@@ -272,25 +333,80 @@ export const MealPlanDetailPage = ({
         }
       />
 
-      {savedPlans.length > 1 && (
+      {savedPlans.length > 0 && (
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Thực đơn đã lưu</p>
-            <p className="text-xs text-slate-600">Tạo mới không xoá các thực đơn trước đó.</p>
+            <p className="text-xs text-slate-600">Chọn thực đơn để xem lại hoặc xoá khỏi lịch sử.</p>
           </div>
-          <select
-            value={plan?.id ?? planId ?? savedPlans[0]?.id}
-            onChange={(event) => onNavigate?.(`/meal-plans/${event.target.value}`)}
-            className="min-w-64 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
-            aria-label="Chọn thực đơn đã lưu"
-          >
-            {savedPlans.map((saved) => (
-              <option key={saved.id} value={saved.id}>
-                {saved.name} · {saved.weekStartDate}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={plan?.id ?? planId ?? savedPlans[0]?.id}
+              onChange={(event) => onNavigate?.(`/meal-plans/${event.target.value}`)}
+              className="min-w-64 max-w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
+              aria-label="Chọn thực đơn đã lưu"
+            >
+              {savedPlans.map((saved) => (
+                <option key={saved.id} value={saved.id}>
+                  {saved.name} · {saved.weekStartDate} · tạo {formatSavedAt(saved.createdAt)}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!plan || busy || deleteBusy}
+              onClick={() => {
+                setDeleteError(null)
+                setDeleteTarget(plan)
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+            >
+              <Trash2 size={14} />
+              Xoá thực đơn này
+            </button>
+          </div>
         </section>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-meal-plan-title"
+            aria-describedby="delete-meal-plan-description"
+            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4"
+          >
+            <h2 id="delete-meal-plan-title" className="text-lg font-extrabold text-slate-900">
+              Xoá thực đơn đã lưu?
+            </h2>
+            <p id="delete-meal-plan-description" className="text-sm text-slate-600 leading-relaxed">
+              Bạn sẽ xoá <strong>{deleteTarget.name}</strong> (tuần {formatPlanDate(deleteTarget.weekStartDate)},
+              tạo lúc {formatSavedAt(deleteTarget.createdAt)}) cùng 21 bữa và danh sách đi chợ liên quan.
+              Thao tác này không thể khôi phục.
+            </p>
+            {deleteError && <p role="alert" className="text-sm text-rose-700">{deleteError}</p>}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleteBusy}
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                disabled={deleteBusy}
+                onClick={() => void deleteSelectedPlan()}
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-700 px-4 py-2 text-sm font-bold text-white hover:bg-rose-800 disabled:opacity-50"
+              >
+                <Trash2 size={15} />
+                {deleteBusy ? 'Đang xoá...' : 'Xoá thực đơn'}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       {error && (
@@ -388,6 +504,7 @@ export const MealPlanDetailPage = ({
                 void act(async () => {
                   const items = await mealPlanApi.shoppingList(plan.id)
                   setPlan({ ...plan, shoppingItems: items })
+                  selectShoppingDay(null)
                   setShoppingOpen(true)
                 })
               }
@@ -695,7 +812,7 @@ export const MealPlanDetailPage = ({
                   <ShoppingCart size={18} />
                 </span>
                 <h2 className="text-xl font-extrabold text-slate-900">
-                  Danh sách đi chợ (21 bữa)
+                  Danh sách đi chợ ({shoppingDay === null ? '21 bữa' : `Ngày ${shoppingDay} · 3 bữa`})
                 </h2>
               </div>
               <button
@@ -709,19 +826,43 @@ export const MealPlanDetailPage = ({
               </button>
             </div>
 
+            <div className="flex flex-wrap gap-2" aria-label="Chọn ngày cho danh sách đi chợ">
+              {[null, ...Array.from({ length: 7 }, (_, index) => index + 1)].map((number) => (
+                <button
+                  key={number ?? 'week'}
+                  type="button"
+                  aria-pressed={shoppingDay === number}
+                  onClick={() => selectShoppingDay(number)}
+                  className={`rounded-xl px-3 py-2 text-xs font-bold transition-colors ${shoppingDay === number
+                    ? 'bg-[#2E7D32] text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-[#2E7D32]'}`}
+                >
+                  {number === null ? 'Cả tuần' : `Ngày ${number}`}
+                </button>
+              ))}
+            </div>
+
             <p className="text-xs text-slate-500 leading-relaxed">
               Số lượng cần mua đã tự động đối soát và trừ đi nguyên liệu bạn có sẵn
-              trong Tủ bếp. Đánh dấu đã mua sẽ được lưu ngay vào hệ thống.
+              trong Tủ bếp. Đánh dấu đã mua áp dụng cho nguyên liệu của cả tuần và được lưu ngay vào hệ thống.
             </p>
 
-            {plan.shoppingItems.length === 0 && (
+            {shoppingDay !== null && (
+              <p className="text-xs font-semibold text-slate-600">
+                Ngày {shoppingDay} · {formatPlanDate(addPlanDays(plan.weekStartDate, shoppingDay - 1))}
+              </p>
+            )}
+
+            {shoppingLoading && <p role="status" className="text-sm text-slate-500 py-6 text-center">Đang tải nguyên liệu...</p>}
+            {shoppingError && <p role="alert" className="text-sm text-rose-700">{shoppingError}</p>}
+            {!shoppingLoading && !shoppingError && (shoppingDay === null ? plan.shoppingItems : dailyShoppingItems).length === 0 && (
               <p className="text-sm text-slate-500 py-8 text-center">
-                Danh sách đi chợ trống.
+                {shoppingDay === null ? 'Danh sách đi chợ trống.' : 'Ngày này chưa có nguyên liệu cần liệt kê.'}
               </p>
             )}
 
             <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
-              {plan.shoppingItems.map((item) => (
+              {!shoppingLoading && !shoppingError && (shoppingDay === null ? plan.shoppingItems : dailyShoppingItems).map((item) => (
                 <label
                   key={item.id}
                   className={`flex items-center gap-3.5 rounded-2xl border p-3 text-sm transition-colors cursor-pointer ${
@@ -777,9 +918,9 @@ export const MealPlanDetailPage = ({
             <div className="pt-2 border-t border-slate-100 flex justify-end">
               <button
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
-                disabled={busy}
+                disabled={busy || shoppingLoading || !!shoppingError}
                 onClick={() => {
-                  exportShoppingListPdf(plan)
+                  exportShoppingListPdf(plan, shoppingDay === null ? plan.shoppingItems : dailyShoppingItems, shoppingDay)
                   setNotice('Đã chuẩn bị bản in/PDF danh sách đi chợ.')
                 }}
               >

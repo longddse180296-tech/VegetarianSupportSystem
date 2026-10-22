@@ -120,17 +120,20 @@ public sealed class CommentService(ICommentRepository repository, TimeProvider c
     {
         var (items, total) = await repository.ListAsync(query, ownerId, admin, ct);
         var counts = await repository.LikeCountsAsync(items.Select(x => x.Id), ct);
-        return new CommentPage(items.Select(x => ToResponse(x, includeBody, counts.GetValueOrDefault(x.Id))).ToArray(), total, query.Page, query.PageSize);
+        var names = await repository.AuthorNamesAsync(items.Select(x => x.AuthorId), ct);
+        return new CommentPage(items.Select(x => ToResponse(x, names.GetValueOrDefault(x.AuthorId), includeBody,
+            counts.GetValueOrDefault(x.Id))).ToArray(), total, query.Page, query.PageSize);
     }
 
     private async Task<CommentResponse> Map(Comment comment, bool includeBody, CancellationToken ct)
     {
         var counts = await repository.LikeCountsAsync([comment.Id], ct);
-        return ToResponse(comment, includeBody, counts.GetValueOrDefault(comment.Id));
+        var names = await repository.AuthorNamesAsync([comment.AuthorId], ct);
+        return ToResponse(comment, names.GetValueOrDefault(comment.AuthorId), includeBody, counts.GetValueOrDefault(comment.Id));
     }
 
-    private static CommentResponse ToResponse(Comment c, bool includeBody, int likeCount) =>
-        new(c.Id, c.TargetType, c.TargetId, c.ParentId, c.AuthorId,
+    private static CommentResponse ToResponse(Comment c, string? authorName, bool includeBody, int likeCount) =>
+        new(c.Id, c.TargetType, c.TargetId, c.ParentId, c.AuthorId, authorName,
             includeBody || c.Status == CommentStatus.Visible ? c.Body : null,
             c.Status, c.CreatedAt, c.UpdatedAt, likeCount,
             includeBody ? c.ModerationReason : null, includeBody ? c.ModeratedBy : null,
