@@ -13,6 +13,7 @@ import {
 } from '../api/foodScanApi'
 import type {
   DraftIngredient,
+  IngredientKind,
   ScanHistoryItem,
   ScanSourceType,
 } from '../types/foodScan.types'
@@ -27,7 +28,13 @@ import './FoodScanPage.css'
 type ScanTab = 'scanner' | 'confirm' | 'result'
 type HistoryStatus = 'idle' | 'loading' | 'done'
 
-function labelIngredients(text: string): DraftIngredient[] {
+function labelIngredients(
+  text: string,
+  suggestions: Array<{ name: string; kind: IngredientKind }> = [],
+): DraftIngredient[] {
+  const normalizeName = (name: string) => name.trim().toLocaleLowerCase('vi')
+    .replace(/\s+\d+(?:[.,]\d+)?\s*(?:kg|mg|g|ml|l|%)?\s*$/i, '').replace(/\s+/g, ' ')
+  const kinds = new Map(suggestions.map((item) => [normalizeName(item.name), item.kind]))
   return text
     .replace(/^\s*thành phần\s*:/i, '')
     .split(/[,;\n]+/)
@@ -37,7 +44,7 @@ function labelIngredients(text: string): DraftIngredient[] {
     .map((name) => ({
       id: crypto.randomUUID(),
       name: name.slice(0, 200),
-      kind: 'Unknown' as const,
+      kind: kinds.get(normalizeName(name)) ?? 'Unknown',
       source: 'LabelOcr' as const,
     }))
 }
@@ -163,7 +170,12 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
       } else {
         const text = response.data.extractedText || ''
         setCorrectedLabelText(text)
-        setIngredients(labelIngredients(text))
+        setIngredients(response.data.suggestedIngredients?.map((item) => ({
+          id: crypto.randomUUID(),
+          name: item.name.slice(0, 200),
+          kind: item.kind,
+          source: 'LabelOcr',
+        })) ?? labelIngredients(text))
         setLabelIncomplete(response.data.isIncomplete)
       }
       setTab('confirm')
@@ -470,7 +482,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
                   setIngredientsComplete(false)
                 }}
                 onIngredientsCompleteChange={setIngredientsComplete}
-                onParseLabel={() => { setIngredients(labelIngredients(correctedLabelText)); setIngredientsComplete(false) }}
+                onParseLabel={() => { setIngredients(labelIngredients(correctedLabelText, ingredients)); setIngredientsComplete(false) }}
                 onEvaluate={() => void handleEvaluate()}
                 onBack={() => setTab('scanner')}
               />

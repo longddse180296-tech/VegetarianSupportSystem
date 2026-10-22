@@ -33,12 +33,14 @@ public sealed class Be3FoodScanServiceTests
         Assert.Null(await service.GetOwnedAsync(unknown.Id, "another-user", CancellationToken.None));
     }
 
-    [Fact]
-    public async Task AiImageSuggestionIsNotTreatedAsConfirmedIngredient()
+    [Theory]
+    [InlineData("Dish", "AiSuggested")]
+    [InlineData("Label", "LabelOcr")]
+    public async Task UnconfirmedSuggestionIsNotTreatedAsConfirmedIngredient(string sourceType, string source)
     {
         var service = new FoodScanningService(new UnusedAi(), new MemoryScanRepository());
-        var result = await service.EvaluateAndSaveAsync("owner", "Dish",
-            [new ConfirmedIngredient("Đậu hũ", IngredientKind.Plant, "AiSuggested")],
+        var result = await service.EvaluateAndSaveAsync("owner", sourceType,
+            [new ConfirmedIngredient("Đậu hũ", IngredientKind.Plant, source)],
             true, null, false, [], null, CancellationToken.None);
 
         Assert.All(result.Assessments,
@@ -63,6 +65,26 @@ public sealed class Be3FoodScanServiceTests
             result.SuggestedIngredientKinds);
         Assert.All(result.Assessments,
             item => Assert.Equal(FoodScanAssessmentStatus.InsufficientInformation, item.Status));
+    }
+
+    [Fact]
+    public async Task LabelPrefillsKindsFromAiAndCatalogWithoutHidingUnknownOrigins()
+    {
+        var repository = new MemoryScanRepository
+        {
+            Evidence = [new ScanIngredientEvidence(Guid.NewGuid(), "Sữa bò tươi",
+                IngredientKind.Dairy, null, null)]
+        };
+        var service = new FoodScanningService(new SuggestionAi(), repository);
+
+        var result = await service.AnalyzeLabelAsync([1], "image/png", CancellationToken.None);
+
+        Assert.Equal("NeedsConfirmation", result.ProcessingStatus);
+        Assert.Equal("Bí đỏ 500 g; Sữa bò tươi 350 g; Hương liệu", result.ExtractedText);
+        Assert.Equal([IngredientKind.Plant, IngredientKind.Dairy, IngredientKind.Unknown],
+            result.SuggestedIngredients.Select(item => item.Kind));
+        Assert.Equal(["Bí đỏ", "Sữa bò tươi", "Hương liệu"],
+            result.SuggestedIngredients.Select(item => item.Name));
     }
 
     private sealed class MemoryScanRepository : IFoodScanRepository
@@ -102,7 +124,10 @@ public sealed class Be3FoodScanServiceTests
         public Task<GeminiChatResponse> GenerateChatReplyAsync(GeminiChatRequest request,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<GeminiLabelResponse> ReadIngredientLabelAsync(GeminiDishImageRequest request,
-            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) => Task.FromResult(new GeminiLabelResponse(
+            true, "Bí đỏ 500 g; Sữa bò tươi 350 g; Hương liệu", false,
+            SuggestedIngredients: [new("Bí đỏ", IngredientKind.Plant),
+                new("Sữa bò tươi", IngredientKind.Plant), new("Hương liệu", IngredientKind.Unknown)]));
     }
 
     private sealed class UnusedAi : IGeminiService

@@ -11,6 +11,19 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
+if (args.Contains("--smtp-only", StringComparer.Ordinal))
+{
+    var smtpChecks = 0;
+    await SmtpTransportChecks.RunAsync((condition, name) =>
+    {
+        if (!condition) throw new InvalidOperationException("FAILED: " + name);
+        smtpChecks++;
+        Console.WriteLine("PASS: " + name);
+    });
+    Console.WriteLine($"ALL {smtpChecks} SMTP CHECKS PASSED");
+    return;
+}
+
 var database = "CoreDataChecks_" + Guid.NewGuid().ToString("N");
 var connection = new SqlConnectionStringBuilder(
     Environment.GetEnvironmentVariable("CORE_DATA_TEST_CONNECTION") ??

@@ -25,6 +25,7 @@ export interface LabelImageScanResult {
   isIncomplete: boolean
   errorCode: string | null
   note: string
+  suggestedIngredients?: Array<{ name: string; kind: IngredientKind }>
 }
 
 export type ScanAnalysis =

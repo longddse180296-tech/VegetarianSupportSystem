@@ -11,6 +11,7 @@ public interface IVideoRepository
     Task AddAsync(Video video, CancellationToken cancellationToken);
     Task SaveAsync(CancellationToken cancellationToken);
     Task<int> FavoriteCountAsync(Guid id, CancellationToken cancellationToken);
+    Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> authorIds, CancellationToken cancellationToken);
     Task IncrementViewAsync(Guid id, CancellationToken cancellationToken);
 }
 

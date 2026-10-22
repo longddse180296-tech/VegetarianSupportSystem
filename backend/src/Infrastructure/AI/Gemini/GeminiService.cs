@@ -85,7 +85,19 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
                 ["data"] = Convert.ToBase64String(request.ImageBytes)
             }
         };
-        const string prompt = "Đọc CHỈ chữ nhìn thấy trong bảng thành phần của ảnh. Không tự điền chữ bị mờ hoặc bị cắt. Trả JSON {\"extractedText\":\"...\",\"isIncomplete\":true/false}. Đánh dấu isIncomplete=true nếu chữ mờ, thiếu, bị cắt hoặc không đọc được đầy đủ.";
+        const string prompt = """
+            Đọc CHỈ chữ nhìn thấy trên nhãn hoặc danh sách nguyên liệu trong ảnh, không tự điền phần mờ hay bị cắt.
+            Trả duy nhất JSON {"extractedText":"...","isIncomplete":true,"suggestedIngredients":[{"name":"bí đỏ","kind":"Plant"}]}.
+            extractedText giữ nguyên văn bản đọc được, bao gồm lượng nếu có.
+            suggestedIngredients chỉ gồm tên nguyên liệu thực sự có trong extractedText, bỏ lượng và đơn vị khỏi name.
+            Không đưa tiêu đề, năng lượng, protein, chất béo, carbohydrate, vitamin, khoáng chất hoặc các dòng bảng dinh dưỡng vào danh sách nguyên liệu.
+            Nếu chỉ có bảng dinh dưỡng mà không có danh sách nguyên liệu, trả suggestedIngredients rỗng và isIncomplete=true.
+            Nếu vitamin/khoáng chất được liệt kê trong danh sách thành phần thật, giữ chúng với kind=Unknown khi chưa rõ nguồn gốc.
+            Gợi ý kind theo tên/nguồn gốc được ghi rõ: Plant, Egg, Dairy, Honey, Animal hoặc Unknown.
+            Ví dụ bí đỏ, cà rốt, hạt điều, sữa dừa là Plant; sữa bò tươi là Dairy; trứng là Egg; mật ong là Honey; thịt, cá, nước mắm cá là Animal.
+            Hương liệu, phụ gia, gelatin hoặc thành phần chưa rõ nguồn gốc phải là Unknown; không suy đoán nguồn gốc từ tên sản phẩm.
+            isIncomplete=true nếu nhãn mờ, thiếu, bị cắt hoặc không đọc được đầy đủ. Không kết luận chế độ ăn hay độ an toàn dị ứng.
+            """;
         var result = await GenerateAsync(prompt, cancellationToken, true, imagePart, imageModel);
         if (!result.IsAvailable || result.Text is null)
             return new GeminiLabelResponse(false, null, true, result.ErrorCode);
@@ -93,11 +105,29 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         {
             using var document = JsonDocument.Parse(StripFence(result.Text));
             var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+                return new GeminiLabelResponse(false, null, true, "InvalidOcrResponse");
             var extracted = ReadString(root, "extractedText");
             if (!root.TryGetProperty("isIncomplete", out var incomplete) ||
-                incomplete.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                incomplete.ValueKind is not (JsonValueKind.True or JsonValueKind.False) ||
+                !root.TryGetProperty("suggestedIngredients", out var suggestions) ||
+                suggestions.ValueKind != JsonValueKind.Array)
                 return new GeminiLabelResponse(false, null, true, "InvalidOcrResponse");
-            return new GeminiLabelResponse(true, extracted?.Trim(), incomplete.GetBoolean());
+            var normalizedText = NormalizeLabelText(extracted ?? "");
+            var ingredients = new List<GeminiLabelIngredient>();
+            foreach (var suggestion in suggestions.EnumerateArray().Take(100))
+            {
+                if (suggestion.ValueKind != JsonValueKind.Object) continue;
+                var name = ReadString(suggestion, "name")?.Trim();
+                if (string.IsNullOrWhiteSpace(name) || name.Length > 200 ||
+                    !normalizedText.Contains(NormalizeLabelText(name), StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var kind = Enum.TryParse<IngredientKind>(ReadString(suggestion, "kind"), true, out var parsed)
+                    && Enum.IsDefined(parsed) ? parsed : IngredientKind.Unknown;
+                ingredients.Add(new GeminiLabelIngredient(name, kind));
+            }
+            return new GeminiLabelResponse(true, extracted?.Trim(), incomplete.GetBoolean(),
+                SuggestedIngredients: ingredients);
         }
         catch (JsonException)
         {
@@ -107,6 +137,9 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
 
     private static GeminiDishImageResponse DishUnavailable(string errorCode) =>
         new(false, null, [], [], [], errorCode);
+
+    private static string NormalizeLabelText(string text) =>
+        string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     private static IReadOnlyList<string>? ReadStringArray(JsonElement root, string property)
     {

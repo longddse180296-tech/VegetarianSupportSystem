@@ -4,7 +4,7 @@ Các ID là GUID; thời gian UTC theo ISO 8601. `targetType` nhận `Article` h
 
 ## Bình luận
 
-- `GET /api/comments?targetType=Article&targetId={id}&page=1&pageSize=20`: danh sách phẳng theo thời gian, trả `{items,totalCount,page,pageSize}`. Mỗi item có `id,targetType,targetId,parentId,authorId,body,status,createdAt,updatedAt,likeCount`. `parentId` giữ quan hệ phản hồi. Bình luận `Hidden`/`Removed` có `body:null`, vẫn hiển thị như mốc quan hệ nếu có phản hồi công khai.
+- `GET /api/comments?targetType=Article&targetId={id}&page=1&pageSize=20`: danh sách phẳng theo thời gian, trả `{items,totalCount,page,pageSize}`. Mỗi item có `id,targetType,targetId,parentId,authorId,authorName,body,status,createdAt,updatedAt,likeCount`. `authorName` là họ tên hiện tại trong hồ sơ người bình luận, `null` nếu tài khoản không còn; không trả email hoặc dữ liệu riêng tư. `parentId` giữ quan hệ phản hồi. Bình luận `Hidden`/`Removed` có `body:null`, vẫn hiển thị như mốc quan hệ nếu có phản hồi công khai.
 - `GET /api/comments/{id}`: chi tiết bình luận còn hiện trên nội dung công khai.
 - `POST /api/comments` (User/Admin): `{targetType,targetId,parentId?,body}`. Phản hồi chỉ được gắn vào bình luận cùng nội dung, còn hiện và ở cấp gốc. Trả 201 cùng item.
 - `PUT /api/comments/{id}` (owner): `{body}`. Chỉ sửa bình luận `Visible`; trả item.
@@ -12,6 +12,8 @@ Các ID là GUID; thời gian UTC theo ISO 8601. `targetType` nhận `Article` h
 - `GET /api/me/comments?page=1&pageSize=20`: danh sách của mình, kể cả đã ẩn/gỡ, có nội dung gốc để chủ tài khoản xem.
 - `GET /api/admin/comments?search=&status=&targetType=&page=1&pageSize=20` (Admin): tìm/lọc; `GET /api/admin/comments/{id}` xem chi tiết. Admin thấy nội dung gốc.
 - `POST /api/admin/comments/{id}/hide` hoặc `/remove` (Admin): `{reason}` bắt buộc, chuyển `Visible -> Hidden` hoặc `Visible/Hidden -> Removed`; trả item. Không yêu cầu AI.
+
+`authorName` có mặt trong item của danh sách và phản hồi chi tiết/tạo/sửa/quản trị bình luận cho cả bài viết và video. Chủ nội dung xem tên người bình luận qua cùng danh sách công khai khi nội dung đã xuất bản.
 
 `status` gồm `Visible`, `Hidden`, `Removed`. Body từ 1 đến 2.000 ký tự sau trim; lý do Admin từ 1 đến 1.000 ký tự. `page` từ 1, `pageSize` từ 1 đến 100. 400 dữ liệu sai; 401 chưa đăng nhập; 403 sai quyền; 404 nội dung/bình luận không tồn tại hoặc không xem được; 409 trạng thái không cho phép thao tác.
 
