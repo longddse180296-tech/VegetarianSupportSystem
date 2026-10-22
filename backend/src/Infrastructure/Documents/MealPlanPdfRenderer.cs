@@ -29,9 +29,9 @@ public sealed class MealPlanPdfRenderer : IMealPlanPdfRenderer
 
         lines.Add("");
         lines.Add("Shopping list");
-        foreach (var item in plan.ShoppingItems)
+        foreach (var item in plan.ShoppingItems.Where(item => item.QuantityToBuy > 0))
         {
-            var status = item.IsPurchased ? "purchased" : item.QuantityToBuy == 0 ? "in pantry" : "to buy";
+            var status = item.IsPurchased ? "purchased" : "to buy";
             lines.Add("  " + item.IngredientName + ": " + Number(item.QuantityToBuy) + " " + item.Unit + " (" + status + ")");
         }
 

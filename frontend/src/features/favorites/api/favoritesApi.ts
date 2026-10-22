@@ -1,6 +1,6 @@
-import { apiClient } from '../../../shared/api/apiClient'
+import { ApiError, apiClient } from '../../../shared/api/apiClient'
 
-export type FavoriteTargetType = 'Recipe' | 'Restaurant' | 'Video'
+export type FavoriteTargetType = 'Recipe' | 'Restaurant' | 'Video' | 'Article'
 
 export interface FavoriteItem {
   id: string
@@ -28,16 +28,7 @@ export async function listFavorites(
   params.set('pageNumber', String(pageNumber))
   params.set('pageSize', String(pageSize))
 
-  try {
-    return await apiClient.get<FavoritePage>(`/api/favorites?${params.toString()}`)
-  } catch {
-    return {
-      items: [],
-      totalCount: 0,
-      pageNumber,
-      pageSize,
-    }
-  }
+  return apiClient.get<FavoritePage>(`/api/favorites?${params.toString()}`)
 }
 
 export async function addFavorite(
@@ -61,4 +52,39 @@ export async function removeFavorite(id: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+export async function findFavorite(
+  targetType: FavoriteTargetType,
+  targetId: string,
+): Promise<FavoriteItem | null> {
+  for (let pageNumber = 1; ; pageNumber += 1) {
+    const page = await listFavorites(targetType, pageNumber, 100)
+    const favorite = page.items.find(
+      (item) => item.targetId.toLowerCase() === targetId.toLowerCase(),
+    )
+    if (favorite) return favorite
+    if (page.items.length === 0 || pageNumber * page.pageSize >= page.totalCount) return null
+  }
+}
+
+export async function toggleFavorite(
+  targetType: FavoriteTargetType,
+  targetId: string,
+  nextSaved: boolean,
+): Promise<boolean> {
+  if (nextSaved) {
+    try {
+      await apiClient.post<FavoriteItem>('/api/favorites', { targetType, targetId })
+    } catch (reason) {
+      if (!(reason instanceof ApiError && reason.status === 409 && await findFavorite(targetType, targetId))) {
+        throw reason
+      }
+    }
+    return true
+  }
+
+  const existing = await findFavorite(targetType, targetId)
+  if (existing) await apiClient.delete(`/api/favorites/${encodeURIComponent(existing.id)}`)
+  return false
 }

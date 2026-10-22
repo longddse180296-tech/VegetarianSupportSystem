@@ -15,4 +15,8 @@ public sealed record RecipeSummary(
     decimal? CaloriesPerServing,
     DietaryType? DeclaredDietaryType,
     bool IsActive,
-    IReadOnlyList<DietaryAssessment> DietaryAssessments);
+    IReadOnlyList<DietaryAssessment> DietaryAssessments,
+    decimal? ProteinGramPerServing,
+    decimal? CarbohydrateGramPerServing,
+    decimal? FatGramPerServing,
+    IReadOnlyList<string> IngredientNames);

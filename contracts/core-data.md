@@ -31,7 +31,7 @@ Recipes có các filter tùy chọn, kết hợp bằng AND và áp dụng trư�
 | `maxCookTimeMinutes` | Thời gian nấu tối đa (0–10080), không bao gồm thời gian chuẩn bị |
 | `maxCaloriesPerServing` | Calo mỗi khẩu phần tối đa (0–999999999); loại món có calo null |
 
-Sắp xếp tên rồi ID để phân trang ổn định. Response: `{ items: [...], pageNumber, pageSize, totalCount }`. Ví dụ: `GET /api/recipes?dietaryType=1&maxCookTimeMinutes=30&maxCaloriesPerServing=500&pageSize=20`.
+Sắp xếp tên rồi ID để phân trang ổn định. Response: `{ items: [...], pageNumber, pageSize, totalCount }`. Mỗi item danh sách công thức có dữ liệu dinh dưỡng theo khẩu phần (`caloriesPerServing`, `proteinGramPerServing`, `carbohydrateGramPerServing`, `fatGramPerServing`) và `ingredientNames` để màn hình thực đơn so sánh món thay thế; các trường dinh dưỡng có thể null nếu Admin chưa khai báo. Ví dụ: `GET /api/recipes?dietaryType=1&maxCookTimeMinutes=30&maxCaloriesPerServing=500&pageSize=20`.
 
 ## Dữ liệu nhập
 

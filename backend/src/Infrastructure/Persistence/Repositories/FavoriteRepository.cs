@@ -33,6 +33,11 @@ public sealed class FavoriteRepository(AppDbContext db) : IFavoriteRepository
             FavoriteTargetType.Video => await db.ModerationSubmissions.AsNoTracking()
                 .Where(submission => submission.ContentId == targetId && submission.ContentType == ModeratedContentType.Video && submission.IsCurrentPublished)
                 .Select(submission => new FavoriteTargetInfo(submission.ContentId, submission.Title, null)).SingleOrDefaultAsync(ct),
+            FavoriteTargetType.Article => await db.Set<ArticleVersion>().AsNoTracking()
+                .Where(version => version.ArticleId == targetId &&
+                    version.Submission.AdminReviewStatus == AdminReviewStatus.Published &&
+                    version.Submission.IsCurrentPublished)
+                .Select(version => new FavoriteTargetInfo(version.ArticleId, version.Title, version.CoverImageUrl)).SingleOrDefaultAsync(ct),
             _ => null
         };
 

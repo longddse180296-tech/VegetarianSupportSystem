@@ -46,7 +46,7 @@ export const UserLayout: React.FC<UserLayoutProps> = ({
     { id: 'meal-plans', label: 'Thực đơn 7 ngày', path: '/meal-plans', icon: Calendar },
     { id: 'pantry', label: 'Tủ bếp cá nhân', path: '/pantry', icon: UtensilsCrossed },
     { id: 'articles', label: 'Bài viết của tôi', path: '/my-articles', icon: FileText },
-    { id: 'favorites', label: 'Món ăn yêu thích', path: '/favorites', icon: Bookmark },
+    { id: 'favorites', label: 'Mục đã lưu', path: '/favorites', icon: Bookmark },
   ]
 
   return (

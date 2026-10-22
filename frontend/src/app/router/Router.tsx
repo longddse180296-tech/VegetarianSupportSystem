@@ -47,6 +47,7 @@ import {
 } from '../../features/restaurants'
 import FoodScanPage from '../../features/food-scan/pages/FoodScanPage'
 import PantryPage from '../../features/pantry/pages/PantryPage'
+import { FavoritesPage } from '../../features/favorites'
 
 export interface RouterContext {
   currentPath: string
@@ -447,6 +448,10 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   if (path === '/profile/my-videos' || path === '/my-videos') {
     if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
     return <MyVideosPage onNavigate={onNavigate} />
+  }
+  if (path === '/favorites') {
+    if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
+    return <FavoritesPage onNavigate={onNavigate} />
   }
 
   if (path === '/profile/settings' || path === '/account/settings') {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Calendar,
   Check,
@@ -30,6 +30,8 @@ import type {
 } from '../types/mealPlanBackend.types'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
 import { Badge, Breadcrumb, PageHeading } from '../../../shared/components'
+import { profileApi } from '../../profile/api/profileApi'
+import type { UserProfile } from '../../profile/types'
 import {
   exportMealPlanPdf,
   exportShoppingListPdf,
@@ -65,6 +67,101 @@ const message = (error: unknown) =>
 const actionButtonClass =
   'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs hover:border-slate-300 transition-all disabled:opacity-50 disabled:pointer-events-none'
 
+function nutritionChange(next: number | null, current: number | null, servings: number, unit: string) {
+  if (next === null || current === null) return 'Chưa đủ dữ liệu'
+  const difference = (next - current) * servings
+  const formatted = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Math.abs(difference))
+  return `${difference > 0 ? '+' : difference < 0 ? '−' : '±'}${formatted}${unit}`
+}
+
+function ingredientChanges(current: string[], candidate: string[]) {
+  const currentKeys = new Set(current.map((item) => item.trim().toLocaleLowerCase('vi-VN')))
+  const candidateKeys = new Set(candidate.map((item) => item.trim().toLocaleLowerCase('vi-VN')))
+  return {
+    added: candidate.filter((item) => !currentKeys.has(item.trim().toLocaleLowerCase('vi-VN'))),
+    removed: current.filter((item) => !candidateKeys.has(item.trim().toLocaleLowerCase('vi-VN'))),
+  }
+}
+
+function recipeGoalScore(recipe: ReplacementRecipe, targetCalories: number, goal: UserProfile['metrics']['goal']) {
+  if (recipe.caloriesPerServing === null) return Number.MAX_SAFE_INTEGER
+  const calorieScore = Math.abs(recipe.caloriesPerServing - targetCalories)
+  const protein = recipe.proteinGramPerServing ?? 0
+  return goal === 'muscle_gain' ? calorieScore - protein * 4 : calorieScore
+}
+
+function RecipeChoice({
+  recipe,
+  currentMeal,
+  servings,
+  selected,
+  disabled,
+  onSelect,
+}: {
+  recipe: ReplacementRecipe
+  currentMeal: SavedPlanMeal
+  servings: number
+  selected: boolean
+  disabled: boolean
+  onSelect: () => void
+}) {
+  const changes = ingredientChanges(currentMeal.ingredientNames ?? [], recipe.ingredientNames ?? [])
+  const nutrition = [
+    ['Calo', nutritionChange(recipe.caloriesPerServing, currentMeal.caloriesPerServing, servings, ' kcal')],
+    ['Đạm', nutritionChange(recipe.proteinGramPerServing, currentMeal.proteinGramPerServing, servings, ' g')],
+    ['Carb', nutritionChange(recipe.carbohydrateGramPerServing, currentMeal.carbohydrateGramPerServing, servings, ' g')],
+    ['Béo', nutritionChange(recipe.fatGramPerServing, currentMeal.fatGramPerServing, servings, ' g')],
+  ] as const
+
+  return (
+    <label
+      className={`block rounded-2xl border p-3.5 transition-all cursor-pointer ${
+        selected
+          ? 'border-[#2E7D32] bg-emerald-50/70 ring-1 ring-[#2E7D32]/30 shadow-xs'
+          : 'border-slate-200 hover:border-emerald-200 hover:bg-slate-50/50'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <input
+          type="radio"
+          name="replacementRecipe"
+          required
+          checked={selected}
+          disabled={disabled}
+          onChange={onSelect}
+          className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[#2E7D32]"
+        />
+        {recipe.imageUrl ? (
+          <img src={recipe.imageUrl} alt={recipe.name} className="h-14 w-14 shrink-0 rounded-xl bg-slate-100 object-cover" />
+        ) : (
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-[#2E7D32]">
+            <UtensilsCrossed size={20} />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <span className="block font-bold text-sm text-slate-900">{recipe.name}</span>
+          <small className="mt-0.5 block text-xs text-slate-500">
+            {mealNutrition(recipe.caloriesPerServing, servings)}{recipe.caloriesPerServing !== null ? ' kcal' : ''} · {recipe.cookTimeMinutes + recipe.prepTimeMinutes} phút
+          </small>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-1.5 text-[11px] sm:grid-cols-4">
+        {nutrition.map(([label, value]) => (
+          <span key={label} className="rounded-lg bg-white px-2 py-1.5 text-slate-600 ring-1 ring-slate-100">
+            <strong className="mr-1 text-slate-700">{label}</strong>{value}
+          </span>
+        ))}
+      </div>
+      {(changes.added.length > 0 || changes.removed.length > 0) && (
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+          {changes.added.slice(0, 3).map((name) => <span key={`add-${name}`} className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-800">+ {name}</span>)}
+          {changes.removed.slice(0, 3).map((name) => <span key={`remove-${name}`} className="rounded-full bg-rose-50 px-2 py-0.5 font-medium text-rose-700">− {name}</span>)}
+        </div>
+      )}
+    </label>
+  )
+}
+
 export const MealPlanDetailPage = ({
   planId,
   onNavigate,
@@ -90,6 +187,7 @@ export const MealPlanDetailPage = ({
   const [recipeError, setRecipeError] = useState<string | null>(null)
   const [recipeId, setRecipeId] = useState('')
   const [servings, setServings] = useState(1)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [refresh, setRefresh] = useState(0)
   const [savedPlans, setSavedPlans] = useState<Array<{ id: string; name: string; weekStartDate: string }>>([])
   const planDiet = plan?.profileDiet
@@ -125,6 +223,14 @@ export const MealPlanDetailPage = ({
   }, [planId, refresh])
 
   useEffect(() => {
+    let active = true
+    void profileApi.getProfile().then((value) => {
+      if (active) setProfile(value)
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
     if (!replacement || !planDiet) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
@@ -153,6 +259,29 @@ export const MealPlanDetailPage = ({
       controller.abort()
     }
   }, [replacement, planDiet, recipeSearch, recipePage])
+
+  const goalTargetCalories = useMemo(() => {
+    const baseline = profile?.metrics.tdeeKcal
+      ? profile.metrics.tdeeKcal / 3
+      : replacement?.caloriesPerServing ?? 0
+    if (profile?.metrics.goal === 'weight_loss') return baseline * 0.88
+    if (profile?.metrics.goal === 'muscle_gain') return baseline * 1.12
+    return baseline
+  }, [profile, replacement])
+
+  const goalRecipeIds = useMemo(() => {
+    if (!replacement || !profile || goalTargetCalories <= 0) return new Set<string>()
+    return new Set(
+      [...recipes]
+        .filter((recipe) => recipe.id !== replacement.recipeId)
+        .sort((left, right) => recipeGoalScore(left, goalTargetCalories, profile.metrics.goal) - recipeGoalScore(right, goalTargetCalories, profile.metrics.goal))
+        .slice(0, 4)
+        .map((recipe) => recipe.id),
+    )
+  }, [goalTargetCalories, profile, recipes, replacement])
+
+  const goalRecipes = recipes.filter((recipe) => goalRecipeIds.has(recipe.id))
+  const dietRecipes = recipes.filter((recipe) => recipe.id !== replacement?.recipeId && !goalRecipeIds.has(recipe.id))
 
   const act = async (operation: () => Promise<void>) => {
     if (busy) return
@@ -548,6 +677,11 @@ export const MealPlanDetailPage = ({
                       >
                         {meal.recipeName}
                       </h3>
+                      {meal.swapCount > 0 && (
+                        <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 ring-1 ring-amber-200">
+                          Đã đổi {meal.swapCount} lần
+                        </span>
+                      )}
 
                       <div className="flex items-center justify-between text-xs pt-0.5">
                         <span className="text-slate-500 font-medium">
@@ -682,12 +816,12 @@ export const MealPlanDetailPage = ({
 
       {/* Modal Danh sách đi chợ */}
       {plan && shoppingOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-xs sm:p-4">
           <section
             role="dialog"
             aria-modal="true"
             aria-label="Danh sách đi chợ"
-            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl bg-white p-6 md:p-8 space-y-5 shadow-2xl"
+            className="max-h-[88vh] w-full max-w-3xl space-y-5 overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6 md:p-8"
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -903,6 +1037,9 @@ export const MealPlanDetailPage = ({
                 <p className="text-xs text-slate-500 mt-0.5">
                   Đang thay thế cho: <strong>{replacement.recipeName}</strong>
                 </p>
+                <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                  Vị trí này đã được đổi {replacement.swapCount} lần.
+                </p>
               </div>
               <button
                 type="button"
@@ -915,9 +1052,8 @@ export const MealPlanDetailPage = ({
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Các công thức hiển thị phù hợp với chế độ ăn của kế hoạch. Hệ thống
-              sẽ kiểm tra thêm dị ứng và thực phẩm cần tránh khi lưu.
+            <p className="text-xs leading-relaxed text-slate-500">
+              Danh sách đầu là công thức đúng chế độ ăn đã lưu. Nhóm ưu tiên được xếp theo chỉ số và mục tiêu hiện tại; khi xác nhận, hệ thống vẫn kiểm tra dị ứng và thực phẩm cần tránh.
             </p>
 
             <input
@@ -934,61 +1070,41 @@ export const MealPlanDetailPage = ({
               className="w-full rounded-2xl border border-slate-200 p-3 text-sm font-normal text-slate-900 focus:outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/20"
             />
 
-            <div className="space-y-2.5 max-h-[42vh] overflow-y-auto pr-1">
+            <div className="max-h-[48vh] space-y-5 overflow-y-auto pr-1">
               {recipesLoading ? (
                 <div className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500">
                   <Loader2 className="w-5 h-5 animate-spin text-[#2E7D32]" />
                   <span>Đang tìm công thức phù hợp...</span>
                 </div>
               ) : (
-                recipes.map((recipe) => (
-                  <label
-                    key={recipe.id}
-                    className={`flex items-center gap-3.5 rounded-2xl border p-3 transition-all cursor-pointer ${
-                      recipeId === recipe.id
-                        ? 'border-[#2E7D32] bg-emerald-50/70 ring-1 ring-[#2E7D32]/30 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="replacementRecipe"
-                      required
-                      checked={recipeId === recipe.id}
-                      disabled={busy}
-                      onChange={() => setRecipeId(recipe.id)}
-                      className="accent-[#2E7D32] w-4 h-4 cursor-pointer"
-                    />
-
-                    {recipe.imageUrl ? (
-                      <img
-                        src={recipe.imageUrl}
-                        alt={recipe.name}
-                        className="w-14 h-14 rounded-xl object-cover shrink-0 bg-slate-100"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-emerald-100 text-[#2E7D32] flex items-center justify-center shrink-0">
-                        <UtensilsCrossed size={20} />
+                <>
+                  {goalRecipes.length > 0 && (
+                    <section className="space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-sm font-extrabold text-emerald-900">Phù hợp chỉ số &amp; mục tiêu</h3>
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                          Mục tiêu khoảng {Math.round(goalTargetCalories)} kcal/bữa
+                        </span>
                       </div>
-                    )}
-
-                    <div className="flex-1">
-                      <span className="font-bold text-slate-900 text-sm block">
-                        {recipe.name}
-                      </span>
-                      <small className="block text-slate-500 text-xs mt-0.5">
-                        {mealNutrition(recipe.caloriesPerServing, 1)}
-                        {recipe.caloriesPerServing !== null
-                          ? ' kcal / khẩu phần'
-                          : ''}{' '}
-                        · {recipe.cookTimeMinutes + recipe.prepTimeMinutes} phút
-                      </small>
+                      <div className="space-y-2.5">
+                        {goalRecipes.map((recipe) => (
+                          <RecipeChoice key={recipe.id} recipe={recipe} currentMeal={replacement} servings={servings} selected={recipeId === recipe.id} disabled={busy} onSelect={() => setRecipeId(recipe.id)} />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                  <section className="space-y-2.5">
+                    <h3 className="text-sm font-extrabold text-slate-800">Tất cả công thức phù hợp chế độ ăn</h3>
+                    <div className="space-y-2.5">
+                      {dietRecipes.map((recipe) => (
+                        <RecipeChoice key={recipe.id} recipe={recipe} currentMeal={replacement} servings={servings} selected={recipeId === recipe.id} disabled={busy} onSelect={() => setRecipeId(recipe.id)} />
+                      ))}
                     </div>
-                  </label>
-                ))
+                  </section>
+                </>
               )}
 
-              {!recipesLoading && !recipes.length && !recipeError && (
+              {!recipesLoading && !goalRecipes.length && !dietRecipes.length && !recipeError && (
                 <p className="text-sm text-slate-500 py-6 text-center">
                   Không tìm thấy công thức nào phù hợp tiêu chí.
                 </p>

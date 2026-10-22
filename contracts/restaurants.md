@@ -27,7 +27,7 @@ Không xóa vật lý. Bản ghi ngừng sử dụng không còn nằm trong API
 
 Danh sách nhận `pageNumber=1`, `pageSize=20` (1–100), `search`, `district`, `dietaryType`, `latitude`, `longitude`, `maxDistanceKm`.
 
-- `search` tìm tên, địa chỉ hoặc khu vực; `district` lọc khu vực; các filter kết hợp AND.
+- `search` tìm tên, địa chỉ hoặc khu vực; `district` lọc khu vực; các filter kết hợp AND. Tìm khu vực không phân biệt hoa/thường, dấu tiếng Việt hoặc dạng viết tắt phổ biến như `Quận 3`, `Quan 3`, `Q.3`.
 - `dietaryType`: `1` Vegan, `2` LactoVegetarian, `3` OvoVegetarian, `4` LactoOvoVegetarian.
 - `latitude` và `longitude` phải cùng có hoặc cùng không có. Latitude từ -90 đến 90, longitude từ -180 đến 180, tối đa 6 chữ số lẻ.
 - Khi có tọa độ, API tính `distanceKm` theo công thức Haversine và sắp xếp theo khoảng cách rồi tên. Không có tọa độ, sắp xếp theo tên rồi ID.

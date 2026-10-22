@@ -40,7 +40,7 @@ public sealed class MealPlanService(IMealPlanRepository repository)
         RequestValidation.Validate(request); if (day is < 1 or > 7 || !Enum.IsDefined(slot) || request.RecipeId == Guid.Empty) throw new ValidationException("Invalid meal position or recipe.");
         var plan = await FindAsync(userId,id,ct); var recipe = await repository.GetUsableRecipeAsync(request.RecipeId,ct) ?? throw new KeyNotFoundException("Recipe not found or inactive.");
         if (!IsUsable(recipe, ReadSnapshot(plan))) throw new ConflictException("Recipe does not meet the dietary or allergy conditions saved with this meal plan.");
-        var old = plan.Meals.SingleOrDefault(x=>x.DayNumber==day&&x.Slot==slot) ?? throw new KeyNotFoundException("Meal not found."); plan.Meals.Remove(old); plan.Meals.Add(Snapshot(recipe,day,slot,request.Servings)); plan.UpdatedAt=DateTimeOffset.UtcNow; await RebuildShoppingAsync(plan,userId,ct); await repository.SaveAsync(ct); return Map(plan);
+        var old = plan.Meals.SingleOrDefault(x=>x.DayNumber==day&&x.Slot==slot) ?? throw new KeyNotFoundException("Meal not found."); plan.Meals.Remove(old); plan.Meals.Add(Snapshot(recipe,day,slot,request.Servings, old.SwapCount + 1)); plan.UpdatedAt=DateTimeOffset.UtcNow; await RebuildShoppingAsync(plan,userId,ct); await repository.SaveAsync(ct); return Map(plan);
     }
     public async Task<MealPlanResponse> RegenerateAsync(string userId, Guid id, CancellationToken ct)
     {
@@ -72,7 +72,7 @@ public sealed class MealPlanService(IMealPlanRepository repository)
             Meals = source.Meals.Select(meal => new MealPlanMeal
             {
                 DayNumber = meal.DayNumber, Slot = meal.Slot, RecipeId = meal.RecipeId, RecipeName = meal.RecipeName,
-                ImageUrl = meal.ImageUrl, Servings = meal.Servings, TotalTimeMinutes = meal.TotalTimeMinutes,
+                ImageUrl = meal.ImageUrl, Servings = meal.Servings, SwapCount = meal.SwapCount, TotalTimeMinutes = meal.TotalTimeMinutes,
                 CaloriesPerServing = meal.CaloriesPerServing, ProteinGramPerServing = meal.ProteinGramPerServing,
                 CarbohydrateGramPerServing = meal.CarbohydrateGramPerServing, FatGramPerServing = meal.FatGramPerServing,
                 Ingredients = meal.Ingredients.Select(ingredient => new MealPlanMealIngredient
@@ -103,7 +103,7 @@ public sealed class MealPlanService(IMealPlanRepository repository)
         }
     }
     private async Task RebuildShoppingAsync(MealPlan plan,string user,CancellationToken ct) { plan.ShoppingItems.Clear(); var pantry=(await repository.GetPantryAsync(user,ct)).Where(x=>x.IngredientId.HasValue&&x.Quantity.HasValue).GroupBy(x=>new{x.IngredientId,x.Unit}).ToDictionary(x=>x.Key,x=>x.Sum(y=>y.Quantity!.Value)); foreach(var g in plan.Meals.SelectMany(x=>x.Ingredients).GroupBy(x=>new{x.IngredientId,x.IngredientName,x.Unit})) { pantry.TryGetValue(new { IngredientId=(Guid?)g.Key.IngredientId, Unit=(string?)g.Key.Unit },out var have); var need=g.Sum(x=>x.Quantity); plan.ShoppingItems.Add(new MealPlanShoppingItem{IngredientId=g.Key.IngredientId,IngredientName=g.Key.IngredientName,Unit=g.Key.Unit,RequiredQuantity=need,PantryQuantity=have,QuantityToBuy=Math.Max(0,need-have)}); } }
-    private static MealPlanMeal Snapshot(Recipe r,int day,MealSlot slot,int servings)=>new(){DayNumber=day,Slot=slot,RecipeId=r.Id,RecipeName=r.Name,ImageUrl=r.ImageUrl,Servings=servings,TotalTimeMinutes=r.PrepTimeMinutes+r.CookTimeMinutes,CaloriesPerServing=r.CaloriesPerServing,ProteinGramPerServing=r.ProteinGramPerServing,CarbohydrateGramPerServing=r.CarbohydrateGramPerServing,FatGramPerServing=r.FatGramPerServing,Ingredients=r.RecipeIngredients.Select(x=>new MealPlanMealIngredient{IngredientId=x.IngredientId,IngredientName=x.Ingredient!.Name,Quantity=x.Quantity*servings,Unit=x.Unit}).ToList()};
+    private static MealPlanMeal Snapshot(Recipe r,int day,MealSlot slot,int servings,int swapCount = 0)=>new(){DayNumber=day,Slot=slot,RecipeId=r.Id,RecipeName=r.Name,ImageUrl=r.ImageUrl,Servings=servings,SwapCount=swapCount,TotalTimeMinutes=r.PrepTimeMinutes+r.CookTimeMinutes,CaloriesPerServing=r.CaloriesPerServing,ProteinGramPerServing=r.ProteinGramPerServing,CarbohydrateGramPerServing=r.CarbohydrateGramPerServing,FatGramPerServing=r.FatGramPerServing,Ingredients=r.RecipeIngredients.Select(x=>new MealPlanMealIngredient{IngredientId=x.IngredientId,IngredientName=x.Ingredient!.Name,Quantity=x.Quantity*servings,Unit=x.Unit}).ToList()};
     private static bool IsUsable(Recipe recipe, ProfileSnapshot profile) => recipe.RecipeIngredients.All(ingredient => ingredient.Ingredient is not null &&
         DietaryRules.Classify([ingredient.Ingredient]).Single(assessment => assessment.DietaryType == ToDiet(profile.Diet)).Status == DietaryCompatibility.Compatible &&
         !profile.Allergies.Any(allergy => Terms(ingredient.Ingredient.Allergens, allergy)) &&
@@ -117,7 +117,7 @@ public sealed class MealPlanService(IMealPlanRepository repository)
     }
     private static MealPlanResponse Map(MealPlan p)
     {
-        var meals = p.Meals.OrderBy(x => x.DayNumber).ThenBy(x => x.Slot).Select(x => new MealPlanMealResponse(x.Id, x.DayNumber, x.Slot, x.RecipeId, x.RecipeName, x.Servings, x.TotalTimeMinutes, x.CaloriesPerServing, x.ProteinGramPerServing, x.CarbohydrateGramPerServing, x.FatGramPerServing, x.ImageUrl)).ToArray();
+        var meals = p.Meals.OrderBy(x => x.DayNumber).ThenBy(x => x.Slot).Select(x => new MealPlanMealResponse(x.Id, x.DayNumber, x.Slot, x.RecipeId, x.RecipeName, x.Servings, x.SwapCount, x.TotalTimeMinutes, x.CaloriesPerServing, x.ProteinGramPerServing, x.CarbohydrateGramPerServing, x.FatGramPerServing, x.ImageUrl, x.Ingredients.OrderBy(ingredient => ingredient.IngredientName).Select(ingredient => ingredient.IngredientName).ToArray())).ToArray();
         return new MealPlanResponse(p.Id, p.Name, p.WeekStartDate, p.ProfileDiet, meals, p.ShoppingItems.OrderBy(x => x.IngredientName).Select(Map).ToArray(), new MealPlanNutritionSummary(meals.Sum(x => (x.CaloriesPerServing ?? 0) * x.Servings), meals.Sum(x => (x.ProteinGramPerServing ?? 0) * x.Servings), meals.Sum(x => (x.CarbohydrateGramPerServing ?? 0) * x.Servings), meals.Sum(x => (x.FatGramPerServing ?? 0) * x.Servings)), p.CreatedAt, p.UpdatedAt);
     }
     private static ShoppingItemResponse Map(MealPlanShoppingItem x)=>new(x.Id,x.IngredientId,x.IngredientName,x.RequiredQuantity,x.PantryQuantity,x.QuantityToBuy,x.Unit,x.IsPurchased);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
+  Bookmark,
   Clock,
   Coffee,
   MapPin,
@@ -23,6 +24,8 @@ import {
   filterRestaurants,
   getRestaurantDetail,
 } from '../api/restaurantApi'
+import { getStoredToken } from '../../../shared/api/apiClient'
+import { findFavorite, toggleFavorite } from '../../favorites/api/favoritesApi'
 import { RestaurantCard } from '../components/RestaurantCard'
 import { formatAddress } from '../utils/restaurantUtils'
 import type {
@@ -52,6 +55,8 @@ export default function RestaurantDetail({
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -68,6 +73,23 @@ export default function RestaurantDetail({
     })()
     return () => {
       cancelled = true
+    }
+  }, [restaurantId])
+
+  useEffect(() => {
+    if (!restaurantId || !getStoredToken()) return
+    let active = true
+
+    void findFavorite('Restaurant', restaurantId)
+      .then((favorite) => {
+        if (active) setSaved(Boolean(favorite))
+      })
+      .catch(() => {
+        if (active) setSaved(false)
+      })
+
+    return () => {
+      active = false
     }
   }, [restaurantId])
 
@@ -103,6 +125,25 @@ export default function RestaurantDetail({
       showToast('🔗 Đã sao chép liên kết nhà hàng vào bộ nhớ tạm!')
     } else {
       showToast('Đã copy link nhà hàng.')
+    }
+  }
+
+  const toggleSavedRestaurant = async () => {
+    if (!restaurantId) return
+    if (!getStoredToken()) {
+      onNavigate?.(`/auth/login?returnUrl=${encodeURIComponent(`/restaurants/${restaurantId}`)}`)
+      return
+    }
+
+    setSaving(true)
+    try {
+      const nextSaved = await toggleFavorite('Restaurant', restaurantId, !saved)
+      setSaved(nextSaved)
+      showToast(nextSaved ? 'Đã lưu nhà hàng vào mục đã lưu.' : 'Đã bỏ lưu nhà hàng.')
+    } catch {
+      showToast('Không thể cập nhật mục đã lưu. Vui lòng thử lại.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -210,6 +251,19 @@ export default function RestaurantDetail({
               className="!rounded-xl !border-slate-300 !text-slate-700 hover:!bg-slate-50"
             >
               Chia sẻ
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={saving}
+              leftIcon={<Bookmark size={13} className={saved ? 'fill-current' : ''} />}
+              onClick={() => void toggleSavedRestaurant()}
+              className={saved
+                ? '!rounded-xl !border-amber-300 !bg-amber-50 !text-amber-800 hover:!bg-amber-100'
+                : '!rounded-xl !border-slate-300 !text-slate-700 hover:!bg-slate-50'}
+            >
+              {saved ? 'Đã lưu' : 'Lưu nhà hàng'}
             </Button>
           </div>
         </div>

@@ -3,6 +3,9 @@ using Application.Features.Restaurants;
 using Domain.Entities;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Infrastructure.Persistence.Repositories;
 
@@ -13,26 +16,23 @@ public sealed class RestaurantRepository(AppDbContext db) : IRestaurantRepositor
         var query = db.Restaurants.AsNoTracking().AsQueryable();
         if (!includeInactive)
             query = query.Where(restaurant => restaurant.IsActive);
-        if (!string.IsNullOrWhiteSpace(request.Search))
-        {
-            var search = request.Search.Trim();
-            query = query.Where(restaurant => restaurant.Name.Contains(search) || restaurant.Address.Contains(search) ||
-                (restaurant.District != null && restaurant.District.Contains(search)));
-        }
-        if (!string.IsNullOrWhiteSpace(request.District))
-        {
-            var district = request.District.Trim();
-            query = query.Where(restaurant => restaurant.District != null && restaurant.District.Contains(district));
-        }
         if (request.DietaryType.HasValue)
             query = query.Where(restaurant => restaurant.DietaryTypes.Any(type => type.DietaryType == request.DietaryType.Value));
 
-        return await query
+        var restaurants = await query
             .Include(restaurant => restaurant.DietaryTypes)
             .Include(restaurant => restaurant.Amenities)
             .Include(restaurant => restaurant.FeaturedDishes)
             .AsSplitQuery()
             .ToListAsync(ct);
+
+        // District data entered by Admin is free text ("Quận 3", "Q.3", ...).
+        // Normalize both sides after loading so location search remains predictable
+        // regardless of case, accents, punctuation, or the abbreviated district form.
+        return restaurants
+            .Where(restaurant => MatchesSearch(restaurant, request.Search))
+            .Where(restaurant => MatchesDistrict(restaurant, request.District))
+            .ToArray();
     }
 
     public Task<Restaurant?> GetAsync(Guid id, CancellationToken ct) => db.Restaurants
@@ -56,5 +56,29 @@ public sealed class RestaurantRepository(AppDbContext db) : IRestaurantRepositor
         {
             throw new ConflictException("Restaurant name or amenity already exists.");
         }
+    }
+
+    private static bool MatchesSearch(Restaurant restaurant, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        var search = Normalize(value);
+        return Normalize(restaurant.Name).Contains(search, StringComparison.Ordinal) ||
+            Normalize(restaurant.Address).Contains(search, StringComparison.Ordinal) ||
+            Normalize(restaurant.District).Contains(search, StringComparison.Ordinal);
+    }
+
+    private static bool MatchesDistrict(Restaurant restaurant, string? value) =>
+        string.IsNullOrWhiteSpace(value) ||
+        Normalize(restaurant.District).Contains(Normalize(value), StringComparison.Ordinal) ||
+        Normalize(restaurant.Address).Contains(Normalize(value), StringComparison.Ordinal);
+
+    private static string Normalize(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var decomposed = value.Normalize(NormalizationForm.FormD);
+        var plain = new string(decomposed.Where(character => CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark).ToArray())
+            .ToLowerInvariant();
+        plain = Regex.Replace(plain, @"\bq\s*\.?\s*(\d+)\b", "quan $1");
+        return Regex.Replace(plain, @"[^a-z0-9]+", " ").Trim();
     }
 }

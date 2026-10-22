@@ -22,7 +22,7 @@ public sealed class MealPlanMealConfiguration : IEntityTypeConfiguration<MealPla
     {
         builder.ToTable("MealPlanMeals", t => t.HasCheckConstraint("CK_MealPlanMeals_Day", "[DayNumber] BETWEEN 1 AND 7"));
         builder.HasKey(x => x.Id); builder.Property(x => x.Id).ValueGeneratedNever(); builder.Property(x => x.Slot).HasConversion<string>().HasMaxLength(16);
-        builder.Property(x => x.RecipeName).HasMaxLength(120).IsRequired(); foreach (var p in new[] { "CaloriesPerServing", "ProteinGramPerServing", "CarbohydrateGramPerServing", "FatGramPerServing" }) builder.Property(p).HasPrecision(12, 3);
+        builder.Property(x => x.RecipeName).HasMaxLength(120).IsRequired(); builder.Property(x => x.SwapCount).HasDefaultValue(0); foreach (var p in new[] { "CaloriesPerServing", "ProteinGramPerServing", "CarbohydrateGramPerServing", "FatGramPerServing" }) builder.Property(p).HasPrecision(12, 3);
         builder.HasIndex(x => new { x.MealPlanId, x.DayNumber, x.Slot }).IsUnique(); builder.HasMany(x => x.Ingredients).WithOne(x => x.MealPlanMeal).HasForeignKey(x => x.MealPlanMealId).OnDelete(DeleteBehavior.Cascade);
     }
 }

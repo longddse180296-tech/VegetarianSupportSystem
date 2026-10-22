@@ -9,11 +9,13 @@ export interface SavedPlanMeal {
   recipeName: string
   imageUrl?: string | null
   servings: number
+  swapCount: number
   totalTimeMinutes: number
   caloriesPerServing: number | null
   proteinGramPerServing: number | null
   carbohydrateGramPerServing: number | null
   fatGramPerServing: number | null
+  ingredientNames: string[]
 }
 
 export interface PlanShoppingItem {
@@ -55,6 +57,10 @@ export interface ReplacementRecipe {
   name: string
   imageUrl?: string | null
   caloriesPerServing: number | null
+  proteinGramPerServing: number | null
+  carbohydrateGramPerServing: number | null
+  fatGramPerServing: number | null
+  ingredientNames: string[]
   cookTimeMinutes: number
   prepTimeMinutes: number
 }

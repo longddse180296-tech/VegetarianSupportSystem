@@ -5,11 +5,9 @@ import {
   Bookmark,
   Calendar,
   ChefHat,
-  Flag,
   MessageSquare,
   Reply,
   RotateCcw,
-  Share2,
   ThumbsUp,
   Video as VideoIcon,
 } from 'lucide-react'
@@ -92,7 +90,6 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
   const [reaction, setReaction] = useState<Reaction>({ count: 0, reactedByMe: false })
   const [saved, setSaved] = useState(false)
   const [hasVideoError, setHasVideoError] = useState(false)
-  const [hasReported, setHasReported] = useState(false)
   const [interactionsLoading, setInteractionsLoading] = useState(true)
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<string | null>(null)
@@ -243,26 +240,6 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     }
   }
 
-  const handleReportVideo = () => {
-    if (!requireLogin()) return
-    setHasReported(true)
-    setNotice('Đã gửi báo lỗi video tới Ban Quản trị. Chúng tôi sẽ kiểm tra và khắc phục sớm nhất!')
-  }
-
-  const shareVideo = async () => {
-    setActionError(null)
-    setNotice(null)
-    try {
-      if (!navigator.clipboard) {
-        throw new Error('Trình duyệt không hỗ trợ sao chép tự động. Hãy sao chép liên kết từ thanh địa chỉ.')
-      }
-      await navigator.clipboard.writeText(window.location.href)
-      setNotice('Đã sao chép liên kết video vào bộ nhớ tạm.')
-    } catch (reason) {
-      setActionError(errorMessage(reason, 'Không thể sao chép liên kết.'))
-    }
-  }
-
   const recordView = async () => {
     if (!videoId || viewRecorded.current) return
     viewRecorded.current = true
@@ -404,16 +381,6 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
                 <div className="mt-4 flex items-center gap-3">
                   <Button
                     type="button"
-                    variant="secondary"
-                    size="sm"
-                    leftIcon={<Flag size={14} />}
-                    onClick={handleReportVideo}
-                    className="!h-9 !rounded-xl !bg-white/10 !text-white hover:!bg-white/20 !border-white/20 text-xs font-semibold"
-                  >
-                    {hasReported ? 'Đã gửi báo lỗi' : 'Báo lỗi'}
-                  </Button>
-                  <Button
-                    type="button"
                     variant="outline"
                     size="sm"
                     leftIcon={<RotateCcw size={14} />}
@@ -451,8 +418,8 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
           </h1>
 
           {/* Author & Meta Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-slate-100 text-xs sm:text-sm text-slate-500">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-4 border-y border-slate-100 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 font-bold text-sm">
                 <ChefHat size={20} />
               </div>
@@ -460,7 +427,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
                 <p className="font-bold text-slate-900 text-sm">{authorName}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-xs font-medium">
+            <div className="text-xs font-medium text-slate-500 sm:text-right">
               <span className="flex items-center gap-1.5">
                 <Calendar size={14} /> Xuất bản: {formatDate(video.createdAtUtc)}
               </span>
@@ -474,12 +441,12 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
           </div>
 
           {/* Actions Footer */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center">
+            <div className="grid grid-cols-2 gap-2 sm:flex">
               <button
                 type="button"
                 disabled={interactionsLoading || liking}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
                   reaction.reactedByMe
                     ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
                     : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
@@ -499,7 +466,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
               <button
                 type="button"
                 disabled={interactionsLoading || saving}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
                   saved
                     ? 'bg-amber-500 text-white shadow-xs hover:bg-amber-600'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -511,22 +478,6 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void shareVideo()}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition"
-              >
-                <Share2 size={15} /> Chia sẻ
-              </button>
-              <button
-                type="button"
-                onClick={handleReportVideo}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition"
-              >
-                <Flag size={15} /> {hasReported ? 'Đã báo lỗi' : 'Báo lỗi'}
-              </button>
-            </div>
           </div>
         </div>
       </article>

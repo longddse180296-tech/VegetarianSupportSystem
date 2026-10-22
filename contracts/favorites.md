@@ -11,6 +11,7 @@ Available targets are:
 - `Recipe`: only an active recipe.
 - `Restaurant`: only an active restaurant.
 - `Video`: only a Video submission whose current version is published by the BE3 moderation module.
+- `Article`: only the currently published version of an article.
 
 The API refuses an absent, inactive, unpublished, removed, or unsupported target with `404`. This prevents a saved list from exposing unpublished content.
 
@@ -25,7 +26,7 @@ The API refuses an absent, inactive, unpublished, removed, or unsupported target
 }
 ```
 
-`targetType` is `Recipe`, `Video`, or `Restaurant`. A duplicate returns `409`. A successful request returns `201`:
+`targetType` is `Recipe`, `Video`, `Restaurant`, or `Article`. A duplicate returns `409`. A successful request returns `201`:
 
 ```json
 {

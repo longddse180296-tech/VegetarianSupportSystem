@@ -27,6 +27,7 @@ public sealed class MealPlanMeal
     public string RecipeName { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public int Servings { get; set; } = 1;
+    public int SwapCount { get; set; }
     public int TotalTimeMinutes { get; set; }
     public decimal? CaloriesPerServing { get; set; }
     public decimal? ProteinGramPerServing { get; set; }

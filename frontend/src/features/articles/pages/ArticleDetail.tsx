@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, Calendar, Edit3, Heart, Leaf, MessageSquare, Plus, ThumbsUp, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowLeft, ArrowRight, BookOpen, Bookmark, Calendar, Edit3, Heart, Leaf, MessageSquare, Plus, ThumbsUp, User } from 'lucide-react'
 import { useAuth } from '../../auth'
-import { apiClient } from '../../../shared/api/apiClient'
+import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
 import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
 import { Badge, Button, PageHeading } from '../../../shared/components'
@@ -21,6 +21,7 @@ import {
 } from '../api/articles.api'
 import { RichContentRenderer } from '../components/RichContentRenderer'
 import { BACKEND_DIETARY_TYPE_LABELS } from '../../../shared/constants'
+import { findFavorite, toggleFavorite } from '../../favorites/api/favoritesApi'
 
 function CommentLike({
   comment,
@@ -81,6 +82,7 @@ export const ArticleDetail = ({
   onSelectRelatedArticle?: (id: string) => void
 }) => {
   const { user } = useAuth()
+  const currentUserId = user?.id
   const article = useApiData<PublicArticleDetail>(
     `/api/articles/${encodeURIComponent(articleId)}`,
   )
@@ -97,6 +99,44 @@ export const ArticleDetail = ({
   const [editBody, setEditBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!currentUserId || !getStoredToken()) return
+    let active = true
+
+    void findFavorite('Article', articleId)
+      .then((favorite) => {
+        if (active) setSaved(Boolean(favorite))
+      })
+      .catch(() => {
+        if (active) setSaved(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [articleId, currentUserId])
+
+  const toggleSavedArticle = async () => {
+    if (!user || !getStoredToken()) {
+      window.location.hash = `/auth/login?returnUrl=${encodeURIComponent(`/articles/${articleId}`)}`
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+    try {
+      const nextSaved = await toggleFavorite('Article', articleId, !saved)
+      setSaved(nextSaved)
+    } catch (reason) {
+      setError(errorMessage(reason))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function action(work: () => Promise<unknown>) {
     if (busy) return
     setBusy(true)
@@ -236,6 +276,20 @@ export const ArticleDetail = ({
                     <span className="px-2 py-0.5 rounded-full bg-black/10 text-xs font-bold">
                       {helpful.data?.count ?? 0}
                     </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={saving}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-50 ${
+                      saved
+                        ? 'bg-amber-500 text-white shadow-xs hover:bg-amber-600'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                    onClick={() => void toggleSavedArticle()}
+                  >
+                    <Bookmark size={16} className={saved ? 'fill-current' : ''} />
+                    <span>{saved ? 'Đã lưu' : 'Lưu bài viết'}</span>
                   </button>
 
                   {user?.id === article.data.authorId && (

@@ -16,7 +16,7 @@ Hợp đồng nhà hàng public/Admin, lọc theo khu vực/chế độ ăn/kho�
 
 Hợp đồng Pantry: kho nguyên liệu theo tài khoản, đối chiếu profile, gợi ý công thức và danh sách thay thế ở [pantry.md](pantry.md).
 
-Hợp đồng lưu yêu thích cho công thức, video và nhà hàng ở [favorites.md](favorites.md).
+Hợp đồng lưu yêu thích cho công thức, bài viết, video và nhà hàng ở [favorites.md](favorites.md).
 
 Hợp đồng thực đơn 7 ngày, thay món, danh sách đi chợ, áp dụng tuần mới và PDF ở [meal-plans.md](meal-plans.md).
 
