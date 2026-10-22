@@ -13,9 +13,17 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
     {
         var ai = await geminiService.ReadIngredientLabelAsync(
             new GeminiDishImageRequest(imageBytes, mimeType), cancellationToken);
+        var suggestions = ai.IsAvailable ? ai.SuggestedIngredients ?? [] : [];
+        var evidence = suggestions.Count > 0
+            ? await repository.FindIngredientEvidenceAsync(suggestions.Select(item => item.Name).ToArray(), cancellationToken)
+            : [];
+        var ingredients = suggestions.Select(item => new LabelIngredientSuggestion(item.Name,
+            evidence.FirstOrDefault(entry => entry.Name.Equals(item.Name,
+                StringComparison.OrdinalIgnoreCase))?.Kind ?? item.Kind)).ToArray();
         return new LabelImageScanResult(ai.IsAvailable ? "NeedsConfirmation" : "AnalysisFailed",
             ai.ExtractedText, ai.IsIncomplete, ai.ErrorCode,
-            "OCR chỉ chép phần đọc được. Hãy sửa văn bản và xác nhận thành phần trước khi đánh giá.");
+            "OCR chỉ chép phần đọc được. Loại nguyên liệu là gợi ý; hãy sửa và xác nhận trước khi đánh giá.",
+            ingredients);
     }
 
     public async Task<SavedFoodScan> EvaluateAndSaveAsync(string userId, string sourceType,
@@ -169,7 +177,9 @@ public sealed record DietAssessment(VegetarianDiet Diet, FoodScanAssessmentStatu
 public sealed record FoodScanEvaluation(IReadOnlyList<DietAssessment> Assessments, string Note,
     IReadOnlyList<ScanIngredientEvidence>? CatalogEvidence = null);
 public sealed record LabelImageScanResult(string ProcessingStatus, string? ExtractedText,
-    bool IsIncomplete, string? ErrorCode, string Note);
+    bool IsIncomplete, string? ErrorCode, string Note,
+    IReadOnlyList<LabelIngredientSuggestion> SuggestedIngredients);
+public sealed record LabelIngredientSuggestion(string Name, IngredientKind Kind);
 public sealed record SavedFoodScan(Guid Id, DateTimeOffset CreatedAtUtc, int ResultVersion,
     Guid? PreviousScanId,
     string SourceType, IReadOnlyList<DietAssessment> Assessments, string Note,
