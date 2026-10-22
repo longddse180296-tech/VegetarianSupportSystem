@@ -74,7 +74,9 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
             (query.DietaryType is { } dietaryType && !Enum.IsDefined(dietaryType)))
             throw new ArticleException(ArticleError.Validation, "Search and category must be at most 120 characters.");
         var page = await repository.ListPublicAsync(query, ct);
-        return new(page.Items.Select(ToSummary).ToArray(), page.TotalCount, page.Page, page.PageSize);
+        var names = await repository.AuthorNamesAsync(page.Items.Select(x => x.Submission.OwnerUserId), ct);
+        return new(page.Items.Select(x => ToSummary(x, names.GetValueOrDefault(x.Submission.OwnerUserId))).ToArray(),
+            page.TotalCount, page.Page, page.PageSize);
     }
 
     public async Task<ArticleDetail> GetPublicAsync(Guid id, CancellationToken ct)
@@ -82,10 +84,13 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         var version = await repository.GetPublicAsync(id, ct)
             ?? throw new ArticleException(ArticleError.NotFound, "Article was not found.");
         var related = await repository.GetRelatedAsync(id, Categories(version.Categories), 4, ct);
+        var names = await repository.AuthorNamesAsync(
+            new[] { version }.Concat(related).Select(x => x.Submission.OwnerUserId), ct);
         var dietaryTypes = ToDietaryTypes(version.DietaryTypes);
         return new(version.ArticleId, version.Title, version.Content, version.Category, Categories(version.Categories), dietaryTypes,
-            dietaryTypes.Count == 1 ? dietaryTypes[0] : null, version.CoverImageUrl, version.Submission.OwnerUserId, version.Version,
-            PublishedAt(version), related.Select(ToSummary).ToArray());
+            dietaryTypes.Count == 1 ? dietaryTypes[0] : null, version.CoverImageUrl, version.Submission.OwnerUserId,
+            names.GetValueOrDefault(version.Submission.OwnerUserId), version.Version,
+            PublishedAt(version), related.Select(x => ToSummary(x, names.GetValueOrDefault(x.Submission.OwnerUserId))).ToArray());
     }
 
     private async Task<Article> GetOwnedAsync(Guid id, string ownerId, CancellationToken ct)
@@ -121,11 +126,12 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
                 x.SubmittedAt)).ToArray());
     }
 
-    private static ArticleSummary ToSummary(ArticleVersion version)
+    private static ArticleSummary ToSummary(ArticleVersion version, string? authorName = null)
     {
         var dietaryTypes = ToDietaryTypes(version.DietaryTypes);
         return new(version.ArticleId, version.Title, version.Category, Categories(version.Categories), dietaryTypes,
-            dietaryTypes.Count == 1 ? dietaryTypes[0] : null, version.CoverImageUrl, version.Submission.OwnerUserId, version.Version,
+            dietaryTypes.Count == 1 ? dietaryTypes[0] : null, version.CoverImageUrl, version.Submission.OwnerUserId,
+            authorName, version.Version,
             PublishedAt(version));
     }
 

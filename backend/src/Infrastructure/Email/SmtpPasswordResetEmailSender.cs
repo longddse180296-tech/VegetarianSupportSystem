@@ -19,7 +19,11 @@ public sealed class SmtpPasswordResetEmailSender(IConfiguration configuration) :
         IsValidSender(From) &&
         (UseSsl || Host is "localhost" or "127.0.0.1" or "::1") &&
         (string.IsNullOrEmpty(configuration["PasswordReset:Smtp:Username"]) ==
-        string.IsNullOrEmpty(configuration["PasswordReset:Smtp:Password"]));
+        string.IsNullOrEmpty(configuration["PasswordReset:Smtp:Password"])) &&
+        (!string.Equals(Host, "smtp.gmail.com", StringComparison.OrdinalIgnoreCase) ||
+         (port == 587 &&
+          !string.IsNullOrWhiteSpace(configuration["PasswordReset:Smtp:Username"]) &&
+          !string.IsNullOrWhiteSpace(configuration["PasswordReset:Smtp:Password"])));
 
     private bool UseSsl => !bool.TryParse(configuration["PasswordReset:Smtp:EnableSsl"], out var ssl) || ssl;
 

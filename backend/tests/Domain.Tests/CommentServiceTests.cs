@@ -24,6 +24,35 @@ public sealed class CommentServiceTests
         Assert.Equal(root.Id, page.Items.Single(x => x.Id == reply.Id).ParentId);
     }
 
+    [Theory]
+    [InlineData(CommentTargetType.Article)]
+    [InlineData(CommentTargetType.Video)]
+    public async Task PublicCommentsIncludeAuthorNamesForContentOwnerAndOtherReaders(CommentTargetType targetType)
+    {
+        var repo = new MemoryComments();
+        repo.Names["commenter"] = "Nguyễn Khánh Vinh";
+        var service = new CommentService(repo, TimeProvider.System);
+        var target = Guid.NewGuid();
+
+        var created = await service.CreateAsync("commenter", new(targetType, target, null, "hello"), default);
+        var page = await service.ListPublicAsync(new(targetType, target), default);
+
+        Assert.Equal("Nguyễn Khánh Vinh", created.AuthorName);
+        Assert.Equal("Nguyễn Khánh Vinh", Assert.Single(page.Items).AuthorName);
+        Assert.Equal("Nguyễn Khánh Vinh", (await service.GetPublicAsync(created.Id, default)).AuthorName);
+    }
+
+    [Fact]
+    public async Task MissingAuthorAccountHasNullName()
+    {
+        var service = new CommentService(new MemoryComments(), TimeProvider.System);
+        var target = Guid.NewGuid();
+        var created = await service.CreateAsync("missing", new(CommentTargetType.Article, target, null, "hello"), default);
+
+        Assert.Null(created.AuthorName);
+        Assert.Null(Assert.Single((await service.ListPublicAsync(new(CommentTargetType.Article, target), default)).Items).AuthorName);
+    }
+
     [Fact]
     public async Task OwnerAndAdminPermissionsAreSeparate()
     {
@@ -78,6 +107,7 @@ public sealed class CommentServiceTests
         private readonly List<Comment> comments = [];
         private readonly List<ContentReaction> reactions = [];
         public bool Public { get; set; } = true;
+        public Dictionary<string, string> Names { get; } = [];
 
         public Task<bool> IsPublicTargetAsync(CommentTargetType type, Guid id, CancellationToken ct) => Task.FromResult(Public);
         public Task<Comment?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult(comments.SingleOrDefault(x => x.Id == id));
@@ -93,6 +123,9 @@ public sealed class CommentServiceTests
         public Task<IReadOnlyDictionary<Guid, int>> LikeCountsAsync(IEnumerable<Guid> ids, CancellationToken ct) =>
             Task.FromResult((IReadOnlyDictionary<Guid, int>)ids.ToDictionary(x => x,
                 x => reactions.Count(r => r.TargetType == ReactionTargetType.CommentLike && r.TargetId == x)));
+        public Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> authorIds, CancellationToken ct) =>
+            Task.FromResult((IReadOnlyDictionary<string, string>)Names
+                .Where(x => authorIds.Contains(x.Key)).ToDictionary(x => x.Key, x => x.Value));
         public Task<ContentReaction?> GetReactionAsync(string userId, ReactionTargetType type, Guid id, CancellationToken ct) =>
             Task.FromResult(reactions.SingleOrDefault(x => x.UserId == userId && x.TargetType == type && x.TargetId == id));
         public Task<ReactionResponse> ReactionStatusAsync(string? userId, ReactionTargetType type, Guid id, CancellationToken ct) =>

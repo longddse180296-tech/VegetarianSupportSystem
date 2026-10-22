@@ -62,10 +62,10 @@ export interface RecipeStep {
 }
 
 export interface RecipeNutrition {
-  kcal: number
-  proteinG: number
-  carbsG: number
-  fatG: number
+  kcal: number | null
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
   fiberG?: number
 }
 

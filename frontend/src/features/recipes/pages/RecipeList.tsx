@@ -97,6 +97,7 @@ function matchesCook(r: Recipe, tier: string) {
 function matchesKcal(r: Recipe, tier: string) {
   if (tier === 'all') return true
   const k = r.nutrition.kcal
+  if (k == null) return false
   if (tier === 'lt200') return k < 200
   if (tier === '200-350') return k >= 200 && k <= 350
   if (tier === '350-500') return k >= 350 && k <= 500
