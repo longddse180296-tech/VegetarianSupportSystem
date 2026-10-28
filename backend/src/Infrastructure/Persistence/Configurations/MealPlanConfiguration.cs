@@ -1,11 +1,14 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Persistence.Configurations;
 
+// MealPlanConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class MealPlanConfiguration : IEntityTypeConfiguration<MealPlan>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<MealPlan> builder)
     {
         builder.ToTable("MealPlans"); builder.HasKey(x => x.Id); builder.Property(x => x.Id).ValueGeneratedNever();
@@ -16,8 +19,10 @@ public sealed class MealPlanConfiguration : IEntityTypeConfiguration<MealPlan>
         builder.HasMany(x => x.ShoppingItems).WithOne(x => x.MealPlan).HasForeignKey(x => x.MealPlanId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+// MealPlanMealConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class MealPlanMealConfiguration : IEntityTypeConfiguration<MealPlanMeal>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<MealPlanMeal> builder)
     {
         builder.ToTable("MealPlanMeals", t => t.HasCheckConstraint("CK_MealPlanMeals_Day", "[DayNumber] BETWEEN 1 AND 7"));
@@ -26,7 +31,9 @@ public sealed class MealPlanMealConfiguration : IEntityTypeConfiguration<MealPla
         builder.HasIndex(x => new { x.MealPlanId, x.DayNumber, x.Slot }).IsUnique(); builder.HasMany(x => x.Ingredients).WithOne(x => x.MealPlanMeal).HasForeignKey(x => x.MealPlanMealId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+// MealPlanMealIngredientConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class MealPlanMealIngredientConfiguration : IEntityTypeConfiguration<MealPlanMealIngredient>
 { public void Configure(EntityTypeBuilder<MealPlanMealIngredient> b) { b.ToTable("MealPlanMealIngredients"); b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.IngredientName).HasMaxLength(120).IsRequired(); b.Property(x => x.Unit).HasMaxLength(40).IsRequired(); b.Property(x => x.Quantity).HasPrecision(12,3); b.HasIndex(x => new { x.MealPlanMealId, x.IngredientId, x.Unit }).IsUnique(); } }
+// MealPlanShoppingItemConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class MealPlanShoppingItemConfiguration : IEntityTypeConfiguration<MealPlanShoppingItem>
 { public void Configure(EntityTypeBuilder<MealPlanShoppingItem> b) { b.ToTable("MealPlanShoppingItems"); b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever(); b.Property(x => x.IngredientName).HasMaxLength(120).IsRequired(); b.Property(x => x.Unit).HasMaxLength(40).IsRequired(); b.Property(x => x.RequiredQuantity).HasPrecision(12,3); b.Property(x => x.PantryQuantity).HasPrecision(12,3); b.Property(x => x.QuantityToBuy).HasPrecision(12,3); b.HasIndex(x => new { x.MealPlanId, x.IngredientId, x.Unit }).IsUnique(); } }

@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 export type * from './types'
 export * from './api/authApi'
 export * from './context/AuthContext'

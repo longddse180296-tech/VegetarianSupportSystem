@@ -1,7 +1,9 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import { RefreshCw, Check, Sparkles, X } from 'lucide-react'
 import type { MealReplacementOption, RecommendedMealItem } from '../types/mealPlans.types'
 
+// Cấu trúc MealReplacementPanelProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface MealReplacementPanelProps {
   currentMeal: RecommendedMealItem
   options: MealReplacementOption[]
@@ -10,6 +12,7 @@ interface MealReplacementPanelProps {
   onExploreMore?: () => void
 }
 
+// Thành phần MealReplacementPanel nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const MealReplacementPanel: React.FC<MealReplacementPanelProps> = ({
   currentMeal,
   options,
@@ -17,9 +20,11 @@ export const MealReplacementPanel: React.FC<MealReplacementPanelProps> = ({
   onClose,
   onExploreMore,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isApplying, setIsApplying] = useState(false)
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleChoose); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleChoose = async (opt: MealReplacementOption) => {
     try {
       setSelectedId(opt.id)
@@ -30,6 +35,7 @@ export const MealReplacementPanel: React.FC<MealReplacementPanelProps> = ({
     }
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-[#F8FCF9] rounded-3xl p-6 sm:p-7 border border-emerald-200/90 shadow-sm space-y-6 relative animate-in fade-in">
       {/* Close button */}
@@ -68,6 +74,7 @@ export const MealReplacementPanel: React.FC<MealReplacementPanelProps> = ({
         {options.map((opt) => {
           const isChosen = selectedId === opt.id
 
+          // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
           return (
             <div
               key={opt.id}

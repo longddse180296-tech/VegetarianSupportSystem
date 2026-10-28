@@ -1,3 +1,4 @@
+// Chức năng: thống kê và góp ý gửi đến Admin. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useState } from 'react'
 import { ArrowUpRight, FileText, LoaderCircle, MapPin, Pin, PinOff, RefreshCw, Video } from 'lucide-react'
 import {
@@ -12,7 +13,9 @@ const groups = [
   { type: 'Article', title: 'Bài viết nổi bật', icon: FileText, path: '/admin/articles', tone: 'bg-indigo-50 text-indigo-700' },
 ] satisfies Array<{ type: FeaturedContentType; title: string; icon: typeof MapPin; path: string; tone: string }>
 
+// Thành phần FeaturedGroup nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thống kê và góp ý gửi đến Admin.
 function FeaturedGroup({ group, onNavigate }: { group: typeof groups[number]; onNavigate: (path: string) => void }) {
+  // Lưu dữ liệu và trạng thái thao tác của thống kê và góp ý gửi đến Admin trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -22,6 +25,7 @@ function FeaturedGroup({ group, onNavigate }: { group: typeof groups[number]; on
   const result = useApiData<FeaturedContentPage>(`/api/admin/featured-content?${query}`)
   const pageCount = Math.max(1, Math.ceil((result.data?.totalCount ?? 0) / 5))
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (togglePin); thuộc thống kê và góp ý gửi đến Admin.
   async function togglePin(item: FeaturedContentItem) {
     if (savingId) return
     setSavingId(item.id)
@@ -40,6 +44,7 @@ function FeaturedGroup({ group, onNavigate }: { group: typeof groups[number]; on
     }
   }
 
+  // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-2">
@@ -57,6 +62,7 @@ function FeaturedGroup({ group, onNavigate }: { group: typeof groups[number]; on
           <ul className="space-y-3">
             {result.data?.items.map((item) => {
               const PinIcon = item.isPinned ? PinOff : Pin
+              // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <li key={item.id} className={`flex flex-wrap items-center gap-3 rounded-xl border p-3.5 ${item.isPinned ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-100 bg-slate-50/60'}`}>
                   <div className="min-w-0 flex-1 basis-32">
@@ -86,7 +92,9 @@ function FeaturedGroup({ group, onNavigate }: { group: typeof groups[number]; on
   )
 }
 
+// Thành phần FeaturedContent nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thống kê và góp ý gửi đến Admin.
 export function FeaturedContent({ onNavigate }: { onNavigate: (path: string) => void }) {
+  // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <section aria-labelledby="featured-content-title" className="space-y-5">
       <div>

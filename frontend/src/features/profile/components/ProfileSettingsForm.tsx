@@ -1,3 +1,4 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   Check,
@@ -16,6 +17,7 @@ import { BodyMetricsCalculator } from './BodyMetricsCalculator'
 import { AlertError, Button, Input } from '../../../shared/components'
 import type { UserProfile, DietaryType } from '../types'
 
+// Cấu trúc Props quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface Props {
   initialProfile: UserProfile
   onSave: (updates: Partial<UserProfile>) => Promise<void>
@@ -76,12 +78,14 @@ const COMMON_AVOIDED = [
   'Măng chua',
 ]
 
+// Thành phần ProfileSettingsForm nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export function ProfileSettingsForm({
   initialProfile,
   onSave,
   onBackToOverview,
   isLoading,
 }: Props) {
+  // Lưu dữ liệu và trạng thái thao tác của hồ sơ và nhu cầu dinh dưỡng cá nhân trong vòng đời màn hình.
   const [form, setForm] = useState(initialProfile)
   const [allergyList, setAllergyList] = useState<string[]>(
     initialProfile.allergies || [],
@@ -95,6 +99,7 @@ export function ProfileSettingsForm({
   const [error, setError] = useState<string | null>(null)
   const disabled = busy || isLoading
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (addAllergy); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const addAllergy = (nameToAdd?: string) => {
     const val = (nameToAdd !== undefined ? nameToAdd : newAllergy).trim()
     if (!val) return
@@ -104,10 +109,12 @@ export function ProfileSettingsForm({
     setNewAllergy('')
   }
 
+  // Xóa mục được chọn theo phạm vi và điều kiện của tính năng (removeAllergy); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const removeAllergy = (target: string) => {
     setAllergyList(allergyList.filter((a) => a !== target))
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (addAvoided); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const addAvoided = (nameToAdd?: string) => {
     const val = (nameToAdd !== undefined ? nameToAdd : newAvoided).trim()
     if (!val) return
@@ -117,10 +124,12 @@ export function ProfileSettingsForm({
     setNewAvoided('')
   }
 
+  // Xóa mục được chọn theo phạm vi và điều kiện của tính năng (removeAvoided); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const removeAvoided = (target: string) => {
     setAvoidedList(avoidedList.filter((a) => a !== target))
   }
 
+  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <form
       className="space-y-6"
@@ -210,6 +219,7 @@ export function ProfileSettingsForm({
             {DIET_CARDS.map((card) => {
               const isSelected = form.dietaryType === card.value
               const Icon = card.icon
+              // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <div
                   key={card.value}
@@ -353,6 +363,7 @@ export function ProfileSettingsForm({
                   const added = allergyList.some(
                     (a) => a.toLowerCase() === sug.toLowerCase(),
                   )
+                  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                   return (
                     <button
                       key={sug}
@@ -449,6 +460,7 @@ export function ProfileSettingsForm({
                   const added = avoidedList.some(
                     (a) => a.toLowerCase() === sug.toLowerCase(),
                   )
+                  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                   return (
                     <button
                       key={sug}

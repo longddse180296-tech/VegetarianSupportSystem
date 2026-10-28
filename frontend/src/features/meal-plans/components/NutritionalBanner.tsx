@@ -1,14 +1,18 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { ShieldCheck } from 'lucide-react'
 import type { DietCharacteristic } from '../types/mealPlans.types'
 
+// Cấu trúc NutritionalBannerProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface NutritionalBannerProps {
   characteristic: DietCharacteristic
 }
 
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (NutritionalBanner); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const NutritionalBanner: React.FC<NutritionalBannerProps> = ({
   characteristic,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-6 border border-emerald-200/80 shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
       {/* Left Column: Description & Shield */}

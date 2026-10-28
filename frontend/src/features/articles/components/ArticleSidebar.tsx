@@ -1,6 +1,8 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import { Button, Input } from '../../../shared/components'
 
+// Cấu trúc ArticleSidebarProps quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 interface ArticleSidebarProps {
   trendingTags: string[]
   selectedTag?: string
@@ -9,6 +11,7 @@ interface ArticleSidebarProps {
   onCreateArticle?: () => void
 }
 
+// Thành phần ArticleSidebar nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
   trendingTags,
   selectedTag,
@@ -16,9 +19,11 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
   onOpenAiChat,
   onCreateArticle,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [newsletterEmail, setNewsletterEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleSubscribe); thuộc bài viết và phiên bản gửi duyệt.
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault()
     if (newsletterEmail.trim()) {
@@ -29,6 +34,7 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
     }
   }
 
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <aside className="flex flex-col gap-6 w-full">
       {/* Widget 1: Trending Topics */}
@@ -40,6 +46,7 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
         <div className="flex flex-wrap gap-2">
           {trendingTags.map((tag) => {
             const isSelected = selectedTag === tag
+            // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 key={tag}

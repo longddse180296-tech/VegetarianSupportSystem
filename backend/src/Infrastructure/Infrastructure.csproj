@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- Infrastructure triển khai SQL Server, lưu tệp, email và kết nối AI theo interface của Application. -->
     <ProjectReference Include="..\Application\Application.csproj" />
     <InternalsVisibleTo Include="Domain.Tests" />
   </ItemGroup>

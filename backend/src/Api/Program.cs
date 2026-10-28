@@ -1,4 +1,6 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Api.Configuration;
+using Api.Hubs;
 using Api.Authorization;
 using Application;
 using Application.Features.Auth;
@@ -13,6 +15,8 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Môi trường phát triển đọc cấu hình cục bộ; biến môi trường và tham số chạy được ưu tiên hơn appsettings.
 
 if (builder.Environment.IsDevelopment())
 {
@@ -36,6 +40,8 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Services.AddApplication();
+// Đăng ký các tầng xử lý và kênh tính dinh dưỡng; hub chỉ điều phối, phép tính nằm trong nghiệp vụ.
+builder.Services.AddSignalR(options => options.MaximumReceiveMessageSize = 64 * 1024);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(
@@ -54,6 +60,7 @@ builder.Services.AddSession(options =>
 });
 
 var jwtIssuer = builder.Configuration["Authentication:Jwt:Issuer"];
+// JWT xác định danh tính và thời hạn phiên; quyền truy cập vẫn được kiểm tra tại endpoint và nghiệp vụ.
 var jwtAudience = builder.Configuration["Authentication:Jwt:Audience"];
 var jwtSigningKey = builder.Configuration["Authentication:Jwt:SigningKey"];
 if (builder.Environment.IsDevelopment())
@@ -89,11 +96,32 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.MapInboundClaims = false;
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api/hubs/recipe-nutrition") &&
+                    context.Request.Query.TryGetValue("access_token", out var token))
+                    context.Token = token;
+                return Task.CompletedTask;
+            },
             OnTokenValidated = async context =>
             {
                 var validator = context.HttpContext.RequestServices.GetRequiredService<AccountTokenValidator>();
                 if (!await validator.IsValidAsync(context.Principal, context.HttpContext.RequestAborted))
+                {
+                    context.HttpContext.Items["AuthFailureCode"] = validator.FailureCode;
                     context.Fail("Token is no longer valid for this account.");
+                }
+            },
+            OnChallenge = async context =>
+            {
+                if (context.HttpContext.Items["AuthFailureCode"] as string != "SESSION_REPLACED") return;
+                context.HandleResponse();
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    status = 401, code = "SESSION_REPLACED",
+                    title = "Tài khoản đã đăng nhập trên trình duyệt khác. Phiên trên trình duyệt này đã kết thúc."
+                });
             }
         };
         options.TokenValidationParameters = new TokenValidationParameters
@@ -115,6 +143,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization(AccountAuthorization.AddAccountPolicies);
 builder.Services.AddRateLimiter(options =>
 {
+    // Giới hạn gửi lặp cho báo cáo, góp ý và khôi phục mật khẩu; trả 429 để người dùng có thể thử lại sau.
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("content-reports", context =>
         RateLimitPartition.GetFixedWindowLimiter(
@@ -166,6 +195,8 @@ if (args.Contains("--seed-core-data", StringComparer.Ordinal) ||
 
 await InitialAdminSeeder.SeedAsync(app.Services, app.Configuration, app.Lifetime.ApplicationStopping);
 
+// Chỉ khởi tạo Admin theo cấu hình có chủ đích; không nạp dữ liệu mẫu vào database đang sử dụng.
+
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
@@ -206,11 +237,13 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+// Thứ tự middleware đảm bảo có route, phiên và danh tính trước khi endpoint được thực thi.
 app.UseRateLimiter();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<RecipeNutritionHub>("/api/hubs/recipe-nutrition", options => options.CloseOnAuthenticationExpiration = true);
 
 app.Run();

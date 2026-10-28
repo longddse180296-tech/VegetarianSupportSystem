@@ -1,5 +1,15 @@
 # BE1-06 — Bài viết
 
+Quy ước thông báo 28/10/2026: giao diện User/Quản trị viên gọi phần kiểm tra tự động là “Hệ thống”, phần phản hồi/quyết định con người là “Quản trị viên”. Đầu ra mới được hướng dẫn cách gọi này; FE chuẩn hóa lời nhận xét cũ chứa AI/Gemini/Admin khi hiển thị. Giữ nguyên trích dẫn bằng chứng, nội dung bài và phản hồi do người dùng nhập. Tên trường API/enum, phân quyền và trạng thái lưu trữ không đổi.
+
+## Bổ sung tiền kiểm tiêu đề — 28/10/2026
+
+`POST /api/me/articles/{id}/submit` đối chiếu tiêu đề với phiên bản **đã được Admin duyệt và đang công khai** của bài khác trước khi đưa vào hàng đợi AI. Không so với bản nháp, bài chờ duyệt, từ chối/đã gỡ hoặc chính bài đang chỉnh sửa. So sánh chuẩn hóa Unicode Form C, bỏ khoảng trắng thừa và không phân biệt hoa/thường; giữ dấu và dấu câu, không suy đoán tiêu đề tương tự là trùng.
+
+Trùng tiêu đề vẫn lưu phiên bản đã gửi và trả `200` với `status=Rejected`, `versions[].aiStatus=NotSubmitted`, `versions[].systemRejectionReason` chứa lý do cùng hướng dẫn đổi tiêu đề. Không ghi giả `aiSummary`, thời điểm AI hoặc quyết định của Admin. Lý do cũng có trong `systemRejectionReason` của DTO moderation cho User/Admin. Bài xuất hiện ở quản lý và lọc Rejected, không công khai, không được worker chọn hoặc Admin duyệt thẳng. Tác giả có thể sửa tiêu đề và gửi phiên bản mới; lịch sử từ chối cũ được giữ. Tiêu đề không trùng đi tiếp AI kiểm tra văn bản/ảnh, sau đó Admin quyết định theo luồng hiện hành. Hai bài chờ duyệt cùng tiêu đề không chặn nhau ở bước này; phạm vi tiền kiểm là các bài đã công khai tại thời điểm gửi.
+
+Migration `20261027170327_AddArticleSystemRejectionReason` thêm cột nullable 2000 ký tự, không thay đổi dữ liệu lịch sử. Kiểm tra HTTP/SQL/worker: `dotnet run --project backend/tests/IntegrationTests -c Release -- --article-precheck-only` (database ngẫu nhiên, provider đếm chỉ trong test, không gọi Gemini thật).
+
 JSON dùng camelCase, enum trả tên chuỗi. `id` là UUID. API public không cần JWT; `/api/me/articles*` cần JWT role `User` hoặc `Admin`, xác định chủ từ claim `sub`. Bài viết của người khác trả 404 để không lộ sự tồn tại.
 
 ## Endpoint

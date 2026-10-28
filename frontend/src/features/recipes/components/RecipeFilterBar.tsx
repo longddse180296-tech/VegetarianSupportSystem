@@ -1,3 +1,4 @@
+// Chức năng: công thức và định lượng nguyên liệu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Clock, Flame, RotateCcw, Search } from 'lucide-react'
 import { Button, Input, Select, type SelectOption } from '../../../shared/components'
@@ -5,6 +6,7 @@ import { getRecipeFilterOptions } from '../api/recipeApi'
 import type { RecipeListFilter, RecipeSortOption } from '../types/recipe.types'
 import { DEFAULT_RECIPE_FILTER } from '../types/recipe.types'
 
+// Cấu trúc RecipeFilterBarProps quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface RecipeFilterBarProps {
   filter: RecipeListFilter
   onChange: (next: Partial<RecipeListFilter>) => void
@@ -26,6 +28,7 @@ interface RecipeFilterBarProps {
   setSort?: (v: RecipeSortOption) => void
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (RecipeFilterBar); thuộc công thức và định lượng nguyên liệu.
 export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
   filter,
   onChange,
@@ -57,6 +60,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
     kcalTier !== 'all' ||
     dietPill !== 'all'
 
+  // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div
       className="rounded-[20px] border border-slate-200 bg-white p-5 md:p-6 shadow-xs transition-shadow"
@@ -111,6 +115,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
         <div className="flex flex-wrap items-center gap-2.5">
           {DIET_PILLS.map((p) => {
             const active = dietPill === p.value
+            // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 key={p.value}
@@ -142,6 +147,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
         <div className="flex flex-wrap items-center gap-2.5">
           {CATEGORY_PILLS.map((p) => {
             const active = category === p.value
+            // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 key={p.value}

@@ -1,3 +1,4 @@
+/* Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
 .alert-error {
   display: flex;
   align-items: flex-start;

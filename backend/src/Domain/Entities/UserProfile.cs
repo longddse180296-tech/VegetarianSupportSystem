@@ -1,7 +1,9 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 
 namespace Domain.Entities;
 
+// UserProfile: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class UserProfile
 {
     private UserProfile() { }
@@ -25,16 +27,20 @@ public sealed class UserProfile
     public ICollection<UserAllergy> Allergies { get; private set; } = new List<UserAllergy>();
     public ICollection<UserAvoidedFood> AvoidedFoods { get; private set; } = new List<UserAvoidedFood>();
 
+    // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public static UserProfile Create(string userId, DateTimeOffset createdAtUtc)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("A user ID is required.", nameof(userId));
 
         return new UserProfile(userId.Trim(), createdAtUtc);
     }
 
+    // SetDiet: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void SetDiet(VegetarianDiet? diet, DateTimeOffset updatedAtUtc)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (diet is not null && !Enum.IsDefined(diet.Value))
             throw new ArgumentOutOfRangeException(nameof(diet));
 
@@ -42,6 +48,7 @@ public sealed class UserProfile
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    // SetBodyData: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void SetBodyData(
         DateOnly? birthDate,
         SexForEnergyEstimate? sexForEnergyEstimate,
@@ -51,6 +58,7 @@ public sealed class UserProfile
         WeightGoal? weightGoal,
         DateTimeOffset updatedAtUtc)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (birthDate > DateOnly.FromDateTime(updatedAtUtc.UtcDateTime))
             throw new ArgumentOutOfRangeException(nameof(birthDate));
         if (sexForEnergyEstimate is not null && !Enum.IsDefined(sexForEnergyEstimate.Value))
@@ -77,9 +85,11 @@ public sealed class UserProfile
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    // SetRestaurantArea: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void SetRestaurantArea(string? area, DateTimeOffset updatedAtUtc)
     {
         area = area?.Trim();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (area?.Length > 200)
             throw new ArgumentException("Restaurant area must be at most 200 characters.", nameof(area));
 
@@ -87,9 +97,11 @@ public sealed class UserProfile
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    // AddAllergy: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public UserAllergy AddAllergy(string name, DateTimeOffset createdAtUtc)
     {
         var item = UserAllergy.Create(UserId, name, createdAtUtc);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (Allergies.Any(x => x.NormalizedName == item.NormalizedName))
             throw new InvalidOperationException("This allergy has already been added.");
 
@@ -98,9 +110,11 @@ public sealed class UserProfile
         return item;
     }
 
+    // AddAvoidedFood: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public UserAvoidedFood AddAvoidedFood(string name, DateTimeOffset createdAtUtc)
     {
         var item = UserAvoidedFood.Create(UserId, name, createdAtUtc);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (AvoidedFoods.Any(x => x.NormalizedName == item.NormalizedName))
             throw new InvalidOperationException("This avoided food has already been added.");
 
@@ -109,10 +123,12 @@ public sealed class UserProfile
         return item;
     }
 
+    // RenameAllergy: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public void RenameAllergy(Guid allergyId, string name, DateTimeOffset updatedAtUtc)
     {
         var item = Allergies.SingleOrDefault(x => x.Id == allergyId)
             ?? throw new KeyNotFoundException("Allergy not found in the loaded profile.");
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("An allergy name is required.", nameof(name));
         var normalizedName = name.Trim().ToUpperInvariant();
@@ -123,10 +139,12 @@ public sealed class UserProfile
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    // RenameAvoidedFood: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public void RenameAvoidedFood(Guid avoidedFoodId, string name, DateTimeOffset updatedAtUtc)
     {
         var item = AvoidedFoods.SingleOrDefault(x => x.Id == avoidedFoodId)
             ?? throw new KeyNotFoundException("Avoided food not found in the loaded profile.");
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("An avoided food name is required.", nameof(name));
         var normalizedName = name.Trim().ToUpperInvariant();
@@ -137,6 +155,7 @@ public sealed class UserProfile
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    // RemoveAllergy: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
     public void RemoveAllergy(Guid allergyId, DateTimeOffset updatedAtUtc)
     {
         var item = Allergies.SingleOrDefault(x => x.Id == allergyId)
@@ -145,6 +164,7 @@ public sealed class UserProfile
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    // RemoveAvoidedFood: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
     public void RemoveAvoidedFood(Guid avoidedFoodId, DateTimeOffset updatedAtUtc)
     {
         var item = AvoidedFoods.SingleOrDefault(x => x.Id == avoidedFoodId)

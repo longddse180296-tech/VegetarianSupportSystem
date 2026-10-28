@@ -1,3 +1,4 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   FileText,
@@ -18,6 +19,7 @@ import type { UserProfile, ProfileStats, RecentPost } from '../types'
 import { Button } from '../../../shared/components'
 import { getDietaryTypeLabel } from '../../../shared/constants'
 
+// Cấu trúc ProfileOverviewProps quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface ProfileOverviewProps {
   profile: UserProfile
   stats: ProfileStats
@@ -26,6 +28,7 @@ interface ProfileOverviewProps {
   onNavigate?: (path: string) => void
 }
 
+// Thành phần ProfileOverview nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
   profile,
   stats,
@@ -33,6 +36,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
   onGoToSettings,
   onNavigate,
 }) => {
+  // Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (getBMILabel); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const getBMILabel = (cat: string) => {
     switch (cat) {
       case 'underweight':
@@ -79,6 +83,7 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
     actionPath: '/meal-plans/setup',
   }
 
+  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* 1. Specialized Domain Component: AI Nutrition Companion Module (DESIGN.md #256) */}

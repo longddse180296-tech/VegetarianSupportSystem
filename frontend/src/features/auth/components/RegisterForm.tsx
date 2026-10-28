@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   User as UserIcon,
@@ -13,17 +14,20 @@ import {
 import { ApiError } from '../../../shared/api/apiClient'
 import type { RegisterPayload } from '../types'
 
+// Cấu trúc RegisterFormProps quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 interface RegisterFormProps {
   onSubmit: (payload: RegisterPayload) => Promise<void>
   onNavigateToLogin?: () => void
   isLoading?: boolean
 }
 
+// Kiểm tra và gửi thông tin tạo tài khoản (RegisterForm); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
 export const RegisterForm: React.FC<RegisterFormProps> = ({
   onSubmit,
   onNavigateToLogin,
   isLoading = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của đăng ký, đăng nhập và khôi phục mật khẩu trong vòng đời màn hình.
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,6 +38,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({})
 
+  // Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (validate); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const validate = (): boolean => {
     const errors: Record<string, string> = {}
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -72,6 +77,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     return Object.keys(errors).length === 0
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSubmit); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
@@ -121,6 +127,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
   }
 
+  // Hiển thị giao diện đăng ký, đăng nhập và khôi phục mật khẩu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-sm flex flex-col gap-5">
       {/* Card Header */}
@@ -226,7 +233,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="fe1-link absolute right-3 p-1 text-slate-400 hover:text-slate-600 focus:outline-none"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -267,7 +274,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="fe1-link absolute right-3 p-1 text-slate-400 hover:text-slate-600 focus:outline-none"
-              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              aria-label={showConfirmPassword ? 'Ẩn mật khẩu xác nhận' : 'Hiện mật khẩu xác nhận'}
             >
               {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>

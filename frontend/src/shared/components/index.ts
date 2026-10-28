@@ -1,3 +1,4 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 export * from './AlertError'
 export { default as AlertError } from './AlertError'
 export * from './Button'

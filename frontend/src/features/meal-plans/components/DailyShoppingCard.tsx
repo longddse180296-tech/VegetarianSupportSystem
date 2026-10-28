@@ -1,17 +1,22 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import { ShoppingBag, Share2, Check } from 'lucide-react'
 import type { ShoppingItem } from '../types/mealPlans.types'
 
+// Cấu trúc DailyShoppingCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DailyShoppingCardProps {
   initialItems: ShoppingItem[]
 }
 
+// Thành phần DailyShoppingCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DailyShoppingCard: React.FC<DailyShoppingCardProps> = ({
   initialItems,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [items, setItems] = useState<ShoppingItem[]>(initialItems)
   const [copied, setCopied] = useState(false)
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleToggle); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleToggle = (id: string) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -20,6 +25,7 @@ export const DailyShoppingCard: React.FC<DailyShoppingCardProps> = ({
     )
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleShare); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleShare = () => {
     const text = items
       .map((it) => `- ${it.name}: ${it.quantity} ${it.isChecked ? '(Đã mua)' : ''}`)
@@ -29,9 +35,10 @@ export const DailyShoppingCard: React.FC<DailyShoppingCardProps> = ({
     setTimeout(() => setCopied(false), 2500)
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-      {/* Header */}
+      {/* Tiêu đề và thao tác chính. */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center shrink-0">

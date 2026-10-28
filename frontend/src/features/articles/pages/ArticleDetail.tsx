@@ -1,3 +1,4 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, Bookmark, Calendar, Edit3, Heart, Leaf, MessageSquare, Plus, ThumbsUp, User } from 'lucide-react'
 import { useAuth } from '../../auth'
@@ -24,6 +25,7 @@ import { BACKEND_DIETARY_TYPE_LABELS } from '../../../shared/constants'
 import { findFavorite, toggleFavorite } from '../../favorites/api/favoritesApi'
 import ReportContentButton from '../../reports/components/ReportContentButton'
 
+// Thành phần CommentLike nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc bài viết và phiên bản gửi duyệt.
 function CommentLike({
   comment,
   signedIn,
@@ -32,8 +34,10 @@ function CommentLike({
   signedIn: boolean
 }) {
   const reaction = useApiData<Reaction>(`/api/comments/${comment.id}/like`)
+  // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div>
       <button
@@ -69,6 +73,7 @@ function CommentLike({
   )
 }
 
+// Thành phần ArticleDetail nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleDetail = ({
   articleId,
   onBackToList,
@@ -90,6 +95,7 @@ export const ArticleDetail = ({
   const helpful = useApiData<Reaction>(
     `/api/articles/${encodeURIComponent(articleId)}/helpful`,
   )
+  // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const comments = useApiData<ContentPage<CommentRecord>>(
     `/api/comments?targetType=Article&targetId=${encodeURIComponent(articleId)}&page=${page}&pageSize=10`,
@@ -103,6 +109,7 @@ export const ArticleDetail = ({
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!currentUserId || !getStoredToken()) return
     let active = true
@@ -120,6 +127,7 @@ export const ArticleDetail = ({
     }
   }, [articleId, currentUserId])
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (toggleSavedArticle); thuộc bài viết và phiên bản gửi duyệt.
   const toggleSavedArticle = async () => {
     if (!user || !getStoredToken()) {
       window.location.hash = `/auth/login?returnUrl=${encodeURIComponent(`/articles/${articleId}`)}`
@@ -138,6 +146,7 @@ export const ArticleDetail = ({
     }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (action); thuộc bài viết và phiên bản gửi duyệt.
   async function action(work: () => Promise<unknown>) {
     if (busy) return
     setBusy(true)
@@ -152,6 +161,7 @@ export const ArticleDetail = ({
     }
   }
 
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       {/* Header đồng bộ: Bài viết về lối sống chay */}

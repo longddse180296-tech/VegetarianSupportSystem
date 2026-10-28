@@ -1,5 +1,7 @@
+// Chức năng: công thức và định lượng nguyên liệu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import {
   Clock,
+  Bookmark,
   Coffee,
   Flame,
   Salad as SaladIcon,
@@ -11,6 +13,7 @@ import { Button } from '../../../shared/components'
 import type { Recipe } from '../types/recipe.types'
 import { RecipeImage } from './RecipeImage'
 
+// Cấu trúc RecipeCardProps quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface RecipeCardProps {
   recipe: Recipe
   onSelect: (id: string) => void
@@ -21,12 +24,14 @@ interface RecipeCardProps {
   isTogglingFavorite?: boolean
 }
 
+// Cấu trúc CategoryBadgeInfo quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface CategoryBadgeInfo {
   label: string
   icon: React.ReactNode
   tagCls: string
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (resolveCategoryBadge); thuộc công thức và định lượng nguyên liệu.
 function resolveCategoryBadge(r: Recipe): CategoryBadgeInfo {
   const cat = (r.category || '').trim()
   const catLower = cat.toLowerCase()
@@ -102,16 +107,19 @@ function resolveCategoryBadge(r: Recipe): CategoryBadgeInfo {
   }
 }
 
+// Thành phần RecipeCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc công thức và định lượng nguyên liệu.
 export const RecipeCard: React.FC<RecipeCardProps> = ({
   recipe,
   onSelect,
-  onToggleFavorite: _onToggleFavorite,
-  isTogglingFavorite: _isTogglingFavorite = false,
+  onToggleFavorite,
+  isTogglingFavorite = false,
 }) => {
   const categoryBadge = resolveCategoryBadge(recipe)
   const calories = recipe.nutrition.kcal ?? recipe.calories
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelect); thuộc công thức và định lượng nguyên liệu.
   const handleSelect = () => onSelect(recipe.id)
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelectKey); thuộc công thức và định lượng nguyên liệu.
   const handleSelectKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -119,6 +127,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
     }
   }
 
+  // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <article
       className="group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-slate-200/90 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md"
@@ -199,7 +208,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
         </div>
 
         {/* Footer CTA: pinned to bottom using mt-auto so all buttons line up horizontally */}
-        <div className="mt-auto pt-3.5">
+        <div className="mt-auto flex gap-2 pt-3.5">
           <Button
             type="button"
             variant="secondary"
@@ -210,6 +219,16 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({
           >
             Xem công thức
           </Button>
+          {onToggleFavorite && <Button type="button" variant="outline" size="md"
+            leftIcon={<Bookmark size={15} fill={recipe.isFavorite ? 'currentColor' : 'none'} />}
+            disabled={isTogglingFavorite} isLoading={isTogglingFavorite}
+            aria-label={`${recipe.isFavorite ? 'Bỏ lưu' : 'Lưu công thức'} ${recipe.title}`}
+            aria-pressed={recipe.isFavorite}
+            title="Profile → Mục đã lưu → Công thức"
+            onClick={event => { event.stopPropagation(); void onToggleFavorite(recipe.id, !recipe.isFavorite) }}
+            className="!h-10 !rounded-xl shrink-0 !text-emerald-800">
+            {recipe.isFavorite ? 'Đã lưu' : 'Lưu'}
+          </Button>}
         </div>
       </div>
     </article>

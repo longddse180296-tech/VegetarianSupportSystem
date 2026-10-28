@@ -1,8 +1,10 @@
+// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 
 namespace Application.Features.Pantry;
 
+// PantryItemRequest: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class PantryItemRequest
 {
     public Guid? IngredientId { get; init; }

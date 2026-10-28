@@ -1,5 +1,9 @@
 # Pantry API contract
 
+Cập nhật 28/10/2026: tủ bếp dùng chế độ ăn và dị ứng/thực phẩm cần tránh đã khai báo trong Profile, không yêu cầu BMI, tuổi, chiều cao, cân nặng hay TDEE để đối chiếu/gợi ý. Dị ứng được so với nhãn Allergens, tên và các aliases của nguyên liệu (khớp từng tên, không suy đoán thành phần ẩn). Gợi ý công thức và nguyên liệu thay thế của backend loại các mục khớp dị ứng; danh sách tủ bếp giữ nguyên liệu và trả cảnh báo riêng. FE hiển thị chế độ ăn/dị ứng đang áp dụng, trạng thái đang tải/lỗi/chưa khai báo; cập nhật lại hồ sơ và dữ liệu đánh giá khi hồ sơ thay đổi hoặc quay lại tab. Chưa khai báo dị ứng không có nghĩa đã xác nhận không dị ứng. API và DB không đổi.
+
+Lượt rà soát UI ngày 27/10/2026: frontend chỉ ghi nhận thao tác lưu/xóa/thay nguyên liệu thành công sau khi API xác nhận; lỗi tải danh sách không được xem là tủ bếp trống. Các giá trị định lượng/calo `null` và kết quả phân loại `Unknown` phải được giữ là chưa xác định, không tự gán số mặc định hoặc phân loại lại chỉ dựa trên tên. Cảnh báo dị ứng và thực phẩm cần tránh được giữ riêng trong thông tin hiển thị. Hình dạng request/response không thay đổi.
+
 ## Scope and authorization
 
 Pantry is a per-account ingredient list for `User` and `Admin`. Every endpoint below requires `Authorization: Bearer <token>`. A caller can only read or change its own pantry; accessing another account's item returns `404`.

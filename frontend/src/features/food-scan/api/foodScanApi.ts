@@ -1,3 +1,4 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient, getStoredToken, ApiError } from '../../../shared/api/apiClient'
 import type {
   IngredientKind,
@@ -8,6 +9,7 @@ import type {
   ScanStatus,
 } from '../types/foodScan.types'
 
+// Cấu trúc DishImageScanResult quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export interface DishImageScanResult {
   processingStatus: 'NeedsConfirmation' | 'AnalysisFailed'
   suggestedDishName: string | null
@@ -19,6 +21,7 @@ export interface DishImageScanResult {
   note: string
 }
 
+// Cấu trúc LabelImageScanResult quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export interface LabelImageScanResult {
   processingStatus: 'NeedsConfirmation' | 'AnalysisFailed'
   extractedText: string | null
@@ -28,16 +31,19 @@ export interface LabelImageScanResult {
   suggestedIngredients?: Array<{ name: string; kind: IngredientKind }>
 }
 
+// Cấu trúc ScanAnalysis quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export type ScanAnalysis =
   | { sourceType: 'Dish'; data: DishImageScanResult }
   | { sourceType: 'Label'; data: LabelImageScanResult }
 
+// Cấu trúc ConfirmedIngredient quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export interface ConfirmedIngredient {
   name: string
   kind: IngredientKind
   source: IngredientSource
 }
 
+// Cấu trúc EvaluateScanRequest quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export interface EvaluateScanRequest {
   ingredients: ConfirmedIngredient[]
   ingredientsComplete: boolean
@@ -48,6 +54,7 @@ export interface EvaluateScanRequest {
   previousScanId?: string | null
 }
 
+// Cấu trúc SavedFoodScan quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export interface SavedFoodScan {
   id: string
   createdAtUtc: string
@@ -77,6 +84,7 @@ export interface SavedFoodScan {
   }>
 }
 
+// Cấu trúc BackendScanPage quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 interface BackendScanPage {
   items: SavedFoodScan[]
   totalCount: number
@@ -107,12 +115,14 @@ export const INGREDIENT_SOURCE_LABELS: Record<IngredientSource, string> = {
   UserEdited: 'Bạn đã sửa',
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (assessmentStatus); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export function assessmentStatus(status: string | undefined): ScanStatus {
   if (status === 'Incompatible') return 'unsuitable'
   if (status === 'SuitableBasedOnProvidedInformation') return 'suitable'
   return 'insufficient'
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (toScanHistoryItem); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export function toScanHistoryItem(scan: SavedFoodScan): ScanHistoryItem {
   const diet = scan.profileSnapshot?.diet
   const assessment = scan.assessments?.find((item) => item.diet === diet)
@@ -130,6 +140,7 @@ export function toScanHistoryItem(scan: SavedFoodScan): ScanHistoryItem {
   }
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (analyzeScanImage); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export async function analyzeScanImage(
   sourceType: ScanSourceType,
   image: File,
@@ -149,7 +160,7 @@ export async function analyzeScanImage(
         body: form,
       })
       if (!data || data.processingStatus !== 'NeedsConfirmation') {
-        throw new Error(data?.note || 'BE không trả về gợi ý món ăn hợp lệ.')
+        throw new Error(data?.note || 'Chưa nhận diện được món ăn trong ảnh. Vui lòng chọn ảnh rõ hơn và thử lại.')
       }
       return { sourceType, data }
     }
@@ -158,7 +169,7 @@ export async function analyzeScanImage(
       body: form,
     })
     if (!data || data.processingStatus !== 'NeedsConfirmation') {
-      throw new Error(data?.note || 'BE không trả về văn bản OCR hợp lệ.')
+      throw new Error(data?.note || 'Chưa đọc được thành phần trên nhãn. Vui lòng chụp rõ phần chữ và thử lại.')
     }
     return { sourceType, data }
   } catch (error) {
@@ -173,6 +184,7 @@ export async function analyzeScanImage(
   }
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (evaluateScan); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export async function evaluateScan(request: EvaluateScanRequest): Promise<SavedFoodScan> {
   const url = '/api/food-scans/evaluate'
   let saved: SavedFoodScan
@@ -183,11 +195,12 @@ export async function evaluateScan(request: EvaluateScanRequest): Promise<SavedF
     throw err
   }
   if (!saved?.id || !Array.isArray(saved.assessments)) {
-    throw new Error('BE không trả về kết quả quét đã lưu hợp lệ.')
+    throw new Error('Chưa thể mở kết quả phân tích này. Vui lòng tải lại lịch sử và thử lại.')
   }
   return saved
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getScanHistory); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export async function getScanHistory(page = 1, pageSize = 10): Promise<ScanHistoryPage> {
   const url = `/api/food-scans/history?page=${page}&pageSize=${pageSize}`
   let response: BackendScanPage
@@ -208,6 +221,7 @@ export async function getScanHistory(page = 1, pageSize = 10): Promise<ScanHisto
   }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getScanDetail); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export async function getScanDetail(id: string): Promise<SavedFoodScan> {
   const url = `/api/food-scans/${encodeURIComponent(id)}`
   try {

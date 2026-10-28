@@ -1,7 +1,9 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Flame, Clock, Dumbbell, ArrowRight, RefreshCw } from 'lucide-react'
 import type { MyWeeklyMealItem } from '../types/mealPlans.types'
 
+// Cấu trúc WeeklyMealCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface WeeklyMealCardProps {
   meal: MyWeeklyMealItem
   onViewRecipe?: (recipeId?: string) => void
@@ -9,12 +11,14 @@ interface WeeklyMealCardProps {
   isSwapping?: boolean
 }
 
+// Thành phần WeeklyMealCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const WeeklyMealCard: React.FC<WeeklyMealCardProps> = ({
   meal,
   onViewRecipe,
   onSwapMeal,
   isSwapping = false,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 shadow-xs hover:shadow-md transition-all">
       <div className="space-y-3.5">

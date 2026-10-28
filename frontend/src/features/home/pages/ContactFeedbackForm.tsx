@@ -1,12 +1,16 @@
+// Chức năng: trang chủ và thông tin giới thiệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState, type FormEvent } from 'react'
 import { Send } from 'lucide-react'
 import { apiClient } from '../../../shared/api/apiClient'
 
+// Thành phần ContactFeedbackForm nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc trang chủ và thông tin giới thiệu.
 export default function ContactFeedbackForm() {
+  // Lưu dữ liệu và trạng thái thao tác của trang chủ và thông tin giới thiệu trong vòng đời màn hình.
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [receipt, setReceipt] = useState<string | null>(null)
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (submit); thuộc trang chủ và thông tin giới thiệu.
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending) return
@@ -31,6 +35,7 @@ export default function ContactFeedbackForm() {
     }
   }
 
+  // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <form className="contact-feedback-form" onSubmit={submit} aria-label="Gửi góp ý cho Admin" aria-busy={pending}>
       <h2>Gửi góp ý cho Admin</h2>

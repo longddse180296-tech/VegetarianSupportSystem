@@ -1,13 +1,16 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import type { UseFormSetValue } from 'react-hook-form'
 import { Check, Target, TrendingDown, Dumbbell, Sparkles } from 'lucide-react'
 import type { HealthGoal, PersonalizationFormValues } from '../types/mealPlans.types'
 
+// Cấu trúc HealthGoalFormCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface HealthGoalFormCardProps {
   currentGoal: HealthGoal
   setValue: UseFormSetValue<PersonalizationFormValues>
 }
 
+// Thành phần HealthGoalFormCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const HealthGoalFormCard: React.FC<HealthGoalFormCardProps> = ({
   currentGoal,
   setValue,
@@ -44,9 +47,10 @@ export const HealthGoalFormCard: React.FC<HealthGoalFormCardProps> = ({
     },
   ]
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs space-y-4">
-      {/* Header */}
+      {/* Tiêu đề và thao tác chính. */}
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-gray-900 text-sm md:text-base">
           Mục tiêu của bạn
@@ -59,6 +63,7 @@ export const HealthGoalFormCard: React.FC<HealthGoalFormCardProps> = ({
         {goals.map((g) => {
           const isSelected = currentGoal === g.id
 
+          // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
           return (
             <div
               key={g.id}

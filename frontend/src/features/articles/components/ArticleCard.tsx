@@ -1,12 +1,16 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import type { ArticleSummary } from '../types/article.types'
 
+// Cấu trúc ArticleCardProps quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 interface ArticleCardProps {
   article: ArticleSummary
   onSelect: (articleId: string) => void
 }
 
+// Thành phần ArticleCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onSelect }) => {
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <article
       onClick={() => onSelect(article.id)}

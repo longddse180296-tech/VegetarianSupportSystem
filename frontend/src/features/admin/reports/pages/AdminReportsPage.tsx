@@ -1,3 +1,4 @@
+// Chức năng: báo cáo nội dung cần xem xét. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState, type FormEvent } from 'react'
 import { AdminFrame, Feedback, Pager } from '../../components/ApiWorkspace'
 import { useApiData } from '../../hooks/useApiData'
@@ -5,7 +6,9 @@ import { fieldClass, formatDate, primaryClass, secondaryClass } from '../../util
 import { Modal } from '../../../../shared/components/Modal'
 import { REPORT_REASONS, REPORT_STATUSES, resolveContentReport, type ContentReport, type ContentReportPage, type ReportStatus, type ReportTarget } from '../../../reports/api/contentReports'
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminReportsPage); thuộc báo cáo nội dung cần xem xét.
 export default function AdminReportsPage({ onNavigate }: { onNavigate: (path: string) => void }) {
+  // Lưu dữ liệu và trạng thái thao tác của báo cáo nội dung cần xem xét trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState<ReportStatus | ''>('Pending')
   const [type, setType] = useState<ReportTarget | ''>('')
@@ -20,6 +23,7 @@ export default function AdminReportsPage({ onNavigate }: { onNavigate: (path: st
   if (type) query.set('targetType', type)
   const result = useApiData<ContentReportPage>(`/api/admin/content-reports?${query}`)
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (submit); thuộc báo cáo nội dung cần xem xét.
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (!selected || busy || !note.trim()) return
@@ -34,6 +38,7 @@ export default function AdminReportsPage({ onNavigate }: { onNavigate: (path: st
     finally { setBusy(false) }
   }
 
+  // Hiển thị giao diện báo cáo nội dung cần xem xét từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return <AdminFrame menu="reports" title="Báo cáo nội dung" subtitle="Xem báo cáo về bài viết và video, kiểm tra nội dung và ghi nhận cách xử lý." onNavigate={onNavigate}>
     <div className="flex flex-wrap items-end gap-4">
       <label className="text-sm">Trạng thái<select value={status} onChange={event => { setStatus(event.target.value as ReportStatus | ''); setPage(1) }} className={fieldClass}><option value="">Tất cả</option>{Object.entries(REPORT_STATUSES).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>
@@ -53,17 +58,18 @@ export default function AdminReportsPage({ onNavigate }: { onNavigate: (path: st
       </div>
       <p className="font-semibold text-rose-800">{REPORT_REASONS[item.reason]}</p>
       {item.details && <p className="whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">{item.details}</p>}
-      <p className="break-all text-xs text-slate-500">ID người gửi: {item.reporterId}</p>
+      <p className="break-words text-xs text-slate-500">Tên người gửi: {item.reporterName?.trim() || 'Không có thông tin người gửi'}</p>
       <div className="flex flex-wrap gap-3">
         <a className={secondaryClass} href={`#/${item.targetType === 'Article' ? 'articles' : 'videos'}/${item.targetId}`} target="_blank" rel="noopener noreferrer">Xem nội dung hiện tại</a>
         <a className={secondaryClass} href={`#/admin/${item.targetType === 'Article' ? 'articles' : 'videos'}?submissionId=${item.submissionId}`} target="_blank" rel="noopener noreferrer">Kiểm duyệt phiên bản bị báo cáo</a>
         {item.status === 'Pending' && <button className={primaryClass} onClick={() => { setSelected(item); setDecision('Resolved'); setNote(''); setError(''); setNotice('') }}>Xử lý báo cáo</button>}
       </div>
-      {item.resolutionNote && <div className="rounded-xl bg-slate-50 p-4 text-sm"><p className="whitespace-pre-wrap break-words">{item.resolutionNote}</p><p className="mt-2 break-all text-xs text-slate-500">Admin: {item.resolvedBy} · {formatDate(item.resolvedAt)}</p></div>}
+      {item.resolutionNote && <div className="rounded-xl bg-slate-50 p-4 text-sm"><p className="whitespace-pre-wrap break-words">{item.resolutionNote}</p><p className="mt-2 break-all text-xs text-slate-500">Quản trị viên: {item.resolvedBy} · {formatDate(item.resolvedAt)}</p></div>}
     </article>)}
     {result.data && <Pager page={page} total={result.data.total} onChange={setPage} />}
     <Modal isOpen={selected !== null} onClose={() => { if (!busy) setSelected(null) }} title="Xử lý báo cáo" description={selected?.contentTitle}>
       <form onSubmit={submit} className="space-y-4">
+        <p className="break-words text-sm">Tên người gửi: {selected?.reporterName?.trim() || 'Không có thông tin người gửi'}</p>
         <p className="text-sm text-slate-600">Nếu cần gỡ nội dung, hãy thực hiện trong màn hình kiểm duyệt phiên bản bị báo cáo trước khi hoàn tất báo cáo.</p>
         <label className="block font-semibold">Kết quả<select value={decision} disabled={busy} onChange={event => setDecision(event.target.value as 'Resolved' | 'Dismissed')} className={fieldClass}><option value="Resolved">Đã xử lý</option><option value="Dismissed">Không chấp nhận báo cáo</option></select></label>
         <label className="block font-semibold">Ghi chú xử lý (bắt buộc)<textarea value={note} disabled={busy} onChange={event => setNote(event.target.value)} required maxLength={2000} rows={5} className={fieldClass} placeholder="Ghi rõ hành động đã thực hiện hoặc lý do không chấp nhận báo cáo..." /></label>

@@ -1,12 +1,15 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Check } from 'lucide-react'
 import type { DietType } from '../types/mealPlans.types'
 
+// Cấu trúc DietSchoolTabsProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DietSchoolTabsProps {
   activeDiet: DietType
   onSelectDiet: (diet: DietType) => void
 }
 
+// Cấu trúc SchoolItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface SchoolItem {
   id: DietType
   title: string
@@ -46,14 +49,17 @@ const SCHOOLS: SchoolItem[] = [
   },
 ]
 
+// Thành phần DietSchoolTabs nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DietSchoolTabs: React.FC<DietSchoolTabsProps> = ({
   activeDiet,
   onSelectDiet,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
       {SCHOOLS.map((school) => {
         const isActive = school.id === activeDiet
+        // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
         return (
           <div
             key={school.id}

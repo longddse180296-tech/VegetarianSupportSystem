@@ -1,13 +1,17 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 
+// Cấu trúc ColumnDef quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface ColumnDef<T> {
   key: string
-  header: string
+  header: React.ReactNode
+  ariaSort?: React.AriaAttributes['aria-sort']
   render?: (item: T, index: number) => React.ReactNode
   align?: 'left' | 'center' | 'right'
   className?: string
 }
 
+// Cấu trúc SharedDataTableProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface SharedDataTableProps<T> {
   title?: string
   totalCountBadge?: number | string
@@ -27,6 +31,7 @@ export interface SharedDataTableProps<T> {
   actionsHeader?: React.ReactNode
 }
 
+// Thành phần SharedDataTable nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export function SharedDataTable<T>({
   title,
   totalCountBadge,
@@ -58,6 +63,7 @@ export function SharedDataTable<T>({
   const startIdx = totalItems > 0 ? (currentPage - 1) * pageSize + 1 : 0
   const endIdx = Math.min(currentPage * pageSize, totalItems)
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-data-table ui-card overflow-hidden flex flex-col">
       {/* Table Header Bar */}
@@ -91,6 +97,8 @@ export function SharedDataTable<T>({
               {columns.map((col) => (
                 <th
                   key={col.key}
+                  scope="col"
+                  aria-sort={col.ariaSort}
                   className={`py-3.5 px-6 text-[11px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap ${
                     col.align === 'center'
                       ? 'text-center'
@@ -205,6 +213,7 @@ export function SharedDataTable<T>({
                 )
               }
               const isActive = p === currentPage
+              // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={p}

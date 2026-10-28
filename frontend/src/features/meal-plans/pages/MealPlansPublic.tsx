@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import {
   ArrowRight,
   Calendar,
@@ -11,20 +12,24 @@ import { useAuth } from '../../auth'
 import { MyMealPlanPage } from './MyMealPlanPage'
 import { Badge, Button, PageHeading } from '../../../shared/components'
 
+// Cấu trúc MealPlansPublicProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface MealPlansPublicProps {
   onNavigate?: (path: string) => void
 }
 
+// Thành phần MealPlansPublic nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const MealPlansPublic = ({ onNavigate }: MealPlansPublicProps) => {
   const { isAuthenticated } = useAuth()
   if (isAuthenticated) return <MyMealPlanPage onNavigate={onNavigate} />
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (create); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const create = () =>
     onNavigate?.('/login?returnUrl=' + encodeURIComponent('/meal-plans/setup'))
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       <PageHeading
         title="Lập thực đơn món chay"
-        description="Khám phá và thiết lập kế hoạch dinh dưỡng 7 ngày với 21 bữa ăn cân bằng, tinh chỉnh khoa học theo hồ sơ cá nhân."
+        description="Lập kế hoạch 7 ngày với 21 bữa ăn từ kho công thức, dựa trên thông tin trong hồ sơ của bạn."
         breadcrumbs={[{ label: 'Trang chủ', onClick: () => onNavigate?.('/') }, { label: 'Thực đơn' }]}
         eyebrow={<Badge icon={<Leaf size={14} />}>Kế hoạch &amp; Dinh dưỡng</Badge>}
         actions={

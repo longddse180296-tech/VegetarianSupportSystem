@@ -1,3 +1,4 @@
+// Chức năng: báo cáo nội dung cần xem xét. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { CheckCircle2, Flag } from 'lucide-react'
 import { useAuth } from '../../auth'
@@ -5,24 +6,30 @@ import { Modal } from '../../../shared/components/Modal'
 import { Button } from '../../../shared/components/Button'
 import { REPORT_REASONS, submitContentReport, type ReportReason, type ReportTarget } from '../api/contentReports'
 
+// Thành phần ReportContentButton nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc báo cáo nội dung cần xem xét.
 export default function ReportContentButton({ targetType, targetId }: { targetType: ReportTarget; targetId: string }) {
   const { user } = useAuth()
+  // Lưu dữ liệu và trạng thái thao tác của báo cáo nội dung cần xem xét trong vòng đời màn hình.
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState<ReportReason | ''>('')
   const [details, setDetails] = useState('')
   const [pending, setPending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const reasonRef = useRef<HTMLSelectElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const label = targetType === 'Article' ? 'bài viết' : 'video'
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => { if (open) reasonRef.current?.focus() }, [open])
 
+  // Khôi phục hoặc kết thúc trạng thái thao tác hiện tại (close); thuộc báo cáo nội dung cần xem xét.
   function close() {
     if (pending) return
     setOpen(false)
     triggerRef.current?.focus()
   }
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (submit); thuộc báo cáo nội dung cần xem xét.
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (pending || !reason || sent) return

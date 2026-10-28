@@ -6,6 +6,10 @@ Muc tieu cua file nay la giup AI biet chuc nang nao nam o folder nao, tranh code
 
 ## 1. Nguyen tac chung
 
+- Dọn source ngày 28/10/2026: dùng npm và package-lock.json, không đưa .pnpm-store hoặc lock pnpm vào source. Chỉ tạo thư mục khi có code thực tế, không duy trì .gitkeep trong thư mục đã có nội dung. Báo cáo lịch sử tại docs/archive; cache/probe lưu trữ cục bộ trong .local và không tham gia build. Các đường dẫn feature bên dưới là vị trí quy ước, có thể được tạo khi triển khai.
+
+- Yêu cầu rà soát ngày 26/10/2026: duy trì chú giải tiếng Việt ở đầu file và các khối xử lý chính của source FE/BE, giải thích mục đích trong tính năng, điều kiện lỗi và điểm cần lưu ý. Không chú giải từng dòng hiển nhiên hoặc ghi dữ liệu nhạy cảm; tệp sinh tự động chỉ ghi chú vai trò ở đầu file. JSON không hỗ trợ comment, giải thích cấu hình trong tài liệu thay vì thêm cú pháp không hợp lệ.
+
 - Chi co 3 role: `Guest`, `User`, `Admin`.
 - Khong them role moi neu chua duoc nhom thong nhat.
 - Khong them tinh nang ngoai MVP trong `docs/mvp.md`.
@@ -31,6 +35,8 @@ Khong dao nguoc dependency. `Domain` khong duoc tham chieu `Application`, `Infra
 ### Api
 
 Folder: `backend/src/Api/`
+
+SignalR hub dinh dưỡng công thức đặt tại `Api/Hubs`; hub chỉ xác thực/nhận/trả dữ liệu, việc tính toán thuộc `Application/Features/Recipes` và quy tắc quy đổi thuộc `Domain/Rules`.
 
 Kiem tra quyen dat trong `Api/Authorization`. Hien chua can folder `Api/Configuration` va `Api/Middleware`; chi tao khi co code thuc te can tach.
 

@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   Flame,
@@ -9,10 +10,12 @@ import {
 } from 'lucide-react'
 import type { WeeklyOverviewStat } from '../types/mealPlans.types'
 
+// Cấu trúc DetailWeeklyOverviewProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DetailWeeklyOverviewProps {
   overview: WeeklyOverviewStat
 }
 
+// Thành phần DetailWeeklyOverview nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DetailWeeklyOverview: React.FC<DetailWeeklyOverviewProps> = ({
   overview,
 }) => {
@@ -54,9 +57,10 @@ export const DetailWeeklyOverview: React.FC<DetailWeeklyOverviewProps> = ({
     },
   ]
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Tiêu đề và thao tác chính. */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">

@@ -1,9 +1,11 @@
+// Chức năng: danh mục nội dung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useId, useState } from 'react'
 import { Check, LoaderCircle } from 'lucide-react'
 import { Modal } from '../../../../shared/components/Modal'
 import { fieldClass, primaryClass, secondaryClass } from '../../utils/apiUi'
 import type { AdminCategoryItem, CategoryFormData } from '../types/adminCategories.types'
 
+// Cấu trúc CategoryModalProps quy định dữ liệu trao đổi trong danh mục nội dung.
 interface CategoryModalProps {
   isOpen: boolean
   onClose: () => void
@@ -11,6 +13,7 @@ interface CategoryModalProps {
   onSubmit: (data: CategoryFormData) => Promise<void>
 }
 
+// Thành phần CategoryModal nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc danh mục nội dung.
 export const CategoryModal = ({
   isOpen,
   onClose,
@@ -18,10 +21,12 @@ export const CategoryModal = ({
   onSubmit,
 }: CategoryModalProps) => {
   const formId = useId()
+  // Lưu dữ liệu và trạng thái thao tác của danh mục nội dung trong vòng đời màn hình.
   const [name, setName] = useState(categoryToEdit?.name || '')
   const [description, setDescription] = useState(categoryToEdit?.description || '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Hiển thị giao diện danh mục nội dung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <Modal
       isOpen={isOpen}

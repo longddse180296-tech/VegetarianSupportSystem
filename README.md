@@ -2,11 +2,13 @@
 
 Monorepo cho nhóm 2 frontend và 3 backend.
 
-Trạng thái: React và bốn project .NET 10 có thể build/run. Backend có Auth, Core Data, Moderation/AiChat, video lưu riêng tư, scan ảnh món và OCR nhãn, OpenAPI Development, EF Core SQL Server cùng migrations. Gemini được gọi từ backend khi cấu hình key local. BE 3 đã thêm worker kiểm duyệt, API video và lịch sử scan; cần áp dụng migration trên SQL Server khi tích hợp. Backend bài viết của BE 1 chưa có để nối quyết định moderation vào bài viết thật. Các module MVP khác và CI/deploy tiếp tục triển khai.
+Cập nhật 28/10/2026: hệ thống có giao diện Guest/User/Admin cho tài khoản, hồ sơ, công thức/nguyên liệu, bài viết, video, bình luận, nhà hàng, mục đã lưu, thực đơn, tủ bếp, chat và scan. Backend xử lý phân quyền, kiểm duyệt, dinh dưỡng, phiên đăng nhập và lưu dữ liệu SQL Server. Gemini chỉ được gọi từ backend khi có cấu hình hợp lệ; lỗi/quota dịch vụ được hiển thị theo trạng thái thực tế.
 
 ## Chạy trên máy
 
-Yêu cầu: .NET SDK 10 stable và Node.js 24 LTS (kèm npm). Không cần SQL Server hoặc Gemini API key cho khung hiện tại vì chưa có query/migration chạy khi khởi động.
+Yêu cầu: .NET SDK 10 theo global.json, Node.js 24 LTS và npm, SQL Server/LocalDB cùng database đã áp dụng migration. Dự án thống nhất dùng npm và package-lock.json. Cấu hình backend trong backend/.env từ mẫu backend/.env.example; không chia sẻ secret. Gemini cần key cho chức năng AI, SMTP cần cấu hình để gửi email, FFprobe cần cho metadata video; xem backend/README.md.
+
+Áp dụng migration bằng `dotnet ef database update --project backend/src/Infrastructure --startup-project backend/src/Api --configuration Release`. Sao lưu trước khi cập nhật database đã có dữ liệu. Không chạy seed vào database demo đang sử dụng.
 
 Mở hai terminal tại thư mục repository.
 
@@ -36,7 +38,11 @@ Dữ liệu mẫu/demo chỉ dùng trong `backend/tests/IntegrationTests/Fixture
 
 Vite chuyển tiếp `/api` sang backend nên không cần cấu hình CORS để chạy local theo cách này. Có thể sao chép `frontend/.env.example` thành `frontend/.env.local` để đổi đích proxy; không đặt secrets vào frontend. Nếu cổng 5173 đã có ứng dụng khác, Vite báo lỗi thay vì âm thầm đổi cổng.
 
+Form Admin công thức dùng SignalR tại `/api/hubs/recipe-nutrition` để tự tính dinh dưỡng khi nhập định lượng/khẩu phần. Proxy `/api` đã bật WebSocket; khi deploy cần chuyển tiếp cả HTTP và WebSocket. Chỉ Admin truy cập được hub; thông số tính lại tại backend trước khi lưu.
+
 ## Build và kiểm tra
+
+Đợt rà soát lỗi, thông báo và chú giải source tiếng Việt: [Bằng chứng và kịch bản review 26/10/2026](docs/review-readiness-2026-10-26.md). Frontend có `npm test` để chạy kiểm tra các nhánh lỗi HTTP dùng chung.
 
 ```powershell
 dotnet build backend/Backend.sln -c Release
@@ -73,8 +79,8 @@ Frontend và backend có dependency, cấu hình môi trường, kiểm thử v�
 ## Bắt đầu
 
 1. Xem [hướng dẫn cho AI/coder](AGENTS.md), [phân chia công việc](docs/work-assignment.md), [cấu trúc thư mục](STRUCTURE.md) và đặc tả MVP.
-2. Chạy khung FE/BE theo hướng dẫn trên; không khởi tạo Git repository lồng bên trong.
-3. Thống nhất hợp đồng API cho tính năng đầu tiên.
+2. Cấu hình SQL Server, áp dụng migration và chạy FE/BE theo hướng dẫn trên; không khởi tạo Git repository lồng bên trong.
+3. Đọc hợp đồng API của tính năng trước khi sửa giao diện/backend.
 4. Làm từng tính năng trên nhánh ngắn hạn, gửi pull request về `main`.
 
 Xem [quy trình nhóm](docs/team-workflow.md) và [đặc tả MVP](docs/mvp.md).

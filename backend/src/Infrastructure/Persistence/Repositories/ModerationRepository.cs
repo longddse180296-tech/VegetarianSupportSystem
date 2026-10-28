@@ -1,3 +1,4 @@
+// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Features.Moderation;
 using Domain.Entities;
 using Domain.Enums;
@@ -6,8 +7,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
 
+// ModerationRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRepository
 {
+    // AuthorNamesAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    public async Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> userIds, CancellationToken cancellationToken)
+    {
+        var ids = userIds.Distinct().ToArray();
+        return await dbContext.Users.AsNoTracking().Where(user => ids.Contains(user.Id))
+            .ToDictionaryAsync(user => user.Id, user => user.FullName, cancellationToken);
+    }
+
+    // GetByIdAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<ModerationSubmission?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.Set<ModerationSubmission>()
@@ -15,6 +26,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    // GetLatestForContentAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<ModerationSubmission?> GetLatestForContentAsync(
         Guid contentId,
         CancellationToken cancellationToken)
@@ -25,6 +37,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
             .FirstOrDefaultAsync(x => x.ContentId == contentId, cancellationToken);
     }
 
+    // GetCurrentPublishedAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<ModerationSubmission?> GetCurrentPublishedAsync(
         Guid contentId,
         CancellationToken cancellationToken)
@@ -35,6 +48,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
                 cancellationToken);
     }
 
+    // GetCheckingIdsAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<IReadOnlyList<Guid>> GetCheckingIdsAsync(int count, CancellationToken cancellationToken) =>
         await dbContext.ModerationSubmissions.AsNoTracking()
             .Where(x => x.ContentType == ModeratedContentType.Article &&
@@ -44,12 +58,14 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
             .OrderBy(x => x.SubmittedAt).Select(x => x.Id).Take(count)
             .ToArrayAsync(cancellationToken);
 
+    // SearchAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<ModerationPage> SearchAsync(
         ModerationSearch search,
         CancellationToken cancellationToken)
     {
         var query = dbContext.Set<ModerationSubmission>().AsNoTracking().AsQueryable();
 
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (search.OwnerUserId is not null)
             query = query.Where(x => x.OwnerUserId == search.OwnerUserId);
         if (search.ContentType is { } contentType)
@@ -74,6 +90,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
         return new ModerationPage(items, totalCount, search.Page, search.PageSize);
     }
 
+    // AddAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task AddAsync(
         ModerationSubmission submission,
         CancellationToken cancellationToken)
@@ -81,6 +98,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
         await dbContext.Set<ModerationSubmission>().AddAsync(submission, cancellationToken);
     }
 
+    // SaveChangesAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         try
@@ -91,16 +109,17 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
         {
             throw new ModerationException(
                 ModerationError.Conflict,
-                "This submission changed during the request. Reload it and try again.");
+                "Nội dung vừa được cập nhật ở nơi khác. Vui lòng tải lại để xem trạng thái mới nhất.");
         }
         catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
         {
             throw new ModerationException(
                 ModerationError.Conflict,
-                "A newer version or another published version already exists.");
+                "Đã có phiên bản mới hoặc phiên bản công khai khác. Vui lòng tải lại trước khi tiếp tục.");
         }
     }
 
+    // ExecuteInTransactionAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task ExecuteInTransactionAsync(
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)

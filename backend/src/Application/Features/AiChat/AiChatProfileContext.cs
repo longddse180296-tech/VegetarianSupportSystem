@@ -1,12 +1,16 @@
+// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.Text.Json;
 using Application.Features.Profiles;
 
 namespace Application.Features.AiChat;
 
+// AiChatProfileContext: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public static class AiChatProfileContext
 {
+    // Format: Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý.
     public static string? Format(ProfileContext? profile)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (profile is null) return null;
 
         // Use the same estimates as Profile. Do not infer missing health data or

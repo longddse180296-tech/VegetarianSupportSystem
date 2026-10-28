@@ -1,9 +1,11 @@
+// Chức năng: lưu trữ và kiểm tra tệp tải lên. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Features.Media;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 namespace Infrastructure.Storage;
 
+// LocalPublicImageStore: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class LocalPublicImageStore : IPublicImageStore
 {
     private readonly string root;
@@ -14,8 +16,10 @@ public sealed class LocalPublicImageStore : IPublicImageStore
             Path.Combine(environment.ContentRootPath, ".local", "public-images"));
     }
 
+    // SaveAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task<string> SaveAsync(Stream source, string extension, long maxBytes, CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (extension is not ("jpg" or "png" or "webp"))
             throw new ArgumentException("Unsupported image type.", nameof(extension));
 
@@ -47,10 +51,12 @@ public sealed class LocalPublicImageStore : IPublicImageStore
         }
     }
 
+    // OpenReadAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public Task<Stream?> OpenReadAsync(string key, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var extension = Path.GetExtension(key).TrimStart('.').ToLowerInvariant();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (extension is not ("jpg" or "png" or "webp") || key != Path.GetFileName(key) ||
             !Guid.TryParseExact(Path.GetFileNameWithoutExtension(key), "N", out _))
             return Task.FromResult<Stream?>(null);

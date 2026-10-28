@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   Mail,
@@ -10,23 +11,27 @@ import {
   AlertCircle,
 } from 'lucide-react'
 
+// Cấu trúc ForgotPasswordFormProps quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 interface ForgotPasswordFormProps {
   onSubmit: (email: string) => Promise<{ success: boolean; message: string }>
   onNavigateToLogin?: () => void
   isLoading?: boolean
 }
 
+// Thành phần ForgotPasswordForm nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
 export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
   onSubmit,
   onNavigateToLogin,
   isLoading = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của đăng ký, đăng nhập và khôi phục mật khẩu trong vòng đời màn hình.
   const [email, setEmail] = useState('')
   const [step, setStep] = useState<1 | 2>(1)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [fieldError, setFieldError] = useState<string | null>(null)
 
+  // Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (validate); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const validate = (): boolean => {
     const trimmed = email.trim()
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -45,6 +50,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
     return true
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSubmit); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
@@ -66,6 +72,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
     }
   }
 
+  // Hiển thị giao diện đăng ký, đăng nhập và khôi phục mật khẩu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="w-full flex flex-col items-center gap-8 py-8">
       {/* Top Process Steps Bar (strictly matching Figma) */}

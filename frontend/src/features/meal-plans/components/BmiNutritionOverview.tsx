@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   Activity,
@@ -10,13 +11,16 @@ import {
 } from 'lucide-react'
 import type { MyBmiNutritionMetric } from '../types/mealPlans.types'
 
+// Cấu trúc BmiNutritionOverviewProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface BmiNutritionOverviewProps {
   metrics: MyBmiNutritionMetric[]
 }
 
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (BmiNutritionOverview); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const BmiNutritionOverview: React.FC<BmiNutritionOverviewProps> = ({
   metrics,
 }) => {
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getIconForType); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const getIconForType = (type: MyBmiNutritionMetric['type']) => {
     switch (type) {
       case 'calories':
@@ -34,6 +38,7 @@ export const BmiNutritionOverview: React.FC<BmiNutritionOverviewProps> = ({
     }
   }
 
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getIconBgForType); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const getIconBgForType = (type: MyBmiNutritionMetric['type']) => {
     switch (type) {
       case 'calories':
@@ -51,6 +56,7 @@ export const BmiNutritionOverview: React.FC<BmiNutritionOverviewProps> = ({
     }
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-4">
       {/* Section Header */}

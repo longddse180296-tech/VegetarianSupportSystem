@@ -1,3 +1,4 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using System.Data;
 using Application.Common.Exceptions;
 using Application.Features.Administration;
@@ -7,15 +8,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
 
+// FeaturedContentRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedContentRepository
 {
+    // PublicRestaurants: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     internal static IQueryable<Restaurant> PublicRestaurants(IQueryable<Restaurant> restaurants) =>
         restaurants.Where(x => x.IsActive);
 
+    // PublicArticles: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     internal static IQueryable<ArticleVersion> PublicArticles(IQueryable<ArticleVersion> versions) =>
         versions.Where(x => x.Submission.ContentType == ModeratedContentType.Article &&
             x.Submission.AdminReviewStatus == AdminReviewStatus.Published && x.Submission.IsCurrentPublished);
 
+    // PublicVideos: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     internal static IQueryable<PublishedVideo> PublicVideos(IQueryable<Video> videos, IQueryable<ModerationSubmission> submissions) =>
         from video in videos
         join submission in submissions on video.PublishedSubmissionId equals (Guid?)submission.Id
@@ -23,6 +28,7 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
             submission.AdminReviewStatus == AdminReviewStatus.Published && submission.IsCurrentPublished
         select new PublishedVideo { Video = video, Submission = submission };
 
+    // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<FeaturedContentPage> ListAsync(FeaturedContentType contentType, string? search,
         bool pinnedOnly, int page, int pageSize, CancellationToken ct)
     {
@@ -45,6 +51,7 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
         return new(keys.Where(x => byId.ContainsKey(x.Id)).Select(x => byId[x.Id]).ToArray(), total, page, pageSize);
     }
 
+    // PinCandidates: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     internal static IQueryable<PinCandidate> PinCandidates(IQueryable<Guid> ids,
         IQueryable<FeaturedContent> pins, bool pinnedOnly)
     {
@@ -55,9 +62,11 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
         return pinnedOnly ? query.Where(x => x.PinnedAt != null) : query;
     }
 
+    // SetPinnedAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task SetPinnedAsync(FeaturedContentType contentType, Guid id, bool isPinned,
         string adminId, DateTimeOffset now, CancellationToken ct)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!isPinned)
         {
             // A stale pin must remain removable after the target is hidden or deleted.
@@ -85,6 +94,7 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
         await transaction.CommitAsync(ct);
     }
 
+    // EligibleIds: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private IQueryable<Guid> EligibleIds(FeaturedContentType type, string? search)
     {
         switch (type)
@@ -106,6 +116,7 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
         }
     }
 
+    // TargetExists: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private Task<bool> TargetExists(FeaturedContentType type, Guid id, CancellationToken ct) => type switch
     {
         FeaturedContentType.Restaurant => db.Restaurants.AnyAsync(x => x.Id == id, ct),
@@ -114,6 +125,7 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
         _ => throw new ArgumentOutOfRangeException(nameof(type))
     };
 
+    // RestaurantItems: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private async Task<FeaturedContentItem[]> RestaurantItems(Guid[] ids, HashSet<Guid> pinned, CancellationToken ct)
     {
         var items = await PublicRestaurants(db.Restaurants.AsNoTracking()).Where(x => ids.Contains(x.Id))
@@ -123,6 +135,7 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
             x.DietaryTypes.OrderBy(d => d.DietaryType).Select(d => d.DietaryType.ToString()).ToArray())).ToArray();
     }
 
+    // ArticleItems: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private async Task<FeaturedContentItem[]> ArticleItems(Guid[] ids, HashSet<Guid> pinned, CancellationToken ct)
     {
         var items = await PublicArticles(db.ArticleVersions.AsNoTracking()).Where(x => ids.Contains(x.ArticleId))
@@ -135,6 +148,7 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
             x.DietaryTypes.OrderBy(d => d.DietaryType).Select(d => d.DietaryType.ToString()).ToArray())).ToArray();
     }
 
+    // VideoItems: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private async Task<FeaturedContentItem[]> VideoItems(Guid[] ids, HashSet<Guid> pinned, CancellationToken ct)
     {
         var videos = await PublicVideos(db.Videos.AsNoTracking(), db.ModerationSubmissions.AsNoTracking())
@@ -153,19 +167,23 @@ public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedConten
         }).ToArray();
     }
 
+    // AuthorNames: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private Task<Dictionary<string, string>> AuthorNames(string[] ids, CancellationToken ct) =>
         db.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.FullName, ct);
 
+    // PublishedAt: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static DateTimeOffset PublishedAt(ModerationSubmission submission) =>
         submission.Decisions.Where(x => x.Decision == ModerationDecisionType.Approve)
             .Select(x => (DateTimeOffset?)x.DecidedAt).Max() ?? submission.SubmittedAt;
 
+    // PublishedVideo: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
     internal sealed class PublishedVideo
     {
         public required Video Video { get; init; }
         public required ModerationSubmission Submission { get; init; }
     }
 
+    // PinCandidate: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
     internal sealed class PinCandidate
     {
         public Guid Id { get; init; }

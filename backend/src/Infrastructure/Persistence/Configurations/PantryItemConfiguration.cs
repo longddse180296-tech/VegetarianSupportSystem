@@ -1,11 +1,14 @@
+// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Persistence.Configurations;
 
+// PantryItemConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class PantryItemConfiguration : IEntityTypeConfiguration<PantryItem>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<PantryItem> builder)
     {
         builder.ToTable("PantryItems", table =>

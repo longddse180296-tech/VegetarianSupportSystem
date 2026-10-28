@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import {
   Calendar,
@@ -62,11 +63,13 @@ const slotConfig = {
 } as const
 
 const slots = ['Breakfast', 'Lunch', 'Dinner'] as const
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (message); thuộc thực đơn bảy ngày và danh sách đi chợ.
 const message = (error: unknown) =>
   error instanceof Error
     ? error.message
     : 'Thao tác chưa thành công. Vui lòng thử lại.'
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (formatSavedAt); thuộc thực đơn bảy ngày và danh sách đi chợ.
 const formatSavedAt = (date: string) => new Date(date).toLocaleString('vi-VN', {
   day: '2-digit', month: '2-digit', year: 'numeric',
   hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -75,6 +78,7 @@ const formatSavedAt = (date: string) => new Date(date).toLocaleString('vi-VN', {
 const actionButtonClass =
   'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs hover:border-slate-300 transition-all disabled:opacity-50 disabled:pointer-events-none'
 
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (nutritionChange); thuộc thực đơn bảy ngày và danh sách đi chợ.
 function nutritionChange(next: number | null, current: number | null, servings: number, unit: string) {
   if (next === null || current === null) return 'Chưa đủ dữ liệu'
   const difference = (next - current) * servings
@@ -82,6 +86,7 @@ function nutritionChange(next: number | null, current: number | null, servings: 
   return `${difference > 0 ? '+' : difference < 0 ? '−' : '±'}${formatted}${unit}`
 }
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (ingredientChanges); thuộc thực đơn bảy ngày và danh sách đi chợ.
 function ingredientChanges(current: string[], candidate: string[]) {
   const currentKeys = new Set(current.map((item) => item.trim().toLocaleLowerCase('vi-VN')))
   const candidateKeys = new Set(candidate.map((item) => item.trim().toLocaleLowerCase('vi-VN')))
@@ -91,6 +96,7 @@ function ingredientChanges(current: string[], candidate: string[]) {
   }
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (recipeGoalScore); thuộc thực đơn bảy ngày và danh sách đi chợ.
 function recipeGoalScore(recipe: ReplacementRecipe, targetCalories: number, goal: UserProfile['metrics']['goal']) {
   if (recipe.caloriesPerServing === null) return Number.MAX_SAFE_INTEGER
   const calorieScore = Math.abs(recipe.caloriesPerServing - targetCalories)
@@ -98,6 +104,7 @@ function recipeGoalScore(recipe: ReplacementRecipe, targetCalories: number, goal
   return goal === 'muscle_gain' ? calorieScore - protein * 4 : calorieScore
 }
 
+// Thành phần RecipeChoice nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 function RecipeChoice({
   recipe,
   currentMeal,
@@ -121,6 +128,7 @@ function RecipeChoice({
     ['Béo', nutritionChange(recipe.fatGramPerServing, currentMeal.fatGramPerServing, servings, ' g')],
   ] as const
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <label
       className={`block rounded-2xl border p-3.5 transition-all cursor-pointer ${
@@ -170,6 +178,7 @@ function RecipeChoice({
   )
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (MealPlanDetailPage); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const MealPlanDetailPage = ({
   planId,
   onNavigate,
@@ -177,6 +186,7 @@ export const MealPlanDetailPage = ({
   planId?: string
   onNavigate?: (path: string) => void
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [plan, setPlan] = useState<SavedPlan | null>(null)
   const [day, setDay] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -208,8 +218,10 @@ export const MealPlanDetailPage = ({
   const planDiet = plan?.profileDiet
   const shoppingPlanId = plan?.id
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     const controller = new AbortController()
+    // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (load); thuộc thực đơn bảy ngày và danh sách đi chợ.
     const load = async () => {
       await Promise.resolve()
       if (controller.signal.aborted) return
@@ -239,6 +251,7 @@ export const MealPlanDetailPage = ({
     return () => controller.abort()
   }, [planId, refresh])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     let active = true
     void profileApi.getProfile().then((value) => {
@@ -247,6 +260,7 @@ export const MealPlanDetailPage = ({
     return () => { active = false }
   }, [])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!shoppingOpen || !shoppingPlanId || shoppingDay === null) return
     const controller = new AbortController()
@@ -263,6 +277,7 @@ export const MealPlanDetailPage = ({
     return () => controller.abort()
   }, [shoppingOpen, shoppingDay, shoppingPlanId])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!replacement || !planDiet) return
     const controller = new AbortController()
@@ -316,6 +331,7 @@ export const MealPlanDetailPage = ({
   const goalRecipes = recipes.filter((recipe) => goalRecipeIds.has(recipe.id))
   const dietRecipes = recipes.filter((recipe) => recipe.id !== replacement?.recipeId && !goalRecipeIds.has(recipe.id))
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (act); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const act = async (operation: () => Promise<void>) => {
     if (busy) return
     setBusy(true)
@@ -330,6 +346,7 @@ export const MealPlanDetailPage = ({
     }
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (openReplacement); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const openReplacement = (meal: SavedPlanMeal) => {
     setReplacement(meal)
     setRecipeId('')
@@ -339,6 +356,7 @@ export const MealPlanDetailPage = ({
     setServings(meal.servings)
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updatePurchase); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const updatePurchase = (itemId: string, isPurchased: boolean) => {
     if (!plan || busy) return
     const previous = plan
@@ -368,6 +386,7 @@ export const MealPlanDetailPage = ({
     })
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (selectShoppingDay); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const selectShoppingDay = (selectedDay: number | null) => {
     setShoppingDay(selectedDay)
     setShoppingError(null)
@@ -375,6 +394,7 @@ export const MealPlanDetailPage = ({
     setDailyShoppingItems([])
   }
 
+  // Xóa mục được chọn theo phạm vi và điều kiện của tính năng (deleteSelectedPlan); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const deleteSelectedPlan = async () => {
     if (!deleteTarget || deleteBusy) return
     setDeleteBusy(true)
@@ -408,6 +428,7 @@ export const MealPlanDetailPage = ({
   }
 
   const meals = plan?.meals.filter((meal) => meal.dayNumber === day) || []
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (sum); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const sum = (
     key:
       | 'caloriesPerServing'
@@ -419,6 +440,7 @@ export const MealPlanDetailPage = ({
       ? null
       : meals.reduce((total, meal) => total + (meal[key] ?? 0) * meal.servings, 0)
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (weeklyValue); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const weeklyValue = (
     key:
       | 'caloriesPerServing'
@@ -431,11 +453,12 @@ export const MealPlanDetailPage = ({
       ? 'Chưa đầy đủ'
       : mealNutrition(total, 1)
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       <PageHeading
         title="Thực đơn của bạn"
-        description="Kế hoạch 7 ngày · 21 bữa ăn dinh dưỡng cân bằng · Lưu theo tài khoản"
+        description="Kế hoạch 7 ngày · 21 bữa ăn theo hồ sơ · Lưu theo tài khoản"
         breadcrumbs={[
           { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
           ...(planId
@@ -675,6 +698,7 @@ export const MealPlanDetailPage = ({
               const planDate = addPlanDays(plan.weekStartDate, number - 1)
               const parts = planDate.split('-')
               const shortDate = parts.length === 3 ? `${parseInt(parts[2], 10)}/${parseInt(parts[1], 10)}` : ''
+              // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={number}
@@ -717,6 +741,7 @@ export const MealPlanDetailPage = ({
                 )
               }
 
+              // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <article
                   key={slot}

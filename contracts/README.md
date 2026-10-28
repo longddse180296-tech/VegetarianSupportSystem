@@ -46,3 +46,5 @@ Phân biệt bắt buộc:
 - Kết quả phân loại chế độ ăn không phải bảo đảm an toàn dị ứng.
 
 Thay đổi hợp đồng API cần FE và BE cùng xem xét. FE có thể dùng mock khớp hợp đồng trong khi BE đang triển khai.
+
+Rà soát thông báo quản trị ngày 28/10/2026: thông báo nghiệp vụ, quyền truy cập và lỗi biểu mẫu hiển thị bằng tiếng Việt; vai trò hiển thị là “Quản trị viên”, “Người dùng”. Giá trị role/enum, mã HTTP và cấu trúc request/response giữ nguyên. FE chuyển các lỗi kiểm tra dữ liệu mặc định của ASP.NET sang hướng dẫn tiếng Việt và không hiển thị chi tiết kỹ thuật của lỗi máy chủ. Không dựa vào nguyên văn thông báo để xác định trạng thái nghiệp vụ.

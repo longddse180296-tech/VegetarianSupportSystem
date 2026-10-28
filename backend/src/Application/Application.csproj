@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- Application điều phối nghiệp vụ và chỉ phụ thuộc Domain; không gọi trực tiếp EF hoặc dịch vụ ngoài. -->
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 

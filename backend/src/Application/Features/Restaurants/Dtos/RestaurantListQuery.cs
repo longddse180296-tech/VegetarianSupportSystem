@@ -1,9 +1,11 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 using Domain.Enums;
 
 namespace Application.Features.Restaurants;
 
+// RestaurantListQuery: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class RestaurantListQuery
 {
     [Range(1, int.MaxValue)]

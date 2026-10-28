@@ -1,3 +1,4 @@
+// Chức năng: giao diện và thành phần dùng chung. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 import React from 'react'
 import { getStoredToken } from '../../shared/api/apiClient'
 import { useAuth } from '../../features/auth'
@@ -50,18 +51,22 @@ import {
 } from '../../features/restaurants'
 import FoodScanPage from '../../features/food-scan/pages/FoodScanPage'
 import PantryPage from '../../features/pantry/pages/PantryPage'
+import ProfilePantryPage from '../../features/pantry/pages/ProfilePantryPage'
 import { FavoritesPage } from '../../features/favorites'
 
+// Cấu trúc RouterContext quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface RouterContext {
   currentPath: string
   onNavigate: (path: string) => void
 }
 
+// Cấu trúc RouterRendererProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 interface RouterRendererProps extends RouterContext {
   user: ReturnType<typeof useAuth>['user']
   logout: () => void
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (withPublic); thuộc giao diện và thành phần dùng chung.
 const withPublic = (
   node: React.ReactNode,
   activeNav: string,
@@ -72,6 +77,7 @@ const withPublic = (
   const displayUserName = ctx.user?.fullName
   const displayAvatarUrl = ctx.user?.avatarUrl
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <PublicLayout
       activeNav={activeNav}
@@ -89,6 +95,7 @@ const withPublic = (
   )
 }
 
+// Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (RouterRenderer); thuộc giao diện và thành phần dùng chung.
 export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   const { isLoading: authLoading } = useAuth()
   const rawPath = ctx.currentPath || '/'
@@ -239,17 +246,16 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     path.startsWith('/videos/create?') ||
     path === '/videos/new' ||
     path.startsWith('/videos/new?')
-  const fromVideoParam =
-    new URLSearchParams(window.location.hash.split('?')[1] || '').get(
-      'from',
-    ) || undefined
+  const fromVideoParam = searchParams.get('from') || undefined
 
   if (isCreateVideoRoute) {
-    return (
+    return withPublic(
       <VideoCreatePage
         onNavigate={onNavigate}
         fromSource={fromVideoParam}
-      />
+      />,
+      'videos',
+      ctx,
     )
   }
 
@@ -458,8 +464,20 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return <MyVideosPage onNavigate={onNavigate} />
   }
   if (path === '/favorites') {
-    if (!ctx.user) return <LoginPage onNavigate={onNavigate} />
-    return <FavoritesPage onNavigate={onNavigate} />
+    if (!ctx.user) {
+      try { sessionStorage.setItem('returnUrl', ctx.currentPath) } catch { /* Vẫn cho đăng nhập khi trình duyệt chặn lưu phiên. */ }
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    const type = searchParams.get('type')
+    const initialType = type === 'Recipe' || type === 'Article' || type === 'Video' || type === 'Restaurant' ? type : undefined
+    return <FavoritesPage key={initialType ?? 'All'} onNavigate={onNavigate} initialType={initialType} />
+  }
+  if (path === '/profile/pantry') {
+    if (!ctx.user) {
+      try { sessionStorage.setItem('returnUrl', '/profile/pantry') } catch { /* Trình duyệt có thể chặn lưu phiên. */ }
+      return <LoginPage onNavigate={onNavigate} />
+    }
+    return <ProfilePantryPage onNavigate={onNavigate} />
   }
 
   if (path === '/profile/settings' || path === '/account/settings') {
@@ -557,5 +575,6 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
     return <AdminDashboardPage onNavigate={onNavigate} />
   }
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return <ProfilePage onNavigate={onNavigate} />
 }

@@ -9,6 +9,13 @@ internal static class ContentReportFixture
     public static async Task<(Article Article, Video Video, Article PrivateArticle)> CreateAsync(AppDbContext db)
     {
         var now = DateTimeOffset.UtcNow;
+        foreach (var (id, name) in new[] { ("report-test-author", "Tác giả kiểm thử"), ("test-user", "Người báo cáo kiểm thử") })
+        {
+            var user = User.Register(name, id + "@example.test", "test-only-password-hash", now);
+            db.Entry(user).Property(x => x.Id).CurrentValue = id;
+            db.Entry(user.Profile!).Property(x => x.UserId).CurrentValue = id;
+            db.Users.Add(user);
+        }
         var article = new Article("report-test-author", "Published article", "Published text", "Test", null, now);
         var articleSubmission = ModerationSubmission.Submit(Guid.NewGuid(), 1, ModeratedContentType.Article,
             article.OwnerUserId, article.DraftTitle, article.DraftContent, null, now);

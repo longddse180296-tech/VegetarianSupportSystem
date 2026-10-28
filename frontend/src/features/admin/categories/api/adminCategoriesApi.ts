@@ -1,3 +1,4 @@
+// Chức năng: danh mục nội dung. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../../shared/api/apiClient'
 import type { AdminCategoryItem, CategoryFormData } from '../types/adminCategories.types'
 

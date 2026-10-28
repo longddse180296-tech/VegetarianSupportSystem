@@ -2,7 +2,9 @@
 
 Ứng dụng React + TypeScript chạy bằng Vite. Dùng Node.js 24 LTS; `npm ci`, sau đó `npm run dev` để chạy tại http://localhost:5173. `npm run build` tạo bản build trong `dist/`; `npm run lint` kiểm tra mã nguồn.
 
-App hiện đang để trắng để nhóm tự xây màn hình theo module. Vite đã cấu hình proxy `/api` tới localhost:5080; backend cần chạy riêng khi bắt đầu tích hợp API. SQL Server/Gemini và các tính năng bên dưới chưa được triển khai.
+Giao diện đã kết nối backend cho các module Guest/User/Admin. Vite chuyển tiếp `/api` và WebSocket tới localhost:5080; backend và SQL Server cần chạy để đọc/ghi dữ liệu. Chức năng AI phụ thuộc cấu hình và quota backend.
+
+Dùng npm và package-lock.json; không duy trì pnpm-lock.yaml hoặc cache pnpm trong source. Kiểm tra bằng `npm run lint`, `npm test`, `npm run build`. Không xóa node_modules trước demo nếu chưa có thời gian cài lại. Các màn hình được ghép tại src/app/router/Router.tsx, bootstrap tại src/main.tsx.
 
 Phạm vi: giao diện Guest/User/Admin; gọi backend theo hợp đồng API; xử lý loading, empty, error và trạng thái quyền truy cập.
 

@@ -1,3 +1,4 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   AlertTriangle,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { HiddenIngredientRules } from '../types'
 
+// Cấu trúc AllergyManagerProps quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface AllergyManagerProps {
   allergies: string[]
   onAllergiesChange: (allergies: string[]) => void
@@ -28,6 +30,7 @@ const POPULAR_ALLERGENS = [
   'Ngũ vị tân (Hành, tỏi, hẹ, kiệu)',
 ]
 
+// Thành phần AllergyManager nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export const AllergyManager: React.FC<AllergyManagerProps> = ({
   allergies,
   onAllergiesChange,
@@ -35,9 +38,11 @@ export const AllergyManager: React.FC<AllergyManagerProps> = ({
   onHiddenRulesChange,
   disabled = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của hồ sơ và nhu cầu dinh dưỡng cá nhân trong vòng đời màn hình.
   const [newAllergy, setNewAllergy] = useState('')
   const [isAdding, setIsAdding] = useState(false)
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (handleAddAllergy); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const handleAddAllergy = (valueToAdd?: string) => {
     const target = (valueToAdd !== undefined ? valueToAdd : newAllergy).trim()
     if (target && !allergies.includes(target)) {
@@ -47,10 +52,12 @@ export const AllergyManager: React.FC<AllergyManagerProps> = ({
     }
   }
 
+  // Xóa mục được chọn theo phạm vi và điều kiện của tính năng (handleRemoveAllergy); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const handleRemoveAllergy = (indexToRemove: number) => {
     onAllergiesChange(allergies.filter((_, idx) => idx !== indexToRemove))
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleToggleRule); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const handleToggleRule = (key: keyof HiddenIngredientRules) => {
     if (disabled) return
     onHiddenRulesChange({
@@ -59,6 +66,7 @@ export const AllergyManager: React.FC<AllergyManagerProps> = ({
     })
   }
 
+  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-col gap-6">
       {/* Top Header */}
@@ -175,6 +183,7 @@ export const AllergyManager: React.FC<AllergyManagerProps> = ({
         <div className="flex flex-wrap gap-2">
           {POPULAR_ALLERGENS.map((item) => {
             const isAlreadyAdded = allergies.includes(item)
+            // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 key={item}

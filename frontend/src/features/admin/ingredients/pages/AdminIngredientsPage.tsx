@@ -1,11 +1,13 @@
+// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState } from 'react'
-import { Pencil, Plus, Lock, Unlock, Leaf, Flame } from 'lucide-react'
+import { Pencil, Plus, Lock, Unlock, Leaf, Flame, Eye } from 'lucide-react'
 import { AdminLayout } from '../../../../app/layouts/AdminLayout'
 import { Modal } from '../../../../shared/components/Modal'
 import { CustomSelect } from '../../../../shared/components/CustomSelect'
 import { SharedDataTable, type ColumnDef } from '../../../../shared/components/SharedDataTable'
 import { adminIngredientsApi } from '../api/adminIngredientsApi'
 import type { AdminIngredientItem, IngredientInput, IngredientOrigin } from '../types/adminIngredients.types'
+import { ingredientUnits, normalizeIngredientUnit } from '../../utils/ingredientUnits'
 
 const originLabels: Record<IngredientOrigin, string> = {
   Unknown: 'Chưa xác định',
@@ -22,24 +24,34 @@ const emptyInput: IngredientInput = {
   containsHoney: false,
   containsOtherAnimalProducts: null,
   allergens: null,
-  defaultUnit: 'g',
-  caloriesPer100Gram: null,
-  proteinGramPer100Gram: null,
-  carbohydrateGramPer100Gram: null,
-  fatGramPer100Gram: null,
+  defaultUnit: null,
+  calories: null,
+  proteinGram: null,
+  carbohydrateGram: null,
+  fatGram: null,
   source: null,
 }
 
 const nutrients = [
-  { key: 'caloriesPer100Gram', label: 'Năng lượng', unit: 'kcal' },
-  { key: 'proteinGramPer100Gram', label: 'Chất đạm', unit: 'g' },
-  { key: 'carbohydrateGramPer100Gram', label: 'Tinh bột', unit: 'g' },
-  { key: 'fatGramPer100Gram', label: 'Chất béo', unit: 'g' },
+  { key: 'calories', label: 'Năng lượng', unit: 'kcal' },
+  { key: 'proteinGram', label: 'Chất đạm', unit: 'g' },
+  { key: 'carbohydrateGram', label: 'Tinh bột', unit: 'g' },
+  { key: 'fatGram', label: 'Chất béo', unit: 'g' },
 ] as const
 
-const VALID_UNITS = ['g', 'kg', 'ml'] as const
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (nutritionBasis); thuộc danh mục nguyên liệu và dữ liệu dinh dưỡng.
+function nutritionBasis(unit: string | null) {
+  return { quantity: unit === 'g' || unit === 'ml' ? 100 : 1, unit: unit || '' }
+}
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (basisLabel); thuộc danh mục nguyên liệu và dữ liệu dinh dưỡng.
+function basisLabel(quantity: number, unit: string) {
+  return `${quantity} ${unit === 'đơn vị' ? 'đơn vị (Số lượng)' : unit}`
+}
+
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminIngredientsPage); thuộc danh mục nguyên liệu và dữ liệu dinh dưỡng.
 export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: string) => void }) => {
+  // Lưu dữ liệu và trạng thái thao tác của danh mục nguyên liệu và dữ liệu dinh dưỡng trong vòng đời màn hình.
   const [items, setItems] = useState<AdminIngredientItem[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -49,11 +61,18 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
   const [formError, setFormError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
-  const [editing, setEditing] = useState<AdminIngredientItem | null | undefined>(undefined)
-  const [form, setForm] = useState<IngredientInput>(emptyInput)
+  const [editing, setEditing] = useState<AdminIngredientItem | null | undefined>(() =>
+    new URLSearchParams(window.location.search).get('create') === '1' ? null : undefined)
+  const [form, setForm] = useState<IngredientInput>(() => ({
+    ...emptyInput,
+    name: new URLSearchParams(window.location.search).get('create') === '1'
+      ? (new URLSearchParams(window.location.search).get('name') || '').slice(0, 120) : '',
+  }))
   const [statusTarget, setStatusTarget] = useState<AdminIngredientItem | null>(null)
+  const [viewingNutrition, setViewingNutrition] = useState<AdminIngredientItem | null>(null)
   const [busy, setBusy] = useState(false)
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     const controller = new AbortController()
     const timer = setTimeout(() => {
@@ -82,22 +101,25 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
     }
   }, [page, search, refresh])
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (openForm); thuộc danh mục nguyên liệu và dữ liệu dinh dưỡng.
   const openForm = (item: AdminIngredientItem | null) => {
     setEditing(item)
     setFormError(null)
     if (!item) {
-      setForm({ ...emptyInput, defaultUnit: 'g' })
+      setForm({ ...emptyInput })
       return
     }
-    const { id: _id, isActive: _active, createdAt: _created, updatedAt: _updated, ...input } = item
-    const normUnit = input.defaultUnit?.trim().toLowerCase()
-    const validUnit = normUnit && VALID_UNITS.includes(normUnit as (typeof VALID_UNITS)[number])
-      ? normUnit
-      : 'g'
+    const { id: _id, isActive: _active, createdAt: _created, updatedAt: _updated,
+      nutritionBasisQuantity: _basisQuantity, nutritionBasisUnit: _basisUnit, ...input } = item
+    const unit = normalizeIngredientUnit(input.defaultUnit)
+    const basis = nutritionBasis(unit)
+    const hasMatchingBasis = item.nutritionBasisQuantity === basis.quantity && item.nutritionBasisUnit === basis.unit
     setForm({
       ...input,
-      defaultUnit: validUnit,
+      defaultUnit: unit,
+      ...(!hasMatchingBasis ? { calories: null, proteinGram: null, carbohydrateGram: null, fatGram: null } : {}),
     })
+    if (!hasMatchingBasis) setFormError(`Dữ liệu hiện có tính trên ${basisLabel(item.nutritionBasisQuantity, item.nutritionBasisUnit)}. Vui lòng nhập lại dinh dưỡng theo ${basisLabel(basis.quantity, basis.unit)} hoặc chọn đơn vị tương ứng với dữ liệu cũ.`)
   }
 
   const columns: ColumnDef<AdminIngredientItem>[] = [
@@ -169,6 +191,15 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
       render: item => (
         <div className="flex gap-2">
           <button
+            type="button"
+            className="fe1-control p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-700 transition-colors"
+            title="Xem chi tiết dinh dưỡng"
+            aria-label={`Xem dinh dưỡng của ${item.name}`}
+            onClick={() => setViewingNutrition(item)}
+          >
+            <Eye className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <button
             className="fe1-control p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-700 transition-colors"
             title="Chỉnh sửa"
             onClick={() => openForm(item)}
@@ -203,6 +234,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
     },
   ]
 
+  // Hiển thị giao diện danh mục nguyên liệu và dữ liệu dinh dưỡng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <AdminLayout
       activeMenu="ingredients"
@@ -258,6 +290,47 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
           emptyMessage="Chưa có nguyên liệu phù hợp."
         />
 
+        <Modal
+          isOpen={viewingNutrition !== null}
+          onClose={() => setViewingNutrition(null)}
+          title={viewingNutrition ? `Dinh dưỡng — ${viewingNutrition.name}` : 'Chi tiết dinh dưỡng'}
+          description={viewingNutrition ? `Giá trị dinh dưỡng trên ${basisLabel(viewingNutrition.nutritionBasisQuantity, viewingNutrition.nutritionBasisUnit)} nguyên liệu.` : undefined}
+          maxWidth="2xl"
+        >
+          {viewingNutrition && (
+            <div className="space-y-5">
+              {viewingNutrition.aliases && (
+                <p className="break-words text-sm text-slate-600">Tên gọi khác: {viewingNutrition.aliases}</p>
+              )}
+              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {nutrients.map(nutrient => {
+                  const value = viewingNutrition[nutrient.key]
+                  // Hiển thị giao diện danh mục nguyên liệu và dữ liệu dinh dưỡng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
+                  return (
+                    <div key={nutrient.key} className="min-w-0 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
+                      <dt className="text-xs font-medium text-slate-600">{nutrient.label}</dt>
+                      <dd className="mt-2 break-words text-lg font-bold text-emerald-800">
+                        {value == null ? (
+                          <span className="text-sm font-medium text-slate-500">Chưa có dữ liệu</span>
+                        ) : (
+                          <>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(value)}{' '}
+                            <span className="text-xs font-medium">{nutrient.unit}</span></>
+                        )}
+                      </dd>
+                    </div>
+                  )
+                })}
+              </dl>
+              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-4">
+                <button type="button" className="fe1-btn fe1-btn-outline min-h-11 rounded-xl px-4 py-2 text-sm font-semibold"
+                  onClick={() => setViewingNutrition(null)}>Đóng</button>
+                <button type="button" className="fe1-btn fe1-btn-primary min-h-11 rounded-xl px-4 py-2 text-sm font-semibold"
+                  onClick={() => { setViewingNutrition(null); openForm(viewingNutrition) }}>Chỉnh sửa nguyên liệu</button>
+              </div>
+            </div>
+          )}
+        </Modal>
+
         {/* Modal Thêm / Chỉnh sửa nguyên liệu */}
         <Modal
           isOpen={editing !== undefined}
@@ -278,9 +351,13 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                 setFormError('Vui lòng nhập tên nguyên liệu.')
                 return
               }
-              const normUnit = form.defaultUnit?.trim().toLowerCase() || 'g'
-              if (!VALID_UNITS.includes(normUnit as (typeof VALID_UNITS)[number])) {
-                setFormError('Đơn vị chỉ chấp nhận: g (gam), kg (kilôgam) hoặc ml (mililít).')
+              const normUnit = form.defaultUnit?.trim().toLowerCase()
+              if (!normUnit || !ingredientUnits.some(unit => unit.value === normUnit)) {
+                setFormError('Vui lòng chọn đơn vị g, kg, ml hoặc Số lượng.')
+                return
+              }
+              if (nutrients.some(nutrient => form[nutrient.key] == null || !Number.isFinite(form[nutrient.key]) || form[nutrient.key]! < 0)) {
+                setFormError('Vui lòng nhập đầy đủ năng lượng, chất đạm, tinh bột và chất béo. Nhập 0 nếu giá trị đã xác định bằng 0.')
                 return
               }
 
@@ -348,30 +425,20 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                   </div>
 
                   <CustomSelect
-                    label="Đơn vị chuẩn (g, kg, ml)"
-                    value={form.defaultUnit || 'g'}
-                    onChange={val => setForm({ ...form, defaultUnit: val })}
-                    options={[
-                      { value: 'g', label: 'g (Gam / Gram)', subLabel: 'Đơn vị khối lượng tiêu chuẩn' },
-                      { value: 'kg', label: 'kg (Kilôgam)', subLabel: '1 kg = 1.000 g' },
-                      { value: 'ml', label: 'ml (Mililít)', subLabel: 'Đơn vị thể tích chất lỏng' },
-                    ]}
+                    label="Đơn vị thường dùng"
+                    required
+                    placeholder="Chọn đơn vị"
+                    value={form.defaultUnit}
+                    onChange={val => {
+                      if (val === form.defaultUnit) return
+                      const hadNutrition = nutrients.some(nutrient => form[nutrient.key] != null)
+                      setForm({ ...form, defaultUnit: val, calories: null, proteinGram: null, carbohydrateGram: null, fatGram: null })
+                      setFormError(hadNutrition ? 'Đã đổi đơn vị. Vui lòng nhập lại dinh dưỡng theo mốc mới.' : null)
+                    }}
+                    options={ingredientUnits}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Nguồn dữ liệu
-                  </label>
-                  <input
-                    aria-label="Nguồn dữ liệu"
-                    maxLength={1000}
-                    placeholder="VD: Viện Dinh Dưỡng Quốc Gia, bao bì sản phẩm..."
-                    value={form.source || ''}
-                    onChange={event => setForm({ ...form, source: event.target.value || null })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  />
-                </div>
               </div>
 
               {/* Block 2: Nguồn gốc & Cờ thành phần */}
@@ -420,6 +487,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                       { key: 'containsMilk', label: 'Có sữa', icon: '🥛' },
                     ].map(c => {
                       const checked = Boolean(form[c.key as keyof IngredientInput])
+                      // Hiển thị giao diện danh mục nguyên liệu và dữ liệu dinh dưỡng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                       return (
                         <button
                           type="button"
@@ -442,13 +510,13 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
 
               {/* Block 3: Dinh dưỡng trên 100g */}
               <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-4 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                     <Flame className="w-3.5 h-3.5 text-amber-500" />
-                    Dinh dưỡng (trên 100g)
+                    Dinh dưỡng {form.defaultUnit ? `(trên ${basisLabel(nutritionBasis(form.defaultUnit).quantity, form.defaultUnit)})` : ''} <span className="text-rose-500">*</span>
                   </h4>
                   <span className="text-[11px] text-slate-400">
-                    Để trống nếu chưa xác định
+                    {form.defaultUnit ? 'Bắt buộc nhập đủ 4 chỉ số' : 'Chọn đơn vị trước'}
                   </span>
                 </div>
 
@@ -464,6 +532,9 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                       <div className="flex items-center gap-1">
                         <input
                           type="number"
+                          required
+                          disabled={!form.defaultUnit}
+                          aria-label={n.label}
                           min={0}
                           max={999999999}
                           step="0.001"

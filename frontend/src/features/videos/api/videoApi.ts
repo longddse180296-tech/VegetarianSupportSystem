@@ -1,3 +1,4 @@
+// Chức năng: video, bản nháp và nội dung công khai. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient, getStoredToken, ApiError } from '../../../shared/api/apiClient'
 import type { FavoriteItem, FavoritePage } from '../../favorites/api/favoritesApi'
 import type { SelectOption } from '../../../shared/components'
@@ -11,7 +12,10 @@ import type {
 } from '../types/video.types'
 import { DEFAULT_VIDEO_FILTER } from '../types/video.types'
 import { inferVideoDietType } from './backendVideos'
+import avatarPlaceholder from '../../../assets/LOGO_ICON.png'
+import { formatVideoDuration } from '../utils/videoMetadata'
 
+// Cấu trúc BackendVideoDetails quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface BackendVideoDetails {
   id: string
   title: string
@@ -30,9 +34,13 @@ interface BackendVideoDetails {
   favoriteCount: number
   createdAtUtc: string
   authorName: string | null
+  durationSeconds: number | null
+  hasAudio: boolean | null
+  metadataStatus: 'Processing' | 'Ready' | 'Unavailable'
   dietType?: string | null
 }
 
+// Cấu trúc BackendVideoPage quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface BackendVideoPage {
   items: BackendVideoDetails[]
   totalCount: number
@@ -40,33 +48,32 @@ interface BackendVideoPage {
   pageSize: number
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapBackendVideo); thuộc video, bản nháp và nội dung công khai.
 function mapBackendVideo(d: BackendVideoDetails): Video {
   return {
     id: d.id,
     title: d.title,
     description: d.description,
     category: 'cooking-tutorial',
-    dietType: d.dietType || inferVideoDietType(d.title, d.description),
+    dietType: d.dietType || inferVideoDietType(d.title, d.description) || undefined,
     videoUrl: d.mediaUrl || `/api/videos/${d.id}/media`,
     thumbnailUrl:
       d.thumbnailUrl ||
       `/api/videos/${d.id}/thumbnail` ||
       'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-    duration: '15:00',
-    durationSeconds: 900,
+    duration: formatVideoDuration(d.durationSeconds),
+    durationSeconds: d.durationSeconds ?? 0,
+    hasAudio: d.hasAudio,
+    metadataStatus: d.metadataStatus,
     views: String(d.viewCount),
     viewCount: d.viewCount,
     author: {
       name: d.authorName || 'Người đăng',
-      role: 'Đầu bếp',
-      avatar:
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-      followers: '1.2K',
-      verified: true,
+      avatar: avatarPlaceholder,
+      verified: false,
     },
     creatorName: d.authorName || 'Người đăng',
-    creatorAvatar:
-      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+    creatorAvatar: avatarPlaceholder,
     createdAt: d.createdAtUtc ? d.createdAtUtc.slice(0, 10) : new Date().toISOString().slice(0, 10),
     likes: d.favoriteCount,
     likeCount: d.favoriteCount,
@@ -101,6 +108,7 @@ const FIGMA_PILL_CATEGORIES = [
   { key: 'dessert', label: 'Tráng miệng' },
   { key: 'tip', label: 'Mẹo nấu ăn' },
 ] as const
+// Cấu trúc FigmaPillKey quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export type FigmaPillKey = (typeof FIGMA_PILL_CATEGORIES)[number]['key']
 
 const FIGMA_HASHTAG_TOPICS = [
@@ -128,6 +136,7 @@ const SORT_OPTIONS_VIDEO_LIST: SelectOption[] = [
   { value: 'duration_asc', label: 'Thời lượng ngắn nhất' },
 ]
 
+// Cấu trúc CommentItem quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface CommentItem {
   id: string
   initials?: string
@@ -142,6 +151,7 @@ export interface CommentItem {
   replyToId?: string
 }
 
+// Cấu trúc RelatedVideo quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface RelatedVideo {
   id: string
   thumbnailSeed: string
@@ -154,6 +164,7 @@ export interface RelatedVideo {
 }
 
 // ---------- Helpers ----------
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (normalize); thuộc video, bản nháp và nội dung công khai.
 function normalize(s: string) {
   return s
     .normalize('NFD')
@@ -162,6 +173,7 @@ function normalize(s: string) {
     .trim()
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (applyFilter); thuộc video, bản nháp và nội dung công khai.
 function applyFilter(list: VideoItem[], filter: VideoListFilter): VideoItem[] {
   const token = normalize(filter.search)
   let out = list
@@ -179,13 +191,14 @@ function applyFilter(list: VideoItem[], filter: VideoListFilter): VideoItem[] {
   return sortVideos(out, filter.sort)
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (sortVideos); thuộc video, bản nháp và nội dung công khai.
 function sortVideos(list: VideoItem[], sort: VideoSortOption): VideoItem[] {
   const arr = [...list]
   switch (sort) {
     case 'newest':
       return arr.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
     case 'duration_asc':
-      return arr.sort((a, b) => a.durationSeconds - b.durationSeconds)
+      return arr.sort((a, b) => (a.durationSeconds > 0 ? a.durationSeconds : Infinity) - (b.durationSeconds > 0 ? b.durationSeconds : Infinity))
     case 'most_liked':
       return arr.sort((a, b) => b.likeCount - a.likeCount)
     case 'trending':
@@ -198,6 +211,7 @@ function sortVideos(list: VideoItem[], sort: VideoSortOption): VideoItem[] {
 }
 
 // ---------- Public API ----------
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getVideos); thuộc video, bản nháp và nội dung công khai.
 export async function getVideos(
   inputFilter: Partial<VideoListFilter> = {},
 ): Promise<VideoListResponse> {
@@ -224,6 +238,7 @@ export async function getVideos(
   return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getVideoDetail); thuộc video, bản nháp và nội dung công khai.
 export async function getVideoDetail(id: string): Promise<Video | null> {
   const url = `/api/videos/${id}`
   try {
@@ -241,6 +256,7 @@ export async function getVideoDetail(id: string): Promise<Video | null> {
   return null
 }
 
+// Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (uploadVideo); thuộc video, bản nháp và nội dung công khai.
 export async function uploadVideo(form: UploadVideoFormState): Promise<Video> {
   const token = getStoredToken()
   if (token) {
@@ -259,6 +275,7 @@ export async function uploadVideo(form: UploadVideoFormState): Promise<Video> {
   throw new Error('Vui lòng đăng nhập để đăng tải video.')
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (addVideoComment); thuộc video, bản nháp và nội dung công khai.
 export async function addVideoComment(
   videoId: string,
   content: string,
@@ -268,6 +285,7 @@ export async function addVideoComment(
   return { ...comment, author: authorName || comment.author }
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (getVideoListBrowseHelpers); thuộc video, bản nháp và nội dung công khai.
 export async function getVideoListBrowseHelpers(): Promise<{
   categories: typeof FIGMA_PILL_CATEGORIES
   hashtagTopics: typeof FIGMA_HASHTAG_TOPICS
@@ -288,6 +306,7 @@ export async function getVideoListBrowseHelpers(): Promise<{
   }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getVideoDetailComments); thuộc video, bản nháp và nội dung công khai.
 export async function getVideoDetailComments(videoId: string): Promise<CommentItem[]> {
   const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(videoId)
   if (isGuid) {
@@ -323,6 +342,7 @@ export async function getVideoDetailComments(videoId: string): Promise<CommentIt
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRelatedVideos); thuộc video, bản nháp và nội dung công khai.
 export async function getRelatedVideos(_videoId: string): Promise<RelatedVideo[]> {
   try {
     const res = await apiClient.get<BackendVideoPage>('/api/videos?page=1&pageSize=4', {
@@ -335,7 +355,7 @@ export async function getRelatedVideos(_videoId: string): Promise<RelatedVideo[]
         .map((v) => ({
           id: v.id,
           thumbnailSeed: v.title,
-          duration: '15:00',
+          duration: formatVideoDuration(v.durationSeconds),
           category: 'Món chay',
           title: v.title,
           author: 'Bếp Chay An Nhiên',
@@ -348,6 +368,7 @@ export async function getRelatedVideos(_videoId: string): Promise<RelatedVideo[]
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getVideoDetailMeta); thuộc video, bản nháp và nội dung công khai.
 export async function getVideoDetailMeta(videoId: string): Promise<{
   title: string
   creator: { initials: string; name: string; verified: boolean; subscribers: number; postedAgo: string }
@@ -380,6 +401,7 @@ export async function getVideoDetailMeta(videoId: string): Promise<{
   }
 }
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (toggleVideoLike); thuộc video, bản nháp và nội dung công khai.
 export async function toggleVideoLike(
   videoId: string,
   nextLiked: boolean,
@@ -389,6 +411,7 @@ export async function toggleVideoLike(
   return nextLiked ? apiClient.put(endpoint) : apiClient.delete(endpoint)
 }
 
+// Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (requireAuthenticatedTarget); thuộc video, bản nháp và nội dung công khai.
 function requireAuthenticatedTarget(id: string): void {
   if (!getStoredToken()) throw new Error('Vui lòng đăng nhập để thực hiện thao tác này.')
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
@@ -396,6 +419,7 @@ function requireAuthenticatedTarget(id: string): void {
   }
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (getSavedVideo); thuộc video, bản nháp và nội dung công khai.
 export async function getSavedVideo(videoId: string): Promise<FavoriteItem | null> {
   requireAuthenticatedTarget(videoId)
   for (let pageNumber = 1; ; pageNumber++) {
@@ -408,6 +432,7 @@ export async function getSavedVideo(videoId: string): Promise<FavoriteItem | nul
   }
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (toggleVideoSave); thuộc video, bản nháp và nội dung công khai.
 export async function toggleVideoSave(
   videoId: string,
   nextSaved: boolean,
@@ -426,6 +451,7 @@ export async function toggleVideoSave(
   return false
 }
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (toggleCommentLike); thuộc video, bản nháp và nội dung công khai.
 export async function toggleCommentLike(
   commentId: string,
   nextLiked: boolean,
@@ -435,6 +461,7 @@ export async function toggleCommentLike(
   return nextLiked ? apiClient.put(endpoint) : apiClient.delete(endpoint)
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (createVideoComment); thuộc video, bản nháp và nội dung công khai.
 export async function createVideoComment(
   videoId: string,
   body: string,

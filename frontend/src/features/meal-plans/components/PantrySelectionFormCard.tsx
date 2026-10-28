@@ -1,8 +1,10 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import type { UseFormSetValue } from 'react-hook-form'
 import { Search, Check, Plus, ShoppingBag } from 'lucide-react'
 import type { PersonalizationFormValues } from '../types/mealPlans.types'
 
+// Cấu trúc PantrySelectionFormCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface PantrySelectionFormCardProps {
   availableIngredients: string[]
   setValue: UseFormSetValue<PersonalizationFormValues>
@@ -23,12 +25,15 @@ const COMMON_PANTRY_ITEMS = [
   'Nấm đùi gà',
 ]
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (PantrySelectionFormCard); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const PantrySelectionFormCard: React.FC<PantrySelectionFormCardProps> = ({
   availableIngredients,
   setValue,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleToggle); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleToggle = (item: string) => {
     if (availableIngredients.includes(item)) {
       setValue(
@@ -40,6 +45,7 @@ export const PantrySelectionFormCard: React.FC<PantrySelectionFormCardProps> = (
     }
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (handleAddCustom); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleAddCustom = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchTerm.trim()) {
       e.preventDefault()
@@ -55,9 +61,10 @@ export const PantrySelectionFormCard: React.FC<PantrySelectionFormCardProps> = (
     item.toLowerCase().includes(searchTerm.toLowerCase().trim())
   )
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs space-y-4">
-      {/* Header */}
+      {/* Tiêu đề và thao tác chính. */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center shrink-0">
@@ -91,6 +98,7 @@ export const PantrySelectionFormCard: React.FC<PantrySelectionFormCardProps> = (
         {filteredItems.map((item) => {
           const isSelected = availableIngredients.includes(item)
 
+          // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
           return (
             <button
               key={item}

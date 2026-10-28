@@ -58,12 +58,24 @@ internal static class ContentReportApiChecks
         check(list.GetProperty("total").GetInt32() == 2 && list.GetProperty("items").GetArrayLength() == 1, "Admin reports filter and pagination work");
         check(list.GetProperty("items")[0].GetProperty("pendingReporterCount").GetInt32() == 2,
             "Pending reporter count includes all reporters across pagination");
+        var namedReports = await client.GetFromJsonAsync<JsonElement>($"{adminRoute}?pageSize=50");
+        check(namedReports.GetProperty("items").EnumerateArray().Single(item => item.GetProperty("id").GetGuid() == articleReportId)
+            .GetProperty("reporterName").GetString() == "Người báo cáo kiểm thử", "Admin report returns reporter display name");
+        check(namedReports.GetProperty("items").EnumerateArray().Single(item => item.GetProperty("reporterId").GetString() == "second-reporter")
+            .GetProperty("reporterName").ValueKind == JsonValueKind.Null, "Report with missing account retains nullable display name");
         var moderationList = await client.GetFromJsonAsync<JsonElement>(
             "/api/admin/moderation/submissions?contentType=Article");
         check(moderationList.GetProperty("items").EnumerateArray().Any(item =>
                 item.GetProperty("contentId").GetGuid() == fixture.Article.ModerationContentId &&
                 item.GetProperty("pendingReporterCount").GetInt32() == 2),
             "Admin article moderation list shows the pending reporter count");
+        check(moderationList.GetProperty("items").EnumerateArray().All(item => item.GetProperty("ownerName").GetString() == "Tác giả kiểm thử"),
+            "Admin article moderation list returns author names");
+        var videoList = await client.GetFromJsonAsync<JsonElement>("/api/admin/moderation/submissions?contentType=Video");
+        check(videoList.GetProperty("items")[0].GetProperty("ownerName").GetString() == "Tác giả kiểm thử",
+            "Admin video moderation list returns author names");
+        var detail = await client.GetFromJsonAsync<JsonElement>($"/api/admin/moderation/submissions/{fixture.Video.PublishedSubmissionId}");
+        check(detail.GetProperty("ownerName").GetString() == "Tác giả kiểm thử", "Admin moderation detail returns author name");
         check((await client.GetAsync($"{adminRoute}?page=0")).StatusCode == HttpStatusCode.BadRequest, "Invalid report pagination rejected");
         response = await client.PostAsJsonAsync($"{adminRoute}/{articleReportId}/resolve", new { status = "Resolved", note = " " });
         check(response.StatusCode == HttpStatusCode.BadRequest, "Resolution requires a note");

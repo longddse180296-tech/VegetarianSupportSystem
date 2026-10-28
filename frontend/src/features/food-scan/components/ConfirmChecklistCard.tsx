@@ -1,3 +1,4 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import {
   AlertCircle,
   ArrowLeft,
@@ -17,6 +18,7 @@ import {
 } from '../api/foodScanApi'
 import type { DraftIngredient, IngredientKind } from '../types/foodScan.types'
 
+// Cấu trúc ConfirmChecklistCardProps quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export interface ConfirmChecklistCardProps {
   analysis: ScanAnalysis
   ingredients: DraftIngredient[]
@@ -35,6 +37,7 @@ export interface ConfirmChecklistCardProps {
   onBack: () => void
 }
 
+// Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (ConfirmChecklistCard); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export default function ConfirmChecklistCard({
   analysis,
   ingredients,
@@ -63,12 +66,14 @@ export default function ConfirmChecklistCard({
     questions.every((question) => resolvedQuestions.includes(question)) &&
     !labelIncomplete
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updateIngredient); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const updateIngredient = (id: string, changes: Partial<DraftIngredient>) => {
     onIngredientsChange(ingredients.map((item) =>
       item.id === id ? { ...item, ...changes, source: 'UserEdited' } : item,
     ))
   }
 
+  // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <section className="space-y-6">
       {/* Thông tin ban đầu từ AI/OCR */}
@@ -333,6 +338,7 @@ export default function ConfirmChecklistCard({
           <ul className="space-y-2.5">
             {questions.map((question) => {
               const isChecked = resolvedQuestions.includes(question)
+              // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <li
                   key={question}

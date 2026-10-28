@@ -1,14 +1,18 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Sparkles, CheckCircle2 } from 'lucide-react'
 import type { DailyMacroSummary } from '../types/mealPlans.types'
 
+// Cấu trúc DailyNutritionCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DailyNutritionCardProps {
   summary: DailyMacroSummary
 }
 
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (DailyNutritionCard); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DailyNutritionCard: React.FC<DailyNutritionCardProps> = ({
   summary,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-5">
       {/* Card Header */}

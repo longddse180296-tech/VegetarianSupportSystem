@@ -1,4 +1,6 @@
+// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../../shared/api/apiClient'
+// Cấu trúc AiStatus quy định dữ liệu trao đổi trong kiểm duyệt nội dung và kết quả kiểm tra AI.
 export type AiStatus =
   | 'NotSubmitted'
   | 'Checking'
@@ -6,6 +8,7 @@ export type AiStatus =
   | 'Flagged'
   | 'Partial'
   | 'Failed'
+// Cấu trúc AdminStatus quy định dữ liệu trao đổi trong kiểm duyệt nội dung và kết quả kiểm tra AI.
 export type AdminStatus =
   | 'Draft'
   | 'Submitted'
@@ -14,18 +17,19 @@ export type AdminStatus =
   | 'RevisionRequested'
   | 'Rejected'
   | 'Removed'
+// Cấu trúc Decision quy định dữ liệu trao đổi trong kiểm duyệt nội dung và kết quả kiểm tra AI.
 export type Decision = 'Approve' | 'RequestRevision' | 'Reject' | 'Remove'
 export const adminStatusLabels: Record<AdminStatus, string> = {
   Draft: 'Bản nháp',
   Submitted: 'Đã gửi',
-  PendingAdminReview: 'Chờ Admin duyệt',
+  PendingAdminReview: 'Chờ Quản trị viên duyệt',
   Published: 'Đã xuất bản',
   RevisionRequested: 'Yêu cầu sửa',
   Rejected: 'Từ chối',
   Removed: 'Đã gỡ',
 }
 export const aiStatusLabels: Record<AiStatus, string> = {
-  NotSubmitted: 'Không kiểm tra AI',
+  NotSubmitted: 'Chưa kiểm tra tự động',
   Checking: 'Đang kiểm tra',
   Passed: 'Đã kiểm tra',
   Flagged: 'Có cờ cảnh báo',
@@ -38,18 +42,21 @@ export const decisionLabels: Record<Decision, string> = {
   Reject: 'Từ chối',
   Remove: 'Gỡ nội dung',
 }
+// Cấu trúc Submission quy định dữ liệu trao đổi trong kiểm duyệt nội dung và kết quả kiểm tra AI.
 export interface Submission {
   id: string
   contentId: string
   version: number
   contentType: 'Article' | 'Video'
   ownerUserId: string
+  ownerName: string | null
   title: string
   textContent: string
   mediaReference: string | null
   aiFlagStatus: AiStatus
   adminReviewStatus: AdminStatus
   aiSummary: string | null
+  systemRejectionReason?: string | null
   aiFlagReason: string | null
   aiFlagType: string | null
   aiPriority: string | null

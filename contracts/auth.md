@@ -14,7 +14,7 @@ Guest là request chưa đăng nhập, không có hàng tài khoản hoặc role
 
 ## Đăng nhập
 
-`POST /api/auth/login` (Guest). Body: `{ "email": "a@example.com", "password": "..." }`. Email và mật khẩu bắt buộc; email sai định dạng hoặc quá 254 ký tự trả `400` với lỗi theo trường. Trường ngoài hợp đồng (kể cả `role` và `rememberMe`) cũng bị từ chối `400`; FE không gửi quyền hoặc lựa chọn lưu phiên trong body. Sai thông tin hoặc tài khoản khóa trả `401` cùng thông báo chung. Thành công `200`:
+`POST /api/auth/login` nhận `{ "email": "a@example.com", "password": "...", "rememberMe": true }`. Email, mật khẩu bắt buộc; rememberMe tùy chọn, mặc định true. Email sai định dạng/quá 254 ký tự hoặc trường ngoài hợp đồng (kể cả role) trả 400. Sai mật khẩu/tài khoản khóa trả 401 chung. Thành công 200:
 
 ```json
 {
@@ -29,13 +29,19 @@ JWT hết hạn sau 1 giờ, có `sub=Users.Id`, `role=User|Admin` và `jti` ri�
 
 ## Phiên đăng nhập và tích hợp FE
 
-`expiresAtUtc` là thời điểm hết hạn tuyệt đối theo UTC của access token, áp dụng cả khi chọn “Ghi nhớ đăng nhập”. Không có endpoint refresh token. FE 1 lưu token theo lựa chọn của người dùng: `localStorage` khi ghi nhớ, `sessionStorage` khi chỉ dùng trong tab/phiên trình duyệt. Sau tải lại trang, FE kiểm tra hạn token và gọi `/api/auth/me` trước khi coi người dùng đã đăng nhập. Không dùng user cache hoặc role cache làm bằng chứng xác thực khi `/me` lỗi. Token hết hạn hoặc `/me` trả `401` thì xóa phiên và yêu cầu đăng nhập lại; sự cố mạng có thể hiển thị lỗi kết nối nhưng không cấp quyền từ cache. Khi logout, FE gọi API với token hiện tại rồi xóa dữ liệu phiên ở cả hai kho; nếu request lỗi mạng, FE vẫn xóa phiên cục bộ nhưng không được tuyên bố token phía server đã thu hồi. BE không kéo dài hạn token theo lựa chọn ghi nhớ.
+`expiresAtUtc` là thời điểm hết hạn access token (1 giờ). Từ 28/10/2026, phiên trình duyệt cho phép gia hạn trong tối đa 7 ngày tính từ login/register. Cookie `vegetarian_refresh` chứa bí mật ngẫu nhiên 256 bit; HttpOnly, SameSite=Strict, path `/api/auth`, Secure ở ngoài Development hoặc khi dùng HTTPS. Chỉ lưu SHA-256 hash, ActiveSessionId và SessionExpiresAtUtc trong Users, không trả bí mật trong JSON/log. Cookie ghi nhớ có Expires, không ghi nhớ dùng session cookie. Gia hạn không kéo dài mốc 7 ngày và giữ nguyên bí mật cookie; đăng nhập lại phát bí mật mới.
+
+`POST /api/auth/refresh` không cần JWT; yêu cầu cookie hợp lệ và header `X-Session-Refresh: 1`. Trả 200 cùng cấu trúc login, 401 khi hết phiên/đã thay thế/khóa/đăng xuất, 400 nếu thiếu header. Không tạo phiên mới khi gia hạn. FE gửi credentials, khi nhận 401 thì gia hạn một lần và thử lại request đúng một lần; các request đồng thời dùng chung lần gia hạn. Lỗi mạng/5xx giữ phiên để thử lại.
+
+Mỗi tài khoản chỉ có một phiên trình duyệt. Login ghi đè phiên cũ nguyên tử; JWT có sid đối chiếu Users ở mỗi request có quyền và mỗi lần gọi hub dinh dưỡng. Máy cũ không dùng được JWT hoặc cookie để giành lại phiên. Sai sid trả 401 với code SESSION_REPLACED và lý do đăng nhập ở trình duyệt khác. FE kiểm tra định kỳ 30 giây khi trang đang mở và khi lấy lại focus; chuyển về đăng nhập kèm lý do. Nhiều tab cùng trình duyệt dùng chung cookie. JWT cũ chưa có sid chỉ được chấp nhận khi tài khoản chưa có phiên mới; sau lần login đầu tiên bị vô hiệu. Cơ chế giới hạn phiên được cấp, không nhận diện phần cứng và không ngăn sao chép bí mật.
+
+FE giữ access token ở localStorage khi ghi nhớ, sessionStorage khi không ghi nhớ. Tab mới có thể khôi phục bằng cookie; luôn xác thực /me, không cấp quyền từ user cache. Logout dọn cả hai kho; nếu mất mạng, đánh dấu đã đăng xuất để không tự khôi phục bằng cookie còn sót. Không tuyên bố server đã thu hồi khi request không tới máy chủ.
 
 ## Tài khoản hiện tại và đăng xuất
 
 `GET /api/auth/me` yêu cầu Bearer token hợp lệ. Backend lấy `sub`, tra tài khoản trong DB và trả `{ "id", "fullName", "email", "role", "isLocked" }`; không trả password hash. Token không hợp lệ, đã thu hồi hoặc tài khoản bị khóa trả `401`.
 
-`POST /api/auth/logout` yêu cầu Bearer token hợp lệ, không cần body; thành công trả `204`. Backend lưu `jti` đã thu hồi đến thời điểm token hết hạn. Mọi request sau đó dùng chính token này trả `401`, kể cả khi FE vẫn giữ token. Token khác của cùng tài khoản vẫn có hiệu lực. Hiện chưa phát refresh token, nên không có refresh token cần thu hồi; bảng token thu hồi xóa các hàng đã hết hạn khi có lần logout tiếp theo.
+`POST /api/auth/logout` thu hồi jti và phiên hiện tại, xóa cookie, trả 204. Chấp nhận cookie kèm header `X-Session-Refresh: 1` khi JWT đã hết hạn. Điều kiện sessionId ngăn logout đến muộn ở máy cũ xóa phiên mới. JWT và cookie đã logout đều bị từ chối. Bảng token thu hồi dọn các jti đã hết hạn khi có lần logout tiếp theo.
 
 ## Admin ban đầu
 
@@ -55,6 +61,6 @@ BE phát token ngẫu nhiên 32 byte, gửi trong link đến trang FE `/auth/re
 { "token": "<token từ link>", "newPassword": "new-password", "confirmPassword": "new-password" }
 ```
 
-Mật khẩu mới dài 6–128 ký tự, không chứa khoảng trắng và phải khớp xác nhận; sai dữ liệu trả `400` kèm lỗi theo trường. Link sai/hết hạn/đã dùng trả `400` với thông báo chung. Thành công trả `204`, lưu hash mật khẩu mới và tăng phiên bản phiên của tài khoản trong cùng transaction. Mọi JWT phát trước lần đổi mật khẩu đều trả `401` ở request kế tiếp; người dùng phải đăng nhập lại. Không có refresh token.
+Mật khẩu mới dài 6–128 ký tự, không chứa khoảng trắng và phải khớp xác nhận; sai dữ liệu trả `400` kèm lỗi theo trường. Link sai/hết hạn/đã dùng trả `400` với thông báo chung. Thành công trả `204`, lưu hash mật khẩu mới và tăng phiên bản phiên của tài khoản trong cùng transaction. Mọi JWT phát trước lần đổi mật khẩu đều trả `401` ở request kế tiếp; người dùng phải đăng nhập lại. Đổi mật khẩu cũng xóa phiên gia hạn trong cùng transaction. Khóa tài khoản xóa phiên; mở khóa không khôi phục phiên cũ.
 
 SMTP được cấu hình ngoài repo qua `PasswordReset__ResetPageUrl`, `PasswordReset__Smtp__Host`, `PasswordReset__Smtp__Port`, `PasswordReset__Smtp__From`, tùy chọn `PasswordReset__Smtp__Username`, `PasswordReset__Smtp__Password`, `PasswordReset__Smtp__EnableSsl`. Với SMTP từ xa, yêu cầu STARTTLS (`EnableSsl=true`, mặc định); chỉ SMTP loopback dành cho thử nghiệm mới được tắt SSL. URL FE phải dùng HTTPS, trừ localhost khi phát triển. Không ghi mật khẩu SMTP, token reset, URL chứa token hoặc mật khẩu mới vào log. FE 1 cần thay helper trả thành công giả và bổ sung trang nhập mật khẩu mới; sau khi đọc token từ URL nên xóa token khỏi thanh địa chỉ.

@@ -1,9 +1,11 @@
+// Chức năng: thống kê và góp ý gửi đến Admin. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import { apiClient } from '../../../../shared/api/apiClient'
 import { AdminFrame, Feedback, Pager } from '../../components/ApiWorkspace'
 import { useApiData } from '../../hooks/useApiData'
 import { errorMessage, secondaryClass } from '../../utils/apiUi'
 
+// Cấu trúc FeedbackItem quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 interface FeedbackItem {
   id: string
   name: string
@@ -13,6 +15,7 @@ interface FeedbackItem {
   createdAt: string
   readAt: string | null
 }
+// Cấu trúc FeedbackPage quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 interface FeedbackPage {
   items: FeedbackItem[]
   total: number
@@ -20,13 +23,16 @@ interface FeedbackPage {
   pageSize: number
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminFeedbackPage); thuộc thống kê và góp ý gửi đến Admin.
 export default function AdminFeedbackPage({ onNavigate }: { onNavigate: (path: string) => void }) {
+  // Lưu dữ liệu và trạng thái thao tác của thống kê và góp ý gửi đến Admin trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('all')
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState('')
   const result = useApiData<FeedbackPage>(`/api/admin/feedback?page=${page}&pageSize=10${filter === 'all' ? '' : `&isRead=${filter === 'read'}`}`)
 
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (markRead); thuộc thống kê và góp ý gửi đến Admin.
   async function markRead(id: string) {
     setPending(id)
     setError('')
@@ -40,6 +46,7 @@ export default function AdminFeedbackPage({ onNavigate }: { onNavigate: (path: s
     }
   }
 
+  // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <AdminFrame menu="feedback" title="Góp ý từ người dùng" subtitle="Tiếp nhận góp ý gửi từ trang Liên hệ. Chỉ Admin có quyền xem." onNavigate={onNavigate}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -58,7 +65,7 @@ export default function AdminFeedbackPage({ onNavigate }: { onNavigate: (path: s
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="break-words text-lg font-bold text-slate-800">{item.subject}</h2>
-              <p className="mt-2 break-words text-sm text-slate-600">{item.name} · {item.email}</p>
+              <p className="mt-2 break-words text-sm text-slate-600">Tên người gửi: {item.name} · {item.email}</p>
               <p className="mt-1 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString('vi-VN')}</p>
             </div>
             <span className={`rounded-full px-3 py-1 text-xs ${item.readAt ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700'}`}>{item.readAt ? 'Đã đọc' : 'Chưa đọc'}</span>

@@ -1,3 +1,4 @@
+// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Features.AiChat;
 using Domain.Entities;
 using Domain.Enums;
@@ -5,18 +6,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
 
+// AiChatRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class AiChatRepository(AppDbContext dbContext) : IAiChatRepository
 {
+    // CreateConversationAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task<AiChatConversation> CreateConversationAsync(
         string userId,
         CancellationToken cancellationToken)
     {
         var conversation = AiChatConversation.Create(userId, DateTimeOffset.UtcNow);
         dbContext.Set<AiChatConversation>().Add(conversation);
+        // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await dbContext.SaveChangesAsync(cancellationToken);
         return conversation;
     }
 
+    // GetConversationForUserAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<AiChatConversation?> GetConversationForUserAsync(
         Guid conversationId,
         string userId,
@@ -28,6 +33,7 @@ public sealed class AiChatRepository(AppDbContext dbContext) : IAiChatRepository
                                 conversation.UserId == userId,
                 cancellationToken);
 
+    // ListConversationsForUserAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<AiChatPage<AiChatConversation>> ListConversationsForUserAsync(
         string userId,
         int page,
@@ -47,6 +53,7 @@ public sealed class AiChatRepository(AppDbContext dbContext) : IAiChatRepository
         return new AiChatPage<AiChatConversation>(items, page, pageSize, totalCount);
     }
 
+    // ListMessagesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<AiChatPage<AiChatMessage>> ListMessagesAsync(
         Guid conversationId,
         int page,
@@ -66,6 +73,7 @@ public sealed class AiChatRepository(AppDbContext dbContext) : IAiChatRepository
         return new AiChatPage<AiChatMessage>(items, page, pageSize, totalCount);
     }
 
+    // GetRecentMessagesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<IReadOnlyList<AiChatMessage>> GetRecentMessagesAsync(
         Guid conversationId,
         int limit,
@@ -82,6 +90,7 @@ public sealed class AiChatRepository(AppDbContext dbContext) : IAiChatRepository
         return messages;
     }
 
+    // AddMessageAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task<AiChatMessage> AddMessageAsync(
         Guid conversationId,
         AiChatMessageRole role,
@@ -94,6 +103,7 @@ public sealed class AiChatRepository(AppDbContext dbContext) : IAiChatRepository
         var message = AiChatMessage.Create(conversationId, role, content, createdAtUtc);
         dbContext.Set<AiChatMessage>().Add(message);
         conversation.RecordMessageAt(createdAtUtc);
+        // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await dbContext.SaveChangesAsync(cancellationToken);
         return message;
     }

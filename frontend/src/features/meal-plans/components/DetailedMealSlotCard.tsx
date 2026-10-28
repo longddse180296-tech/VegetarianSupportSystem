@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   Flame,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { DetailedMealSlot, DetailedSwapOption } from '../types/mealPlans.types'
 
+// Cấu trúc DetailedMealSlotCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DetailedMealSlotCardProps {
   meal: DetailedMealSlot
   onViewRecipe?: (recipeId?: string) => void
@@ -16,20 +18,24 @@ interface DetailedMealSlotCardProps {
   isSwapping?: boolean
 }
 
+// Thành phần DetailedMealSlotCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DetailedMealSlotCard: React.FC<DetailedMealSlotCardProps> = ({
   meal,
   onViewRecipe,
   onSelectSwapOption,
   isSwapping = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [isSwapPanelOpen, setIsSwapPanelOpen] = useState(
     Boolean(meal.swapOptions && meal.swapOptions.length > 0 && meal.slot === 'lunch'),
   )
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleToggleSwap); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleToggleSwap = () => {
     setIsSwapPanelOpen((prev) => !prev)
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 shadow-2xs hover:border-emerald-200 transition-all space-y-4">
       {/* 1. Header Bar: Slot & Time + Actions */}
@@ -157,6 +163,7 @@ export const DetailedMealSlotCard: React.FC<DetailedMealSlotCardProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {meal.swapOptions.map((opt: DetailedSwapOption) => {
               const isSelected = Boolean(opt.isSelected)
+              // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <div
                   key={opt.id}

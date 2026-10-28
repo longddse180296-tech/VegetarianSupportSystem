@@ -1,3 +1,4 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Application.Features.FoodScanning;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,7 @@ using System.Security.Claims;
 
 namespace Api.Controllers;
 
+// FoodScansController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
 [Authorize(Roles = "User,Admin")]
 [Route("api/food-scans")]
@@ -14,6 +16,7 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
     private const int MaxImageBytes = 10 * 1024 * 1024;
     private string? UserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
 
+    // AnalyzeDishImage: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [HttpPost("dish-image")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(11 * 1024 * 1024)]
@@ -21,6 +24,7 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
         [FromForm] IFormFile? image,
         CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (image is null || image.Length is <= 0 or > MaxImageBytes)
         {
             ModelState.AddModelError("image", "Chọn ảnh JPG, PNG hoặc WEBP có dung lượng từ 1 byte đến 10 MB.");
@@ -45,12 +49,14 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
             : Ok(result);
     }
 
+    // AnalyzeLabelImage: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [HttpPost("label-image")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(11 * 1024 * 1024)]
     public async Task<ActionResult<LabelImageScanResult>> AnalyzeLabelImage(
         [FromForm] IFormFile? image, CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (image is null || image.Length is <= 0 or > MaxImageBytes)
         {
             ModelState.AddModelError("image", "Chọn ảnh JPG, PNG hoặc WEBP tối đa 10 MB.");
@@ -70,10 +76,12 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
             ? StatusCode(StatusCodes.Status503ServiceUnavailable, result) : Ok(result);
     }
 
+    // Evaluate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [HttpPost("evaluate")]
     public async Task<ActionResult<SavedFoodScan>> Evaluate([FromBody] EvaluateDishRequest request,
         CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (UserId is null) return Unauthorized();
         if (request.SourceType is not ("Dish" or "Label") ||
             request.CorrectedLabelText?.Length > 10_000 ||
@@ -121,25 +129,31 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
         }
     }
 
+    // History: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [HttpGet("history")]
     public async Task<ActionResult<FoodScanPage>> History(int page = 1, int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (UserId is null) return Unauthorized();
         try { return Ok(await scanningService.ListOwnedAsync(UserId, page, pageSize, cancellationToken)); }
         catch (ArgumentException ex) { return BadRequest(new ProblemDetails { Detail = ex.Message }); }
     }
 
+    // Get: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<SavedFoodScan>> Get(Guid id, CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (UserId is null) return Unauthorized();
         var result = await scanningService.GetOwnedAsync(id, UserId, cancellationToken);
         return result is null ? NotFound() : Ok(result);
     }
 
+    // DetectImageMimeType: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static string? DetectImageMimeType(byte[] bytes)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (bytes.Length >= 3 && bytes[0] == 0xff && bytes[1] == 0xd8 && bytes[2] == 0xff)
             return "image/jpeg";
         if (bytes.Length >= 8 && bytes.AsSpan(0, 8).SequenceEqual(
@@ -152,6 +166,7 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
         return null;
     }
 
+    // EvaluateDishRequest: định nghĩa dữ liệu trao đổi của tính năng.
     public sealed record EvaluateDishRequest(
         IReadOnlyList<ConfirmedIngredientRequest>? Ingredients,
         bool IngredientsComplete,
@@ -161,6 +176,7 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
         IReadOnlyList<string>? UnknownAnswers = null,
         Guid? PreviousScanId = null);
 
+    // ConfirmedIngredientRequest: định nghĩa dữ liệu trao đổi của tính năng.
     public sealed record ConfirmedIngredientRequest(string? Name, IngredientKind? Kind,
         string? Source = null);
 }

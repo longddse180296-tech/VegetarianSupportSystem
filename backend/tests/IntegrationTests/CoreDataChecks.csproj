@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Api/Api.csproj" />
+    <Content Include="Fixtures/Moderation/*.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

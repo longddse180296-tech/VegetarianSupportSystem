@@ -1,3 +1,4 @@
+// Chức năng: gửi thư khôi phục tài khoản. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using System.Net;
 using System.Net.Mail;
 using System.Text;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.Email;
 
+// SmtpPasswordResetEmailSender: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class SmtpPasswordResetEmailSender(IConfiguration configuration) : IPasswordResetEmailSender
 {
     private string? Host => configuration["PasswordReset:Smtp:Host"];
@@ -27,8 +29,10 @@ public sealed class SmtpPasswordResetEmailSender(IConfiguration configuration) :
 
     private bool UseSsl => !bool.TryParse(configuration["PasswordReset:Smtp:EnableSsl"], out var ssl) || ssl;
 
+    // SendAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task SendAsync(string email, string resetUrl, CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!IsConfigured)
             throw new InvalidOperationException("Password reset SMTP is not configured.");
 
@@ -53,6 +57,7 @@ public sealed class SmtpPasswordResetEmailSender(IConfiguration configuration) :
         await client.SendMailAsync(message, cancellationToken);
     }
 
+    // IsValidSender: Đánh giá điều kiện nghiệp vụ để quyết định nhánh xử lý.
     private static bool IsValidSender(string? address)
     {
         try { return new MailAddress(address!).Address == address; }

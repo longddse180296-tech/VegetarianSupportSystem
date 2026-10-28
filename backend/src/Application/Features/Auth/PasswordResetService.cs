@@ -1,9 +1,11 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Application.Features.Auth;
 
+// PasswordResetService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class PasswordResetService(
     IUserAccountRepository accounts,
     IPasswordResetRepository resets,
@@ -15,8 +17,10 @@ public sealed class PasswordResetService(
 {
     public bool IsAvailable => emailSender.IsConfigured && IsValidResetPageUrl(options.ResetPageUrl);
 
+    // RequestAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task RequestAsync(string? email, CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!IsAvailable)
             throw new InvalidOperationException("Password reset email is not configured.");
         if (string.IsNullOrWhiteSpace(email) || email.Trim().Length > 254 ||
@@ -45,9 +49,11 @@ public sealed class PasswordResetService(
         }
     }
 
+    // ResetAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task<bool> ResetAsync(string? token, string? newPassword,
         string? confirmPassword, CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (newPassword is null || newPassword.Length is < 6 or > 128 ||
             newPassword.Any(char.IsWhiteSpace))
             throw new ArgumentException("Mật khẩu phải dài 6–128 ký tự và không chứa khoảng trắng.", nameof(newPassword));
@@ -60,9 +66,11 @@ public sealed class PasswordResetService(
             clock.GetUtcNow(), cancellationToken);
     }
 
+    // HashToken: băm mã khôi phục trước khi đối chiếu với dữ liệu lưu; không lưu token gốc.
     private static string HashToken(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
+    // IsValidResetPageUrl: Đánh giá điều kiện nghiệp vụ để quyết định nhánh xử lý.
     private static bool IsValidResetPageUrl(string? url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
         (uri.Scheme == Uri.UriSchemeHttps ||

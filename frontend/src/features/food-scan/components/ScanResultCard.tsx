@@ -1,3 +1,4 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import {
   AlertCircle,
   CheckCircle2,
@@ -16,6 +17,7 @@ import {
   type SavedFoodScan,
 } from '../api/foodScanApi'
 
+// Cấu trúc ScanResultCardProps quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 interface ScanResultCardProps {
   result: SavedFoodScan | null
   onResetAll: () => void
@@ -24,6 +26,7 @@ interface ScanResultCardProps {
   isLoggedIn: boolean
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (formatScanNote); thuộc phân tích ảnh món ăn và nhãn thành phần.
 function formatScanNote(note?: string | null): string {
   if (!note) {
     return 'Kết quả phân tích dựa trên danh sách thành phần bạn đã kiểm tra và xác nhận. Do hình ảnh món ăn không thể hiện được các thành phần ẩn (như nước dùng, gia vị nêm, dầu mỡ), vui lòng đối chiếu thêm với người chế biến để đảm bảo chuẩn chay theo nhu cầu.'
@@ -38,6 +41,7 @@ function formatScanNote(note?: string | null): string {
   return note
 }
 
+// Thành phần ScanResultCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc phân tích ảnh món ăn và nhãn thành phần.
 export default function ScanResultCard({
   result,
   onResetAll,
@@ -62,6 +66,7 @@ export default function ScanResultCard({
   const isSuitable = currentAssessment?.status === 'Suitable'
   const isNotSuitable = currentAssessment?.status === 'NotSuitable'
 
+  // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-6">
       {/* ============= CARD TỔNG KẾT KẾT QUẢ ============= */}
@@ -133,6 +138,7 @@ export default function ScanResultCard({
         <div className="grid gap-3 sm:grid-cols-2">
           {result.assessments.map((assessment) => {
             const isUserDiet = assessment.diet === currentDiet
+            // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <div
                 key={assessment.diet}

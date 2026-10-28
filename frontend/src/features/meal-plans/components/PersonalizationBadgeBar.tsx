@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   Activity,
@@ -9,15 +10,18 @@ import {
 } from 'lucide-react'
 import type { PersonalizationBadgeInfo } from '../types/mealPlans.types'
 
+// Cấu trúc PersonalizationBadgeBarProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface PersonalizationBadgeBarProps {
   info: PersonalizationBadgeInfo
   onEditClick?: () => void
 }
 
+// Thành phần PersonalizationBadgeBar nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const PersonalizationBadgeBar: React.FC<PersonalizationBadgeBarProps> = ({
   info,
   onEditClick,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl bg-white p-3 border border-slate-200/80 shadow-2xs">
       <div className="flex flex-wrap items-center gap-2">

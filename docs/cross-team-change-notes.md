@@ -34,7 +34,7 @@ Migration dietary types của Articles là diff từ trước Phase 1, đã comp
 - BE3/AI + BE1/Profile cần review: `AiChatContextRepository` dùng `IProfileContextReader` đã có, qua formatter `Application/Features/AiChat/AiChatProfileContext.cs`. Context thêm mục tiêu/BMI/TDEE/số đo/khu vực từ Profile, giữ null/danh sách rỗng đúng nghĩa; không gửi email/điện thoại/ID/ngày sinh đầy đủ sang provider. Không thêm API/migration, không thay Gemini adapter. Xem `contracts/moderation-aichat.md`.
 - Test: thêm `AiChatProfileContextTests` và chế độ `--profile-only` của IntegrationTests. Test provider chỉ nằm trong test host; không có phản hồi AI giả ở runtime. SQL test tạo/xóa database `CoreDataChecks_*`, không sửa database `VegetarianSupport`.
 
-Phase 2: 87 unit tests, 19 API/SQL checks, 18 browser checks đạt; xem `docs/phase-2-review.md`. Chưa test câu trả lời Gemini thực tế do không có key. Chưa bắt đầu Phase 3.
+Phase 2: 87 unit tests, 19 API/SQL checks, 18 browser checks đạt; xem `docs/archive/phase-2-review.md`. Chưa test câu trả lời Gemini thực tế do không có key. Chưa bắt đầu Phase 3.
 
 ## Bổ sung Phase 1 sau review của người dùng
 

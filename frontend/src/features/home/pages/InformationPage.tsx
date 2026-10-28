@@ -1,3 +1,4 @@
+// Chức năng: trang chủ và thông tin giới thiệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ArrowLeft, ArrowUpRight, Leaf } from 'lucide-react'
 import './InformationPage.css'
 import ContactFeedbackForm from './ContactFeedbackForm'
@@ -49,10 +50,13 @@ const informationPages = {
   },
 }
 
+// Cấu trúc InformationPageKind quy định dữ liệu trao đổi trong trang chủ và thông tin giới thiệu.
 export type InformationPageKind = keyof typeof informationPages
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (InformationPage); thuộc trang chủ và thông tin giới thiệu.
 export default function InformationPage({ kind }: { kind: InformationPageKind }) {
   const page = informationPages[kind]
+  // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="information-page">
       <div className="information-shell">

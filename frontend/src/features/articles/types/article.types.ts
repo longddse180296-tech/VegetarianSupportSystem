@@ -1,3 +1,5 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
+// Cấu trúc ArticleCategory quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export type ArticleCategory =
   | 'all'
   | 'nutrition'
@@ -7,6 +9,7 @@ export type ArticleCategory =
   | 'ingredients'
   | 'experience'
 
+// Cấu trúc ArticleAuthor quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ArticleAuthor {
   id: string
   name: string
@@ -16,6 +19,7 @@ export interface ArticleAuthor {
   isExpert?: boolean
 }
 
+// Cấu trúc ArticleComment quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ArticleComment {
   id: string
   articleId: string
@@ -28,6 +32,7 @@ export interface ArticleComment {
   isLiked?: boolean
 }
 
+// Cấu trúc ArticleSummary quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ArticleSummary {
   id: string
   title: string
@@ -45,12 +50,14 @@ export interface ArticleSummary {
   tags: string[]
 }
 
+// Cấu trúc ArticleSection quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ArticleSection {
   number?: number
   title?: string
   content: string
 }
 
+// Cấu trúc ArticleDetailDto quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ArticleDetailDto extends ArticleSummary {
   captionHeroImage?: string
   sections: ArticleSection[]
@@ -66,6 +73,7 @@ export interface ArticleDetailDto extends ArticleSummary {
   relatedArticles: ArticleSummary[]
 }
 
+// Cấu trúc ArticleFilterParams quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ArticleFilterParams {
   category?: ArticleCategory
   keyword?: string
@@ -75,6 +83,7 @@ export interface ArticleFilterParams {
   sortBy?: 'newest' | 'popular' | 'views'
 }
 
+// Cấu trúc PaginatedResult quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface PaginatedResult<T> {
   items: T[]
   totalCount: number
@@ -87,8 +96,10 @@ export interface PaginatedResult<T> {
 // Phase 2: User Content Management Types
 // ========================
 
+// Cấu trúc UserArticleStatus quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export type UserArticleStatus = 'published' | 'draft' | 'pending_review'
 
+// Cấu trúc UserArticleItem quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface UserArticleItem {
   id: string
   title: string
@@ -106,8 +117,10 @@ export interface UserArticleItem {
   thumbnailUrl?: string
 }
 
+// Cấu trúc UserCommentSourceType quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export type UserCommentSourceType = 'all' | 'recipe' | 'article' | 'video'
 
+// Cấu trúc UserCommentItem quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface UserCommentItem {
   id: string
   sourceType: 'recipe' | 'article' | 'video'
@@ -127,6 +140,7 @@ export interface UserCommentItem {
   }
 }
 
+// Cấu trúc ArticleFormData quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ArticleFormData {
   id?: string
   title: string

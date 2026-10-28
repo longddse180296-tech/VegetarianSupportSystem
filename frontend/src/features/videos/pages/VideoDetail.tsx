@@ -1,3 +1,4 @@
+// Chức năng: video, bản nháp và nội dung công khai. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
@@ -21,13 +22,16 @@ import {
 } from '../api/backendVideos'
 import { getSavedVideo, toggleVideoLike, toggleVideoSave } from '../api/videoApi'
 import ReportContentButton from '../../reports/components/ReportContentButton'
+import { formatVideoDuration } from '../utils/videoMetadata'
 
+// Cấu trúc Props quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface Props {
   videoId?: string
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
+// Cấu trúc Comment quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface Comment {
   id: string
   parentId: string | null
@@ -38,6 +42,7 @@ interface Comment {
   likeCount: number
 }
 
+// Cấu trúc Reaction quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface Reaction {
   count: number
   reactedByMe: boolean
@@ -52,23 +57,20 @@ const CURATED_THUMBNAILS = [
   'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
 ]
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanPrefix); thuộc video, bản nháp và nội dung công khai.
 function cleanPrefix(text?: string | null): string {
   if (!text) return ''
   return text.replace(/^\[Chế độ:[^\]]+\]\s*/i, '').replace(/^\[Mẫu\]\s*/i, '').trim()
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getFallbackThumbnail); thuộc video, bản nháp và nội dung công khai.
 function getFallbackThumbnail(id: string): string {
   const hash = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
   return CURATED_THUMBNAILS[hash % CURATED_THUMBNAILS.length]
 }
 
-function getItemDuration(id: string): string {
-  const hash = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const mins = 4 + (hash % 8)
-  const secs = 12 + (hash % 45)
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (formatDate); thuộc video, bản nháp và nội dung công khai.
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return 'Gần đây'
   const date = new Date(dateStr)
@@ -80,11 +82,15 @@ function formatDate(dateStr?: string | null): string {
   })
 }
 
+// Thành phần VideoDetail nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc video, bản nháp và nội dung công khai.
 export default function VideoDetail(props: Props) {
+  // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return <VideoDetailContent key={props.videoId ?? ''} {...props} />
 }
 
+// Thành phần VideoDetailContent nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc video, bản nháp và nội dung công khai.
 function VideoDetailContent({ videoId, onNavigate }: Props) {
+  // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [video, setVideo] = useState<VideoDetails | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
   const [reaction, setReaction] = useState<Reaction>({ count: 0, reactedByMe: false })
@@ -100,8 +106,10 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
   const [sending, setSending] = useState(false)
   const [liking, setLiking] = useState(false)
   const [saving, setSaving] = useState(false)
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const viewRecorded = useRef(false)
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!videoId) return
     let active = true
@@ -124,6 +132,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     }
   }, [videoId])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!videoId) return
     let active = true
@@ -155,6 +164,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     }
   }, [videoId])
 
+  // Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (requireLogin); thuộc video, bản nháp và nội dung công khai.
   const requireLogin = () => {
     if (getStoredToken()) return true
     onNavigate?.(`/auth/login?returnUrl=${encodeURIComponent(`/videos/${videoId ?? ''}`)}`)
@@ -176,6 +186,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     return map
   }, [comments])
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (toggleLike); thuộc video, bản nháp và nội dung công khai.
   const toggleLike = async () => {
     if (!videoId || !requireLogin()) return
     setLiking(true)
@@ -197,6 +208,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     }
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (toggleSave); thuộc video, bản nháp và nội dung công khai.
   const toggleSave = async () => {
     if (!videoId || !requireLogin()) return
     setSaving(true)
@@ -216,6 +228,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     }
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (sendComment); thuộc video, bản nháp và nội dung công khai.
   const sendComment = async () => {
     if (!videoId || !requireLogin()) return
     const content = draft.trim()
@@ -240,6 +253,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (recordView); thuộc video, bản nháp và nội dung công khai.
   const recordView = async () => {
     if (!videoId || viewRecorded.current) return
     viewRecorded.current = true
@@ -283,6 +297,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
   const isVideoAvailable = Boolean(video.mediaUrl) && !hasVideoError
   const authorName = video.authorName || 'Người đăng'
 
+  // Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (renderComment); thuộc video, bản nháp và nội dung công khai.
   const renderComment = (comment: Comment, isReply = false) => (
     <div key={comment.id} className={`border-t border-slate-100 pt-4 ${isReply ? 'ml-6' : ''}`}>
       <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -310,6 +325,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     </div>
   )
 
+  // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       {/* Header kho video cộng đồng */}
@@ -407,9 +423,10 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
                 {video.dietType}
               </span>
             )}
-            <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-3 py-1 text-xs font-medium">
-              ⏱ {getItemDuration(video.id)}
-            </span>
+            {(video.durationSeconds != null || video.metadataStatus === 'Processing') && <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-3 py-1 text-xs font-medium">
+              {formatVideoDuration(video.durationSeconds) || (video.metadataStatus === 'Processing' ? 'Đang xử lý thời lượng' : '')}
+            </span>}
+            {video.hasAudio === false && <span className="text-xs text-slate-500">Video không có âm thanh</span>}
           </div>
 
           {/* Tiêu đề video lớn */}
@@ -570,10 +587,12 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
   )
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (errorMessage); thuộc video, bản nháp và nội dung công khai.
 function errorMessage(reason: unknown, fallback: string): string {
   return reason instanceof Error ? reason.message : fallback
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (loadComments); thuộc video, bản nháp và nội dung công khai.
 async function loadComments(videoId: string): Promise<Comment[]> {
   const comments: Comment[] = []
   for (let page = 1; ; page++) {

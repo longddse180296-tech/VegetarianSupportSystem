@@ -1,3 +1,4 @@
+// Chức năng: quản lý thành viên. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using System.Data;
 using Application.Features.Administration;
 using Domain.Entities;
@@ -6,13 +7,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
 
+// MemberRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class MemberRepository(AppDbContext db) : IMemberRepository
 {
+    // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<MemberPage> ListAsync(string? search, bool? isLocked, int page, int pageSize, CancellationToken cancellationToken)
     {
         var users = db.Users.AsNoTracking();
         var totalCount = await users.CountAsync(cancellationToken);
         var lockedCount = await users.CountAsync(x => x.IsLocked, cancellationToken);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!string.IsNullOrWhiteSpace(search))
         {
             var pattern = $"%{EscapeLike(search)}%";
@@ -29,6 +33,7 @@ public sealed class MemberRepository(AppDbContext db) : IMemberRepository
         return new MemberPage(items, page, pageSize, filteredCount, totalCount - lockedCount, lockedCount);
     }
 
+    // FindAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<MemberDetail?> FindAsync(string id, CancellationToken cancellationToken)
     {
         var row = await db.Users.AsNoTracking().Where(x => x.Id == id)
@@ -38,8 +43,10 @@ public sealed class MemberRepository(AppDbContext db) : IMemberRepository
             row.CreatedAtUtc, row.IsLocked, row.LockReason, row.LockedAtUtc);
     }
 
+    // HistoryAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task<MemberStatusPage?> HistoryAsync(string id, int page, int pageSize, CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!await db.Users.AnyAsync(x => x.Id == id, cancellationToken)) return null;
         var changes = db.MemberStatusChanges.AsNoTracking().Where(x => x.UserId == id);
         var count = await changes.CountAsync(cancellationToken);
@@ -52,6 +59,7 @@ public sealed class MemberRepository(AppDbContext db) : IMemberRepository
         return new MemberStatusPage(items, page, pageSize, count);
     }
 
+    // ChangeStatusAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task<MemberStatusUpdateResult> ChangeStatusAsync(
         string id, string adminId, bool lockAccount, string reason, DateTimeOffset now, CancellationToken cancellationToken)
     {
@@ -70,6 +78,7 @@ public sealed class MemberRepository(AppDbContext db) : IMemberRepository
 
         var actorIsActiveAdmin = await db.Users.AsNoTracking()
             .AnyAsync(x => x.Id == adminId && x.Role == UserRole.Admin && !x.IsLocked, cancellationToken);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!actorIsActiveAdmin) return MemberStatusUpdateResult.ActorInactive;
 
         var user = await db.Users.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -83,10 +92,12 @@ public sealed class MemberRepository(AppDbContext db) : IMemberRepository
         if (lockAccount) user.Lock(reason, now);
         else user.Unlock(now);
         db.MemberStatusChanges.Add(MemberStatusChange.Create(id, adminId, lockAccount, reason, now));
+        // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return MemberStatusUpdateResult.Updated;
     }
 
+    // EscapeLike: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static string EscapeLike(string text) => text.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_").Replace("[", "\\[");
 }

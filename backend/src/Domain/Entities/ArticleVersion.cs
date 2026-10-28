@@ -1,7 +1,9 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 
 namespace Domain.Entities;
 
+// ArticleVersion: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class ArticleVersion
 {
     private ArticleVersion() { }
@@ -72,6 +74,7 @@ public sealed class ArticleVersion
     public ICollection<ArticleVersionCategory> Categories { get; private set; } = new List<ArticleVersionCategory>();
     public ICollection<ArticleVersionDietaryType> DietaryTypes { get; private set; } = new List<ArticleVersionDietaryType>();
 
+    // SetCategories: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     private void SetCategories(IReadOnlyCollection<string> categories)
     {
         foreach (var category in categories.Distinct(StringComparer.OrdinalIgnoreCase)
@@ -79,6 +82,7 @@ public sealed class ArticleVersion
             Categories.Add(new ArticleVersionCategory { ArticleVersionId = Id, Category = category });
     }
 
+    // SetDietaryTypes: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     private void SetDietaryTypes(IReadOnlyCollection<DietaryType> dietaryTypes)
     {
         foreach (var dietaryType in dietaryTypes.Distinct().OrderBy(x => x))
@@ -86,6 +90,7 @@ public sealed class ArticleVersion
     }
 }
 
+// ArticleVersionCategory: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class ArticleVersionCategory
 {
     public Guid ArticleVersionId { get; set; }
@@ -93,6 +98,7 @@ public sealed class ArticleVersionCategory
     public string Category { get; set; } = string.Empty;
 }
 
+// ArticleVersionDietaryType: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class ArticleVersionDietaryType
 {
     public Guid ArticleVersionId { get; set; }

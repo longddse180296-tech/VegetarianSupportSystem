@@ -1,6 +1,8 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { forwardRef, useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { ChevronDown, Check, AlertCircle } from 'lucide-react'
 
+// Cấu trúc SelectOption quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface SelectOption {
   value: string | number
   label: string
@@ -8,6 +10,7 @@ export interface SelectOption {
   disabled?: boolean
 }
 
+// Cấu trúc SelectProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   label?: string
   error?: string
@@ -41,7 +44,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     },
     ref,
   ) => {
+    // Lưu dữ liệu và trạng thái thao tác của giao diện và thành phần dùng chung trong vòng đời màn hình.
     const [isOpen, setIsOpen] = useState(false)
+    // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
     const containerRef = useRef<HTMLDivElement>(null)
     const hiddenSelectRef = useRef<HTMLSelectElement | null>(null)
 
@@ -124,15 +129,18 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     )
 
     // Close on click outside and escape key
+    // Đăng ký sự kiện phục vụ màn hình và dọn bộ lắng nghe khi không còn sử dụng.
     useEffect(() => {
       if (!isOpen) return
 
+      // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleClickOutside); thuộc giao diện và thành phần dùng chung.
       const handleClickOutside = (e: MouseEvent | TouchEvent) => {
         if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
           setIsOpen(false)
         }
       }
 
+      // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleKeyDown); thuộc giao diện và thành phần dùng chung.
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           setIsOpen(false)
@@ -150,6 +158,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       }
     }, [isOpen])
 
+    // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
     return (
       <div
         ref={containerRef}
@@ -236,6 +245,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ) : (
               parsedOptions.map((opt) => {
                 const isSelected = String(opt.value) === effectiveValue
+                // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                 return (
                   <button
                     type="button"

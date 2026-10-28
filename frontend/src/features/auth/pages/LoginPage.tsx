@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import React from 'react'
 import { PublicLayout } from '../../../app/layouts/PublicLayout'
 import { AuthFeatureCards } from '../components/AuthFeatureCards'
@@ -5,13 +6,16 @@ import { LoginForm } from '../components/LoginForm'
 import { useAuth } from '../hooks/useAuth'
 import type { LoginCredentials } from '../types'
 
+// Cấu trúc LoginPageProps quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 interface LoginPageProps {
   onNavigate?: (path: string) => void
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (LoginPage); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   const { login, isLoading, user } = useAuth()
 
+  // Xác thực thông tin đăng nhập và cập nhật phiên sử dụng (handleLogin); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const handleLogin = async (credentials: LoginCredentials) => {
     const loggedInUser = await login(credentials)
     if (onNavigate) {
@@ -42,6 +46,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
     }
   }
 
+  // Hiển thị giao diện đăng ký, đăng nhập và khôi phục mật khẩu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <PublicLayout
       activeNav="auth"

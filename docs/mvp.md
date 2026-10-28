@@ -12,6 +12,8 @@ Trạng thái: Đặc tả đã cập nhật. Chưa sửa canvas Figma vì công
 
 ### Đã được người dùng xác nhận
 
+- Bổ sung 28/10/2026: khi gửi bài viết, hệ thống kiểm tra tiêu đề trùng với bài khác đã được duyệt đang công khai trước AI. Trùng thì lưu phiên bản Rejected và lý do hệ thống để User/Admin xem trong quản lý, không gọi AI; tác giả được đổi tiêu đề/gửi lại. Không trùng mới qua AI văn bản/ảnh và cuối cùng Admin. Tiền kiểm này là ngoại lệ từ chối tự động theo yêu cầu nhóm, không phải AI tự quyết định duyệt nội dung.
+
 - Bổ sung ngày 22/10/2026: User/Admin báo cáo bài viết và video công khai; Guest đăng nhập để gửi. Admin xem báo cáo riêng tư, ghi kết quả xử lý hoặc bác bỏ kèm lý do; báo cáo không tự động gỡ nội dung.
 
 - Chỉ có ba role: Guest, User, Admin. Chuyên gia, đầu bếp và tác giả không phải role riêng.
@@ -90,6 +92,7 @@ Quyền phải kiểm tra ở phía hệ thống, không chỉ ẩn nút trên g
 ### Nhà hàng
 
 - Tìm theo tên/khu vực, vị trí hiện tại, khoảng cách và chế độ ăn được khai báo.
+- Nhà hàng có thể khai báo nhiều loại ăn chay (ít nhất một loại); Admin chọn độc lập từng loại, danh sách và chi tiết hiển thị đầy đủ, bộ lọc khớp từng loại được khai báo.
 - Xem bản đồ, địa chỉ, liên hệ, giờ hoạt động, giá tham khảo, tiện ích và món liên quan; chỉ đường qua bản đồ.
 - Lưu yêu thích. Không có đặt bàn, đặt món/thanh toán hoặc đánh giá nhà hàng trong MVP.
 - Thể hiện nguồn thông tin và thời điểm cập nhật khi cần; nhãn chế độ ăn không phải bảo đảm từng món thực tế dùng đúng nguyên liệu.
@@ -228,6 +231,7 @@ Nếu User xác nhận đầy đủ thành phần là thực vật: Phù hợp t
 
 - Nguyên liệu: tên/biến thể tên, nguồn gốc thực vật/động vật/chưa rõ, thông tin trứng/sữa/mật ong, dị nguyên, đơn vị, dinh dưỡng và nguồn dữ liệu.
 - Công thức: danh mục, nguyên liệu/định lượng, khẩu phần, cách nấu, thời gian, ảnh, dinh dưỡng, chế độ ăn tính từ thành phần, trạng thái hoạt động.
+- Cập nhật theo yêu cầu 26/10/2026: tự tính dinh dưỡng mỗi khẩu phần từ các mốc dinh dưỡng nguyên liệu, lượng dùng toàn công thức và số khẩu phần; cập nhật form qua SignalR. Đơn vị lấy từ dữ liệu nguyên liệu, không cho Admin chọn sai đơn vị; chỉ đổi g/kg, không suy ra khối lượng từ ml hoặc số lượng. Backend tính lại khi lưu; thiếu dữ liệu thì báo rõ và yêu cầu cập nhật nguyên liệu.
 - Nhà hàng: tên, vị trí, địa chỉ, giờ mở cửa, liên hệ, giá tham khảo, tiện ích, chế độ ăn được khai báo, món liên quan và trạng thái.
 - Danh mục: tạo/sửa/ngừng sử dụng; xem nội dung liên kết. Dữ liệu đang được tham chiếu không xóa làm hỏng thực đơn hoặc lịch sử.
 - Thành viên: tìm/lọc/xem nội dung liên quan, khóa/mở khóa có lý do; không thêm role ngoài ba role đã chốt.

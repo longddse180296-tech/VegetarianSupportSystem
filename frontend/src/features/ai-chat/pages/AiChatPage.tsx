@@ -1,3 +1,4 @@
+// Chức năng: hội thoại hỗ trợ ăn chay. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import {
   Activity,
@@ -25,6 +26,7 @@ import { Badge, Button, Modal, PageHeading } from '../../../shared/components'
 import Markdown from 'react-markdown'
 import { useAuth } from '../../auth'
 
+// Thành phần AiMessageBubble nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc hội thoại hỗ trợ ăn chay.
 function AiMessageBubble({
   content,
   isStreaming,
@@ -32,8 +34,10 @@ function AiMessageBubble({
   content: string
   isStreaming: boolean
 }) {
+  // Lưu dữ liệu và trạng thái thao tác của hội thoại hỗ trợ ăn chay trong vòng đời màn hình.
   const [copied, setCopied] = useState(false)
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleCopy); thuộc hội thoại hỗ trợ ăn chay.
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(content)
@@ -44,6 +48,7 @@ function AiMessageBubble({
     }
   }
 
+  // Hiển thị giao diện hội thoại hỗ trợ ăn chay từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="relative group rounded-2xl rounded-tl-xs bg-white border border-emerald-200/80 p-4.5 text-[14px] leading-relaxed text-slate-800 shadow-xs transition-all">
       <button
@@ -93,6 +98,7 @@ import type {
   PersonalProfileField,
 } from '../types/aiChat.types'
 
+// Cấu trúc AiChatPageProps quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 interface AiChatPageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
@@ -104,11 +110,13 @@ const EXTRA_FAQS: FaqItem[] = [
   { id: 'f-5', icon: 'HelpCircle', question: 'Gợi ý các loại hạt giàu Omega-3?' },
 ]
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AiChatPage); thuộc hội thoại hỗ trợ ăn chay.
 export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }: AiChatPageProps) {
   const { user } = useAuth()
   const appRole: AppRole = isLoggedIn || !!user ? 'User' : 'Guest'
 
   // Guest quota: maximum 3 questions
+  // Lưu dữ liệu và trạng thái thao tác của hội thoại hỗ trợ ăn chay trong vòng đời màn hình.
   const [guestState, setGuestState] = useState<GuestChatState>({
     questionsRemaining: 3,
     limit: 3,
@@ -132,11 +140,13 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   const [isLoadingInit, setIsLoadingInit] = useState(true)
 
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const cancelStreamRef = useRef<(() => void) | null>(null)
 
   // Ensure page always starts at top when visiting AI Assistant
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [])
@@ -161,7 +171,9 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
     }
   }, [appRole])
 
+  // Đăng ký sự kiện phục vụ màn hình và dọn bộ lắng nghe khi không còn sử dụng.
   useEffect(() => {
+    // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (handleProfileUpdate); thuộc hội thoại hỗ trợ ăn chay.
     const handleProfileUpdate = () => {
       void refreshProfileFields()
     }
@@ -172,6 +184,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   }, [refreshProfileFields])
 
   // Load Initial Data
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     let alive = true
     void (async () => {
@@ -210,12 +223,14 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   }, [appRole, user?.id])
 
   // Scroll to bottom when messages update
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [messages, isBotBusy, streamingMessageId])
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleScrollMessages); thuộc hội thoại hỗ trợ ăn chay.
   const handleScrollMessages = () => {
     if (!scrollRef.current) return
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
@@ -223,6 +238,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
     setShowScrollBottomBtn(!isNearBottom)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (scrollToBottom); thuộc hội thoại hỗ trợ ăn chay.
   const scrollToBottom = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
@@ -233,6 +249,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   }
 
   // Guest Quota check
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (consumeQuota); thuộc hội thoại hỗ trợ ăn chay.
   const consumeQuota = (): boolean => {
     if (appRole !== 'Guest') return true
     if (guestState.locked || guestState.questionsRemaining <= 0) {
@@ -253,6 +270,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   }
 
   // Send message and trigger real-time typing stream
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSend); thuộc hội thoại hỗ trợ ăn chay.
   const handleSend = async (forcedText?: string) => {
     const textToSend = (forcedText ?? draft).trim()
     if (!textToSend || isBotBusy || isLoadingConversation || isLoadingInit) return
@@ -323,6 +341,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
     }
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelectHistory); thuộc hội thoại hỗ trợ ăn chay.
   const handleSelectHistory = async (conversationId: string) => {
     if (isBotBusy || isLoadingConversation) return
     setIsLoadingConversation(true)
@@ -340,6 +359,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   }
 
   // Reset Conversation
+  // Khôi phục hoặc kết thúc trạng thái thao tác hiện tại (handleResetChat); thuộc hội thoại hỗ trợ ăn chay.
   const handleResetChat = () => {
     if (isBotBusy || isLoadingConversation) return
     if (cancelStreamRef.current) cancelStreamRef.current()
@@ -359,6 +379,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
     ])
   }
 
+  // Hiển thị giao diện hội thoại hỗ trợ ăn chay từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       <PageHeading

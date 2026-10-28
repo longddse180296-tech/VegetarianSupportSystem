@@ -1,15 +1,19 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Sparkles, Plus, Bot } from 'lucide-react'
 
+// Cấu trúc MyPlanBannerProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface MyPlanBannerProps {
   onCreateNewPlan?: () => void
   onOpenAiImport?: () => void
 }
 
+// Thành phần MyPlanBanner nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const MyPlanBanner: React.FC<MyPlanBannerProps> = ({
   onCreateNewPlan,
   onOpenAiImport,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#174826] via-[#1a532c] to-[#123e1f] p-6 md:p-8 text-white shadow-md border border-emerald-800/40">
       {/* Decorative background glow */}

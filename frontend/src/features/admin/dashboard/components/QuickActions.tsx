@@ -1,3 +1,4 @@
+// Chức năng: thống kê và góp ý gửi đến Admin. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   Users,
@@ -7,10 +8,12 @@ import {
   Layers,
 } from 'lucide-react'
 
+// Cấu trúc QuickActionsProps quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 interface QuickActionsProps {
   onNavigate?: (path: string) => void
 }
 
+// Thành phần QuickActions nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thống kê và góp ý gửi đến Admin.
 export const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
   const actions = [
     {
@@ -50,6 +53,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
     },
   ]
 
+  // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -60,6 +64,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {actions.map((act, idx) => {
           const IconComp = act.icon
+          // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
           return (
             <button
               key={idx}

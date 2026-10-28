@@ -1,3 +1,4 @@
+/* Chức năng: giao diện và thành phần dùng chung. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
@@ -62,6 +63,7 @@ img, video, canvas, svg {
   max-width: 100%;
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 639px) {
   :root { --page-gutter: 16px; }
 }
@@ -153,6 +155,7 @@ button, input, select, textarea, option {
   font-family: var(--font-sans);
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -161,6 +164,7 @@ button, input, select, textarea, option {
   }
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 639px) {
   .ui-page-heading { margin-bottom: 18px; }
   .ui-page-description { font-size: 14px; }

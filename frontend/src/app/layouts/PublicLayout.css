@@ -1,3 +1,4 @@
+/* Chức năng: giao diện và thành phần dùng chung. Bố trí phần điều hướng và vùng nội dung chung giữa các màn hình. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
 .public-layout {
   display: flex;
   flex-direction: column;

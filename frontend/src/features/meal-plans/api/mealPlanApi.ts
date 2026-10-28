@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient, ApiError, getStoredToken } from '../../../shared/api/apiClient'
 import type { PlanDiet, PlanPage, PlanShoppingItem, ReplacementRecipe, SavedPlan, SavedPlanMeal, SavedPlanSummary } from '../types/mealPlanBackend.types'
 
@@ -6,26 +7,31 @@ export const PLAN_DIET_LABELS: Record<PlanDiet, string> = {
   Ovo: 'Chay có trứng (Ovo)', LactoOvo: 'Chay có trứng và sữa (Lacto-ovo)',
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (localDate); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export function localDate(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (addPlanDays); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export function addPlanDays(date: string, count: number): string {
   const result = new Date(`${date}T12:00:00`)
   result.setDate(result.getDate() + count)
   return localDate(result)
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (nextMonday); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export function nextMonday(): string {
   const today = new Date()
   today.setDate(today.getDate() + ((8 - today.getDay()) % 7 || 7))
   return localDate(today)
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (formatPlanDate); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export function formatPlanDate(date: string): string {
   return new Date(`${date}T12:00:00`).toLocaleDateString('vi-VN')
 }
 
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (mealNutrition); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export function mealNutrition(value: number | null, servings: number): string {
   return value === null ? 'Chưa có dữ liệu' : new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(value * servings)
 }

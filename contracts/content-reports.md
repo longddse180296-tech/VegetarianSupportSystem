@@ -22,3 +22,5 @@ Nội dung phải đang công khai. Details tối đa 2000 ký tự sau trim, b�
 Resolved = Admin đã xử lý; Dismissed = Admin không chấp nhận báo cáo, cả hai phải có ghi chú. Việc gỡ nội dung dùng quy trình kiểm duyệt hiện có, lưu quyết định riêng. Báo cáo giữ dấu vết phiên bản bị báo cáo ngay cả khi nội dung có bản sửa mới.
 
 Migration: `AddContentReports`. FE: `features/reports` (form dùng chung), `features/admin/reports` (hàng đợi).
+
+Cập nhật 26/10/2026: danh sách báo cáo Admin bổ sung `reporterName` (string/null), lấy từ tên tài khoản theo `reporterId`. Giao diện hiển thị tên người gửi; thiếu tài khoản/tên thì hiển thị Không có thông tin người gửi.

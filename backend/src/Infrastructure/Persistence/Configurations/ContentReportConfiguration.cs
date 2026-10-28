@@ -1,11 +1,14 @@
+// Chức năng: báo cáo nội dung cần xem xét. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Persistence.Configurations;
 
+// ContentReportConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class ContentReportConfiguration : IEntityTypeConfiguration<ContentReport>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<ContentReport> builder)
     {
         builder.ToTable("ContentReports");

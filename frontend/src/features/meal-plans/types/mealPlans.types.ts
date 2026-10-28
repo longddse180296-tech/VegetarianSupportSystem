@@ -1,7 +1,11 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
+// Cấu trúc DietType quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export type DietType = 'vegan' | 'lacto' | 'ovo' | 'lacto-ovo'
 
+// Cấu trúc MealSlot quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export type MealSlot = 'breakfast' | 'lunch' | 'snack' | 'dinner'
 
+// Cấu trúc DietTabOption quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface DietTabOption {
   id: DietType
   name: string
@@ -10,6 +14,7 @@ export interface DietTabOption {
   icon: 'leaf' | 'milk' | 'egg' | 'utensils'
 }
 
+// Cấu trúc DietCharacteristic quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface DietCharacteristic {
   title: string
   certBadge: string
@@ -22,6 +27,7 @@ export interface DietCharacteristic {
   targetMicronutrients: string
 }
 
+// Cấu trúc MealItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface MealItem {
   id: string
   slot: MealSlot
@@ -40,6 +46,7 @@ export interface MealItem {
   recipeId?: string
 }
 
+// Cấu trúc DailyMacroSummary quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface DailyMacroSummary {
   calories: number
   targetCalories: number
@@ -53,6 +60,7 @@ export interface DailyMacroSummary {
   fatGrams: number
 }
 
+// Cấu trúc ShoppingItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface ShoppingItem {
   id: string
   name: string
@@ -60,6 +68,7 @@ export interface ShoppingItem {
   isChecked: boolean
 }
 
+// Cấu trúc GeneralMealPlanData quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface GeneralMealPlanData {
   dietType: DietType
   characteristic: DietCharacteristic
@@ -71,8 +80,10 @@ export interface GeneralMealPlanData {
 
 // --- Recommended Meal Plan Types (Phase 2) ---
 
+// Cấu trúc DayOfWeek quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
 
+// Cấu trúc UserPersonalizationInfo quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface UserPersonalizationInfo {
   bmi: number
   bmiCategory: string
@@ -82,6 +93,7 @@ export interface UserPersonalizationInfo {
   mealsPerDay: string
 }
 
+// Cấu trúc RecommendedMealItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface RecommendedMealItem {
   id: string
   slot: MealSlot
@@ -98,6 +110,7 @@ export interface RecommendedMealItem {
   recipeId?: string
 }
 
+// Cấu trúc MealReplacementOption quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface MealReplacementOption {
   id: string
   label: string
@@ -109,6 +122,7 @@ export interface MealReplacementOption {
   description: string
 }
 
+// Cấu trúc DayPlanOption quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface DayPlanOption {
   dayId: DayOfWeek
   label: string
@@ -116,6 +130,7 @@ export interface DayPlanOption {
   meals: RecommendedMealItem[]
 }
 
+// Cấu trúc RecommendedNutritionSummary quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface RecommendedNutritionSummary {
   caloriesConsumed: number
   targetCalories: number
@@ -129,11 +144,13 @@ export interface RecommendedNutritionSummary {
   fatNote: string
 }
 
+// Cấu trúc PantryUtilization quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface PantryUtilization {
   availableIngredients: string[]
   buyMoreNote: string
 }
 
+// Cấu trúc WeeklyPlanOverview quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface WeeklyPlanOverview {
   avgCalories: number
   avgCaloriesNote: string
@@ -147,6 +164,7 @@ export interface WeeklyPlanOverview {
   goalMatchNote: string
 }
 
+// Cấu trúc RecommendedMealPlanData quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface RecommendedMealPlanData {
   userInfo: UserPersonalizationInfo
   days: DayPlanOption[]
@@ -160,10 +178,14 @@ export interface RecommendedMealPlanData {
 
 // --- Personalization Setup Types (Phase 3) ---
 
+// Cấu trúc BiologicalGender quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export type BiologicalGender = 'male' | 'female'
+// Cấu trúc ActivityLevel quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export type ActivityLevel = 'sedentary' | 'moderate' | 'active'
+// Cấu trúc HealthGoal quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export type HealthGoal = 'maintain' | 'weight-loss' | 'muscle-gain' | 'detox'
 
+// Cấu trúc PersonalizationFormValues quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface PersonalizationFormValues {
   gender: BiologicalGender
   heightCm: number
@@ -177,6 +199,7 @@ export interface PersonalizationFormValues {
   preferences: string[]
 }
 
+// Cấu trúc BmiAnalysisResult quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface BmiAnalysisResult {
   bmi: number
   category: string
@@ -185,6 +208,7 @@ export interface BmiAnalysisResult {
   note: string
 }
 
+// Cấu trúc GeneratedPersonalizedPlan quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface GeneratedPersonalizedPlan {
   formData: PersonalizationFormValues
   bmiAnalysis: BmiAnalysisResult
@@ -214,6 +238,7 @@ export interface GeneratedPersonalizedPlan {
 
 // --- Weekly Calendar / My Plan Types (Phase 4) ---
 
+// Cấu trúc MyWeeklyMealItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface MyWeeklyMealItem {
   id: string
   slot: MealSlot
@@ -229,6 +254,7 @@ export interface MyWeeklyMealItem {
   recipeId?: string
 }
 
+// Cấu trúc WeeklyCalendarDay quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface WeeklyCalendarDay {
   id: DayOfWeek
   label: string
@@ -237,6 +263,7 @@ export interface WeeklyCalendarDay {
   meals: MyWeeklyMealItem[]
 }
 
+// Cấu trúc MyBmiNutritionMetric quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface MyBmiNutritionMetric {
   id: string
   label: string
@@ -246,6 +273,7 @@ export interface MyBmiNutritionMetric {
   statusBadge?: string
 }
 
+// Cấu trúc SavedMealPlanItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface SavedMealPlanItem {
   id: string
   goal: HealthGoal
@@ -259,12 +287,14 @@ export interface SavedMealPlanItem {
   highlightStat: string
 }
 
+// Cấu trúc WeeklyProTip quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface WeeklyProTip {
   title: string
   content: string
   actionLabel: string
 }
 
+// Cấu trúc MyWeeklyPlanData quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface MyWeeklyPlanData {
   weekRange: string
   days: WeeklyCalendarDay[]
@@ -276,6 +306,7 @@ export interface MyWeeklyPlanData {
 
 // --- Meal Plan Detail View Types (Phase 5) ---
 
+// Cấu trúc DetailedSwapOption quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface DetailedSwapOption {
   id: string
   matchPercent: number
@@ -285,6 +316,7 @@ export interface DetailedSwapOption {
   isSelected?: boolean
 }
 
+// Cấu trúc DetailedMealSlot quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface DetailedMealSlot {
   id: string
   slot: MealSlot
@@ -303,6 +335,7 @@ export interface DetailedMealSlot {
   swapOptions?: DetailedSwapOption[]
 }
 
+// Cấu trúc PersonalizationBadgeInfo quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface PersonalizationBadgeInfo {
   bmi: number
   bmiCategory: string
@@ -312,6 +345,7 @@ export interface PersonalizationBadgeInfo {
   priorityNutrients: string[]
 }
 
+// Cấu trúc DailyNutritionRing quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface DailyNutritionRing {
   consumedCalories: number
   targetCalories: number
@@ -324,12 +358,14 @@ export interface DailyNutritionRing {
   fatGrams: number
 }
 
+// Cấu trúc PantrySavingsInfo quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface PantrySavingsInfo {
   savingsAmount: string
   pantryRatio: number
   availableIngredients: string[]
 }
 
+// Cấu trúc GroceryItemToday quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface GroceryItemToday {
   id: string
   name: string
@@ -337,6 +373,7 @@ export interface GroceryItemToday {
   isChecked: boolean
 }
 
+// Cấu trúc WeeklyOverviewStat quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface WeeklyOverviewStat {
   avgCalories: string
   avgCaloriesNote: string
@@ -350,6 +387,7 @@ export interface WeeklyOverviewStat {
   bmiMatchRatioNote: string
 }
 
+// Cấu trúc MealPlanDetailData quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface MealPlanDetailData {
   id: string
   dietType: DietType

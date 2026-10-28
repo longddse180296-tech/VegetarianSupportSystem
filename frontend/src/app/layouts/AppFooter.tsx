@@ -1,7 +1,11 @@
+// Chức năng: giao diện và thành phần dùng chung. Bố trí phần điều hướng và vùng nội dung chung giữa các màn hình.
 import Logo from './Logo';
 import './AppFooter.css';
+const currentYear = new Date().getFullYear();
 
+// Thành phần AppFooter nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export default function AppFooter() {
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <footer className="app-footer">
       <div className="app-footer-inner">
@@ -10,9 +14,8 @@ export default function AppFooter() {
             <Logo iconSize="sm" showText />
           </div>
           <p className="footer-desc">
-            Nền tảng hỗ trợ định dưỡng thực vật khoa học hàng đầu, đồng hành cùng bạn trên
-            lộ trình xây dựng lối sống thuần thực vật lành mạnh, tối ưu chỉ số BMI và cân
-            bằng tinh chất.
+            Khám phá công thức chay, quản lý nguyên liệu và lập thực đơn theo thông tin
+            bạn đã khai báo. Nội dung dinh dưỡng trên nền tảng mang tính tham khảo.
           </p>
         </div>
 
@@ -27,10 +30,10 @@ export default function AppFooter() {
         </div>
 
         <div className="footer-col footer-col-consult">
-          <h4 className="footer-col-title">Tư vấn dinh dưỡng</h4>
+          <h4 className="footer-col-title">Hỗ trợ tìm hiểu dinh dưỡng</h4>
           <p className="footer-col-text">
-            Nhận tư vấn thực đơn thuần chay theo chỉ số BMI cá nhân hóa từ chuyên gia
-            & Trợ lý AI.
+            Trao đổi với Trợ lý AI để tìm hiểu món chay và nguyên liệu.
+            Bạn có thể kiểm tra lại thông tin trước khi áp dụng.
           </p>
           <div className="footer-support-badge" aria-hidden="true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -39,7 +42,7 @@ export default function AppFooter() {
                 fill="#2f7a45"
               />
             </svg>
-            <span>Hỗ trợ 24/7</span>
+            <span>Gửi góp ý qua trang Liên hệ</span>
           </div>
         </div>
       </div>
@@ -47,12 +50,12 @@ export default function AppFooter() {
       <div className="app-footer-bottom">
         <div className="app-footer-bottom-inner">
           <p className="footer-copy">
-            © 2025 Vegetarian Support. Nền tảng dinh dưỡng chay thông minh.
+            © {currentYear} Vegetarian Support. Nền tảng hỗ trợ ăn chay.
           </p>
           <div className="footer-bottom-links">
-            <a href="#explore-vegan">Khám phá chế độ thiên</a>
+            <a href="#/recipes">Khám phá công thức chay</a>
             <span className="footer-divider">•</span>
-            <a href="#understand-nutrition">Thấu hiểu dinh dưỡng</a>
+            <a href="#/articles">Tìm hiểu dinh dưỡng</a>
           </div>
         </div>
       </div>

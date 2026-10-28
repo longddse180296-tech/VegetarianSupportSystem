@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   RefreshCw,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { MealItem, DietType } from '../types/mealPlans.types'
 
+// Cấu trúc RecommendedPlanItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface RecommendedPlanItem {
   id: string
   title: string
@@ -25,6 +27,7 @@ export interface RecommendedPlanItem {
   ratingCount?: number
 }
 
+// Cấu trúc MealPlanCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface MealPlanCardProps {
   meal?: MealItem
   plan?: RecommendedPlanItem
@@ -34,6 +37,7 @@ export interface MealPlanCardProps {
   isAuthenticated?: boolean
 }
 
+// Thành phần MealPlanCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   meal,
   plan,
@@ -42,6 +46,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
   onViewDetail,
   isAuthenticated = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [isSwapping, setIsSwapping] = useState(false)
 
   // ── Render Case A: Recommended Plan Card (Public Discovery) ──────
@@ -161,6 +166,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
     return null
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleSwapClick); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleSwapClick = async () => {
     if (!onSwap || isSwapping) return
     try {
@@ -171,6 +177,7 @@ export const MealPlanCard: React.FC<MealPlanCardProps> = ({
     }
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col md:flex-row gap-5 relative overflow-hidden group">
       {/* Left: Meal Thumbnail */}

@@ -1,7 +1,9 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 
 namespace Domain.Entities;
 
+// MealPlan: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class MealPlan
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -16,6 +18,7 @@ public sealed class MealPlan
     public ICollection<MealPlanShoppingItem> ShoppingItems { get; set; } = new List<MealPlanShoppingItem>();
 }
 
+// MealPlanMeal: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class MealPlanMeal
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -36,6 +39,7 @@ public sealed class MealPlanMeal
     public ICollection<MealPlanMealIngredient> Ingredients { get; set; } = new List<MealPlanMealIngredient>();
 }
 
+// MealPlanMealIngredient: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class MealPlanMealIngredient
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -47,6 +51,7 @@ public sealed class MealPlanMealIngredient
     public string Unit { get; set; } = string.Empty;
 }
 
+// MealPlanShoppingItem: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class MealPlanShoppingItem
 {
     public Guid Id { get; set; } = Guid.NewGuid();

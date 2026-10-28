@@ -1,3 +1,4 @@
+// Chức năng: công thức và định lượng nguyên liệu. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type { SelectOption } from '../../../shared/components'
 import type {
@@ -14,7 +15,9 @@ import type {
   RelatedVideoCard,
 } from '../types/recipe.types'
 import { DEFAULT_RECIPE_FILTER, SORT_LABELS } from '../types/recipe.types'
+import { formatVideoDuration } from '../../videos/utils/videoMetadata'
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRelatedArticles); thuộc công thức và định lượng nguyên liệu.
 export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlogCard[]> {
   try {
     const res = await apiClient.get<{
@@ -34,10 +37,10 @@ export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlog
         imageUrl:
           a.imageUrl ||
           'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600&q=80',
-        author: a.authorName || 'Bếp Chay An Yên',
-        readTime: '5 phút đọc',
-        publishedAt: 'Mới đăng',
-        tags: ['Ăn chay', 'Sức khỏe'],
+        author: a.authorName || 'Chưa có tên tác giả',
+        readTime: '',
+        publishedAt: '',
+        tags: [],
       }))
     }
   } catch (err) {
@@ -46,6 +49,7 @@ export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlog
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRelatedVideos); thuộc công thức và định lượng nguyên liệu.
 export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoCard[]> {
   try {
     const res = await apiClient.get<{
@@ -53,6 +57,9 @@ export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoC
         id: string
         title: string
         thumbnailUrl?: string
+        authorName?: string | null
+        durationSeconds?: number | null
+        metadataStatus?: string
       }>
     }>('/api/videos?pageSize=3', { requiresAuth: false })
     if (res?.items && Array.isArray(res.items)) {
@@ -62,8 +69,8 @@ export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoC
         imageUrl:
           v.thumbnailUrl ||
           'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-        duration: '15:00',
-        channel: 'Bếp Chay An Nhiên',
+        duration: formatVideoDuration(v.durationSeconds) || (v.metadataStatus === 'Processing' ? 'Đang xử lý' : ''),
+        channel: v.authorName || 'Chưa có tên tác giả',
       }))
     }
   } catch (err) {
@@ -72,6 +79,7 @@ export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoC
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRelatedRestaurants); thuộc công thức và định lượng nguyên liệu.
 export async function getRelatedRestaurants(_recipeId: string): Promise<RelatedRestaurantCard[]> {
   try {
     const res = await apiClient.get<{
@@ -91,7 +99,7 @@ export async function getRelatedRestaurants(_recipeId: string): Promise<RelatedR
         imageUrl:
           r.imageUrl ||
           'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80',
-        distanceKm: r.distanceKm ? Number(r.distanceKm) : 1.5,
+        distanceKm: typeof r.distanceKm === 'number' && Number.isFinite(r.distanceKm) ? r.distanceKm : null,
       }))
     }
   } catch (err) {
@@ -101,17 +109,20 @@ export async function getRelatedRestaurants(_recipeId: string): Promise<RelatedR
 }
 
 // ---------- Filter options ----------
+// Cấu trúc DietPillOption quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface DietPillOption {
   value: string
   label: string
   cls?: string
 }
 
+// Cấu trúc CategoryPillOption quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface CategoryPillOption {
   value: string
   label: string
 }
 
+// Cấu trúc RecipeFilterOptions quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeFilterOptions {
   categoryPills: CategoryPillOption[]
   dietPills: DietPillOption[]
@@ -133,6 +144,7 @@ export const CATEGORY_PILLS: CategoryPillOption[] = [
   { value: 'Đồ Uống Dinh Dưỡng', label: 'Đồ Uống Dinh Dưỡng' },
 ]
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getCategoryOptions); thuộc công thức và định lượng nguyên liệu.
 export async function getCategoryOptions(): Promise<CategoryPillOption[]> {
   try {
     const res = await apiClient.get<{ items: Array<{ id: string; name: string }> }>('/api/categories?pageSize=50', {
@@ -174,6 +186,7 @@ const KCAL_OPTIONS: SelectOption[] = [
   { value: 'gt500', label: '> 500 Kcal (năng lượng cao)' },
 ]
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (getRecipeFilterOptions); thuộc công thức và định lượng nguyên liệu.
 export function getRecipeFilterOptions(): RecipeFilterOptions {
   const SORT_OPTIONS: SelectOption[] = (
     Object.keys(SORT_LABELS) as RecipeSortOption[]
@@ -188,16 +201,19 @@ export function getRecipeFilterOptions(): RecipeFilterOptions {
 }
 
 // ---------- 4 Core Vegetarian Diet Types ----------
+// Cấu trúc CoreDietType quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export type CoreDietType =
   | 'Thuần chay (Vegan)'
   | 'Ăn chay có sữa (Lacto)'
   | 'Chay có trứng (Ovo)'
   | 'Trứng & Sữa (Lacto-ovo)'
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (resolveDietType); thuộc công thức và định lượng nguyên liệu.
 export function resolveDietType(
   assessments?: Array<{ dietaryType: number | string; status: number | string }>,
 ): { dietType?: CoreDietType; dietCategory?: RecipeDietCategory; compatibleDietCategories: RecipeDietCategory[] } {
   if (assessments && assessments.length > 0) {
+    // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (isCompatible); thuộc công thức và định lượng nguyên liệu.
     const isCompatible = (typeNum: number, typeName: string) =>
       assessments.some(
         (a) =>
@@ -239,9 +255,11 @@ export function resolveDietType(
 }
 
 // ---------- Real Backend Interfaces & Adapters ----------
+// Cấu trúc BackendRecipeSummary quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface BackendRecipeSummary {
   id: string
   name: string
+  description: string | null
   categoryId: string
   categoryName: string
   servings: number
@@ -253,6 +271,7 @@ interface BackendRecipeSummary {
   dietaryAssessments?: Array<{ dietaryType: number | string; status: number | string }>
 }
 
+// Cấu trúc BackendRecipeResponse quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface BackendRecipeResponse {
   id: string
   categoryId: string
@@ -275,6 +294,7 @@ interface BackendRecipeResponse {
   dietaryAssessments?: Array<{ dietaryType: number | string; status: number | string }>
 }
 
+// Cấu trúc BackendRecipePage quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface BackendRecipePage {
   items: BackendRecipeSummary[]
   pageNumber: number
@@ -282,6 +302,7 @@ interface BackendRecipePage {
   totalCount: number
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapSummaryToRecipe); thuộc công thức và định lượng nguyên liệu.
 function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   const cookMin = summary.cookTimeMinutes || 20
   const prepMin = summary.prepTimeMinutes || 10
@@ -292,7 +313,7 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   return {
     id: summary.id,
     title: summary.name,
-    description: '',
+    description: summary.description?.trim() || '',
     category: summary.categoryName,
     dietType,
     prepTime: `${prepMin} phút`,
@@ -330,6 +351,7 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   }
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapDetailToRecipe); thuộc công thức và định lượng nguyên liệu.
 function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   const cookMin = detail.cookTimeMinutes || 20
   const prepMin = detail.prepTimeMinutes || 10
@@ -343,6 +365,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
         .map((s) => s.trim())
         .filter(Boolean)
     : []
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (stripStepPrefix); thuộc công thức và định lượng nguyên liệu.
   const stripStepPrefix = (line: string) => line.replace(/^(?:Bước\s*)?\d+[.)]\s*/i, '')
   const steps: RecipeStep[] = rawSteps.map((line, idx) => ({
     stepNo: idx + 1,
@@ -412,6 +435,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
 }
 
 // ---------- Public API ----------
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipes); thuộc công thức và định lượng nguyên liệu.
 export async function getRecipes(
   inputFilter: Partial<RecipeListFilter> = {},
 ): Promise<RecipeListResponse> {
@@ -457,6 +481,7 @@ export async function getRecipes(
   }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipeDetail); thuộc công thức và định lượng nguyên liệu.
 export async function getRecipeDetail(id: string): Promise<Recipe | null> {
   const url = `/api/recipes/${id}`
   try {
@@ -472,33 +497,4 @@ export async function getRecipeDetail(id: string): Promise<Recipe | null> {
   }
 
   return null
-}
-
-export async function toggleFavorite(
-  id: string,
-  nextState?: boolean,
-): Promise<{ id: string; isFavorite: boolean; favoriteCount: number }> {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-  let isFavorite = nextState ?? true
-  if (isUuid) {
-    try {
-      if (nextState !== false) {
-        await apiClient.post('/api/favorites', { targetType: 'Recipe', targetId: id })
-        isFavorite = true
-      } else {
-        const favs = await apiClient.get<{
-          items: Array<{ id: string; targetId: string }>
-        }>('/api/favorites?targetType=Recipe&pageSize=100')
-        const matched = favs?.items?.find((f) => f.targetId.toLowerCase() === id.toLowerCase())
-        if (matched?.id) {
-          await apiClient.delete(`/api/favorites/${matched.id}`)
-        }
-        isFavorite = false
-      }
-    } catch {
-      // Offline/unauthorized
-    }
-  }
-
-  return { id, isFavorite, favoriteCount: isFavorite ? 1 : 0 }
 }

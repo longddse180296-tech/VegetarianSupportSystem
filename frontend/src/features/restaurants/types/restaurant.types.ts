@@ -1,6 +1,9 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
 // ---------- Enums ----------
+// Cấu trúc RestaurantCity quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export type RestaurantCity = 'Hà Nội' | 'TP.HCM' | 'Đà Nẵng' | 'all' | string
 
+// Cấu trúc RestaurantDietType quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export type RestaurantDietType =
   | 'vegan'
   | 'ovo-lacto'
@@ -10,6 +13,7 @@ export type RestaurantDietType =
   | 'vegetarian-friendly'
   | 'all'
 
+// Cấu trúc RestaurantSortOption quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export type RestaurantSortOption =
   | 'relevance'
   | 'rating_desc'
@@ -42,6 +46,7 @@ export const SORT_LABELS: Record<RestaurantSortOption, string> = {
 }
 
 // ---------- Main types ----------
+// Cấu trúc Restaurant quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface Restaurant {
   id: string
   name: string
@@ -50,7 +55,7 @@ export interface Restaurant {
   district: string
   geoLat?: number
   geoLng?: number
-  distanceKm: number
+  distanceKm: number | null
   openingHours: string
   closingDay: string
   phoneNumber: string
@@ -76,6 +81,7 @@ export interface Restaurant {
   featuredDishes?: Array<{ id: string; name: string; imageUrl: string; displayOrder: number }>
 }
 
+// Cấu trúc RestaurantFilter quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RestaurantFilter {
   search: string
   city: RestaurantCity
@@ -101,6 +107,7 @@ export const DEFAULT_RESTAURANT_FILTER: RestaurantFilter = {
   distanceMaxKm: 0,
 }
 
+// Cấu trúc RestaurantListResponse quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RestaurantListResponse {
   items: Restaurant[]
   totalCount: number
@@ -108,12 +115,14 @@ export interface RestaurantListResponse {
 }
 
 // ---------- Supporting types (API layer helpers) ----------
+// Cấu trúc DishChip quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface DishChip {
   label: string
   count: number
   emoji: string
 }
 
+// Cấu trúc MapPinMarker quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface MapPinMarker {
   top: string
   left: string
@@ -122,6 +131,7 @@ export interface MapPinMarker {
   label: string
 }
 
+// Cấu trúc RestaurantDish quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RestaurantDish {
   id: string
   tag: string
@@ -134,6 +144,7 @@ export interface RestaurantDish {
 }
 
 // ---------- Detail page supporting types ----------
+// Cấu trúc WeekHour quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface WeekHour {
   day: string
   label: string
@@ -141,6 +152,7 @@ export interface WeekHour {
   isToday?: boolean
 }
 
+// Cấu trúc ReviewComment quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface ReviewComment {
   id: string
   userName: string
@@ -150,6 +162,7 @@ export interface ReviewComment {
   timeAgo: string
 }
 
+// Cấu trúc RelatedContentCard quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RelatedContentCard {
   id: string
   tag: string
@@ -161,7 +174,9 @@ export interface RelatedContentCard {
 }
 
 // ---------- Helpers ----------
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (formatPriceRange); thuộc tra cứu và quản lý nhà hàng.
 export function formatPriceRange(min: number, max: number): string {
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (fmt); thuộc tra cứu và quản lý nhà hàng.
   const fmt = (n: number) =>
     n >= 1_000_000
       ? `${(n / 1_000_000).toFixed(1)}M`
@@ -169,6 +184,7 @@ export function formatPriceRange(min: number, max: number): string {
   return `${fmt(min)} - ${fmt(max)} VNĐ / người`
 }
 
+// Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (renderStars); thuộc tra cứu và quản lý nhà hàng.
 export function renderStars(rating: number): string {
   const r = Number.isFinite(rating) ? (rating as number) : 0
   const clamped = Math.max(0, Math.min(5, r))

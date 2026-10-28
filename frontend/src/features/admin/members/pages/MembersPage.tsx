@@ -1,3 +1,4 @@
+// Chức năng: quản lý thành viên. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAuth } from '../../../auth/hooks/useAuth'
 import { getStoredToken } from '../../../../shared/api/apiClient'
@@ -10,19 +11,25 @@ import {
 import './members.css'
 
 const TOKEN_KEY = 'vegetarian.admin.accessToken'
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (date); thuộc quản lý thành viên.
 const date = (value: string) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (dateTime); thuộc quản lý thành viên.
 const dateTime = (value: string) => new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 
+// Cấu trúc MembersPageProps quy định dữ liệu trao đổi trong quản lý thành viên.
 interface MembersPageProps {
   onNavigate?: (path: string) => void
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (MembersPage); thuộc quản lý thành viên.
 export default function MembersPage({ onNavigate }: MembersPageProps) {
   const { user, isLoading: authLoading, login: loginShared, logout: logoutShared } = useAuth()
+  // Lưu dữ liệu và trạng thái thao tác của quản lý thành viên trong vòng đời màn hình.
   const [token, setToken] = useState(() => getStoredToken() ?? sessionStorage.getItem(TOKEN_KEY) ?? '')
   const [verifiedLegacyAdmin, setVerifiedLegacyAdmin] = useState<{ token: string; id: string; fullName: string } | null>(null)
   const [sessionError, setSessionError] = useState('')
   const [sessionRetry, setSessionRetry] = useState(0)
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const logoutRef = useRef(logoutShared)
   const userRole = user?.role
   const admin = userRole === 'Admin'
@@ -48,6 +55,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => { logoutRef.current = logoutShared }, [logoutShared])
 
   const signOut = useCallback(() => {
@@ -62,13 +70,14 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     setSessionError('')
   }, [])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     // AuthProvider has already verified shared sessions with the backend.
     if (!token || authLoading || userRole === 'Admin') return
     let active = true
     currentUser(token).then(verifiedUser => {
       if (!active) return
-      if (verifiedUser.role !== 'Admin') { signOut(); setLoginError('Tài khoản này không có quyền Admin.'); return }
+      if (verifiedUser.role !== 'Admin') { signOut(); setLoginError('Tài khoản này không có quyền quản trị.'); return }
       setSessionError('')
       setVerifiedLegacyAdmin({ token, id: verifiedUser.id, fullName: verifiedUser.fullName })
     }).catch((cause: unknown) => {
@@ -83,6 +92,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     return () => { active = false }
   }, [token, authLoading, userRole, sessionRetry, signOut])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!token || !adminId) return
     let active = true
@@ -91,6 +101,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     return () => { active = false }
   }, [token, adminId, search, status, page, refresh, signOut])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!selectedId || !token) return
     let active = true
@@ -100,6 +111,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     return () => { active = false }
   }, [selectedId, token, historyPage, refresh])
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (submitLogin); thuộc quản lý thành viên.
   async function submitLogin(event: FormEvent) {
     event.preventDefault()
     setLoginError('')
@@ -108,7 +120,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     setLoginBusy(true)
     try {
       const user = await loginShared({ email, password })
-      if (user.role !== 'Admin') { signOut(); setLoginError('Tài khoản này không có quyền Admin.'); return }
+      if (user.role !== 'Admin') { signOut(); setLoginError('Tài khoản này không có quyền quản trị.'); return }
       const accessToken = getStoredToken()
       if (!accessToken) throw new Error('Không lưu được phiên đăng nhập.')
       setToken(accessToken)
@@ -117,6 +129,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     finally { setLoginBusy(false) }
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (submitAction); thuộc quản lý thành viên.
   async function submitAction(event: FormEvent) {
     event.preventDefault()
     if (!member || action === null || !reason.trim()) return
@@ -132,6 +145,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     finally { setBusy(false) }
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (selectMember); thuộc quản lý thành viên.
   function selectMember(id: string) {
     setSelectedId(id)
     setHistoryPage(1)
@@ -140,6 +154,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     setError('')
   }
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (openStatusFromList); thuộc quản lý thành viên.
   async function openStatusFromList(id: string) {
     setError('')
     try {
@@ -152,6 +167,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
     }
   }
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (changeFilter); thuộc quản lý thành viên.
   function changeFilter(filter: LiveMemberFilter) {
     if (filter.search === search && filter.status === status && filter.page === page) return
     setListLoading(true)
@@ -163,7 +179,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
 
   if (!token) return <div className="fe1-members"><main className="member-login-page"><form className="member-login" onSubmit={submitLogin}>
     <div className="brand-mark">✦</div><p className="eyebrow">VEGETARIAN SUPPORT · QUẢN TRỊ</p>
-    <h1>Đăng nhập Admin</h1><p>Quản lý tài khoản thành viên và lịch sử khóa.</p>
+    <h1>Đăng nhập quản trị</h1><p>Quản lý tài khoản thành viên và lịch sử khóa.</p>
     <label>Email<input type="email" value={email} onChange={event => setEmail(event.target.value)} required autoComplete="username" /></label>
     <label>Mật khẩu<input type="password" value={password} onChange={event => setPassword(event.target.value)} required autoComplete="current-password" /></label>
     {loginError && <p className="form-error" role="alert">{loginError}</p>}
@@ -172,6 +188,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
 
   const maxHistoryPage = Math.max(1, Math.ceil((history?.totalCount ?? 0) / 10))
 
+  // Hiển thị giao diện quản lý thành viên từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return <AdminLayout
     activeMenu="members"
     pageTitle={selectedId ? 'Chi tiết thành viên' : 'Quản lý thành viên'}
@@ -192,10 +209,10 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
         ) : selectedId ? <>
           <div className="page-heading"><div><p className="eyebrow">QUẢN LÝ THÀNH VIÊN</p><h1>Chi tiết thành viên</h1><p>Thông tin tài khoản và lịch sử khóa/mở khóa.</p></div><button className="fe1-btn fe1-btn-outline outline-button" onClick={() => { setSelectedId(null); setMember(null); setHistory(null); setError('') }}>← Quay lại danh sách</button></div>
           {member ? <>
-            <section className="detail-hero"><div className="large-avatar">{member.fullName.slice(0, 1).toUpperCase()}</div><div className="detail-heading"><div><h2>{member.fullName}</h2><span className="role-tag">{member.role}</span><span className={`status-pill ${member.isLocked ? 'locked' : 'active'}`}>{member.isLocked ? 'Bị khóa' : 'Hoạt động'}</span></div><p>{member.email}</p></div><button className={`fe1-btn ${member.isLocked ? 'fe1-btn-primary primary-button' : 'fe1-btn-danger danger-button'}`} disabled={!member.isLocked && member.id === admin.id} onClick={() => { setAction(!member.isLocked); setReason(''); setError('') }}>{member.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button></section>
+            <section className="detail-hero"><div className="large-avatar">{member.fullName.slice(0, 1).toUpperCase()}</div><div className="detail-heading"><div><h2>{member.fullName}</h2><span className="role-tag">{member.role === 'Admin' ? 'Quản trị viên' : 'Người dùng'}</span><span className={`status-pill ${member.isLocked ? 'locked' : 'active'}`}>{member.isLocked ? 'Bị khóa' : 'Hoạt động'}</span></div><p>{member.email}</p></div><button className={`fe1-btn ${member.isLocked ? 'fe1-btn-primary primary-button' : 'fe1-btn-danger danger-button'}`} disabled={!member.isLocked && member.id === admin.id} onClick={() => { setAction(!member.isLocked); setReason(''); setError('') }}>{member.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button></section>
             <div className="detail-grid"><div className="detail-card"><span>ID thành viên</span><strong className="mono">{member.id}</strong></div><div className="detail-card"><span>Ngày tham gia</span><strong>{date(member.joinedAtUtc)}</strong></div><div className="detail-card"><span>Trạng thái</span><strong>{member.isLocked ? 'Đang bị khóa' : 'Đang hoạt động'}</strong></div></div>
             {member.isLocked && <div className="lock-note"><strong>Lý do khóa hiện tại</strong><p>{member.currentLockReason}</p><small>Khóa lúc {member.lockedAtUtc ? dateTime(member.lockedAtUtc) : '—'}</small></div>}
-            <section className="history-card"><div className="section-heading"><div><h2>Lịch sử khóa/mở khóa</h2><p>Admin thực hiện, thời điểm và lý do của từng thay đổi.</p></div><span className="count-tag">{history?.totalCount ?? 0} lần</span></div>
+            <section className="history-card"><div className="section-heading"><div><h2>Lịch sử khóa/mở khóa</h2><p>Quản trị viên thực hiện, thời điểm và lý do của từng thay đổi.</p></div><span className="count-tag">{history?.totalCount ?? 0} lần</span></div>
               {history?.items.length ? <div className="history-list">{history.items.map(item => <div className="history-item" key={item.id}><span className={`history-icon ${item.isLocked ? 'lock' : 'unlock'}`}>{item.isLocked ? '⌁' : '✓'}</span><div><strong>{item.isLocked ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản'}</strong><p>{item.reason}</p><small>{item.adminName} · {dateTime(item.occurredAtUtc)}</small></div></div>)}</div> : <p className="empty-state">Chưa có lịch sử thay đổi trạng thái.</p>}
               {maxHistoryPage > 1 && <div className="pagination"><button className="fe1-control" disabled={historyPage <= 1} onClick={() => setHistoryPage(value => value - 1)}>Trước</button><span>Trang {historyPage} / {maxHistoryPage}</span><button className="fe1-control" disabled={historyPage >= maxHistoryPage} onClick={() => setHistoryPage(value => value + 1)}>Sau</button></div>}
             </section>
@@ -218,7 +235,7 @@ export default function MembersPage({ onNavigate }: MembersPageProps) {
         </>}
         {error && <p className="form-error page-error" role="alert">{error}</p>}
       </div>
-    {action !== null && member && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAction(null) }}><form className="status-modal" onSubmit={submitAction} role="dialog" aria-modal="true" aria-labelledby="status-title"><span className={`stat-icon ${action ? 'red' : 'green'}`}>{action ? '⌁' : '✓'}</span><h2 id="status-title">{action ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}</h2><p>{action ? 'Thành viên sẽ không thể đăng nhập hoặc dùng JWT hiện có.' : 'Thành viên sẽ có thể đăng nhập và truy cập lại.'}</p><strong>{member.fullName}</strong><label>Lý do {action ? 'khóa' : 'mở khóa'} <span>*</span><textarea value={reason} maxLength={1000} onChange={event => setReason(event.target.value)} placeholder="Nhập lý do cụ thể…" required /></label><div className="modal-actions"><button type="button" className="fe1-btn fe1-btn-outline outline-button" onClick={() => setAction(null)}>Hủy</button><button className={`fe1-btn ${action ? 'fe1-btn-danger danger-button' : 'fe1-btn-primary primary-button'}`} disabled={busy || !reason.trim()}>{busy ? 'Đang lưu…' : action ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}</button></div></form></div>}
+    {action !== null && member && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (!busy && event.target === event.currentTarget) setAction(null) }}><form className="status-modal" onSubmit={submitAction} role="dialog" aria-modal="true" aria-labelledby="status-title"><span className={`stat-icon ${action ? 'red' : 'green'}`}>{action ? '⌁' : '✓'}</span><h2 id="status-title">{action ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}</h2><p>{action ? 'Thành viên sẽ không thể đăng nhập hoặc tiếp tục phiên truy cập hiện tại.' : 'Thành viên sẽ có thể đăng nhập và truy cập lại.'}</p><strong>{member.fullName}</strong><label>Lý do {action ? 'khóa' : 'mở khóa'} <span>*</span><textarea disabled={busy} value={reason} maxLength={1000} onChange={event => setReason(event.target.value)} placeholder="Nhập lý do cụ thể…" required /></label><div className="modal-actions"><button type="button" disabled={busy} className="fe1-btn fe1-btn-outline outline-button" onClick={() => setAction(null)}>Hủy</button><button className={`fe1-btn ${action ? 'fe1-btn-danger danger-button' : 'fe1-btn-primary primary-button'}`} disabled={busy || !reason.trim()}>{busy ? 'Đang lưu…' : action ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}</button></div></form></div>}
     </div>
   </AdminLayout>
 }

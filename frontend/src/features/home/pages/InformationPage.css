@@ -1,3 +1,4 @@
+/* Chức năng: trang chủ và thông tin giới thiệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
 .information-page { background: #f7faf7; color: #23452e; padding: 32px 24px 80px; }
 .information-shell { max-width: 1120px; margin: 0 auto; }
 .information-back { display: inline-flex; align-items: center; gap: 8px; color: #54735d; font-size: 14px; text-decoration: none; }
@@ -35,6 +36,7 @@
 .contact-feedback-error, .contact-feedback-success { padding: 14px; margin-top: 18px; border-radius: 10px; font-size: 14px; overflow-wrap: anywhere; }
 .contact-feedback-error { color: #9f2533; background: #fff0f1; }
 .contact-feedback-success { color: #245e35; background: #e4efe5; }
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 720px) {
   .information-page { padding: 24px 18px 48px; }
   .information-hero { padding: 32px 0; }

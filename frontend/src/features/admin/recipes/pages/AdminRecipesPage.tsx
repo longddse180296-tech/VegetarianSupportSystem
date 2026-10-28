@@ -1,3 +1,4 @@
+// Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import { Plus, Pencil, Lock, Unlock, Eye, BookOpen } from 'lucide-react'
 import {
@@ -21,16 +22,22 @@ import {
 } from '../api/recipeContract'
 import { RecipeApiForm } from '../components/RecipeApiForm'
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminRecipesPage); thuộc công thức và định lượng nguyên liệu.
 export const AdminRecipesPage = ({
   onNavigate,
 }: {
   onNavigate?: (path: string) => void
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của công thức và định lượng nguyên liệu trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [diet, setDiet] = useState('')
+  const [calorieSort, setCalorieSort] = useState<'' | 'asc' | 'desc'>('')
+  const calorieSortLabel = calorieSort === 'asc' ? 'nhỏ đến lớn' : calorieSort === 'desc' ? 'lớn đến nhỏ' : 'bình thường'
+  const nextCalorieSort = calorieSort === '' ? 'asc' : calorieSort === 'asc' ? 'desc' : ''
+  const nextCalorieSortLabel = nextCalorieSort === 'asc' ? 'nhỏ đến lớn' : nextCalorieSort === 'desc' ? 'lớn đến nhỏ' : 'bình thường'
   const result = useApiData<{ items: RecipeSummary[]; totalCount: number }>(
-    `/api/admin/recipes?pageNumber=${page}&pageSize=10&search=${encodeURIComponent(search)}${diet ? `&dietaryType=${diet}` : ''}`,
+    `/api/admin/recipes?pageNumber=${page}&pageSize=10&search=${encodeURIComponent(search)}${diet ? `&declaredDietaryType=${diet}` : ''}${calorieSort ? `&calorieSort=${calorieSort}` : ''}`,
   )
   const total = result.data?.totalCount ?? 0
   const [editing, setEditing] = useState<RecipeDetail | null | undefined>()
@@ -39,6 +46,7 @@ export const AdminRecipesPage = ({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (open); thuộc công thức và định lượng nguyên liệu.
   async function open(id: string, edit: boolean) {
     setBusy(true)
     setError(null)
@@ -60,10 +68,10 @@ export const AdminRecipesPage = ({
         <div>
           <strong>{item.name}</strong>
           <p className="text-xs text-slate-500 mt-1">
-            {item.dietaryAssessments
-              .filter((item) => item.status === 'Compatible')
-              .map((item) => dietLabels[item.dietaryType])
-              .join(' · ') || 'Chưa đủ dữ liệu phân loại'}
+            {item.declaredDietaryType ? `Khai báo: ${dietLabels[item.declaredDietaryType]}` : 'Chưa khai báo loại công thức'}
+            {item.declaredDietaryType && !item.dietaryAssessments.some(assessment => assessment.dietaryType === item.declaredDietaryType && assessment.status === 'Compatible') && (
+              <span className="mt-1 block text-amber-800">Cần kiểm tra lại nguyên liệu và chế độ ăn</span>
+            )}
           </p>
         </div>
       ),
@@ -76,7 +84,20 @@ export const AdminRecipesPage = ({
     },
     {
       key: 'caloriesPerServing',
-      header: 'Kcal/khẩu phần',
+      ariaSort: calorieSort === 'asc' ? 'ascending' : calorieSort === 'desc' ? 'descending' : 'none',
+      header: (
+        <button type="button"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md text-inherit uppercase tracking-wider hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+          title={`Đang xếp ${calorieSortLabel}. Bấm để xếp ${nextCalorieSortLabel}.`}
+          aria-label={`Kcal/khẩu phần: ${calorieSortLabel}. Sắp xếp ${nextCalorieSortLabel}`}
+          onClick={() => { setCalorieSort(nextCalorieSort); setPage(1) }}>
+          Kcal/khẩu phần
+          <span className="inline-flex flex-col text-[9px] leading-tight" aria-hidden="true">
+            <span className={calorieSort === 'asc' ? 'text-emerald-700' : 'text-slate-300'}>▲</span>
+            <span className={calorieSort === 'desc' ? 'text-emerald-700' : 'text-slate-300'}>▼</span>
+          </span>
+        </button>
+      ),
       render: (item) => item.caloriesPerServing ?? 'Chưa biết',
     },
     {
@@ -142,6 +163,7 @@ export const AdminRecipesPage = ({
       ),
     },
   ]
+  // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <AdminFrame
       menu="recipes"
@@ -166,7 +188,7 @@ export const AdminRecipesPage = ({
             setPage(1)
           }}
         />
-        <div className="min-w-44 flex-1 basis-44">
+        <div className="min-w-0 flex-1 basis-44">
           <Select
             aria-label="Lọc chế độ ăn"
             value={diet}
@@ -176,8 +198,8 @@ export const AdminRecipesPage = ({
             }}
             options={[
               { value: '', label: 'Tất cả chế độ ăn' },
-              ...Object.values(dietLabels).map((label, index) => ({
-                value: String(index + 1),
+              ...Object.entries(dietLabels).map(([value, label]) => ({
+                value,
                 label,
               })),
             ]}

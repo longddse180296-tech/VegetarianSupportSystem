@@ -133,8 +133,8 @@ internal static class DemoDataCatalog
     {
         Id = Id(id), Name = $"[Demo] {name}", Aliases = $"{name};{aliases}", Origin = origin,
         ContainsOtherAnimalProducts = false, Allergens = allergens, DefaultUnit = "g",
-        CaloriesPer100Gram = calories, ProteinGramPer100Gram = protein,
-        CarbohydrateGramPer100Gram = carbs, FatGramPer100Gram = fat, Source = SampleSource
+        Calories = calories, ProteinGram = protein,
+        CarbohydrateGram = carbs, FatGram = fat, Source = SampleSource
     };
 
     private static Ingredient InactiveFlour()
@@ -166,10 +166,10 @@ internal static class DemoDataCatalog
             Id = Id(id), CategoryId = Id(category), Name = $"[Demo] {name}",
             Description = "Công thức demo cho 2 người. Định lượng tính bằng g; dinh dưỡng minh họa theo mỗi khẩu phần, chưa xác minh.",
             Servings = 2, PrepTimeMinutes = prep, CookTimeMinutes = cook, Instructions = instructions,
-            CaloriesPerServing = PerServing(x => x.CaloriesPer100Gram),
-            ProteinGramPerServing = PerServing(x => x.ProteinGramPer100Gram),
-            CarbohydrateGramPerServing = PerServing(x => x.CarbohydrateGramPer100Gram),
-            FatGramPerServing = PerServing(x => x.FatGramPer100Gram),
+            CaloriesPerServing = PerServing(x => x.Calories),
+            ProteinGramPerServing = PerServing(x => x.ProteinGram),
+            CarbohydrateGramPerServing = PerServing(x => x.CarbohydrateGram),
+            FatGramPerServing = PerServing(x => x.FatGram),
             RecipeIngredients = rows.Select(row => new RecipeIngredient
             {
                 RecipeId = Id(id), IngredientId = Id(row.Id), Quantity = row.Grams, Unit = "g",

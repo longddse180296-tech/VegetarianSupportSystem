@@ -1,5 +1,8 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
+// Cấu trúc DietaryType quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export type DietaryType = '' | import('../../../shared/constants').DietaryType
 
+// Cấu trúc GoalType quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export type GoalType =
   | ''
   | 'maintain' // Duy trì cân nặng & Tăng cường sinh lực
@@ -9,6 +12,7 @@ export type GoalType =
 
 export type GenderType = 'male' | 'female' | ''
 
+// Cấu trúc ActivityLevel quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export type ActivityLevel =
   | ''
   | 'sedentary' // Ít vận động (nhân viên văn phòng, ít tập thể dục)
@@ -34,6 +38,7 @@ export interface BodyMetrics {
   birthDate?: string | null
 }
 
+// Cấu trúc HiddenIngredientRules quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export interface HiddenIngredientRules {
   boneBroth: boolean // Nước hầm xương / thịt động vật trong phở, canh
   fishSauce: boolean // Nước mắm cá cơm, mắm tôm, mắm tép
@@ -42,6 +47,7 @@ export interface HiddenIngredientRules {
   gelatinHoney: boolean // Gelatin, sáp ong & mật ong
 }
 
+// Cấu trúc UserProfile quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export interface UserProfile {
   id: string
   fullName: string
@@ -59,12 +65,14 @@ export interface UserProfile {
   updatedAt: string
 }
 
+// Cấu trúc ProfileStats quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export interface ProfileStats {
   postCount: number | null
   commentCount: number | null
   videoCount: number | null
 }
 
+// Cấu trúc RecentPost quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export interface RecentPost {
   id: string
   category: string
