@@ -1,5 +1,7 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 
+// Cấu trúc RichContentRendererProps quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 interface RichContentRendererProps {
   content: string
   className?: string
@@ -18,6 +20,7 @@ const renderInline = (text: string): React.ReactNode => {
     const italicMatch = remaining.match(/^([\s\S]*?)\*(.+?)\*([\s\S]*)$/)
     const codeMatch = remaining.match(/^([\s\S]*?)`(.+?)`([\s\S]*)$/)
 
+    // Cấu trúc MatchCandidate quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
     type MatchCandidate = { type: 'bold' | 'italic' | 'code'; match: RegExpMatchArray; index: number }
     const candidates: MatchCandidate[] = []
 
@@ -73,6 +76,7 @@ const renderInline = (text: string): React.ReactNode => {
   return <>{tokens}</>
 }
 
+// Cấu trúc RenderBlock quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 type RenderBlock =
   | { type: 'h1'; text: string }
   | { type: 'h2'; text: string; num?: number }
@@ -82,6 +86,7 @@ type RenderBlock =
   | { type: 'ol'; items: { num: string; text: string }[] }
   | { type: 'p'; lines: string[] }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (parseBlocks); thuộc bài viết và phiên bản gửi duyệt.
 const parseBlocks = (content: string): RenderBlock[] => {
   const rawLines = content.split('\n')
   const blocks: RenderBlock[] = []
@@ -90,6 +95,7 @@ const parseBlocks = (content: string): RenderBlock[] => {
   let currentUl: string[] = []
   let currentOl: { num: string; text: string }[] = []
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (flushParagraph); thuộc bài viết và phiên bản gửi duyệt.
   const flushParagraph = () => {
     if (currentParagraph.length > 0) {
       blocks.push({ type: 'p', lines: [...currentParagraph] })
@@ -97,6 +103,7 @@ const parseBlocks = (content: string): RenderBlock[] => {
     }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (flushQuote); thuộc bài viết và phiên bản gửi duyệt.
   const flushQuote = () => {
     if (currentQuote.length > 0) {
       blocks.push({ type: 'quote', lines: [...currentQuote] })
@@ -104,6 +111,7 @@ const parseBlocks = (content: string): RenderBlock[] => {
     }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (flushUl); thuộc bài viết và phiên bản gửi duyệt.
   const flushUl = () => {
     if (currentUl.length > 0) {
       blocks.push({ type: 'ul', items: [...currentUl] })
@@ -111,6 +119,7 @@ const parseBlocks = (content: string): RenderBlock[] => {
     }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (flushOl); thuộc bài viết và phiên bản gửi duyệt.
   const flushOl = () => {
     if (currentOl.length > 0) {
       blocks.push({ type: 'ol', items: [...currentOl] })
@@ -118,6 +127,7 @@ const parseBlocks = (content: string): RenderBlock[] => {
     }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (flushAll); thuộc bài viết và phiên bản gửi duyệt.
   const flushAll = () => {
     flushParagraph()
     flushQuote()
@@ -204,6 +214,7 @@ const parseBlocks = (content: string): RenderBlock[] => {
   return blocks
 }
 
+// Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (RichContentRenderer); thuộc bài viết và phiên bản gửi duyệt.
 export const RichContentRenderer: React.FC<RichContentRendererProps> = ({
   content,
   className = '',
@@ -214,6 +225,7 @@ export const RichContentRenderer: React.FC<RichContentRendererProps> = ({
 
   const blocks = parseBlocks(content)
 
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className={`space-y-3.5 text-slate-700 leading-relaxed break-words ${className}`}>
       {blocks.map((block, idx) => {

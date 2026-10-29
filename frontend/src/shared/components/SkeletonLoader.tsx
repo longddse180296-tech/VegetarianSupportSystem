@@ -1,11 +1,14 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 
+// Cấu trúc SkeletonLoaderProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface SkeletonLoaderProps {
   count?: number
   variant?: 'card' | 'table-row' | 'text' | 'recipe'
   className?: string
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (SkeletonLoader); thuộc giao diện và thành phần dùng chung.
 export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   count = 6,
   variant = 'card',
@@ -39,6 +42,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   }
 
   // Card & Recipe variant
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div
       className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full ${className}`}

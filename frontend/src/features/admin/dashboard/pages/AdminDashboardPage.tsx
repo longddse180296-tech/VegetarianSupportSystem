@@ -1,3 +1,4 @@
+// Chức năng: thống kê và góp ý gửi đến Admin. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import {
   Apple, ArrowRight, ArrowUpRight, BookOpen, ClipboardCheck, Clock3,
   FileText, LayoutGrid, MapPin, MessageSquare, RefreshCw, Users, Video,
@@ -32,6 +33,7 @@ const activityLabels: Record<string, string> = {
 }
 const numberFormatter = new Intl.NumberFormat('vi-VN')
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminDashboardPage); thuộc thống kê và góp ý gửi đến Admin.
 export const AdminDashboardPage = ({ onNavigate }: { onNavigate: (path: string) => void }) => {
   const result = useApiData<DashboardResponse>('/api/admin/dashboard')
   const data = result.data
@@ -43,12 +45,12 @@ export const AdminDashboardPage = ({ onNavigate }: { onNavigate: (path: string) 
     },
     {
       label: 'Bài viết công khai', value: data.content.publishedArticles, icon: FileText,
-      detail: `${numberFormatter.format(data.pendingAdminReview.articles)} chờ Admin duyệt`,
+      detail: `${numberFormatter.format(data.pendingAdminReview.articles)} chờ Quản trị viên duyệt`,
       path: '/admin/articles',
     },
     {
       label: 'Video công khai', value: data.content.publishedVideos, icon: Video,
-      detail: `${numberFormatter.format(data.pendingAdminReview.videos)} chờ Admin duyệt`,
+      detail: `${numberFormatter.format(data.pendingAdminReview.videos)} chờ Quản trị viên duyệt`,
       path: '/admin/videos',
     },
     {
@@ -62,6 +64,7 @@ export const AdminDashboardPage = ({ onNavigate }: { onNavigate: (path: string) 
     })),
   ] : []
 
+  // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <AdminFrame menu="dashboard" title="Tổng quan hệ thống quản trị" subtitle="Theo dõi cộng đồng, nội dung và hoạt động kiểm duyệt." onNavigate={onNavigate}>
       <div className="mx-auto max-w-7xl space-y-8">
@@ -137,7 +140,7 @@ export const AdminDashboardPage = ({ onNavigate }: { onNavigate: (path: string) 
                 <button key={queue.type} type="button" onClick={() => onNavigate(`/admin/${queue.type}`)} className="group flex min-w-0 items-start gap-4 rounded-2xl border border-emerald-200 bg-white p-5 text-left shadow-sm transition hover:border-emerald-400 hover:shadow-md motion-reduce:transition-none sm:p-6">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"><queue.icon aria-hidden="true" className="h-5 w-5" /></span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-900">{queue.label} chờ Admin duyệt</p>
+                    <p className="font-semibold text-slate-900">{queue.label} chờ Quản trị viên duyệt</p>
                     <p className="my-2 text-3xl font-bold text-emerald-800 tabular-nums">{numberFormatter.format(queue.count)}</p>
                     <p className="text-sm text-slate-500">{queue.description}</p>
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">Mở hàng đợi <ArrowRight aria-hidden="true" className="h-4 w-4 transition-transform group-hover:translate-x-1 motion-reduce:transform-none" /></span>
@@ -160,6 +163,7 @@ export const AdminDashboardPage = ({ onNavigate }: { onNavigate: (path: string) 
               <ol className="divide-y divide-slate-100">
                 {data.recentActivity.map((item, index) => {
                   const ActivityIcon = item.type.startsWith('Member') ? Users : item.type.startsWith('Video') ? Video : FileText
+                  // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                   return (
                     <li key={`${item.entityId}-${item.type}-${index}`} className="flex items-start gap-3 py-4 first:pt-0 last:pb-0">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><ActivityIcon aria-hidden="true" className="h-4 w-4" /></span>

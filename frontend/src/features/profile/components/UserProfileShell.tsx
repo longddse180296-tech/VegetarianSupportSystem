@@ -1,3 +1,4 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   LayoutDashboard,
@@ -12,17 +13,20 @@ import {
   Sparkles,
   ShieldCheck,
   Check,
+  ShoppingBasket,
 } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { PublicLayout } from '../../../app/layouts/PublicLayout'
 
+// Cấu trúc BreadcrumbItem quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export interface BreadcrumbItem {
   label: string
   path?: string
 }
 
+// Cấu trúc UserProfileShellProps quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export interface UserProfileShellProps {
-  activeTab: 'overview' | 'my-articles' | 'my-comments' | 'my-videos' | 'favorites'
+  activeTab: 'overview' | 'my-articles' | 'my-comments' | 'my-videos' | 'favorites' | 'pantry'
   breadcrumbs?: BreadcrumbItem[]
   statBadge?: { count: number; label: string }
   userName?: string
@@ -35,6 +39,7 @@ export interface UserProfileShellProps {
 
 const DEFAULT_AVATAR = ''
 
+// Thành phần UserProfileShell nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export const UserProfileShell: React.FC<UserProfileShellProps> = ({
   activeTab,
   breadcrumbs = [
@@ -51,6 +56,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
 }) => {
   const { user, logout } = useAuth()
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleNav); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const handleNav = (path: string) => {
     if (onNavigate) onNavigate(path)
   }
@@ -89,6 +95,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
       icon: Bookmark,
       path: '/favorites',
     },
+    { id: 'pantry', label: 'Tủ bếp AI', icon: ShoppingBasket, path: '/profile/pantry' },
   ]
 
   const displayName = userName || user?.fullName || 'Thành viên'
@@ -96,6 +103,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
   const displayAvatar = avatarUrl || user?.avatarUrl || DEFAULT_AVATAR
   const displayDiet = dietaryType || 'Chưa cung cấp'
 
+  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <PublicLayout
       activeNav="profile"
@@ -116,6 +124,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
           <nav className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-6 flex-wrap">
             {breadcrumbs.map((b, idx) => {
               const isLast = idx === breadcrumbs.length - 1
+              // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <React.Fragment key={idx}>
                   {b.path && !isLast ? (
@@ -200,7 +209,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
               </div>
 
               {/* Right Column: Stat Badge Card (hidden in overview) */}
-              {activeTab !== 'overview' && statBadge && (
+              {activeTab !== 'overview' && activeTab !== 'pantry' && statBadge && (
                 <div className="flex items-center gap-4 bg-[#f8faf8] border border-[#e5e7eb] rounded-[16px] px-6 py-3.5 shrink-0 text-center shadow-2xs">
                   <div>
                     <div className="text-2xl font-black text-[#1b5e20] tracking-tight tabular-nums">
@@ -227,6 +236,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
                   {navMenuItems.map((item) => {
                     const isActive = activeTab === item.id
                     const Icon = item.icon
+                    // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                     return (
                       <button
                         key={item.id}

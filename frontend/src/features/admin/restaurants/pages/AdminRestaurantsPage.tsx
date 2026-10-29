@@ -1,3 +1,4 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import { Eye, Pencil, Plus, Lock, Unlock, MapPin } from 'lucide-react'
 import {
@@ -20,11 +21,13 @@ import {
   type RestaurantSummary,
 } from '../api/restaurantContract'
 import { RestaurantApiForm } from '../components/RestaurantApiForm'
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminRestaurantsPage); thuộc tra cứu và quản lý nhà hàng.
 export const AdminRestaurantsPage = ({
   onNavigate,
 }: {
   onNavigate?: (path: string) => void
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của tra cứu và quản lý nhà hàng trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const result = useApiData<{ items: RestaurantSummary[]; totalCount: number }>(
@@ -39,6 +42,7 @@ export const AdminRestaurantsPage = ({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (open); thuộc tra cứu và quản lý nhà hàng.
   async function open(id: string, edit: boolean) {
     setBusy(true)
     setError(null)
@@ -143,6 +147,7 @@ export const AdminRestaurantsPage = ({
       ),
     },
   ]
+  // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <AdminFrame
       menu="restaurants"
@@ -279,6 +284,7 @@ export const AdminRestaurantsPage = ({
               if (!statusTarget || busy) return
               setBusy(true)
               setError(null)
+              setNotice(null)
               try {
                 if (statusTarget.isActive) {
                   await restaurantApi.deactivate(statusTarget.id)
@@ -294,6 +300,8 @@ export const AdminRestaurantsPage = ({
                   )
                   setNotice(`Đã ngừng sử dụng nhà hàng “${statusTarget.name}”.`)
                 } else {
+                  // Chỉ đổi dòng sau khi backend đã lưu trạng thái mở khóa, không báo thành công cục bộ.
+                  await restaurantApi.activate(statusTarget.id)
                   result.setData((prev) =>
                     prev
                       ? {
@@ -307,6 +315,7 @@ export const AdminRestaurantsPage = ({
                   setNotice(`Đã mở khóa và kích hoạt lại nhà hàng “${statusTarget.name}”.`)
                 }
                 setStatusTarget(null)
+                result.reload()
               } catch (reason) {
                 setError(errorMessage(reason))
               } finally {

@@ -22,6 +22,8 @@ internal sealed class TestAuthenticationHandler(
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
         [
             new Claim("sub", userId),
+            new Claim("role", role.ToString()),
+            new Claim("jti", Guid.NewGuid().ToString("N")),
             new Claim(ClaimTypes.Role, role.ToString())
         ], Scheme.Name));
         return Task.FromResult(AuthenticateResult.Success(

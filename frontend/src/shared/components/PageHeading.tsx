@@ -1,11 +1,15 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import type { ReactNode } from 'react'
 
+// Cấu trúc BreadcrumbItem quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface BreadcrumbItem {
   label: string
   onClick?: () => void
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (Breadcrumb); thuộc giao diện và thành phần dùng chung.
 export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <nav aria-label="Đường dẫn" className="ui-breadcrumb">
       <ol>
@@ -22,14 +26,17 @@ export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   )
 }
 
+// Thành phần Badge nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export function Badge({ children, icon, tone = 'green' }: {
   children: ReactNode
   icon?: ReactNode
   tone?: 'green' | 'neutral' | 'amber'
 }) {
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return <span className={`ui-badge ui-badge-${tone}`}>{icon}{children}</span>
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (PageHeading); thuộc giao diện và thành phần dùng chung.
 export function PageHeading({ title, description, breadcrumbs, eyebrow, actions }: {
   title: string
   description?: string
@@ -37,6 +44,7 @@ export function PageHeading({ title, description, breadcrumbs, eyebrow, actions 
   eyebrow?: ReactNode
   actions?: ReactNode
 }) {
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <header className="ui-page-heading">
       {breadcrumbs && <Breadcrumb items={breadcrumbs} />}

@@ -1,6 +1,8 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import Button from './Button'
 
+// Cấu trúc EmptyStateProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface EmptyStateProps {
   title?: string
   description?: string
@@ -11,6 +13,7 @@ export interface EmptyStateProps {
   className?: string
 }
 
+// Thành phần EmptyState nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export const EmptyState: React.FC<EmptyStateProps> = ({
   title = 'Không có dữ liệu',
   description = 'Hiện chưa có mục nào trong danh sách hoặc không tìm thấy kết quả phù hợp.',
@@ -23,6 +26,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   const handleAction = onAction || onReset
   const buttonLabel = actionLabel || (onReset ? 'Xóa bộ lọc' : 'Thử lại')
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div
       className={`flex flex-col items-center justify-center text-center p-8 sm:p-12 bg-white rounded-[16px] border border-dashed border-border-subtle my-4 ${className}`}

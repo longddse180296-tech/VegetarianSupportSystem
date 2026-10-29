@@ -1,3 +1,4 @@
+/* Chức năng: giao diện và thành phần dùng chung. Bố trí phần điều hướng và vùng nội dung chung giữa các màn hình. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
 .app-header {
   position: sticky;
   top: 0;
@@ -269,6 +270,7 @@
   border-color: #f5c8c1;
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 1120px) {
   .app-header-inner {
     padding: 12px 18px;
@@ -284,12 +286,14 @@
   }
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 920px) {
   .app-header-user-name {
     display: none;
   }
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 640px) {
   .app-header-inner {
     display: grid;

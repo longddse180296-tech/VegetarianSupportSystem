@@ -1,12 +1,16 @@
+// Chức năng: video, bản nháp và nội dung công khai. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
 // ---------- Enums & Union Types ----------
+// Cấu trúc ModerationStatus quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export type ModerationStatus = 'pending_ai' | 'flagged_by_ai' | 'approved' | 'rejected'
 
+// Cấu trúc VideoModerationStatus quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export type VideoModerationStatus =
   | ModerationStatus
   | 'ai_checking'
   | 'pending_admin'
   | 'published'
 
+// Cấu trúc VideoCategory quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export type VideoCategory =
   | 'cooking-tutorial'
   | 'ingredient-guide'
@@ -17,12 +21,14 @@ export type VideoCategory =
   | 'quick-recipe'
   | 'festival-food'
 
+// Cấu trúc VideoSortOption quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export type VideoSortOption =
   | 'trending'
   | 'newest'
   | 'duration_asc'
   | 'most_liked'
 
+// Cấu trúc CoreDietType quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export type CoreDietType =
   | 'Thuần chay (Vegan)'
   | 'Ăn chay có sữa (Lacto)'
@@ -59,6 +65,7 @@ export const SORT_LABELS: Record<VideoSortOption, string> = {
 }
 
 // ---------- Sub-entities ----------
+// Cấu trúc VideoAuthor quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface VideoAuthor {
   name: string
   role?: string
@@ -67,6 +74,7 @@ export interface VideoAuthor {
   verified?: boolean
 }
 
+// Cấu trúc VideoComment quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface VideoComment {
   id: string
   authorName: string
@@ -79,6 +87,7 @@ export interface VideoComment {
 }
 
 // ---------- Main Video Entity (Task 5 requirement) ----------
+// Cấu trúc Video quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface Video {
   id: string
   title: string
@@ -89,6 +98,8 @@ export interface Video {
   thumbnailUrl: string
   duration?: string
   durationSeconds: number
+  hasAudio?: boolean | null
+  metadataStatus?: 'Processing' | 'Ready' | 'Unavailable'
   views?: string | number
   viewCount: number
   author?: VideoAuthor
@@ -110,9 +121,11 @@ export interface Video {
 }
 
 // Backward-compatible alias
+// Cấu trúc VideoItem quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export type VideoItem = Video
 
 // ---------- Form & Filter states ----------
+// Cấu trúc UploadVideoFormState quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface UploadVideoFormState {
   title: string
   videoUrl: string
@@ -131,6 +144,7 @@ export const INITIAL_UPLOAD_FORM: UploadVideoFormState = {
   duration: '',
 }
 
+// Cấu trúc VideoListFilter quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface VideoListFilter {
   search: string
   category: VideoCategory | 'all'
@@ -145,6 +159,7 @@ export const DEFAULT_VIDEO_FILTER: VideoListFilter = {
   sort: 'trending',
 }
 
+// Cấu trúc VideoListResponse quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface VideoListResponse {
   items: Video[]
   totalCount: number
@@ -152,6 +167,7 @@ export interface VideoListResponse {
 }
 
 // ---------- Helper ----------
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (formatDuration); thuộc video, bản nháp và nội dung công khai.
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0:00'
   const h = Math.floor(seconds / 3600)

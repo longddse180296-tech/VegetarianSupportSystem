@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import React, { useState } from 'react'
 import {
   KeyRound,
@@ -13,14 +14,17 @@ import { PublicLayout } from '../../../app/layouts/PublicLayout'
 import { authApi } from '../api/authApi'
 import { useAuth } from '../hooks/useAuth'
 
+// Cấu trúc ResetPasswordPageProps quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 interface ResetPasswordPageProps {
   onNavigate?: (path: string) => void
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (ResetPasswordPage); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
 export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
   onNavigate,
 }) => {
   const { user } = useAuth()
+  // Lưu dữ liệu và trạng thái thao tác của đăng ký, đăng nhập và khôi phục mật khẩu trong vòng đời màn hình.
   const [token, setToken] = useState(() => {
     if (typeof window !== 'undefined') {
       const hashQuery = window.location.hash.split('?')[1] || ''
@@ -39,6 +43,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSubmit); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
@@ -79,6 +84,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
     }
   }
 
+  // Hiển thị giao diện đăng ký, đăng nhập và khôi phục mật khẩu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <PublicLayout
       activeNav="auth"

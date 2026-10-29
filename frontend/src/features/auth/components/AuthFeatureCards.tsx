@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   BookOpen,
@@ -9,10 +10,12 @@ import {
   Quote,
 } from 'lucide-react'
 
+// Cấu trúc AuthFeatureCardsProps quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 interface AuthFeatureCardsProps {
   mode: 'login' | 'register'
 }
 
+// Thành phần AuthFeatureCards nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
 export const AuthFeatureCards: React.FC<AuthFeatureCardsProps> = ({ mode }) => {
   if (mode === 'login') {
     return (
@@ -26,7 +29,7 @@ export const AuthFeatureCards: React.FC<AuthFeatureCardsProps> = ({ mode }) => {
         {/* Heading & Subtitle */}
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            Khám phá dinh dưỡng thuần thực vật chuẩn xác mỗi ngày
+            Khám phá món chay và xây dựng thực đơn mỗi ngày
           </h1>
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
             Đăng nhập vào tài khoản để truy cập kế hoạch thực đơn 7 ngày cá nhân hóa, lưu trữ kho
@@ -42,9 +45,9 @@ export const AuthFeatureCards: React.FC<AuthFeatureCardsProps> = ({ mode }) => {
               <BookOpen className="w-5 h-5" />
             </div>
             <div className="flex flex-col gap-0.5">
-              <h3 className="text-sm font-bold text-slate-900">1.200+ Công thức chay chọn lọc</h3>
+              <h3 className="text-sm font-bold text-slate-900">Khám phá kho công thức chay</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Chi tiết calo, vi chất và các bước hướng dẫn chuẩn đầu bếp.
+                Xem thành phần, chỉ số dinh dưỡng đã có và các bước thực hiện.
               </p>
             </div>
           </div>
@@ -55,9 +58,9 @@ export const AuthFeatureCards: React.FC<AuthFeatureCardsProps> = ({ mode }) => {
               <Sparkles className="w-5 h-5" />
             </div>
             <div className="flex flex-col gap-0.5">
-              <h3 className="text-sm font-bold text-slate-900">Trợ lý AI phân tích theo BMI</h3>
+              <h3 className="text-sm font-bold text-slate-900">Trợ lý AI hỗ trợ tìm hiểu món chay</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Tự động gợi ý món thay thế và cân bằng protein thông minh.
+                Trao đổi về nguyên liệu và món ăn dựa trên thông tin bạn đã khai báo.
               </p>
             </div>
           </div>
@@ -80,6 +83,7 @@ export const AuthFeatureCards: React.FC<AuthFeatureCardsProps> = ({ mode }) => {
   }
 
   // Register Mode
+  // Hiển thị giao diện đăng ký, đăng nhập và khôi phục mật khẩu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-col gap-6 max-w-lg">
       {/* Top Tag */}
@@ -109,7 +113,7 @@ export const AuthFeatureCards: React.FC<AuthFeatureCardsProps> = ({ mode }) => {
           <div className="flex flex-col gap-0.5">
             <h3 className="text-sm font-bold text-slate-900">Kế hoạch thực đơn 7 ngày riêng biệt</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Tối ưu calo và vi chất theo thể trạng.
+              Chọn món từ kho công thức theo chế độ ăn và các thực phẩm cần tránh đã khai báo.
             </p>
           </div>
         </div>
@@ -133,9 +137,9 @@ export const AuthFeatureCards: React.FC<AuthFeatureCardsProps> = ({ mode }) => {
             <Sparkles className="w-4 h-4" />
           </div>
           <div className="flex flex-col gap-0.5">
-            <h3 className="text-sm font-bold text-slate-900">Trợ lý AI đồng hành 24/7</h3>
+            <h3 className="text-sm font-bold text-slate-900">Trao đổi cùng Trợ lý AI</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Giải đáp nguyên liệu thay thế, cân bằng protein.
+              Tìm hiểu món ăn và nguyên liệu; kiểm tra lại thông tin trước khi áp dụng.
             </p>
           </div>
         </div>

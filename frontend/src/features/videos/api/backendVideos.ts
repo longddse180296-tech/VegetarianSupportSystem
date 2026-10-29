@@ -1,27 +1,16 @@
+// Chức năng: video, bản nháp và nội dung công khai. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
 import type { CoreDietType } from '../types/video.types'
 
-export function inferVideoDietType(title?: string, description?: string): CoreDietType {
-  const lower = `${title ?? ''} ${description ?? ''}`.toLowerCase()
-  if (
-    /(trứng)/.test(lower) &&
-    /(sữa|phô mai|bơ)/.test(lower) &&
-    !/(sữa hạt|sữa đậu|bơ đậu phộng|bơ thực vật)/.test(lower)
-  ) {
-    return 'Trứng & Sữa (Lacto-ovo)'
-  }
-  if (/(trứng|lòng đỏ|lòng trắng|mayonnaise)/.test(lower)) {
-    return 'Chay có trứng (Ovo)'
-  }
-  if (
-    /(sữa|phô mai|cheese|bơ|váng sữa)/.test(lower) &&
-    !/(sữa hạt|sữa đậu|bơ đậu phộng|bơ thực vật)/.test(lower)
-  ) {
-    return 'Ăn chay có sữa (Lacto)'
-  }
-  return 'Thuần chay (Vegan)'
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (inferVideoDietType); thuộc video, bản nháp và nội dung công khai.
+export function inferVideoDietType(_title?: string, description?: string): CoreDietType | null {
+  // Chỉ đọc chế độ người đăng đã khai báo; thiếu thông tin không đồng nghĩa với thuần chay.
+  const declared = description?.match(/\[Chế độ:\s*([^\]]+)\]/i)?.[1]?.trim()
+  const allowed: CoreDietType[] = ['Thuần chay (Vegan)', 'Ăn chay có sữa (Lacto)', 'Chay có trứng (Ovo)', 'Trứng & Sữa (Lacto-ovo)']
+  return allowed.find(diet => diet === declared) ?? null
 }
 
+// Cấu trúc VideoDetails quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface VideoDetails {
   id: string
   title: string
@@ -38,9 +27,13 @@ export interface VideoDetails {
   favoriteCount: number
   createdAtUtc: string
   authorName: string | null
+  durationSeconds: number | null
+  hasAudio: boolean | null
+  metadataStatus: 'Processing' | 'Ready' | 'Unavailable'
   dietType?: string | null
 }
 
+// Cấu trúc VideoPage quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface VideoPage {
   items: VideoDetails[]
   totalCount: number
@@ -48,11 +41,13 @@ interface VideoPage {
   pageSize: number
 }
 
+// Cấu trúc VideoCategoryOption quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface VideoCategoryOption {
   id: string
   name: string
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (listVideos); thuộc video, bản nháp và nội dung công khai.
 export async function listVideos(mine = false): Promise<VideoDetails[]> {
   const items: VideoDetails[] = []
   for (let page = 1; ; page++) {
@@ -74,6 +69,7 @@ export async function listVideos(mine = false): Promise<VideoDetails[]> {
   }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getPublicVideo); thuộc video, bản nháp và nội dung công khai.
 export async function getPublicVideo(id: string): Promise<VideoDetails> {
   const url = `/api/videos/${encodeURIComponent(id)}`
   let video: VideoDetails
@@ -91,18 +87,23 @@ export async function getPublicVideo(id: string): Promise<VideoDetails> {
   }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getMyVideo); thuộc video, bản nháp và nội dung công khai.
 export const getMyVideo = (id: string) =>
   apiClient.get<VideoDetails>(`/api/me/videos/${encodeURIComponent(id)}`)
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (createVideo); thuộc video, bản nháp và nội dung công khai.
 export const createVideo = (title: string, description: string, categoryId: string | null) =>
   apiClient.post<VideoDetails>('/api/me/videos', { title, description, categoryId })
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updateVideo); thuộc video, bản nháp và nội dung công khai.
 export const updateVideo = (id: string, title: string, description: string, categoryId: string | null) =>
   apiClient.put<VideoDetails>(`/api/me/videos/${encodeURIComponent(id)}`, { title, description, categoryId })
 
+// Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (submitVideo); thuộc video, bản nháp và nội dung công khai.
 export const submitVideo = (id: string) =>
   apiClient.post(`/api/me/videos/${encodeURIComponent(id)}/submit`)
 
+// Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (uploadVideoFile); thuộc video, bản nháp và nội dung công khai.
 export async function uploadVideoFile(id: string, file: File, thumbnail = false): Promise<VideoDetails> {
   const data = new FormData()
   data.append('file', file)
@@ -112,6 +113,7 @@ export async function uploadVideoFile(id: string, file: File, thumbnail = false)
   )
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (listVideoCategories); thuộc video, bản nháp và nội dung công khai.
 export async function listVideoCategories(): Promise<VideoCategoryOption[]> {
   const response = await apiClient.get<{ items: VideoCategoryOption[] }>(
     '/api/categories?pageNumber=1&pageSize=100',
@@ -120,6 +122,7 @@ export async function listVideoCategories(): Promise<VideoCategoryOption[]> {
   return response.items
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getPrivateMediaUrl); thuộc video, bản nháp và nội dung công khai.
 export async function getPrivateMediaUrl(path: string): Promise<string> {
   const token = getStoredToken()
   const response = await fetch(path, {
@@ -129,6 +132,7 @@ export async function getPrivateMediaUrl(path: string): Promise<string> {
   return URL.createObjectURL(await response.blob())
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (recordVideoView); thuộc video, bản nháp và nội dung công khai.
 export const recordVideoView = (id: string) =>
   apiClient.post<void>(`/api/videos/${encodeURIComponent(id)}/views`, undefined, {
     requiresAuth: false,

@@ -1,3 +1,4 @@
+// Chức năng: danh mục nội dung. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState } from 'react'
 import { Plus, Pencil, Lock, Unlock, Layers } from 'lucide-react'
 import { AdminLayout } from '../../../../app/layouts/AdminLayout'
@@ -7,7 +8,9 @@ import { CategoryModal } from '../components/CategoryModal'
 import { adminCategoriesApi } from '../api/adminCategoriesApi'
 import type { AdminCategoryItem } from '../types/adminCategories.types'
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminCategoriesPage); thuộc danh mục nội dung.
 export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string) => void }) => {
+  // Lưu dữ liệu và trạng thái thao tác của danh mục nội dung trong vòng đời màn hình.
   const [items, setItems] = useState<AdminCategoryItem[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -19,6 +22,7 @@ export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string
   const [editing, setEditing] = useState<AdminCategoryItem | null | undefined>(undefined)
   const [statusTarget, setStatusTarget] = useState<AdminCategoryItem | null>(null)
   const [busy, setBusy] = useState(false)
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     const controller = new AbortController()
     const timer = setTimeout(() => {
@@ -86,6 +90,7 @@ export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string
       ),
     },
   ]
+  // Hiển thị giao diện danh mục nội dung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return <AdminLayout activeMenu="categories" pageTitle="Quản lý danh mục công thức" pageSubtitle="Tạo, chỉnh sửa và ngừng sử dụng danh mục theo dữ liệu thực tế." onNavigate={onNavigate}>
     <div className="space-y-5">
       {notice && <p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}

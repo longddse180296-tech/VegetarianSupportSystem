@@ -1,6 +1,8 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 
+// Cấu trúc ProtectedRouteProps quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 export interface ProtectedRouteProps {
   children: React.ReactNode
   onNavigate?: (path: string) => void
@@ -18,6 +20,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, isLoading } = useAuth()
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       const currentHash =

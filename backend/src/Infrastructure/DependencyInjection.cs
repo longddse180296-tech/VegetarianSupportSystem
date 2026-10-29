@@ -1,3 +1,4 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Abstractions.AI;
 using Application.Features.AiChat;
 using Application.Features.Articles;
@@ -31,8 +32,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Infrastructure;
 
+// DependencyInjection: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public static class DependencyInjection
 {
+    // AddInfrastructure: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -47,7 +50,9 @@ public static class DependencyInjection
         services.AddScoped<IArticleRepository, ArticleRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddScoped<IAccountSessionRepository, AccountSessionRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();
+        services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IFeaturedContentRepository, FeaturedContentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
@@ -58,10 +63,15 @@ public static class DependencyInjection
         services.AddSingleton(new PasswordResetOptions(configuration["PasswordReset:ResetPageUrl"]));
         services.AddSingleton<IAccountPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IModerationRepository, ModerationRepository>();
+        services.AddScoped<IContentReportRepository, ContentReportRepository>();
         services.AddScoped<VideoRepository>();
         services.AddScoped<IVideoRepository>(sp => sp.GetRequiredService<VideoRepository>());
         services.AddScoped<IVideoPublication>(sp => sp.GetRequiredService<VideoRepository>());
         services.AddSingleton<IPrivateMediaStore, LocalPrivateMediaStore>();
+        services.AddSingleton<IVideoMediaProbe, FfprobeVideoMediaProbe>();
+        services.AddScoped<IVideoMetadataRepository, VideoMetadataRepository>();
+        services.AddScoped<VideoMetadataService>();
+        services.AddHostedService<VideoMetadataWorker>();
         services.AddSingleton<IPublicImageStore, LocalPublicImageStore>();
         services.AddScoped<IFoodScanRepository, FoodScanRepository>();
         services.AddHostedService<ModerationAiWorker>();

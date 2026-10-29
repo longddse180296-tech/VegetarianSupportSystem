@@ -1,7 +1,9 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { RefreshCw, Edit3, Bookmark, Check } from 'lucide-react'
 import type { DietType } from '../types/mealPlans.types'
 
+// Cấu trúc DetailBottomBarProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DetailBottomBarProps {
   dietType: DietType
   onRegenerateAll?: () => void
@@ -12,6 +14,7 @@ interface DetailBottomBarProps {
   isSaved?: boolean
 }
 
+// Thành phần DetailBottomBar nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
   dietType,
   onRegenerateAll,
@@ -21,6 +24,7 @@ export const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
   isSaving = false,
   isSaved = false,
 }) => {
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getDietLabel); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const getDietLabel = (type: DietType) => {
     switch (type) {
       case 'vegan':
@@ -36,6 +40,7 @@ export const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
     }
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border border-slate-200/90 bg-white p-4 md:p-5 shadow-xs">
       {/* Left indicator */}

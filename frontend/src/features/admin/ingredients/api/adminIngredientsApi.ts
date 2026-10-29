@@ -1,3 +1,4 @@
+// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../../shared/api/apiClient'
 import type { AdminIngredientItem, IngredientInput } from '../types/adminIngredients.types'
 

@@ -1,3 +1,4 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 export type * from './types'
 export * from './api/profileApi'
 export * from './components/ProfileOverview'

@@ -1,8 +1,10 @@
+// Chức năng: xác thực danh tính và mã truy cập. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using System.Security.Cryptography;
 using Application.Features.Auth;
 
 namespace Infrastructure.Identity;
 
+// Pbkdf2PasswordHasher: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class Pbkdf2PasswordHasher : IAccountPasswordHasher
 {
     private const int Iterations = 600_000;
@@ -10,6 +12,7 @@ public sealed class Pbkdf2PasswordHasher : IAccountPasswordHasher
     private const int KeyLength = 32;
     private const string Version = "pbkdf2-sha256";
 
+    // Hash: Đánh giá điều kiện nghiệp vụ để quyết định nhánh xử lý.
     public string Hash(string password)
     {
         ArgumentNullException.ThrowIfNull(password);
@@ -18,8 +21,10 @@ public sealed class Pbkdf2PasswordHasher : IAccountPasswordHasher
         return $"{Version}${Iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(key)}";
     }
 
+    // Verify: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public bool Verify(string hash, string password)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrEmpty(hash) || password is null) return false;
         var parts = hash.Split('$');
         if (parts.Length != 4 || parts[0] != Version ||

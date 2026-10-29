@@ -1,3 +1,4 @@
+// Chức năng: video, bản nháp và nội dung công khai. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import {
   RotateCcw,
@@ -23,18 +24,22 @@ import {
 } from '../api/backendVideos'
 import { VideoCard } from '../components/VideoCard'
 
+// Cấu trúc Props quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface Props {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
 // Clean helper for removing sample seed tags
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanPrefix); thuộc video, bản nháp và nội dung công khai.
 function cleanPrefix(text?: string | null): string {
   if (!text) return ''
   return text.replace(/^\[Mẫu\]\s*/i, '').trim()
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (VideoList); thuộc video, bản nháp và nội dung công khai.
 export default function VideoList({ onNavigate }: Props) {
+  // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [videos, setVideos] = useState<VideoDetails[]>([])
   const [categories, setCategories] = useState<VideoCategoryOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,6 +87,7 @@ export default function VideoList({ onNavigate }: Props) {
     return fallbackCategories.filter((c) => c.id !== 'all')
   }, [categories, fallbackCategories])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     let active = true
     void Promise.all([listVideos(), listVideoCategories().catch(() => [])])
@@ -106,6 +112,7 @@ export default function VideoList({ onNavigate }: Props) {
     }
   }, [retry])
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSearchSubmit); thuộc video, bản nháp và nội dung công khai.
   const handleSearchSubmit = () => {
     setAppliedSearch(searchInput.trim())
     setPage(1)
@@ -114,6 +121,7 @@ export default function VideoList({ onNavigate }: Props) {
   const isFiltering =
     appliedSearch.trim() !== '' || category !== '' || dietaryType !== ''
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (handleResetFilters); thuộc video, bản nháp và nội dung công khai.
   const handleResetFilters = () => {
     setSearchInput('')
     setAppliedSearch('')
@@ -163,6 +171,7 @@ export default function VideoList({ onNavigate }: Props) {
   const currentPage = Math.min(page, pageCount)
   const visible = results.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (categoryName); thuộc video, bản nháp và nội dung công khai.
   const categoryName = (id: string | null) => {
     const found = categories.find((item) => item.id === id)
     return found ? cleanPrefix(found.name) : 'Video Chay'
@@ -176,6 +185,7 @@ export default function VideoList({ onNavigate }: Props) {
   }, [category, categoryPills])
 
   // Navigate to dedicated create page
+  // Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (handleOpenUpload); thuộc video, bản nháp và nội dung công khai.
   const handleOpenUpload = () => {
     if (!getStoredToken()) {
       onNavigate?.('/auth/login?returnUrl=%2Fvideos%2Fcreate%3Ffrom%3Dvideos')
@@ -184,6 +194,7 @@ export default function VideoList({ onNavigate }: Props) {
     onNavigate?.('/videos/create?from=videos')
   }
 
+  // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       <PageHeading
@@ -276,6 +287,7 @@ export default function VideoList({ onNavigate }: Props) {
             </button>
             {DIET_PILLS.map((type) => {
               const active = dietaryType === type
+              // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={type}
@@ -324,6 +336,7 @@ export default function VideoList({ onNavigate }: Props) {
             </button>
             {categoryPills.map((item) => {
               const active = category === item.id
+              // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={item.id}

@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 import {
   addPlanDays,
   formatPlanDate,
@@ -12,6 +13,7 @@ const slotLabels = {
   Dinner: 'Bữa tối',
 } as const
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (printHtmlContent); thuộc thực đơn bảy ngày và danh sách đi chợ.
 function printHtmlContent(title: string, htmlBody: string) {
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'

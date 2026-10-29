@@ -1,3 +1,4 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useState } from 'react'
 import {
   Store,
@@ -24,6 +25,7 @@ import {
 } from '../api/restaurantContract'
 import { uploadPublicImage } from '../../../../shared/api/publicImageApi'
 
+// Cấu trúc FormErrors quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface FormErrors {
   name?: string
   address?: string
@@ -33,11 +35,12 @@ interface FormErrors {
   priceFrom?: string
   priceTo?: string
   websiteUrl?: string
-  dietaryType?: string
+  dietaryTypes?: string
   amenities?: string
   featuredDishes?: string
 }
 
+// Thành phần RestaurantApiForm nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc tra cứu và quản lý nhà hàng.
 export function RestaurantApiForm({
   restaurant,
   onSaved,
@@ -47,6 +50,7 @@ export function RestaurantApiForm({
   onSaved: () => void
   onCancel: () => void
 }) {
+  // Lưu dữ liệu và trạng thái thao tác của tra cứu và quản lý nhà hàng trong vòng đời màn hình.
   const [form, setForm] = useState<RestaurantInput>(() =>
     restaurant
       ? {
@@ -63,9 +67,7 @@ export function RestaurantApiForm({
           priceToVnd: restaurant.priceToVnd,
           imageUrl: restaurant.imageUrl,
           source: restaurant.source,
-          dietaryType:
-            restaurant.dietaryType ??
-            (restaurant.dietaryTypes.length === 1 ? restaurant.dietaryTypes[0] : null),
+          dietaryTypes: [...restaurant.dietaryTypes],
           amenities: restaurant.amenities,
           featuredDishes: Array.from({ length: 3 }, (_, index) => {
             const dish = restaurant.featuredDishes[index]
@@ -86,7 +88,7 @@ export function RestaurantApiForm({
           priceToVnd: null,
           imageUrl: null,
           source: null,
-          dietaryType: null,
+          dietaryTypes: [],
           amenities: [],
           featuredDishes: Array.from({ length: 3 }, () => ({ name: '', imageUrl: null })),
         },
@@ -122,6 +124,7 @@ export function RestaurantApiForm({
   const [touched, setTouched] = useState<Record<string, boolean>>({})
 
   // Comprehensive validator
+  // Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (validateAll); thuộc tra cứu và quản lý nhà hàng.
   function validateAll(
     currentForm: RestaurantInput,
     latStr: string,
@@ -256,8 +259,8 @@ export function RestaurantApiForm({
     }
 
     // 9. Chế độ ăn
-    if (!currentForm.dietaryType) {
-      errs.dietaryType = 'Vui lòng chọn đúng một chế độ ăn được khai báo.'
+    if (currentForm.dietaryTypes.length === 0) {
+      errs.dietaryTypes = 'Vui lòng chọn ít nhất một chế độ ăn mà nhà hàng phục vụ.'
     }
 
     // 10. Tiện ích
@@ -286,6 +289,7 @@ export function RestaurantApiForm({
   }
 
   // Trigger real-time validation on any field update
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (runValidation); thuộc tra cứu và quản lý nhà hàng.
   const runValidation = (
     updatedForm: RestaurantInput,
     lat: string = rawLatitude,
@@ -298,13 +302,16 @@ export function RestaurantApiForm({
     return errs
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (markTouched); thuộc tra cứu và quản lý nhà hàng.
   const markTouched = (field: string) =>
     setTouched((prev) => ({ ...prev, [field]: true }))
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (isInvalid); thuộc tra cứu và quản lý nhà hàng.
   const isInvalid = (field: keyof FormErrors) => {
     return !!fieldErrors[field] && (touched[field] || touched.all)
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (inputClass); thuộc tra cứu và quản lý nhà hàng.
   const inputClass = (field: keyof FormErrors) => {
     const hasError = isInvalid(field)
     return `admin-field mt-1 w-full rounded-xl border bg-white p-3 text-sm transition-all outline-none disabled:bg-slate-50 ${
@@ -314,6 +321,7 @@ export function RestaurantApiForm({
     }`
   }
 
+  // Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (uploadImage); thuộc tra cứu và quản lý nhà hàng.
   const uploadImage = async (file?: File) => {
     if (!file || busy || uploadingImage) return
     setUploadingImage(true)
@@ -330,6 +338,7 @@ export function RestaurantApiForm({
     }
   }
 
+  // Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (uploadFeaturedDishImage); thuộc tra cứu và quản lý nhà hàng.
   const uploadFeaturedDishImage = async (index: number, file?: File) => {
     if (!file || busy || uploadingFeaturedDishIndex !== null) return
     setUploadingFeaturedDishIndex(index)
@@ -349,8 +358,10 @@ export function RestaurantApiForm({
     }
   }
 
+  // Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (renderError); thuộc tra cứu và quản lý nhà hàng.
   const renderError = (field: keyof FormErrors) => {
     if (!fieldErrors[field] || (!touched[field] && !touched.all)) return null
+    // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
     return (
       <p
         id={`${field}-error`}
@@ -363,6 +374,7 @@ export function RestaurantApiForm({
     )
   }
 
+  // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <form
       className="admin-content-form space-y-5"
@@ -764,7 +776,7 @@ export function RestaurantApiForm({
               <h4 className="text-sm font-bold text-slate-800">
                 Chế độ ăn & Tiện ích <span className="text-rose-500" aria-hidden="true">*</span>
               </h4>
-              <p className="mt-0.5 text-xs text-slate-400">Chọn đúng một chế độ ăn mà nhà hàng khai báo và các tiện ích đi kèm.</p>
+              <p className="mt-0.5 text-xs text-slate-400">Có thể chọn nhiều chế độ ăn mà nhà hàng phục vụ và các tiện ích đi kèm.</p>
             </div>
           </div>
 
@@ -774,7 +786,8 @@ export function RestaurantApiForm({
             </span>
             <div className="grid gap-2.5 sm:grid-cols-2">
               {Object.entries(dietLabels).map(([value, label]) => {
-                const checked = form.dietaryType === value as DietaryType
+                const checked = form.dietaryTypes.includes(value as DietaryType)
+                // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                 return (
                   <label
                     key={value}
@@ -785,14 +798,17 @@ export function RestaurantApiForm({
                     }`}
                   >
                     <input
-                      type="radio"
+                      type="checkbox"
                       name="restaurant-dietary-type"
                       className="size-4 border-slate-300 text-emerald-600 focus:ring-emerald-500"
                       checked={checked}
                       onChange={() => {
-                        const next = { ...form, dietaryType: value as DietaryType }
+                        // Mỗi lựa chọn độc lập; bỏ chọn một loại vẫn giữ các loại còn lại.
+                        const next = { ...form, dietaryTypes: checked
+                          ? form.dietaryTypes.filter(type => type !== value)
+                          : [...form.dietaryTypes, value as DietaryType] }
                         setForm(next)
-                        markTouched('dietaryType')
+                        markTouched('dietaryTypes')
                         runValidation(next)
                       }}
                     />
@@ -801,7 +817,7 @@ export function RestaurantApiForm({
                 )
               })}
             </div>
-            {renderError('dietaryType')}
+            {renderError('dietaryTypes')}
             <p className="mt-2 text-xs text-slate-400">
               Thông tin do nguồn khai báo, không phải chứng nhận món ăn hoặc an toàn dị ứng.
             </p>

@@ -1,3 +1,4 @@
+// Chức năng: video, bản nháp và nội dung công khai. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
@@ -18,20 +19,24 @@ import {
   Textarea,
 } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
+import { VideoFileMetadata } from '../components/VideoFileMetadata'
 import { getStoredToken } from '../../../shared/api/apiClient'
 import {
   createVideo,
+  updateVideo,
   listVideoCategories,
   submitVideo,
   uploadVideoFile,
   type VideoCategoryOption,
 } from '../api/backendVideos'
 
+// Cấu trúc Props quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface Props {
   fromSource?: string
   onNavigate?: (path: string) => void
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanPrefix); thuộc video, bản nháp và nội dung công khai.
 function cleanPrefix(text?: string | null): string {
   if (!text) return ''
   return text.replace(/^\[Mẫu\]\s*/i, '').trim()
@@ -64,7 +69,10 @@ const DIET_CARDS = [
   },
 ]
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (VideoCreatePage); thuộc video, bản nháp và nội dung công khai.
 export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: Props) {
+  // Giữ ID ngay sau khi tạo nháp để thử lại upload không sinh thêm bài trùng.
+  const [draftId, setDraftId] = useState<string | null>(null)
   const isFromProfile = fromSource === 'profile'
   const returnPath = isFromProfile ? '/profile/my-videos' : '/videos'
   const returnLabel = isFromProfile ? 'quản lý video' : 'danh sách video'
@@ -96,6 +104,7 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
   const [isDraftCreated, setIsDraftCreated] = useState(false)
 
   // Redirect if not logged in
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     if (!getStoredToken()) {
       onNavigate?.(`/auth/login?returnUrl=${encodeURIComponent('/videos/create')}`)
@@ -103,6 +112,7 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
   }, [onNavigate])
 
   // Load categories
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     let active = true
     void listVideoCategories()
@@ -125,6 +135,7 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
     return URL.createObjectURL(thumbnailFile)
   }, [thumbnailFile])
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     return () => {
       if (thumbnailPreview) {
@@ -133,7 +144,9 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
     }
   }, [thumbnailPreview])
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (handleSave); thuộc video, bản nháp và nội dung công khai.
   const handleSave = async (submitNow: boolean) => {
+    if (busy) return
     const trimmedTitle = title.trim()
     if (!trimmedTitle) {
       setError('Vui lòng nhập tiêu đề video.')
@@ -151,6 +164,14 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
       setError('Tệp video vượt quá dung lượng tối đa 200 MB.')
       return
     }
+    if (mediaFile && !['video/mp4', 'video/webm'].includes(mediaFile.type)) {
+      setError('Vui lòng chọn video định dạng MP4 hoặc WEBM.')
+      return
+    }
+    if (thumbnailFile && !['image/jpeg', 'image/png', 'image/webp'].includes(thumbnailFile.type)) {
+      setError('Vui lòng chọn ảnh bìa định dạng JPG, PNG hoặc WEBP.')
+      return
+    }
     if (thumbnailFile && thumbnailFile.size > 10 * 1024 * 1024) {
       setError('Ảnh bìa vượt quá dung lượng tối đa 10 MB.')
       return
@@ -164,7 +185,10 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
         ? `[Chế độ: ${dietType}]\n${description.trim()}`
         : description.trim()
 
-      let video = await createVideo(trimmedTitle, fullDescription, categoryId || null)
+      let video = draftId
+        ? await updateVideo(draftId, trimmedTitle, fullDescription, categoryId || null)
+        : await createVideo(trimmedTitle, fullDescription, categoryId || null)
+      setDraftId(video.id)
       if (mediaFile) {
         video = await uploadVideoFile(video.id, mediaFile, false)
       }
@@ -181,12 +205,14 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
       setIsDraftCreated(!submitNow)
       setShowSuccessModal(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể lưu video. Vui lòng thử lại.')
+      const message = err instanceof Error ? err.message : 'Chưa thể lưu video. Vui lòng thử lại.'
+      setError(`${message} Nếu bản nháp đã được tạo, bạn có thể tìm trong Video của tôi; thử lại tại đây sẽ tiếp tục bản nháp đó.`)
     } finally {
       setBusy(false)
     }
   }
 
+  // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       {/* Page Heading with Status Badge (đồng bộ 100% bên bài viết) */}
@@ -257,6 +283,7 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => {
               const active = categoryId === cat.id
+              // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={cat.id}
@@ -289,6 +316,7 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {DIET_CARDS.map((card) => {
               const active = dietType === card.type
+              // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={card.type}
@@ -362,6 +390,7 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
                     : 'Hỗ trợ MP4, WEBM (tối đa 200 MB)'}
                 </p>
               </div>
+              <VideoFileMetadata file={mediaFile} />
             </div>
 
             {/* Thumbnail */}
@@ -480,7 +509,7 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
             <p className="text-sm text-slate-600 mt-2 leading-relaxed">
               {isDraftCreated
                 ? 'Bản nháp video đã được lưu vào hệ thống. Bạn có thể quay lại chỉnh sửa và gửi duyệt bất cứ lúc nào.'
-                : 'Video của bạn đã được chuyển vào hàng đợi kiểm duyệt của Admin. Bạn sẽ được thông báo ngay khi video xuất bản!'}
+                : 'Video đã được gửi để Admin kiểm duyệt. Bạn có thể theo dõi trạng thái trong Video của tôi.'}
             </p>
           </div>
           <div className="pt-2">

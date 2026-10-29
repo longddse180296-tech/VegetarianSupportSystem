@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+// Chức năng: tra cứu và quản lý nhà hàng. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
+import React, { useState } from 'react'
 import { RotateCcw, Search, X } from 'lucide-react'
 import { Button, Input } from '../../../shared/components'
 import type {
@@ -6,7 +7,9 @@ import type {
   RestaurantFilter as RestaurantFilterState,
 } from '../types/restaurant.types'
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
+import { hasRestaurantLocation } from '../utils/restaurantLocation'
 
+// Cấu trúc RestaurantFilterBarProps quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface RestaurantFilterBarProps {
   filter: RestaurantFilterState
   onChange: (next: Partial<RestaurantFilterState>) => void
@@ -40,6 +43,7 @@ const DIET_PILL_OPTIONS: Array<{ value: RestaurantDietType; label: string }> = [
   { value: 'ovo-lacto', label: 'Trứng & Sữa (Lacto-ovo)' },
 ]
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (activeDistancePill); thuộc tra cứu và quản lý nhà hàng.
 function activeDistancePill(km: RestaurantFilterState['distanceMaxKm']): DistancePillValue {
   switch (km) {
     case 1:
@@ -56,17 +60,19 @@ function activeDistancePill(km: RestaurantFilterState['distanceMaxKm']): Distanc
   }
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (RestaurantFilterBar); thuộc tra cứu và quản lý nhà hàng.
 export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
   filter,
   onChange,
   onReset,
 }) => {
-  const [searchInput, setSearchInput] = useState(filter.search)
+  // Lưu dữ liệu và trạng thái thao tác của tra cứu và quản lý nhà hàng trong vòng đời màn hình.
+  // Giữ từ khóa đang gõ theo bộ lọc gốc; bộ lọc bên ngoài đổi thì dùng giá trị mới, không cần effect cập nhật state.
+  const [searchDraft, setSearchDraft] = useState({ source: filter.search, value: filter.search })
+  const searchInput = searchDraft.source === filter.search ? searchDraft.value : filter.search
+  const setSearchInput = (value: string) => setSearchDraft({ source: filter.search, value })
 
-  useEffect(() => {
-    setSearchInput(filter.search)
-  }, [filter.search])
-
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSearchSubmit); thuộc tra cứu và quản lý nhà hàng.
   const handleSearchSubmit = () => {
     onChange({ search: searchInput.trim() })
   }
@@ -79,6 +85,7 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
       filter.city !== 'all',
   )
 
+  // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <section className="rounded-[20px] border border-slate-200 bg-white p-5 md:p-6 shadow-xs">
       {/* Row 1: Search bar */}
@@ -148,6 +155,7 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
         <div className="flex flex-wrap items-center gap-2">
           {DIET_PILL_OPTIONS.map((opt) => {
             const active = filter.diet === opt.value
+            // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 key={opt.value}
@@ -177,16 +185,19 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
             KHOẢNG CÁCH TÌM KIẾM
           </span>
           <span className="text-[11.5px] text-slate-500">
-            Lọc quán theo bán kính vị trí
+            {hasRestaurantLocation(filter) ? 'Lọc quán theo bán kính vị trí' : 'Chọn vị trí để lọc khoảng cách'}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {DISTANCE_OPTIONS.map((opt) => {
             const active = activeDist === opt.value
+            // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 key={opt.value}
                 type="button"
+                disabled={opt.km > 0 && !hasRestaurantLocation(filter)}
+                title={opt.km > 0 && !hasRestaurantLocation(filter) ? 'Vui lòng dùng vị trí hiện tại hoặc chọn khu vực trước.' : undefined}
                 onClick={() =>
                   onChange({
                     distanceMaxKm: active
@@ -194,7 +205,7 @@ export const RestaurantFilterBar: React.FC<RestaurantFilterBarProps> = ({
                       : opt.km,
                   })
                 }
-                className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] transition-all duration-150 ${
+                className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-40 ${
                   active
                     ? 'border-2 border-[#2E7D32] bg-[#2E7D32] font-bold text-white shadow-xs'
                     : 'border-2 border-slate-300 bg-white font-semibold text-slate-800 hover:border-emerald-600 hover:bg-emerald-50/60 hover:text-emerald-900'

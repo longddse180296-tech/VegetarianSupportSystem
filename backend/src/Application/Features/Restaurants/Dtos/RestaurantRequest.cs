@@ -1,9 +1,11 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 using Domain.Enums;
 
 namespace Application.Features.Restaurants;
 
+// RestaurantRequest: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class RestaurantRequest
 {
     [Required, StringLength(120)]
@@ -47,11 +49,11 @@ public sealed class RestaurantRequest
     [StringLength(500)]
     public string? Source { get; init; }
 
-    [Required]
+    // Tương thích client cũ chỉ gửi một loại; client mới gửi danh sách DietaryTypes.
     public DietaryType? DietaryType { get; init; }
 
-    // Kept temporarily so older clients can complete an edit only when they send
-    // exactly one type. New clients must use dietaryType.
+    // Nhà hàng có thể phục vụ nhiều chế độ ăn; backend kiểm tra từng giá trị và không nhận trùng.
+    [MaxLength(4)]
     public DietaryType[] DietaryTypes { get; init; } = [];
 
     [MaxLength(30)]

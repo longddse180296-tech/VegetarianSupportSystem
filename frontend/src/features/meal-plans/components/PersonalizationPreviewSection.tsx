@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   Calendar,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { DayOfWeek, GeneratedPersonalizedPlan } from '../types/mealPlans.types'
 
+// Cấu trúc PersonalizationPreviewSectionProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface PersonalizationPreviewSectionProps {
   plan: GeneratedPersonalizedPlan
   onSaveWeek: () => Promise<void>
@@ -26,16 +28,19 @@ const WEEK_DAYS: { id: DayOfWeek; label: string }[] = [
   { id: 'sun', label: 'Chủ Nhật' },
 ]
 
+// Thành phần PersonalizationPreviewSection nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const PersonalizationPreviewSection: React.FC<PersonalizationPreviewSectionProps> = ({
   plan,
   onSaveWeek,
   onLoginClick,
   onViewRecipe,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [activeDay, setActiveDay] = useState<DayOfWeek>('mon')
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (handleSave); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleSave = async () => {
     try {
       setIsSaving(true)
@@ -46,6 +51,7 @@ export const PersonalizationPreviewSection: React.FC<PersonalizationPreviewSecti
     }
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-6 pt-4 border-t border-slate-200/80">
       {/* 1. Header & Day Tabs */}
@@ -64,6 +70,7 @@ export const PersonalizationPreviewSection: React.FC<PersonalizationPreviewSecti
           {WEEK_DAYS.map((day) => {
             const isActive = activeDay === day.id
 
+            // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 key={day.id}

@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import {
   apiClient,
   ApiError,
@@ -6,9 +7,12 @@ import {
   getStoredUser,
   setStoredUser,
   clearStoredAuth,
+  refreshAccessToken,
+  SIGNED_OUT_KEY,
 } from '../../../shared/api/apiClient'
 import type { AuthResponse, LoginCredentials, RegisterPayload, User } from '../types'
 
+// Cấu trúc BackendAuthResponse quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 interface BackendAuthResponse {
   accessToken: string
   tokenType: string
@@ -24,8 +28,8 @@ export const authApi = {
     const email = credentials.email.trim()
     const password = credentials.password
 
-    // Backend endpoint disallows extra unmapped fields like rememberMe
-    const payload = { email, password }
+    // Đồng bộ lựa chọn ghi nhớ với thời hạn cookie trên backend.
+    const payload = { email, password, rememberMe: credentials.rememberMe ?? false }
     const data = await apiClient.post<BackendAuthResponse>('/api/auth/login', payload, {
       requiresAuth: false,
     })
@@ -85,12 +89,9 @@ export const authApi = {
    * Real API: Get currently authenticated user profile (GET /api/auth/me)
    */
   async getCurrentUser(): Promise<User | null> {
-    const token = getStoredToken()
-    if (!token) {
-      return null
-    }
-
     try {
+      if (!getStoredToken() && localStorage.getItem(SIGNED_OUT_KEY) === '1') return null
+      if (!getStoredToken()) await refreshAccessToken()
       const user = await apiClient.get<User>('/api/auth/me', { requiresAuth: true })
       setStoredUser(user)
       return user
@@ -110,13 +111,15 @@ export const authApi = {
   async logout(): Promise<void> {
     const token = getStoredToken()
     try {
-      if (token) {
-        await apiClient.post('/api/auth/logout', undefined, { requiresAuth: true })
-      }
+      await apiClient.post('/api/auth/logout', undefined, {
+        requiresAuth: !!token, headers: { 'X-Session-Refresh': '1' },
+      })
     } catch {
-      // Ignore network/server errors during logout
+      // Vẫn dọn trạng thái cục bộ; backend thu hồi phiên khi request tới được máy chủ.
     } finally {
       clearStoredAuth()
+      // Không tự khôi phục bằng cookie còn sót nếu người dùng đăng xuất khi mất mạng.
+      try { localStorage.setItem(SIGNED_OUT_KEY, '1') } catch { /* Bộ nhớ có thể bị chặn. */ }
     }
   },
 

@@ -1,7 +1,9 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 
 namespace Domain.Entities;
 
+// Article: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class Article
 {
     private Article() { }
@@ -36,13 +38,16 @@ public sealed class Article
     public ICollection<ArticleDietaryType> DietaryTypes { get; private set; } = new List<ArticleDietaryType>();
     public ICollection<ArticleVersion> Versions { get; private set; } = new List<ArticleVersion>();
 
+    // SetDraft: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void SetDraft(string title, string content, string category, string? coverImageUrl, DateTimeOffset now)
         => SetDraft(title, content, category, coverImageUrl, [], now);
 
+    // SetDraft: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void SetDraft(string title, string content, string category, string? coverImageUrl,
         IReadOnlyCollection<DietaryType> dietaryTypes, DateTimeOffset now)
         => SetDraft(title, content, [category], coverImageUrl, dietaryTypes, now);
 
+    // SetDraft: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void SetDraft(string title, string content, IReadOnlyCollection<string> categories,
         string? coverImageUrl, IReadOnlyCollection<DietaryType> dietaryTypes, DateTimeOffset now)
     {
@@ -64,10 +69,12 @@ public sealed class Article
         UpdatedAt = now;
     }
 
+    // LinkSubmission: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public void LinkSubmission(ModerationSubmission submission, DateTimeOffset now)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (ModerationContentId is not null && ModerationContentId != submission.ContentId)
-            throw new InvalidOperationException("Moderation content identity cannot change.");
+            throw new InvalidOperationException("Không thể thay đổi bài viết của phiên bản đã gửi kiểm duyệt.");
         ModerationContentId = submission.ContentId;
         Versions.Add(new ArticleVersion(Id, submission, DraftTitle, DraftContent,
             Categories.Select(x => x.Category).ToArray(), DraftCoverImageUrl,
@@ -75,10 +82,12 @@ public sealed class Article
         UpdatedAt = now;
     }
 
+    // LinkSubmission: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public void LinkSubmission(Guid moderationContentId, Guid submissionId, int version, DateTimeOffset now)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (ModerationContentId is not null && ModerationContentId != moderationContentId)
-            throw new InvalidOperationException("Moderation content identity cannot change.");
+            throw new InvalidOperationException("Không thể thay đổi bài viết của phiên bản đã gửi kiểm duyệt.");
         ModerationContentId = moderationContentId;
         Versions.Add(new ArticleVersion(Id, submissionId, version, DraftTitle, DraftContent,
             Categories.Select(x => x.Category).ToArray(), DraftCoverImageUrl,
@@ -87,6 +96,7 @@ public sealed class Article
     }
 }
 
+// ArticleCategory: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class ArticleCategory
 {
     public Guid ArticleId { get; set; }
@@ -94,6 +104,7 @@ public sealed class ArticleCategory
     public string Category { get; set; } = string.Empty;
 }
 
+// ArticleDietaryType: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class ArticleDietaryType
 {
     public Guid ArticleId { get; set; }

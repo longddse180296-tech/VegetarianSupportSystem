@@ -1,8 +1,10 @@
+// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 
 namespace Application.Features.Recipes;
 
+// RecipeIngredientRequest: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class RecipeIngredientRequest
 {
     public Guid IngredientId { get; init; }

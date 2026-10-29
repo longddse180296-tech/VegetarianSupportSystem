@@ -1,6 +1,8 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import type { DayOfWeek } from '../types/mealPlans.types'
 
+// Cấu trúc DetailDaySelectorProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DetailDaySelectorProps {
   activeDay: DayOfWeek
   dayCalories: Record<DayOfWeek, number>
@@ -17,16 +19,19 @@ const DAYS: { id: DayOfWeek; label: string }[] = [
   { id: 'sun', label: 'Chủ Nhật' },
 ]
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (DetailDaySelector); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DetailDaySelector: React.FC<DetailDaySelectorProps> = ({
   activeDay,
   dayCalories,
   onSelectDay,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
       {DAYS.map((d) => {
         const isActive = d.id === activeDay
         const kcal = dayCalories[d.id] || 1800
+        // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
         return (
           <button
             key={d.id}

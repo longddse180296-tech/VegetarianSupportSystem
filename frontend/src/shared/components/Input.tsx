@@ -1,5 +1,7 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { forwardRef } from 'react'
 
+// Cấu trúc InputProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
@@ -27,6 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   ) => {
     const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined)
 
+    // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
     return (
       <div className={`${fullWidth ? 'w-full' : 'inline-block'} flex flex-col gap-1.5 text-left`}>
         {label && (

@@ -1,11 +1,14 @@
+// Chức năng: công thức và định lượng nguyên liệu. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../../shared/api/apiClient'
 import {
   BACKEND_DIETARY_TYPE_LABELS,
   type BackendDietaryType,
 } from '../../../../shared/constants'
 
+// Cấu trúc DietaryType quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export type DietaryType = BackendDietaryType
 export const dietLabels: Record<DietaryType, string> = BACKEND_DIETARY_TYPE_LABELS
+// Cấu trúc RecipeInput quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeInput {
   categoryId: string
   name: string
@@ -27,6 +30,7 @@ export interface RecipeInput {
     note: string | null
   }>
 }
+// Cấu trúc RecipeSummary quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeSummary {
   id: string
   name: string
@@ -44,6 +48,7 @@ export interface RecipeSummary {
     status: 'Unknown' | 'Compatible' | 'Incompatible'
   }>
 }
+// Cấu trúc RecipeDetail quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export type RecipeDetail = Omit<RecipeInput, 'ingredients'> &
   RecipeSummary & {
     ingredients: Array<

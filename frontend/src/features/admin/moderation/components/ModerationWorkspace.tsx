@@ -1,6 +1,9 @@
+// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useEffect, useState } from 'react'
+import { formatSystemReviewMessage } from '../utils/moderationMessages'
 import {
   ArrowUpRight,
+  AlertTriangle,
   FileText,
   RefreshCw,
   ShieldCheck,
@@ -14,6 +17,7 @@ import { Modal } from '../../../../shared/components/Modal'
 import { Select } from '../../../../shared/components/Select'
 import { getStoredToken } from '../../../../shared/api/apiClient'
 import { RichContentRenderer } from '../../../articles/components/RichContentRenderer'
+import { formatVideoDuration } from '../../../videos/utils/videoMetadata'
 import { AdminFrame, Feedback } from '../../components/ApiWorkspace'
 import { useApiData } from '../../hooks/useApiData'
 import {
@@ -30,6 +34,7 @@ import {
   type Submission,
   type Decision,
   type AdminStatus,
+  type AiStatus,
 } from '../api/adminModerationApi'
 
 const adminStatusStyles: Record<AdminStatus, string> = {
@@ -47,17 +52,47 @@ const adminStatusStyles: Record<AdminStatus, string> = {
 const statusBadgeClass =
   'inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap'
 
+// Tách kết quả AI khỏi quyết định Admin; lỗi dịch vụ không được diễn giải thành bài viết vi phạm.
+const aiReviewMessages: Record<AiStatus, string> = {
+  NotSubmitted: 'Phiên bản này chưa có kết quả kiểm tra của Hệ thống.',
+  Checking: 'Hệ thống đang kiểm tra bài viết. Cập nhật kết quả sau ít giây.',
+  Passed: 'Hệ thống chưa ghi nhận vấn đề trong phạm vi đã kiểm tra. Quản trị viên cần đọc bài trước khi quyết định.',
+  Flagged: 'Hệ thống phát hiện nội dung cần xem xét. Đối chiếu lý do và bằng chứng trước khi quyết định.',
+  Partial: 'Hệ thống chỉ kiểm tra được một phần bài viết. Quản trị viên cần xem thêm phạm vi chưa được kiểm tra.',
+  Failed: 'Hệ thống chưa hoàn tất kiểm tra. Đây là lỗi xử lý, không phải kết luận bài viết vi phạm; Quản trị viên cần kiểm tra trực tiếp.',
+}
+const aiReviewStyles: Record<AiStatus, string> = {
+  NotSubmitted: 'border-slate-200 bg-slate-50 text-slate-700',
+  Checking: 'border-sky-200 bg-sky-50 text-sky-800',
+  Passed: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  Flagged: 'border-red-300 bg-red-50 text-red-900',
+  Partial: 'border-red-300 bg-red-50 text-red-900',
+  Failed: 'border-red-300 bg-red-50 text-red-900',
+}
+
+// Thành phần AiReview nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc kiểm duyệt nội dung và kết quả kiểm tra AI.
 export function AiReview({ submission }: { submission: Submission }) {
+  if (submission.systemRejectionReason)
+    return <section aria-label="Kết quả tiền kiểm tiêu đề" className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900 space-y-2">
+      <h4 className="font-bold">Hệ thống từ chối: tiêu đề trùng</h4>
+      <p>{submission.systemRejectionReason}</p>
+      <p>Hệ thống chưa kiểm tra nội dung và ảnh của phiên bản này. Tác giả có thể đổi tiêu đề và gửi lại.</p>
+    </section>
   if (submission.contentType === 'Video')
     return (
       <p className="rounded-xl bg-slate-50 p-4 text-sm">
-        Video do Admin xem trực tiếp và quyết định. Không có kết quả kiểm tra
-        AI.
+        Video do Quản trị viên xem trực tiếp và quyết định, không qua kiểm tra tự động.
       </p>
     )
+  // Hiển thị giao diện kiểm duyệt nội dung và kết quả kiểm tra AI từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2 text-sm">
-      <p className="font-bold">AI: {aiStatusLabels[submission.aiFlagStatus]}</p>
+    <section aria-label="Kết quả kiểm tra của Hệ thống" className={`rounded-xl border p-4 space-y-2 text-sm break-words ${aiReviewStyles[submission.aiFlagStatus]}`}>
+      <h4 className="flex items-center gap-2 font-bold">
+        {['Flagged', 'Partial', 'Failed'].includes(submission.aiFlagStatus) && <AlertTriangle size={18} className="shrink-0 text-red-600" aria-hidden="true" />}
+        Hệ thống: {aiStatusLabels[submission.aiFlagStatus]}
+      </h4>
+      <p role="status">{aiReviewMessages[submission.aiFlagStatus]}</p>
+      {submission.aiCheckedAt && <p className="text-xs">Thời điểm kiểm tra: {formatDate(submission.aiCheckedAt)}</p>}
       {(
         [
           ['aiSummary', 'Tóm tắt'],
@@ -72,27 +107,25 @@ export function AiReview({ submission }: { submission: Submission }) {
         ([key, label]) =>
           submission[key] && (
             <p key={key} className="whitespace-pre-wrap">
-              <strong>{label}:</strong> {submission[key]}
+              <strong>{label}:</strong> {key === 'aiFlagType' ? ({ Spam: 'Nội dung rác', Abuse: 'Nội dung không phù hợp', Advertising: 'Quảng cáo', HealthClaim: 'Tuyên bố sức khỏe cần kiểm chứng', OffTopic: 'Không liên quan', InappropriateImage: 'Ảnh đại diện cần xem xét' }[submission[key]] || submission[key]) : key === 'aiPriority' ? ({ Low: 'Thấp', Medium: 'Trung bình', High: 'Cao' }[submission[key]] || submission[key]) : key === 'aiEvidence' ? submission[key] : formatSystemReviewMessage(submission[key])}
             </p>
           ),
-      )}
-      {submission.aiFlagStatus === 'Failed' && (
-        <p className="font-semibold text-amber-900">
-          AI không hoàn tất kiểm tra. Đây không phải kết quả đạt; Admin cần xem
-          trực tiếp toàn bộ nội dung trước khi quyết định.
-        </p>
       )}
       {submission.aiFlagStatus === 'Partial' &&
         !submission.aiUncheckedScope && (
           <p>Chưa có thông tin đầy đủ về phạm vi chưa kiểm tra.</p>
         )}
-    </div>
+    </section>
   )
 }
 
+// Thành phần PrivateVideo nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc kiểm duyệt nội dung và kết quả kiểm tra AI.
 function PrivateVideo({ submission }: { submission: Submission }) {
+  const [metadata, setMetadata] = useState<{ id: string; seconds: number } | null>(null)
+  // Lưu dữ liệu và trạng thái thao tác của kiểm duyệt nội dung và kết quả kiểm tra AI trong vòng đời màn hình.
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     const controller = new AbortController()
     let objectUrl: string | null = null
@@ -120,6 +153,7 @@ function PrivateVideo({ submission }: { submission: Submission }) {
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
   }, [submission.id, submission.contentId])
+  // Hiển thị giao diện kiểm duyệt nội dung và kết quả kiểm tra AI từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div>
       <Feedback error={error} />
@@ -128,6 +162,7 @@ function PrivateVideo({ submission }: { submission: Submission }) {
           aria-label="Video gửi duyệt"
           controls
           preload="metadata"
+          onLoadedMetadata={(event) => setMetadata({ id: submission.id, seconds: event.currentTarget.duration })}
           onError={() =>
             setError(
               'Trình duyệt không phát được định dạng video này. Tải tệp để kiểm tra nội dung.',
@@ -139,6 +174,7 @@ function PrivateVideo({ submission }: { submission: Submission }) {
       ) : (
         !error && <p className="text-sm">Đang tải video riêng tư...</p>
       )}
+      {metadata?.id === submission.id && formatVideoDuration(metadata.seconds) && <p className="mt-2 text-xs text-slate-500">Thời lượng: {formatVideoDuration(metadata.seconds)}</p>}
       {url && error && (
         <a
           href={url}
@@ -152,7 +188,9 @@ function PrivateVideo({ submission }: { submission: Submission }) {
   )
 }
 
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (ArticleSubmissionPreview); thuộc kiểm duyệt nội dung và kết quả kiểm tra AI.
 function ArticleSubmissionPreview({ submission }: { submission: Submission }) {
+  // Hiển thị giao diện kiểm duyệt nội dung và kết quả kiểm tra AI từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <section aria-label="Xem trước bài viết đã gửi" className="space-y-3">
       <div>
@@ -182,6 +220,7 @@ function ArticleSubmissionPreview({ submission }: { submission: Submission }) {
   )
 }
 
+// Thành phần ModerationWorkspace nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc kiểm duyệt nội dung và kết quả kiểm tra AI.
 export function ModerationWorkspace({
   contentType,
   onNavigate,
@@ -189,9 +228,11 @@ export function ModerationWorkspace({
   contentType: 'Article' | 'Video'
   onNavigate?: (path: string) => void
 }) {
+  const requestedSubmissionId = new URLSearchParams(window.location.hash.split('?')[1] || '').get('submissionId')
+  // Lưu dữ liệu và trạng thái thao tác của kiểm duyệt nội dung và kết quả kiểm tra AI trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState<'' | 'PendingAdminReview' | 'Rejected'>(
-    'PendingAdminReview',
+    '',
   )
   const query = new URLSearchParams({ page: String(page), pageSize: '10' })
   query.set('contentType', contentType)
@@ -205,12 +246,36 @@ export function ModerationWorkspace({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
+  useEffect(() => {
+    if (!notice) return
+    const timeout = window.setTimeout(() => setNotice(null), 5000)
+    return () => window.clearTimeout(timeout)
+  }, [notice])
   const title =
     contentType === 'Article' ? 'Quản lý bài viết' : 'Quản lý video'
   const ContentIcon = contentType === 'Article' ? FileText : Video
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
+  useEffect(() => {
+    if (!requestedSubmissionId) return
+    let active = true
+    void adminModerationApi.get(requestedSubmissionId).then(submission => {
+      if (!active) return
+      if (submission.contentType !== contentType) {
+        setError('Phiên bản không thuộc loại nội dung này.')
+        return
+      }
+      setSelected(submission)
+      setDecision('')
+      setReason('')
+    }).catch(reason => { if (active) setError(errorMessage(reason)) })
+    return () => { active = false }
+  }, [requestedSubmissionId, contentType])
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (open); thuộc kiểm duyệt nội dung và kết quả kiểm tra AI.
   async function open(id: string) {
     setBusy(true)
     setError(null)
+    setNotice(null)
     try {
       setSelected(await adminModerationApi.get(id))
       setDecision('')
@@ -235,14 +300,20 @@ export function ModerationWorkspace({
             {item.version}
             {item.isCurrentPublished ? ' · Đang công khai' : ''}
           </p>
+          {item.pendingReporterCount > 0 && (
+            <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-800">
+              {item.pendingReporterCount} người đang báo cáo
+            </span>
+          )}
+          {item.systemRejectionReason && <p className="text-xs font-semibold text-red-700">Hệ thống từ chối: tiêu đề trùng</p>}
         </div>
       ),
     },
     {
-      key: 'ownerUserId',
-      header: 'ID tác giả',
+      key: 'ownerName',
+      header: 'Tên tác giả',
       render: (item) => (
-        <span className="break-all text-xs">{item.ownerUserId}</span>
+        <span className="break-words text-xs">{item.ownerName?.trim() || 'Không có thông tin tác giả'}</span>
       ),
     },
     {
@@ -261,6 +332,19 @@ export function ModerationWorkspace({
       header: 'Ngày gửi',
       render: (item) => formatDate(item.submittedAt),
     },
+    // Video chỉ do Admin kiểm duyệt; cột AI dành riêng cho bài viết.
+    ...(contentType === 'Article' ? [{
+      key: 'aiFlagStatus',
+      header: 'Kiểm tra của Hệ thống',
+      render: (item: Submission) => (
+        <div className="min-w-40 max-w-xs space-y-2">
+          <span className={`${statusBadgeClass} ${aiReviewStyles[item.aiFlagStatus]}`}>
+            {aiStatusLabels[item.aiFlagStatus]}
+          </span>
+          <p className="text-xs leading-relaxed text-slate-600">{formatSystemReviewMessage(item.aiSummary) || aiReviewMessages[item.aiFlagStatus]}</p>
+        </div>
+      ),
+    }] : []),
     {
       key: 'actions',
       header: 'Thao tác',
@@ -277,6 +361,7 @@ export function ModerationWorkspace({
       ),
     },
   ]
+  // Hiển thị giao diện kiểm duyệt nội dung và kết quả kiểm tra AI từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <AdminFrame
       menu={contentType === 'Article' ? 'articles' : 'videos'}
@@ -284,7 +369,12 @@ export function ModerationWorkspace({
       subtitle="Xem đúng phiên bản đã gửi và lịch sử quyết định duyệt."
       onNavigate={onNavigate}
     >
-      <Feedback error={error} notice={notice} />
+      <Feedback error={error} />
+      {notice && (
+        <div role="status" className="fixed right-4 top-20 z-[110] max-w-sm rounded-xl border border-emerald-200 bg-white px-5 py-4 text-sm font-semibold text-emerald-800 shadow-xl">
+          {notice}
+        </div>
+      )}
       <section className="flex flex-col gap-5 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-start gap-3.5">
           <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
@@ -296,7 +386,7 @@ export function ModerationWorkspace({
             </h2>
             <p className="mt-1 max-w-xl text-sm leading-relaxed text-slate-500">
               {contentType === 'Article'
-                ? 'Xem trực tiếp bài viết và kiểm tra nội dung trước khi đưa ra quyết định xuất bản.'
+                ? 'Xem kết quả kiểm tra của Hệ thống, đối chiếu bài viết và đưa ra quyết định xuất bản.'
                 : 'Xem trực tiếp video và kiểm tra nội dung trước khi xuất bản.'}
             </p>
           </div>
@@ -318,7 +408,7 @@ export function ModerationWorkspace({
             }}
             options={[
               { value: '', label: 'Tất cả' },
-              { value: 'PendingAdminReview', label: 'Chờ Admin duyệt' },
+              { value: 'PendingAdminReview', label: 'Chờ Quản trị viên duyệt' },
               { value: 'Rejected', label: 'Đã từ chối' },
             ]}
           />
@@ -373,11 +463,40 @@ export function ModerationWorkspace({
       >
         {selected && (
           <div className="space-y-4 text-sm">
+            <p className="break-words">Tên tác giả: {selected.ownerName?.trim() || 'Không có thông tin tác giả'}</p>
             <p>
               Phiên bản {selected.version} ·{' '}
               {adminStatusLabels[selected.adminReviewStatus]} ·{' '}
               {formatDate(selected.submittedAt)}
             </p>
+            {selected.pendingReporterCount > 0 && (
+              <p className="w-fit rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-800">
+                {selected.pendingReporterCount} người đang báo cáo nội dung này
+              </p>
+            )}
+            {selected.contentType === 'Article' && (
+              <div className="space-y-2">
+                <AiReview submission={selected} />
+                <button type="button" disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 font-semibold text-emerald-800 disabled:opacity-50"
+                  onClick={async () => {
+                    setBusy(true)
+                    setError(null)
+                    try {
+                      // Chỉ đọc lại đúng phiên bản đang xem, giữ lựa chọn và lý do Admin đã nhập.
+                      setSelected(await adminModerationApi.get(selected.id))
+                      result.reload()
+                    } catch (reason) {
+                      setError(errorMessage(reason))
+                    } finally {
+                      setBusy(false)
+                    }
+                  }}>
+                  <RefreshCw size={14} aria-hidden="true" />
+                  {busy ? 'Đang cập nhật...' : 'Cập nhật kết quả hệ thống'}
+                </button>
+                <Feedback error={error} />
+              </div>
+            )}
             {selected.contentType === 'Article' ? (
               <ArticleSubmissionPreview submission={selected} />
             ) : (
@@ -396,7 +515,7 @@ export function ModerationWorkspace({
                     {decisionLabels[item.decision]} · Phiên bản {item.version}
                   </p>
                   <p className="break-all">
-                    Admin: {item.adminUserId} · {formatDate(item.decidedAt)}
+                    Quản trị viên: {item.adminUserId} · {formatDate(item.decidedAt)}
                   </p>
                   <p className="whitespace-pre-wrap">{item.reason}</p>
                 </div>
@@ -415,12 +534,12 @@ export function ModerationWorkspace({
                   setBusy(true)
                   setError(null)
                   try {
-                    const updated = await adminModerationApi.decide(
+                    await adminModerationApi.decide(
                       selected.id,
                       decision,
                       reason.trim(),
                     )
-                    setSelected(updated)
+                    setSelected(null)
                     setNotice('Đã lưu quyết định kiểm duyệt.')
                     setDecision('')
                     setReason('')

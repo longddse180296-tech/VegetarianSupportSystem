@@ -11,17 +11,26 @@ public sealed class VideoAuthorNameTests
     public async Task PublicVideoShowsPublisherNameInDetailAndList()
     {
         var video = Video.Create("owner", "Published video", "Description", null);
+        video.SetMedia("original.mp4");
         var submission = ModerationSubmission.Submit(video.Id, 1, ModeratedContentType.Video,
-            "owner", video.Title, video.Description, null, DateTimeOffset.UtcNow);
+            "owner", video.Title, video.Description, "original.mp4", DateTimeOffset.UtcNow);
         submission.Decide(ModerationDecisionType.Approve, "admin", "Approved", DateTimeOffset.UtcNow);
         video.Publish(submission.Id);
-        var service = new VideoService(new SingleVideoRepository(video), new SingleModerationRepository(submission));
+        video.SetMedia("replacement.mp4");
+        var metadataRepository = new TestVideoMetadataRepository();
+        await metadataRepository.SaveAsync(VideoMediaMetadata.Create("original.mp4", 10, true), default);
+        await metadataRepository.SaveAsync(VideoMediaMetadata.Create("replacement.mp4", 20, false), default);
+        var service = new VideoService(new SingleVideoRepository(video), new SingleModerationRepository(submission),
+            new VideoMetadataService(metadataRepository, new TestVideoMediaProbe()));
 
         var detail = await service.GetPublicAsync(video.Id, default);
         var page = await service.ListAsync(null, true, 1, 20, default);
 
         Assert.Equal("Nguyễn Khánh Vĩnh", detail?.AuthorName);
         Assert.Equal("Nguyễn Khánh Vĩnh", Assert.Single(page.Items).AuthorName);
+        Assert.Equal(10, detail!.DurationSeconds);
+        Assert.True(detail.HasAudio);
+        Assert.Equal(10, Assert.Single(page.Items).DurationSeconds);
     }
 
     private sealed class SingleVideoRepository(Video video) : IVideoRepository
@@ -44,6 +53,8 @@ public sealed class VideoAuthorNameTests
 
     private sealed class SingleModerationRepository(ModerationSubmission submission) : IModerationRepository
     {
+        public Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> ids, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
         public Task<ModerationSubmission?> GetByIdAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
         public Task<ModerationSubmission?> GetLatestForContentAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
         public Task<ModerationSubmission?> GetCurrentPublishedAsync(Guid id, CancellationToken ct) =>

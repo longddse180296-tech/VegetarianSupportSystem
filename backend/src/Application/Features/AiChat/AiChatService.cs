@@ -1,8 +1,10 @@
+// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Entities;
 using Domain.Enums;
 
 namespace Application.Features.AiChat;
 
+// AiChatService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class AiChatService(
     IAiChatRepository repository,
     IAiChatAnswerService answerService,
@@ -10,6 +12,7 @@ public sealed class AiChatService(
 {
     private const int HistoryLimit = 20;
 
+    // CreateConversationAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task<AiChatConversationDto> CreateConversationAsync(
         string userId,
         CancellationToken cancellationToken)
@@ -18,6 +21,7 @@ public sealed class AiChatService(
         return ToDto(conversation);
     }
 
+    // GetConversationAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<AiChatConversationDto?> GetConversationAsync(
         Guid conversationId,
         string userId,
@@ -28,6 +32,7 @@ public sealed class AiChatService(
         return conversation is null ? null : ToDto(conversation);
     }
 
+    // ListConversationsAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<AiChatPage<AiChatConversationDto>> ListConversationsAsync(
         string userId,
         int page,
@@ -43,6 +48,7 @@ public sealed class AiChatService(
             result.TotalCount);
     }
 
+    // ListMessagesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<AiChatPage<AiChatMessageDto>?> ListMessagesAsync(
         Guid conversationId,
         string userId,
@@ -50,6 +56,7 @@ public sealed class AiChatService(
         int pageSize,
         CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (await repository.GetConversationForUserAsync(
                 conversationId, userId, cancellationToken) is null)
         {
@@ -65,12 +72,14 @@ public sealed class AiChatService(
             result.TotalCount);
     }
 
+    // SubmitMessageAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     public async Task<AiChatSubmissionDto?> SubmitMessageAsync(
         Guid conversationId,
         string userId,
         string content,
         CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (await repository.GetConversationForUserAsync(
                 conversationId, userId, cancellationToken) is null)
         {
@@ -108,9 +117,11 @@ public sealed class AiChatService(
             ToDto(userMessage), ToDto(assistantMessage), AiChatAnswerStatus.Answered, recipes);
     }
 
+    // ToDto: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static AiChatConversationDto ToDto(AiChatConversation conversation) =>
         new(conversation.Id, conversation.CreatedAtUtc, conversation.UpdatedAtUtc);
 
+    // ToDto: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static AiChatMessageDto ToDto(AiChatMessage message) =>
         new(message.Id, message.ConversationId, message.Role, message.Content, message.CreatedAtUtc);
 }

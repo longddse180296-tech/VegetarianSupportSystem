@@ -1,11 +1,14 @@
+// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Persistence.Configurations;
 
+// AiChatConversationConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class AiChatConversationConfiguration : IEntityTypeConfiguration<AiChatConversation>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<AiChatConversation> builder)
     {
         builder.ToTable("AiChatConversations");
@@ -27,8 +30,10 @@ public sealed class AiChatConversationConfiguration : IEntityTypeConfiguration<A
     }
 }
 
+// AiChatMessageConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class AiChatMessageConfiguration : IEntityTypeConfiguration<AiChatMessage>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<AiChatMessage> builder)
     {
         builder.ToTable("AiChatMessages");

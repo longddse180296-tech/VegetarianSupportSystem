@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import React from 'react'
 import { PublicLayout } from '../../../app/layouts/PublicLayout'
 import { AuthFeatureCards } from '../components/AuthFeatureCards'
@@ -5,13 +6,16 @@ import { RegisterForm } from '../components/RegisterForm'
 import { useAuth } from '../hooks/useAuth'
 import type { RegisterPayload } from '../types'
 
+// Cấu trúc RegisterPageProps quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 interface RegisterPageProps {
   onNavigate?: (path: string) => void
 }
 
+// Kiểm tra và gửi thông tin tạo tài khoản (RegisterPage); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const { register, isLoading, user } = useAuth()
 
+  // Kiểm tra và gửi thông tin tạo tài khoản (handleRegister); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const handleRegister = async (payload: RegisterPayload) => {
     await register(payload)
     if (onNavigate) {
@@ -19,6 +23,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     }
   }
 
+  // Hiển thị giao diện đăng ký, đăng nhập và khôi phục mật khẩu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <PublicLayout
       activeNav="auth"

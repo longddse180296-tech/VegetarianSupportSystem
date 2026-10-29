@@ -1,3 +1,4 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using System.Linq.Expressions;
 using Domain.Entities;
 using Domain.Enums;
@@ -5,6 +6,7 @@ using Domain.ValueObjects;
 
 namespace Domain.Rules;
 
+// DietaryRules: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public static class DietaryRules
 {
     // Expressions are shared by in-memory classification and SQL filtering.
@@ -15,6 +17,7 @@ public static class DietaryRules
                     (!ingredient.ContainsEgg && !ingredient.ContainsMilk && !ingredient.ContainsHoney &&
                         ingredient.ContainsOtherAnimalProducts == false)));
 
+    // IncompatibleIngredient: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public static Expression<Func<Ingredient, bool>> IncompatibleIngredient(DietaryType diet) => diet switch
     {
         DietaryType.Vegan => ingredient => ingredient.ContainsOtherAnimalProducts == true ||
@@ -29,6 +32,7 @@ public static class DietaryRules
     private static readonly IReadOnlyDictionary<DietaryType, Func<Ingredient, bool>> IsIncompatible =
         Enum.GetValues<DietaryType>().ToDictionary(diet => diet, diet => IncompatibleIngredient(diet).Compile());
 
+    // Classify: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public static IReadOnlyList<DietaryAssessment> Classify(IEnumerable<Ingredient> ingredients)
     {
         var items = ingredients.ToArray();

@@ -1,3 +1,4 @@
+// Chức năng: quản lý thành viên. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   Search,
@@ -10,12 +11,14 @@ import {
 } from 'lucide-react'
 import type { Member } from '../api/membersApi'
 
+// Cấu trúc LiveMemberFilter quy định dữ liệu trao đổi trong quản lý thành viên.
 export interface LiveMemberFilter {
   search: string
   status: 'all' | 'active' | 'locked'
   page: number
 }
 
+// Cấu trúc MemberTableProps quy định dữ liệu trao đổi trong quản lý thành viên.
 interface MemberTableProps {
   members: Member[]
   totalCount: number
@@ -31,9 +34,11 @@ interface MemberTableProps {
   isLoading?: boolean
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (formatDate); thuộc quản lý thành viên.
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getAvatarStyle); thuộc quản lý thành viên.
 const getAvatarStyle = (index: number) => {
   const styles = [
     { bg: 'bg-[#D1F2D9]', text: 'text-[#1E6531]' }, // Green (MA)
@@ -47,6 +52,7 @@ const getAvatarStyle = (index: number) => {
   return styles[index % styles.length]
 }
 
+// Thành phần MemberTable nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc quản lý thành viên.
 export const MemberTable: React.FC<MemberTableProps> = ({
   members,
   totalCount,
@@ -61,18 +67,22 @@ export const MemberTable: React.FC<MemberTableProps> = ({
   onRequestLockToggle,
   isLoading = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của quản lý thành viên trong vòng đời màn hình.
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState(filter.search)
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSearchSubmit); thuộc quản lý thành viên.
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onFilterChange({ ...filter, search: searchInput, page: 1 })
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleTabChange); thuộc quản lý thành viên.
   const handleTabChange = (status: 'all' | 'active' | 'locked') => {
     onFilterChange({ ...filter, status, page: 1 })
   }
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (handlePageChange); thuộc quản lý thành viên.
   const handlePageChange = (newPage: number) => {
     onFilterChange({ ...filter, page: newPage })
   }
@@ -83,6 +93,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
   const startItem = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, totalCount)
 
+  // Hiển thị giao diện quản lý thành viên từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* 3 Top Stat Cards matching Image 2 */}
@@ -248,6 +259,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                   const isLocked = m.isLocked
                   const avatarColor = getAvatarStyle(idx)
 
+                  // Hiển thị giao diện quản lý thành viên từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                   return (
                     <tr key={m.id} className="hover:bg-slate-50/60 transition-colors relative">
                       {/* Name & Initials */}
@@ -266,7 +278,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
                             >
                               {m.fullName}
                             </button>
-                            <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{m.role}</p>
+                            <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{m.role === 'Admin' ? 'Quản trị viên' : 'Người dùng'}</p>
                           </div>
                         </div>
                       </td>
@@ -276,7 +288,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
 
                       {/* Registered Date */}
                       <td className="py-3.5 px-6 text-slate-500">{formatDate(m.joinedAtUtc)}</td>
-                      <td className="py-3.5 px-4 text-center font-bold text-slate-900">{m.role}</td>
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-900">{m.role === 'Admin' ? 'Quản trị viên' : 'Người dùng'}</td>
 
                       {/* Status */}
                       <td className="py-3.5 px-6">
@@ -385,6 +397,7 @@ export const MemberTable: React.FC<MemberTableProps> = ({
 
             {visiblePages.map((pageNum) => {
               const isActive = currentPage === pageNum
+              // Hiển thị giao diện quản lý thành viên từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={pageNum}

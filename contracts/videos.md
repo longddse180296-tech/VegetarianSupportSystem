@@ -1,5 +1,19 @@
 # Hợp đồng video BE 3
 
+## Metadata thời lượng và âm thanh (27/10/2026)
+
+`VideoDetails` trả thêm `durationSeconds: number | null` (giây, có thể có phần thập phân), `hasAudio: boolean | null`, `metadataStatus: "Processing" | "Ready" | "Unavailable"`.
+`Ready` khi đọc được thời lượng; `Processing` khi đã có tệp nhưng chưa đọc metadata; `Unavailable` khi chưa có tệp hoặc không đọc được. `hasAudio=false` nghĩa là không có luồng âm thanh, không đánh giá nội dung giọng nói. Tệp có luồng audio vẫn có thể chứa đoạn im lặng.
+
+- FE đọc metadata tệp đã chọn để xem trước, có timeout và hủy khi đổi tệp; không gửi thời lượng tự khai báo.
+- Upload video: server dùng FFprobe đọc video stream, thời lượng và sự tồn tại audio stream trước khi chuyển sang Ready. Giữ nguyên tệp và âm thanh; không transcoding hoặc tạo voice.
+- Tệp có chữ ký MP4/WEBM nhưng không đọc được video/thời lượng trả 400; công cụ/storage tạm thời không khả dụng trả 503, bản nháp được giữ để thử lại.
+- Metadata lưu riêng trong `VideoMediaMetadata` theo khóa tệp. Public đọc metadata của media trong phiên bản Published; owner đọc media hiện tại. Thay tệp nháp không sửa thời lượng bản Published.
+- Worker bổ sung cả media cũ và các phiên bản đã gửi, tối đa 10 tệp/lượt mỗi phút. Tệp thiếu/hỏng lưu null, thử lại sau một giờ. Không ghi thời lượng mặc định hoặc tạo dữ liệu mẫu.
+- FE hiển thị `m:ss` hoặc `h:mm:ss`, “Đang xử lý” trong lúc chờ, ẩn nhãn khi không xác định. Trình phát có controls và không mặc định muted; người xem tự điều chỉnh âm lượng.
+
+Cài FFprobe trên máy chạy API (trong PATH) hoặc cấu hình `VideoMetadata:FfprobePath`/biến môi trường `VideoMetadata__FfprobePath` trỏ đến executable. Mỗi lượt probe có timeout 20 giây, tối đa hai tiến trình đồng thời, không chạy shell hoặc truy cập URL tùy ý. Xem hướng dẫn trong `docs/video-metadata.md`.
+
 JSON dùng camelCase; enum moderation là tên string. Các endpoint ghi cần JWT role User/Admin, trừ danh sách/chi tiết/media công khai. ID do server tạo; không dùng URL media do client cung cấp.
 
 | Method | Endpoint | Mô tả |

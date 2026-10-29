@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   Check,
@@ -11,6 +12,7 @@ import type {
   GroceryItemToday,
 } from '../types/mealPlans.types'
 
+// Cấu trúc DetailRightSidebarProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DetailRightSidebarProps {
   nutrition: DailyNutritionRing
   pantry: PantrySavingsInfo
@@ -19,6 +21,7 @@ interface DetailRightSidebarProps {
   onAskAiClick?: () => void
 }
 
+// Thành phần DetailRightSidebar nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DetailRightSidebar: React.FC<DetailRightSidebarProps> = ({
   nutrition,
   pantry,
@@ -26,8 +29,10 @@ export const DetailRightSidebar: React.FC<DetailRightSidebarProps> = ({
   aiAdvice,
   onAskAiClick,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [groceries, setGroceries] = useState<GroceryItemToday[]>(todayGroceries)
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleToggleGrocery); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleToggleGrocery = (id: string) => {
     setGroceries((prev) =>
       prev.map((g) => (g.id === id ? { ...g, isChecked: !g.isChecked } : g)),
@@ -36,6 +41,7 @@ export const DetailRightSidebar: React.FC<DetailRightSidebarProps> = ({
 
   const checkedCount = groceries.filter((g) => g.isChecked).length
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-4">
       {/* 1. Dinh dưỡng trong ngày Card */}
@@ -225,7 +231,7 @@ export const DetailRightSidebar: React.FC<DetailRightSidebarProps> = ({
             </h4>
             <span className="text-[10px] font-semibold text-emerald-700 flex items-center gap-1">
               <Sparkles className="h-2.5 w-2.5" />
-              <span>Gemini Nutrition Core</span>
+              <span>Thông tin dinh dưỡng tham khảo</span>
             </span>
           </div>
         </div>

@@ -1,7 +1,9 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { RefreshCw, ShoppingCart, FileEdit } from 'lucide-react'
 import type { DayOfWeek, WeeklyCalendarDay } from '../types/mealPlans.types'
 
+// Cấu trúc WeeklyCalendarHeaderProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface WeeklyCalendarHeaderProps {
   weekRange: string
   days: WeeklyCalendarDay[]
@@ -13,6 +15,7 @@ interface WeeklyCalendarHeaderProps {
   isExportingShoppingList?: boolean
 }
 
+// Thành phần WeeklyCalendarHeader nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const WeeklyCalendarHeader: React.FC<WeeklyCalendarHeaderProps> = ({
   weekRange,
   days,
@@ -23,6 +26,7 @@ export const WeeklyCalendarHeader: React.FC<WeeklyCalendarHeaderProps> = ({
   onEditWeek,
   isExportingShoppingList,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-4">
       {/* Top Header Row with Title and Action Buttons */}
@@ -75,6 +79,7 @@ export const WeeklyCalendarHeader: React.FC<WeeklyCalendarHeaderProps> = ({
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {days.map((day) => {
           const isActive = day.id === activeDay
+          // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
           return (
             <button
               key={day.id}

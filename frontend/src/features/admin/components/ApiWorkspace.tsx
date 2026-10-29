@@ -1,3 +1,4 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useApiData } from '../hooks/useApiData'
 import { fieldClass, secondaryClass } from '../utils/apiUi'
 import { useState, type ReactNode } from 'react'
@@ -5,6 +6,7 @@ import { AdminLayout } from '../../../app/layouts/AdminLayout'
 import { Select } from '../../../shared/components/Select'
 import { useAuth } from '../../auth'
 
+// Thành phần Feedback nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export function Feedback({
   error,
   notice,
@@ -12,6 +14,7 @@ export function Feedback({
   error?: string | null
   notice?: string | null
 }) {
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <>
       {error && (
@@ -34,6 +37,7 @@ export function Feedback({
   )
 }
 
+// Thành phần AdminFrame nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export function AdminFrame({
   menu,
   title,
@@ -52,9 +56,10 @@ export function AdminFrame({
   if (!isAdmin)
     return (
       <p role="alert" className="p-8 text-rose-800">
-        Bạn cần đăng nhập bằng tài khoản Admin.
+        Bạn cần đăng nhập bằng tài khoản Quản trị viên.
       </p>
     )
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <AdminLayout
       activeMenu={menu}
@@ -67,6 +72,7 @@ export function AdminFrame({
   )
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (Pager); thuộc giao diện và thành phần dùng chung.
 export function Pager({
   page,
   total,
@@ -79,6 +85,7 @@ export function Pager({
   onChange: (page: number) => void
 }) {
   const pages = Math.max(1, Math.ceil(total / pageSize))
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
       <span>
@@ -104,18 +111,21 @@ export function Pager({
   )
 }
 
+// Cấu trúc LookupItem quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type LookupItem = {
   id: string
   name: string
   isActive?: boolean
   defaultUnit?: string | null
 }
+// Thành phần RecordPicker nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export function RecordPicker({
   resource,
   label,
   value,
   selectedName,
   hideSearch,
+  required = false,
   onChange,
 }: {
   resource: 'categories' | 'ingredients' | 'recipes'
@@ -123,18 +133,21 @@ export function RecordPicker({
   value: string
   selectedName?: string
   hideSearch?: boolean
+  required?: boolean
   onChange: (item: LookupItem) => void
 }) {
+  // Lưu dữ liệu và trạng thái thao tác của giao diện và thành phần dùng chung trong vòng đời màn hình.
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const pageSize = hideSearch ? 100 : 10
   const result = useApiData<{ items: LookupItem[]; totalCount: number }>(
     `/api/admin/${resource}?pageNumber=${page}&pageSize=${pageSize}&search=${encodeURIComponent(hideSearch ? '' : search)}`,
   )
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="admin-record-picker space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-700">{label}</span>
+        <span className="text-sm font-semibold text-slate-700">{label}{required && <span className="text-rose-500" aria-hidden="true"> *</span>}</span>
         {result.loading && <span role="status" className="text-xs text-slate-400">Đang tìm...</span>}
       </div>
       <div className={hideSearch ? 'w-full' : 'grid gap-2.5 sm:grid-cols-2'}>
@@ -153,6 +166,7 @@ export function RecordPicker({
         )}
         <Select
           aria-label={label}
+          required={required}
           className="!h-[46px]"
           value={value}
           onChange={(event) => {

@@ -1,3 +1,4 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { StatusBadge } from '../../../shared/components'
 import {
   assessmentStatus,
@@ -8,6 +9,7 @@ import {
   type SavedFoodScan,
 } from '../api/foodScanApi'
 
+// Cấu trúc ScanHistoryDetailProps quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 interface ScanHistoryDetailProps {
   scan: SavedFoodScan | null
   loading: boolean
@@ -15,6 +17,7 @@ interface ScanHistoryDetailProps {
   onRetry: () => void
 }
 
+// Thành phần ScanHistoryDetail nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc phân tích ảnh món ăn và nhãn thành phần.
 export default function ScanHistoryDetail({
   scan,
   loading,
@@ -36,6 +39,7 @@ export default function ScanHistoryDetail({
 
   const summary = toScanHistoryItem(scan)
 
+  // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-5 text-sm">
       <div className="rounded-xl bg-slate-50/80 border border-slate-200/80 p-4 space-y-2">

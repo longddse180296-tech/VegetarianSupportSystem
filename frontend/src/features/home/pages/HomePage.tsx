@@ -1,3 +1,4 @@
+// Chức năng: trang chủ và thông tin giới thiệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
@@ -19,6 +20,7 @@ import AlertError from '../../../shared/components/AlertError'
 
 import { inferVideoDietType } from '../../videos/api/backendVideos'
 
+// Cấu trúc HomePageProps quy định dữ liệu trao đổi trong trang chủ và thông tin giới thiệu.
 interface HomePageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
@@ -33,6 +35,7 @@ const AI_SAMPLE_QUESTIONS = [
 ]
 
 
+// Cấu trúc HomeRecipeItem quy định dữ liệu trao đổi trong trang chủ và thông tin giới thiệu.
 interface HomeRecipeItem {
   id: string
   title: string
@@ -43,10 +46,12 @@ interface HomeRecipeItem {
   dietaryTypes: string[]
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (extractRecipeDietaryTypes); thuộc trang chủ và thông tin giới thiệu.
 function extractRecipeDietaryTypes(
   assessments?: Array<{ dietaryType: number | string; status: number | string }>,
 ): string[] {
   if (assessments && assessments.length > 0) {
+    // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (isCompat); thuộc trang chủ và thông tin giới thiệu.
     const isCompat = (typeNum: number, name: string) =>
       assessments.some(
         (a) =>
@@ -65,6 +70,7 @@ function extractRecipeDietaryTypes(
   return []
 }
 
+// Cấu trúc HomeSection quy định dữ liệu trao đổi trong trang chủ và thông tin giới thiệu.
 type HomeSection = 'recipes' | 'restaurants' | 'videos' | 'articles'
 
 const SECTION_LABELS: Record<HomeSection, string> = {
@@ -74,13 +80,16 @@ const SECTION_LABELS: Record<HomeSection, string> = {
   articles: 'bài viết nổi bật',
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (publishedDate); thuộc trang chủ và thông tin giới thiệu.
 function publishedDate(value: string | null) {
   if (!value) return null
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString('vi-VN')
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (HomePage); thuộc trang chủ và thông tin giới thiệu.
 export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePageProps) {
+  // Lưu dữ liệu và trạng thái thao tác của trang chủ và thông tin giới thiệu trong vòng đời màn hình.
   const [searchTerm, setSearchTerm] = useState('')
   const [recipes, setRecipes] = useState<HomeRecipeItem[]>([])
   const [videos, setVideos] = useState<FeaturedContentItem[]>([])
@@ -91,6 +100,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
   const [loadRevision, setLoadRevision] = useState(0)
 
   // Load real data from services
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     const controller = new AbortController()
     void (async () => {
@@ -154,7 +164,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             try {
               const fallback = await apiClient.get<{ items: Array<{
                 id: string; title: string; description: string | null; thumbnailUrl: string | null
-                viewCount: number | null; createdAtUtc: string | null
+                viewCount: number | null; createdAtUtc: string | null; authorName: string | null
               }> }>('/api/videos?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
               setVideos(fallback.items.map((video) => ({
                 id: video.id,
@@ -163,7 +173,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 description: video.description,
                 imageUrl: video.thumbnailUrl,
                 isPinned: false,
-                authorName: null,
+                authorName: video.authorName,
                 publishedAt: video.createdAtUtc,
                 viewCount: video.viewCount,
                 address: null,
@@ -181,7 +191,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             try {
               const fallback = await apiClient.get<{ items: Array<{
                 id: string; title: string; category: string; categories?: string[]
-                coverImageUrl: string | null; publishedAt: string | null
+                coverImageUrl: string | null; publishedAt: string | null; authorName: string | null
                 dietaryTypes?: string[]
               }> }>('/api/articles?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
               setArticles(fallback.items.map((article) => ({
@@ -191,7 +201,8 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 description: article.category,
                 imageUrl: article.coverImageUrl,
                 isPinned: false,
-                authorName: null,
+                // Giữ tác giả bài viết khi dùng danh sách mới nhất thay cho nội dung được ghim.
+                authorName: article.authorName,
                 publishedAt: article.publishedAt,
                 viewCount: null,
                 address: null,
@@ -211,12 +222,14 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
     }
   }, [loadRevision])
 
+  // Thử lại việc lấy dữ liệu và đồng bộ trạng thái hiển thị (retryContent); thuộc trang chủ và thông tin giới thiệu.
   function retryContent() {
     setLoading(true)
     setLoadErrors([])
     setLoadRevision(revision => revision + 1)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (sectionState); thuộc trang chủ và thông tin giới thiệu.
   function sectionState(section: HomeSection, count: number) {
     if (loading && count === 0) return <SkeletonLoader count={3} variant="card" />
     if (loadErrors.includes(section)) return <AlertError title={`Chưa tải được ${SECTION_LABELS[section]}`} message="Vui lòng thử lại để xem nội dung mới nhất." onRetry={retryContent} />
@@ -224,17 +237,20 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
     return null
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSearchSubmit); thuộc trang chủ và thông tin giới thiệu.
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!searchTerm.trim()) return
     onNavigate?.(`/recipes?q=${encodeURIComponent(searchTerm.trim())}`)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleQuickTagClick); thuộc trang chủ và thông tin giới thiệu.
   const handleQuickTagClick = (tag: string) => {
     setSearchTerm(tag)
     onNavigate?.(`/recipes?q=${encodeURIComponent(tag)}`)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleGoToAiChat); thuộc trang chủ và thông tin giới thiệu.
   const handleGoToAiChat = (query?: string) => {
     if (query) {
       onNavigate?.(`/ai-chat?q=${encodeURIComponent(query)}`)
@@ -243,6 +259,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
     }
   }
 
+  // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="min-h-screen bg-[#FBFDFB] text-[#1F2937] font-sans">
       {/* =========================================================================
@@ -416,6 +433,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                     <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
                       {recipe.dietaryTypes.map((diet) => {
                         const dietaryType = toBackendDietaryType(diet)
+                        // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                         return (
                           <span
                             key={diet}
@@ -492,6 +510,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 ? vid.dietaryTypes
                 : [inferVideoDietType(vid.title, vid.description ?? undefined)]
 
+              // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
               <article
                 key={vid.id}
@@ -527,6 +546,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                     <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
                       {vidDietaryTypes.map((diet) => {
                         const dietaryType = toBackendDietaryType(diet)
+                        // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                         return (
                           <span
                             key={diet}
@@ -633,6 +653,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                       <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
                         {res.dietaryTypes.map((diet) => {
                           const dietaryType = toBackendDietaryType(diet)
+                          // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                           return (
                             <span
                               key={diet}
@@ -734,6 +755,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                   <div className="flex flex-wrap items-start content-start gap-1.5 mb-2.5 min-h-[52px]">
                     {art.dietaryTypes?.map((diet) => {
                       const dietaryType = toBackendDietaryType(diet)
+                      // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                       return (
                         <span
                           key={diet}
@@ -757,7 +779,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 </div>
 
                 <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between text-xs text-slate-500">
-                  <span className="font-medium text-slate-700">{art.authorName || 'Quản Trị Viên Hệ Thống'}</span>
+                  <span className="font-medium text-slate-700">{art.authorName?.trim() || 'Chưa có thông tin tác giả'}</span>
                   {publishedDate(art.publishedAt) && <span>{publishedDate(art.publishedAt)}</span>}
                 </div>
               </div>

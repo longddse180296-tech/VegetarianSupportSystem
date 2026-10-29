@@ -1,7 +1,9 @@
+// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 
 namespace Domain.Entities;
 
+// Ingredient: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class Ingredient
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -15,10 +17,12 @@ public sealed class Ingredient
     public bool? ContainsOtherAnimalProducts { get; set; }
     public string? Allergens { get; set; }
     public string? DefaultUnit { get; set; }
-    public decimal? CaloriesPer100Gram { get; set; }
-    public decimal? ProteinGramPer100Gram { get; set; }
-    public decimal? CarbohydrateGramPer100Gram { get; set; }
-    public decimal? FatGramPer100Gram { get; set; }
+    public decimal? Calories { get; set; }
+    public decimal? ProteinGram { get; set; }
+    public decimal? CarbohydrateGram { get; set; }
+    public decimal? FatGram { get; set; }
+    public string NutritionBasisUnit { get; set; } = "g";
+    public decimal NutritionBasisQuantity { get; set; } = 100;
     public string? Source { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

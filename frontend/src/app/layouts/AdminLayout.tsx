@@ -1,9 +1,11 @@
+// Chức năng: giao diện và thành phần dùng chung. Bố trí phần điều hướng và vùng nội dung chung giữa các màn hình.
 import {
   LayoutDashboard,
   Users,
   FileText,
   Video,
   MessageSquare,
+  Flag,
   Tag,
   Apple,
   LogOut,
@@ -15,6 +17,7 @@ import { useAuth } from '../../features/auth'
 import { Logo } from './Logo'
 import './AdminLayout.css'
 
+// Cấu trúc AdminLayoutProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 interface AdminLayoutProps {
   children: ReactNode
   activeMenu?: string
@@ -61,6 +64,8 @@ const nav = [
     icon: MessageSquare,
   },
   { id: 'members', label: 'Thành viên', path: '/admin/members', icon: Users },
+  { id: 'feedback', label: 'Góp ý', path: '/admin/feedback', icon: MessageSquare },
+  { id: 'reports', label: 'Báo cáo nội dung', path: '/admin/reports', icon: Flag },
 ]
 const menuAccents: Record<string, string> = {
   dashboard: 'bg-emerald-50 text-emerald-600',
@@ -73,6 +78,7 @@ const menuAccents: Record<string, string> = {
   comments: 'bg-sky-50 text-sky-600',
   members: 'bg-blue-50 text-blue-600',
 }
+// Thành phần AdminLayout nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export function AdminLayout({
   children,
   activeMenu = 'dashboard',
@@ -94,6 +100,7 @@ export function AdminLayout({
       window.location.hash = path
     })
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="fe1-admin min-h-screen flex bg-[#F9FBFA] text-slate-900 font-sans">
       <aside className="w-16 sm:w-64 lg:w-72 flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col justify-between sticky top-0 h-screen z-20 overflow-y-auto">

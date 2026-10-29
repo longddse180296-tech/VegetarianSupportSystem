@@ -1,5 +1,8 @@
+// Chức năng: video, bản nháp và nội dung công khai. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
+// Cấu trúc VideoStatus quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export type VideoStatus = 'published' | 'pending' | 'hidden'
 
+// Cấu trúc AdminVideoItem quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface AdminVideoItem {
   id: string
   title: string
@@ -19,6 +22,7 @@ export interface AdminVideoItem {
   rejectReason?: string
 }
 
+// Cấu trúc AdminVideoStats quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface AdminVideoStats {
   totalCount: number
   publishedCount: number
@@ -26,6 +30,7 @@ export interface AdminVideoStats {
   hiddenCount: number
 }
 
+// Cấu trúc AdminVideoFilter quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface AdminVideoFilter {
   keyword?: string
   status?: 'all' | 'published' | 'pending' | 'hidden'
@@ -35,6 +40,7 @@ export interface AdminVideoFilter {
   pageSize?: number
 }
 
+// Cấu trúc VideoFormData quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface VideoFormData {
   id?: string
   title: string

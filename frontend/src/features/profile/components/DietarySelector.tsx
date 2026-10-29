@@ -1,13 +1,16 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { CheckCircle2, ShieldCheck, Leaf, Milk, Egg, Utensils } from 'lucide-react'
 import type { DietaryType } from '../types'
 
+// Cấu trúc DietarySelectorProps quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface DietarySelectorProps {
   selectedDiet: DietaryType
   onChange: (diet: DietaryType) => void
   disabled?: boolean
 }
 
+// Cấu trúc DietOption quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface DietOption {
   id: DietaryType
   name: string
@@ -56,14 +59,16 @@ const DIET_OPTIONS: DietOption[] = [
   },
 ]
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (DietarySelector); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export const DietarySelector: React.FC<DietarySelectorProps> = ({
   selectedDiet,
   onChange,
   disabled = false,
 }) => {
+  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-col gap-5">
-      {/* Header */}
+      {/* Tiêu đề và thao tác chính. */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-[10px] bg-[#e8f5e9] text-[#2e7d32] flex items-center justify-center">
@@ -93,6 +98,7 @@ export const DietarySelector: React.FC<DietarySelectorProps> = ({
           const isSelected = selectedDiet === option.id
           const Icon = option.icon
 
+          // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
           return (
             <div
               key={option.id}

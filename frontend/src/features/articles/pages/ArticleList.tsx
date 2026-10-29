@@ -1,3 +1,4 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { PageHeading, Badge, Button, Input, EmptyState, SkeletonCard } from '../../../shared/components'
 import { useState, useEffect, useMemo } from 'react'
 import { ArrowRight, BookOpen, Calendar, Leaf, Plus, RotateCcw, Search, Sparkles } from 'lucide-react'
@@ -17,6 +18,7 @@ import {
   type BackendDietaryType,
 } from '../../../shared/constants'
 
+// Cấu trúc Props quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 interface Props {
   onSelectArticle: (id: string) => void
   onCreateArticle?: () => void
@@ -24,6 +26,7 @@ interface Props {
   onOpenAiChat?: () => void
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (formatArticleDate); thuộc bài viết và phiên bản gửi duyệt.
 function formatArticleDate(dateStr?: string | null): string {
   if (!dateStr) return ''
   try {
@@ -39,7 +42,9 @@ function formatArticleDate(dateStr?: string | null): string {
   }
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (ArticleList); thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }: Props) => {
+  // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [searchInput, setSearchInput] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
   const [category, setCategory] = useState('')
@@ -47,6 +52,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
   const [page, setPage] = useState(1)
   const [featuredArticles, setFeaturedArticles] = useState<FeaturedContentItem[]>([])
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     getPublicFeaturedContent('Article')
       .then((items) => {
@@ -55,11 +61,13 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
       .catch(() => {})
   }, [])
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSearchSubmit); thuộc bài viết và phiên bản gửi duyệt.
   const handleSearchSubmit = () => {
     setAppliedSearch(searchInput.trim())
     setPage(1)
   }
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (handleResetFilters); thuộc bài viết và phiên bản gửi duyệt.
   const handleResetFilters = () => {
     setSearchInput('')
     setAppliedSearch('')
@@ -86,6 +94,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
     return items
   }, [items, showFeatured, featuredIds])
 
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       {/* ============== HEADER ============== */}
@@ -178,6 +187,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
             </button>
             {BACKEND_DIETARY_TYPES.map((type) => {
               const active = dietaryType === type
+              // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={type}
@@ -226,6 +236,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
             </button>
             {articleCategories.map((item) => {
               const active = category === item
+              // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <button
                   key={item}
@@ -323,6 +334,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
                     <div className="flex flex-wrap items-center gap-2 mb-2.5">
                       {featured.dietaryTypes?.map((diet) => {
                         const type = toBackendDietaryType(diet)
+                        // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                         return (
                           <span
                             key={diet}

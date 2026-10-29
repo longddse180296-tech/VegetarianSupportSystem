@@ -1,3 +1,4 @@
+// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import {
   Mail,
@@ -8,9 +9,10 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react'
-import { ApiError } from '../../../shared/api/apiClient'
+import { ApiError, SESSION_NOTICE_KEY } from '../../../shared/api/apiClient'
 import type { LoginCredentials } from '../types'
 
+// Cấu trúc LoginFormProps quy định dữ liệu trao đổi trong đăng ký, đăng nhập và khôi phục mật khẩu.
 interface LoginFormProps {
   onSubmit: (credentials: LoginCredentials) => Promise<void>
   onNavigateToRegister?: () => void
@@ -18,22 +20,27 @@ interface LoginFormProps {
   isLoading?: boolean
 }
 
+// Thành phần LoginForm nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
 export const LoginForm: React.FC<LoginFormProps> = ({
   onSubmit,
   onNavigateToRegister,
   onNavigateToForgotPassword,
   isLoading = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của đăng ký, đăng nhập và khôi phục mật khẩu trong vòng đời màn hình.
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => {
+    try { return sessionStorage.getItem(SESSION_NOTICE_KEY) } catch { return null }
+  })
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string
     password?: string
   }>({})
 
+  // Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (validate); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const validate = (): boolean => {
     const errors: { email?: string; password?: string } = {}
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -52,6 +59,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     return Object.keys(errors).length === 0
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSubmit); thuộc đăng ký, đăng nhập và khôi phục mật khẩu.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
@@ -93,6 +101,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     }
   }
 
+  // Hiển thị giao diện đăng ký, đăng nhập và khôi phục mật khẩu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-sm flex flex-col gap-6">
       {/* Card Header */}
@@ -190,7 +199,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="fe1-link absolute right-3 p-1 text-slate-400 hover:text-slate-600 focus:outline-none"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             >
               {showPassword ? (
                 <EyeOff className="w-4 h-4" />

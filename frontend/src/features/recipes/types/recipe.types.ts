@@ -1,4 +1,6 @@
+// Chức năng: công thức và định lượng nguyên liệu. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
 // ---------- Enums ----------
+// Cấu trúc RecipeDietCategory quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export type RecipeDietCategory =
   | 'vegan'
   | 'ovo-lacto'
@@ -9,8 +11,10 @@ export type RecipeDietCategory =
   | 'quick'
   | 'high-protein'
 
+// Cấu trúc RecipeDifficulty quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export type RecipeDifficulty = 'easy' | 'medium' | 'hard'
 
+// Cấu trúc RecipeSortOption quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export type RecipeSortOption =
   | 'relevance'
   | 'newest'
@@ -43,6 +47,7 @@ export const SORT_LABELS: Record<RecipeSortOption, string> = {
 }
 
 // ---------- Sub-types ----------
+// Cấu trúc RecipeIngredient quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeIngredient {
   id?: string
   name: string
@@ -51,6 +56,7 @@ export interface RecipeIngredient {
   note?: string
 }
 
+// Cấu trúc RecipeStep quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeStep {
   stepNo?: number
   stepNumber?: number
@@ -61,6 +67,7 @@ export interface RecipeStep {
   durationMinutes?: number
 }
 
+// Cấu trúc RecipeNutrition quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeNutrition {
   kcal: number | null
   proteinG: number | null
@@ -69,6 +76,7 @@ export interface RecipeNutrition {
   fiberG?: number
 }
 
+// Cấu trúc RelatedBlogCard quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RelatedBlogCard {
   id: string
   title: string
@@ -81,6 +89,7 @@ export interface RelatedBlogCard {
   tagCls?: string
 }
 
+// Cấu trúc RelatedVideoCard quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RelatedVideoCard {
   id: string
   title: string
@@ -90,15 +99,17 @@ export interface RelatedVideoCard {
   videoUrl?: string
 }
 
+// Cấu trúc RelatedRestaurantCard quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RelatedRestaurantCard {
   id: string
   name: string
   address: string
-  distanceKm: number
+  distanceKm: number | null
   imageUrl: string
 }
 
 // ---------- Filter state ----------
+// Cấu trúc RecipeListFilter quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeListFilter {
   search: string
   diet: RecipeDietCategory | 'all'
@@ -116,6 +127,7 @@ export const DEFAULT_RECIPE_FILTER: RecipeListFilter = {
 }
 
 // ---------- Main entity ----------
+// Cấu trúc Recipe quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface Recipe {
   id: string
   title: string
@@ -154,6 +166,7 @@ export interface Recipe {
   relatedRestaurants?: RelatedRestaurantCard[]
 }
 
+// Cấu trúc RecipeListResponse quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeListResponse {
   items: Recipe[]
   totalCount: number

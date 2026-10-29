@@ -1,9 +1,11 @@
+// Chức năng: giao diện và thành phần dùng chung. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 /**
  * Hệ thống hằng số chuẩn hóa theo docs/mvp.md và contracts/
  */
 
 // 3 Vai trò duy nhất của hệ thống
 export const ROLES = ['Guest', 'User', 'Admin'] as const
+// Cấu trúc Role quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type Role = (typeof ROLES)[number]
 
 // 4 Chế độ ăn chuẩn hóa toàn hệ thống (không viết tắt)
@@ -14,6 +16,7 @@ export const STANDARD_DIETARY_NAMES = {
   LACTO_OVO: 'Trứng & Sữa (Lacto-ovo)',
 } as const
 
+// Cấu trúc StandardDietaryName quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type StandardDietaryName =
   (typeof STANDARD_DIETARY_NAMES)[keyof typeof STANDARD_DIETARY_NAMES]
 
@@ -31,6 +34,7 @@ export const DIETARY_TYPES = [
   'Ovo-vegetarian',
   'Lacto-ovo vegetarian',
 ] as const
+// Cấu trúc DietaryType quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type DietaryType = (typeof DIETARY_TYPES)[number]
 
 export const DIETARY_TYPE_LABELS: Record<DietaryType, string> = {
@@ -48,6 +52,7 @@ export const BACKEND_DIETARY_TYPES = [
   'OvoVegetarian',
   'LactoOvoVegetarian',
 ] as const
+// Cấu trúc BackendDietaryType quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type BackendDietaryType = (typeof BACKEND_DIETARY_TYPES)[number]
 
 export const BACKEND_DIETARY_TYPE_LABELS: Record<BackendDietaryType, string> = {
@@ -78,10 +83,12 @@ const dietaryTypeAliases: Record<string, BackendDietaryType> = {
   [STANDARD_DIETARY_NAMES.LACTO_OVO]: 'LactoOvoVegetarian',
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (toBackendDietaryType); thuộc giao diện và thành phần dùng chung.
 export function toBackendDietaryType(value: unknown): BackendDietaryType | null {
   return dietaryTypeAliases[String(value)] ?? null
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getDietaryTypeLabel); thuộc giao diện và thành phần dùng chung.
 export function getDietaryTypeLabel(value: unknown, fallback = 'Chưa chọn chế độ ăn'): string {
   const diet = toBackendDietaryType(value)
   return diet ? BACKEND_DIETARY_TYPE_LABELS[diet] : fallback
@@ -96,6 +103,7 @@ export const AI_FLAG_STATUSES = [
   'Partial',
   'Failed',
 ] as const
+// Cấu trúc AiFlagStatus quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type AiFlagStatus = (typeof AI_FLAG_STATUSES)[number]
 
 // Trạng thái duyệt bài của Admin
@@ -108,6 +116,7 @@ export const ADMIN_REVIEW_STATUSES = [
   'Rejected',
   'Removed',
 ] as const
+// Cấu trúc AdminReviewStatus quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type AdminReviewStatus = (typeof ADMIN_REVIEW_STATUSES)[number]
 
 // Trạng thái đánh giá món ăn / nhãn thành phần (Scan)
@@ -116,4 +125,5 @@ export const FOOD_SCAN_SUITABILITY = [
   'unsuitable', // Không phù hợp
   'insufficient', // Chưa đủ thông tin
 ] as const
+// Cấu trúc FoodScanSuitability quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type FoodScanSuitability = (typeof FOOD_SCAN_SUITABILITY)[number]

@@ -337,6 +337,44 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Comments", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.ContactFeedback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt", "Id");
+
+                    b.ToTable("ContactFeedback", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.ContentReaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -368,6 +406,80 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("ContentReactions", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.ContentReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("ContentVersion")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ReporterId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ResolvedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("ReporterId", "TargetType", "TargetId")
+                        .IsUnique()
+                        .HasFilter("[Status] = N'Pending'");
+
+                    b.ToTable("ContentReports", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Favorite", b =>
                 {
                     b.Property<Guid>("Id")
@@ -375,6 +487,10 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("SavedFrom")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
 
                     b.Property<Guid>("TargetId")
                         .HasColumnType("uniqueidentifier");
@@ -396,7 +512,10 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId", "TargetType", "TargetId")
                         .IsUnique();
 
-                    b.ToTable("Favorites", (string)null);
+                    b.ToTable("Favorites", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Favorites_SavedFrom", "[SavedFrom] IS NULL OR ([TargetType] = 'Recipe' AND [SavedFrom] IN ('Recipe', 'Pantry'))");
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.FeaturedContent", b =>
@@ -479,13 +598,15 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<decimal?>("CaloriesPer100Gram")
+                    b.Property<decimal?>("Calories")
                         .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
+                        .HasColumnType("decimal(12,3)")
+                        .HasColumnName("CaloriesPer100Gram");
 
-                    b.Property<decimal?>("CarbohydrateGramPer100Gram")
+                    b.Property<decimal?>("CarbohydrateGram")
                         .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
+                        .HasColumnType("decimal(12,3)")
+                        .HasColumnName("CarbohydrateGramPer100Gram");
 
                     b.Property<bool>("ContainsEgg")
                         .HasColumnType("bit");
@@ -506,9 +627,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
-                    b.Property<decimal?>("FatGramPer100Gram")
+                    b.Property<decimal?>("FatGram")
                         .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
+                        .HasColumnType("decimal(12,3)")
+                        .HasColumnName("FatGramPer100Gram");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -519,12 +641,26 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(120)")
                         .UseCollation("Latin1_General_100_CI_AS");
 
+                    b.Property<decimal>("NutritionBasisQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)")
+                        .HasDefaultValue(100m);
+
+                    b.Property<string>("NutritionBasisUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("g");
+
                     b.Property<int>("Origin")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("ProteinGramPer100Gram")
+                    b.Property<decimal?>("ProteinGram")
                         .HasPrecision(12, 3)
-                        .HasColumnType("decimal(12,3)");
+                        .HasColumnType("decimal(12,3)")
+                        .HasColumnName("ProteinGramPer100Gram");
 
                     b.Property<string>("Source")
                         .HasMaxLength(1000)
@@ -545,6 +681,10 @@ namespace Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_Ingredients_CarbohydrateGramPer100Gram", "[CarbohydrateGramPer100Gram] IS NULL OR [CarbohydrateGramPer100Gram] >= 0");
 
                             t.HasCheckConstraint("CK_Ingredients_FatGramPer100Gram", "[FatGramPer100Gram] IS NULL OR [FatGramPer100Gram] >= 0");
+
+                            t.HasCheckConstraint("CK_Ingredients_NutritionBasisQuantity", "[NutritionBasisQuantity] > 0");
+
+                            t.HasCheckConstraint("CK_Ingredients_NutritionBasisUnit", "[NutritionBasisUnit] IN (N'g', N'kg', N'ml', N'đơn vị')");
 
                             t.HasCheckConstraint("CK_Ingredients_Origin", "[Origin] IN (0, 1, 2)");
 
@@ -883,6 +1023,10 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("SubmittedAt")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("SystemRejectionReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("TextContent")
                         .IsRequired()
@@ -1289,6 +1433,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("ActiveSessionId")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -1326,10 +1474,17 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<string>("RefreshTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTimeOffset?>("SessionExpiresAtUtc")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("TokenVersion")
                         .ValueGeneratedOnAdd()
@@ -1340,6 +1495,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ActiveSessionId")
+                        .IsUnique()
+                        .HasFilter("[ActiveSessionId] IS NOT NULL");
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique();
@@ -1526,6 +1685,29 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId", "CreatedAtUtc");
 
                     b.ToTable("Videos", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.VideoMediaMetadata", b =>
+                {
+                    b.Property<string>("MediaKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset>("CheckedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<double?>("DurationSeconds")
+                        .HasColumnType("float");
+
+                    b.Property<bool?>("HasAudio")
+                        .HasColumnType("bit");
+
+                    b.HasKey("MediaKey");
+
+                    b.ToTable("VideoMediaMetadata", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_VideoMediaMetadata_Duration", "[DurationSeconds] IS NULL OR [DurationSeconds] > 0");
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.AiChatMessage", b =>

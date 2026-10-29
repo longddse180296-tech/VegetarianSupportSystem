@@ -1,8 +1,10 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useEffect, useRef, useState } from 'react'
 import type { BodyMetrics } from '../types'
 import { ageOn, profileApi } from '../api/profileApi'
 import { AlertError, Input, Select } from '../../../shared/components'
 
+// Cấu trúc BodyMetricsCalculatorProps quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface BodyMetricsCalculatorProps {
   metrics: BodyMetrics
   onChange: (metrics: BodyMetrics) => void
@@ -18,20 +20,25 @@ const BMI_LABELS = {
   unknown: 'Chưa đủ dữ liệu để phân loại BMI người lớn',
 }
 
+// Thành phần BodyMetricsCalculator nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export function BodyMetricsCalculator({ metrics, onChange, disabled = false }: BodyMetricsCalculatorProps) {
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const requestSequence = useRef(0)
   const timer = useRef<number | undefined>(undefined)
   const controller = useRef<AbortController | null>(null)
+  // Lưu dữ liệu và trạng thái thao tác của hồ sơ và nhu cầu dinh dưỡng cá nhân trong vòng đời màn hình.
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [latestBirthDate] = useState(() => new Date().toISOString().slice(0, 10))
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => () => {
     window.clearTimeout(timer.current)
     controller.current?.abort()
     requestSequence.current++
   }, [])
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (update); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const update = (changes: Partial<BodyMetrics>) => {
     const updated: BodyMetrics = {
       ...metrics, ...changes,
@@ -60,6 +67,7 @@ export function BodyMetricsCalculator({ metrics, onChange, disabled = false }: B
     }, 350)
   }
 
+  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <section className="ui-card p-5 sm:p-8 space-y-5" aria-labelledby="profile-body-title">
       <div>

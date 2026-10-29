@@ -1,10 +1,13 @@
+// Chức năng: video, bản nháp và nội dung công khai. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import { Play, PlayCircle } from 'lucide-react'
 import { Button, StatusBadge } from '../../../shared/components'
 import type { Video, VideoModerationStatus } from '../types/video.types'
-import { CATEGORY_LABELS, MODERATION_STATUS_LABELS, formatDuration } from '../types/video.types'
+import { CATEGORY_LABELS, MODERATION_STATUS_LABELS } from '../types/video.types'
+import { formatVideoDuration } from '../utils/videoMetadata'
 import type { VideoDetails } from '../api/backendVideos'
 
+// Cấu trúc VideoCardProps quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 export interface VideoCardProps {
   video: Video | VideoDetails
   categoryName?: string
@@ -26,6 +29,7 @@ const CURATED_THUMBNAILS = [
   'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80', // Fresh roasted vegetables
 ]
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanPrefix); thuộc video, bản nháp và nội dung công khai.
 function cleanPrefix(text?: string | null): string {
   if (!text) return ''
   return text
@@ -34,6 +38,7 @@ function cleanPrefix(text?: string | null): string {
     .trim()
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanDietLabel); thuộc video, bản nháp và nội dung công khai.
 function cleanDietLabel(diet?: string | null): string {
   if (!diet) return ''
   const cleaned = cleanPrefix(diet)
@@ -44,6 +49,7 @@ function cleanDietLabel(diet?: string | null): string {
   return cleaned
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapStatusBadge); thuộc video, bản nháp và nội dung công khai.
 function mapStatusBadge(
   s: VideoModerationStatus,
 ):
@@ -72,6 +78,7 @@ function mapStatusBadge(
   }
 }
 
+// Thành phần VideoCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc video, bản nháp và nội dung công khai.
 export const VideoCard: React.FC<VideoCardProps> = ({
   video,
   categoryName: customCategoryName,
@@ -82,8 +89,10 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   onNavigate,
   isLarge = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [imgError, setImgError] = useState(false)
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleOpen); thuộc video, bản nháp và nội dung công khai.
   const handleOpen = () => {
     if (onPlay && 'videoUrl' in video && video.videoUrl) {
       onPlay(video.videoUrl)
@@ -96,6 +105,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     onSelect?.(video.id)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleKey); thuộc video, bản nháp và nội dung công khai.
   const handleKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -103,7 +113,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     }
   }
 
-  // Fallback calculations based on ID hash for consistent mock visuals
+  // Chọn ảnh minh họa ổn định khi video chưa có ảnh bìa; không tạo số liệu tương tác.
   const hash = (video.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
   const defaultThumbnail = CURATED_THUMBNAILS[hash % CURATED_THUMBNAILS.length]
   const thumbnailSrc = !imgError && video.thumbnailUrl?.trim() ? video.thumbnailUrl : defaultThumbnail
@@ -114,11 +124,10 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     if ('duration' in video && video.duration) {
       durationDisplay = video.duration
     } else if ('durationSeconds' in video && video.durationSeconds) {
-      durationDisplay = formatDuration(video.durationSeconds)
+      durationDisplay = formatVideoDuration(video.durationSeconds)
     } else {
-      const minutes = 4 + (hash % 9) // 4 to 12 minutes
-      const seconds = 12 + (hash % 45) // 12 to 56 seconds
-      durationDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      // Không tạo thời lượng giả khi máy chủ chưa có thông tin của tệp.
+      durationDisplay = 'metadataStatus' in video && video.metadataStatus === 'Processing' ? 'Đang xử lý' : ''
     }
   }
 
@@ -151,6 +160,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     video.moderationStatus !== 'approved' &&
     video.moderationStatus !== 'published'
 
+  // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div
       role="button"
@@ -177,9 +187,9 @@ export const VideoCard: React.FC<VideoCardProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-75" />
 
           {/* Duration badge: Bottom-Right (Black background, white text) */}
-          <span className="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-md bg-black/85 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm backdrop-blur-xs">
+          {durationDisplay && <span className="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-md bg-black/85 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm backdrop-blur-xs">
             {durationDisplay}
-          </span>
+          </span>}
 
           {/* Centered Play button with hover animation */}
           <span className="absolute inset-0 flex items-center justify-center">

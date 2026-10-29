@@ -1,6 +1,8 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import { X, Sparkles, Bot, ArrowRight } from 'lucide-react'
 
+// Cấu trúc AiImportModalProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface AiImportModalProps {
   isOpen: boolean
   onClose: () => void
@@ -8,27 +10,31 @@ interface AiImportModalProps {
   onNavigateToAiChat?: () => void
 }
 
+// Thành phần AiImportModal nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const AiImportModal: React.FC<AiImportModalProps> = ({
   isOpen,
   onClose,
   onImportPrompt,
   onNavigateToAiChat,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [aiPrompt, setAiPrompt] = useState(
     'Tạo thực đơn 7 ngày thuần chay giàu Protein cho người nặng 60kg, cao 170cm, muốn duy trì vóc dáng và hạn chế đậu nành.',
   )
 
   if (!isOpen) return null
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleApply); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleApply = () => {
     onImportPrompt?.(aiPrompt)
     onClose()
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-xl border border-slate-100 p-6 space-y-4">
-        {/* Header */}
+        {/* Tiêu đề và thao tác chính. */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">

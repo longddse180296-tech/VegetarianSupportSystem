@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+// Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { useState, useRef, useEffect } from 'react'
 import {
   ArrowLeft,
   Calendar,
@@ -42,6 +43,7 @@ import {
   type AiStatus,
 } from '../../admin/moderation/api/adminModerationApi'
 import { AiReview } from '../../admin/moderation/components/ModerationWorkspace'
+import { formatSystemReviewMessage } from '../../admin/moderation/utils/moderationMessages'
 import {
   articleApi,
   articleCategories,
@@ -58,6 +60,7 @@ import { PageHeading, Badge } from '../../../shared/components/PageHeading'
 import { Button } from '../../../shared/components/Button'
 import { uploadPublicImage } from '../../../shared/api/publicImageApi'
 
+// Cấu trúc ArticleEditorPageProps quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 interface ArticleEditorPageProps {
   articleId?: string
   fromSource?: 'articles' | 'profile' | string
@@ -89,6 +92,7 @@ const dietaryIcons: Record<BackendDietaryType, string> = {
   LactoOvoVegetarian: '🍳',
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getStatusBadgeStyle); thuộc bài viết và phiên bản gửi duyệt.
 function getStatusBadgeStyle(status: AdminStatus) {
   switch (status) {
     case 'Published':
@@ -107,13 +111,14 @@ function getStatusBadgeStyle(status: AdminStatus) {
   }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getAiStatusBadgeStyle); thuộc bài viết và phiên bản gửi duyệt.
 function getAiStatusBadgeStyle(status: AiStatus) {
   switch (status) {
     case 'Passed':
       return 'bg-emerald-50 text-emerald-700 border-emerald-200'
     case 'Flagged':
-      return 'bg-rose-50 text-rose-700 border-rose-200'
     case 'Partial':
+      return 'bg-red-50 text-red-800 border-red-300'
     case 'Checking':
       return 'bg-amber-50 text-amber-700 border-amber-200'
     case 'Failed':
@@ -124,13 +129,16 @@ function getAiStatusBadgeStyle(status: AiStatus) {
   }
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (ArticleEditorPage); thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleEditorPage = ({
   articleId,
   fromSource = 'articles',
   onNavigate,
 }: ArticleEditorPageProps) => {
   const { user, logout } = useAuth()
+  // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [id, setId] = useState(articleId)
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Contextual navigation determination
@@ -160,6 +168,32 @@ export const ArticleEditorPage = ({
   const [imageError, setImageError] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [customCategory, setCustomCategory] = useState('')
+
+  // Chỉ theo dõi phiên bản mới nhất đang kiểm tra; không xóa form hay gọi lại Gemini khi đọc trạng thái.
+  const latestVersion = Math.max(0, ...(record.data?.versions.map(version => version.version) || []))
+  const awaitingAi = record.data?.versions.some(version => version.version === latestVersion && version.aiStatus === 'Checking') ?? false
+  const setRecordData = record.setData
+  useEffect(() => {
+    if (!id || !awaitingAi) return
+    let active = true
+    let attempts = 0
+    let timer: number
+    const refresh = async () => {
+      if (!active) return
+      try {
+        const updated = await articleApi.mine(id)
+        if (!active) return
+        setRecordData(updated)
+        attempts++
+        if (attempts < 30) timer = window.setTimeout(refresh, 5000)
+      } catch (reason) {
+        // Dừng khi mất mạng/quyền truy cập; người dùng có thể chủ động làm mới để thử lại.
+        if (active) setError(errorMessage(reason))
+      }
+    }
+    timer = window.setTimeout(refresh, 5000)
+    return () => { active = false; window.clearTimeout(timer) }
+  }, [id, awaitingAi, setRecordData])
 
   if (record.data && record.data !== loadedRecord) {
     const { title, content, category, categories, coverImageUrl, dietaryTypes, dietaryType } = record.data
@@ -197,6 +231,7 @@ export const ArticleEditorPage = ({
     form.content.trim(),
   )
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (insertMarkdown); thuộc bài viết và phiên bản gửi duyệt.
   const insertMarkdown = (prefix: string, suffix = '', defaultPlaceholder = '') => {
     const textarea = textareaRef.current
     if (!textarea) return
@@ -221,6 +256,7 @@ export const ArticleEditorPage = ({
     }, 0)
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (toggleCategory); thuộc bài viết và phiên bản gửi duyệt.
   const toggleCategory = (category: string) => {
     setForm((previous) => ({
       ...previous,
@@ -230,6 +266,7 @@ export const ArticleEditorPage = ({
     }))
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (addCustomCategory); thuộc bài viết và phiên bản gửi duyệt.
   const addCustomCategory = () => {
     const category = customCategory.trim()
     if (!category) return
@@ -242,6 +279,7 @@ export const ArticleEditorPage = ({
     setCustomCategory('')
   }
 
+  // Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (uploadCoverImage); thuộc bài viết và phiên bản gửi duyệt.
   const uploadCoverImage = async (file?: File) => {
     if (!file || busy || uploadingImage || !editable) return
     setUploadingImage(true)
@@ -257,6 +295,7 @@ export const ArticleEditorPage = ({
     }
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (save); thuộc bài viết và phiên bản gửi duyệt.
   async function save(submit: boolean) {
     if (busy || uploadingImage || !editable) return
     setBusy(true)
@@ -274,7 +313,12 @@ export const ArticleEditorPage = ({
       if (submit) {
         saved = await articleApi.submit(saved.id)
         record.setData(saved)
-        setShowSuccessModal(true)
+        // Tiền kiểm vẫn lưu phiên bản bị từ chối; không thông báo đang chờ AI/Admin khi tiêu đề không đạt.
+        const rejection = saved.versions.find(version => version.systemRejectionReason)?.systemRejectionReason
+        if (saved.status === 'Rejected' && rejection) {
+          setError(rejection)
+          setShowSuccessModal(false)
+        } else setShowSuccessModal(true)
       } else {
         setNotice('Đã lưu bản nháp bài viết thành công.')
       }
@@ -300,6 +344,7 @@ export const ArticleEditorPage = ({
         { label: id ? 'Chỉnh sửa bài viết' : 'Viết bài mới' },
       ]
 
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <PublicLayout
       activeNav="articles"
@@ -411,7 +456,7 @@ export const ArticleEditorPage = ({
                 </p>
                 {record.data.publishedVersion && (
                   <p className="text-xs opacity-90">
-                    Bản đang công khai là phiên bản {record.data.publishedVersion.version}. Các chỉnh sửa lưu mới sẽ được Admin phê duyệt trước khi cập nhật tới độc giả.
+                    Bản đang công khai là phiên bản {record.data.publishedVersion.version}. Các chỉnh sửa lưu mới sẽ được Quản trị viên phê duyệt trước khi cập nhật tới độc giả.
                   </p>
                 )}
                 {!editable && (
@@ -488,6 +533,7 @@ export const ArticleEditorPage = ({
                 <div className="flex flex-wrap gap-2">
                   {articleCategories.map((cat) => {
                     const isSelected = form.categories.includes(cat)
+                    // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                     return (
                       <button
                         key={cat}
@@ -540,6 +586,7 @@ export const ArticleEditorPage = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {BACKEND_DIETARY_TYPES.map((type) => {
                     const isChecked = form.dietaryType === type
+                    // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                     return (
                       <button
                         key={type}
@@ -633,10 +680,6 @@ export const ArticleEditorPage = ({
                           onError={() => setImageError(true)}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium flex items-center gap-1.5">
-                          <Check size={12} className="text-emerald-400" />
-                          <span>Ảnh đại diện hợp lệ</span>
-                        </div>
                       </div>
                     ) : (
                       <div className="p-6 text-center space-y-2">
@@ -816,7 +859,7 @@ export const ArticleEditorPage = ({
                     </span>
                   </div>
                   <span className="text-[11px] text-slate-400">
-                    Nội dung sẽ được kiểm tra an toàn bởi AI trước khi Admin xét duyệt.
+                    Hệ thống kiểm tra tiêu đề, nội dung và ảnh đại diện trước khi Quản trị viên xét duyệt.
                   </span>
                 </div>
               </div>
@@ -942,7 +985,7 @@ export const ArticleEditorPage = ({
                   <span>Lịch sử phiên bản &amp; Đánh giá kiểm duyệt</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Theo dõi kết quả thẩm định nội dung từ hệ thống AI và các phản hồi từ ban quản trị Admin.
+                  Theo dõi kết quả kiểm tra của Hệ thống và phản hồi từ Quản trị viên.
                 </p>
               </div>
               <Button
@@ -979,22 +1022,27 @@ export const ArticleEditorPage = ({
                           ver.aiStatus,
                         )}`}
                       >
-                        AI: {aiStatusLabels[ver.aiStatus]}
+                        Hệ thống: {aiStatusLabels[ver.aiStatus]}
                       </span>
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusBadgeStyle(
                           ver.adminStatus,
                         )}`}
                       >
-                        Admin: {adminStatusLabels[ver.adminStatus]}
+                        {ver.systemRejectionReason ? 'Hệ thống' : 'Quản trị viên'}: {adminStatusLabels[ver.adminStatus]}
                       </span>
                     </div>
                   </div>
 
+                  {ver.systemRejectionReason && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-900 space-y-1">
+                    <p className="font-bold">Hệ thống từ chối: tiêu đề trùng</p>
+                    <p>{ver.systemRejectionReason}</p>
+                    <p>Hệ thống chưa kiểm tra nội dung và ảnh của phiên bản này. Bạn có thể đổi tiêu đề rồi gửi lại.</p>
+                  </div>}
                   {ver.aiSummary && (
-                    <div className="text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-200/60 space-y-1">
-                      <span className="font-bold text-slate-900 block">Tóm tắt đánh giá AI:</span>
-                      <p className="leading-relaxed">{ver.aiSummary}</p>
+                    <div role={['Flagged', 'Partial', 'Failed'].includes(ver.aiStatus) ? 'alert' : undefined} className={`text-xs p-3 rounded-xl border space-y-1 ${['Flagged', 'Partial', 'Failed'].includes(ver.aiStatus) ? 'text-red-900 bg-red-50 border-red-300' : 'text-slate-700 bg-white border-slate-200/60'}`}>
+                      <span className="font-bold block">{['Flagged', 'Partial', 'Failed'].includes(ver.aiStatus) ? 'Cảnh báo từ Hệ thống:' : 'Tóm tắt kiểm tra của Hệ thống:'}</span>
+                      <p className="leading-relaxed">{formatSystemReviewMessage(ver.aiSummary)}</p>
                     </div>
                   )}
 
@@ -1025,7 +1073,7 @@ export const ArticleEditorPage = ({
                       }}
                       className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline decoration-emerald-500/40 hover:decoration-emerald-700 transition"
                     >
-                      Xem chi tiết kiểm tra và bằng chứng AI →
+                      Xem chi tiết kiểm tra của Hệ thống →
                     </button>
                   </div>
                 </div>
@@ -1059,7 +1107,7 @@ export const ArticleEditorPage = ({
                 Bài viết đã được gửi duyệt thành công!
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                Hệ thống AI đang thực hiện quét an toàn nội dung. Bài viết của bạn sẽ được Ban biên tập xét duyệt và xuất bản tới cộng đồng độc giả trong thời gian sớm nhất.
+                Hệ thống đang kiểm tra văn bản và ảnh đại diện đã tải lên. Bài viết chỉ được công khai sau khi Quản trị viên duyệt.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">

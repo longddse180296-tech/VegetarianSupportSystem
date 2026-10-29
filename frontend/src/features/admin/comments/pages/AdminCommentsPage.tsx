@@ -1,3 +1,4 @@
+// Chức năng: bình luận và tương tác cộng đồng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
 import {
@@ -20,11 +21,13 @@ import type {
   CommentRecord,
   ContentPage,
 } from '../../../articles/api/articles.api'
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminCommentsPage); thuộc bình luận và tương tác cộng đồng.
 export const AdminCommentsPage = ({
   onNavigate,
 }: {
   onNavigate?: (path: string) => void
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của bình luận và tương tác cộng đồng trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
@@ -49,10 +52,10 @@ export const AdminCommentsPage = ({
       ),
     },
     {
-      key: 'authorId',
-      header: 'ID tác giả',
+      key: 'authorName',
+      header: 'Tên tác giả',
       render: (item) => (
-        <span className="break-all text-xs">{item.authorId}</span>
+        <span className="break-words text-xs">{item.authorName?.trim() || 'Không có thông tin tác giả'}</span>
       ),
     },
     {
@@ -93,6 +96,7 @@ export const AdminCommentsPage = ({
       ),
     },
   ]
+  // Hiển thị giao diện bình luận và tương tác cộng đồng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <AdminFrame
       menu="comments"
@@ -182,7 +186,7 @@ export const AdminCommentsPage = ({
           <div className="space-y-4 text-sm">
             <p className="whitespace-pre-wrap break-words">{selected.body}</p>
             <p>Trạng thái: {labels[selected.status]}</p>
-            <p className="break-all">Tác giả (ID): {selected.authorId}</p>
+            <p className="break-words">Tên tác giả: {selected.authorName?.trim() || 'Không có thông tin tác giả'}</p>
             <p className="break-all">
               Nội dung: {selected.targetType} · {selected.targetId}
             </p>

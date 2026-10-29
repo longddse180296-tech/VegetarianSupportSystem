@@ -1,7 +1,9 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Enums;
 
 namespace Application.Features.Restaurants;
 
+// RestaurantSummary: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record RestaurantSummary(
     Guid Id,
     string Name,
@@ -14,10 +16,14 @@ public sealed record RestaurantSummary(
     IReadOnlyList<DietaryType> DietaryTypes,
     DietaryType? DietaryType,
     IReadOnlyList<string> Amenities,
-    decimal? DistanceKm);
+    decimal? DistanceKm,
+    decimal? Latitude = null,
+    decimal? Longitude = null);
 
+// RestaurantFeaturedDishResponse: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record RestaurantFeaturedDishResponse(Guid Id, string Name, string ImageUrl, int DisplayOrder);
 
+// RestaurantResponse: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record RestaurantResponse(
     Guid Id,
     string Name,
@@ -43,6 +49,7 @@ public sealed record RestaurantResponse(
     IReadOnlyList<RestaurantFeaturedDishResponse> FeaturedDishes,
     decimal? DistanceKm);
 
+// RestaurantPage: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record RestaurantPage(
     IReadOnlyList<RestaurantSummary> Items,
     int PageNumber,

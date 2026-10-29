@@ -1,5 +1,7 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 namespace Domain.Entities;
 
+// UserAvoidedFood: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class UserAvoidedFood
 {
     private UserAvoidedFood() { }
@@ -19,8 +21,10 @@ public sealed class UserAvoidedFood
     public string NormalizedName { get; private set; } = string.Empty;
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
+    // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public static UserAvoidedFood Create(string userId, string name, DateTimeOffset createdAtUtc)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("A user ID is required.", nameof(userId));
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 150)
@@ -29,8 +33,10 @@ public sealed class UserAvoidedFood
         return new UserAvoidedFood(userId.Trim(), name.Trim(), createdAtUtc);
     }
 
+    // Rename: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     internal void Rename(string name)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 150)
             throw new ArgumentException("Avoided food name must be 1 to 150 characters.", nameof(name));
 

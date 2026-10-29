@@ -1,5 +1,7 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 
+// Cấu trúc BadgeStatusType quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export type BadgeStatusType =
   // AI Flag Check
   | 'NotSubmitted'
@@ -27,6 +29,7 @@ export type BadgeStatusType =
   | 'info'
   | 'neutral'
 
+// Cấu trúc StatusBadgeProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface StatusBadgeProps {
   status: BadgeStatusType
   label?: string
@@ -34,6 +37,7 @@ export interface StatusBadgeProps {
   className?: string
 }
 
+// Cấu trúc StatusConfig quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 interface StatusConfig {
   defaultLabel: string
   bg: string
@@ -199,6 +203,7 @@ const STATUS_MAP: Record<BadgeStatusType, StatusConfig> = {
   },
 }
 
+// Thành phần StatusBadge nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   label,
@@ -210,6 +215,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   const sizeClass = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs'
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <span
       className={`inline-flex items-center gap-1.5 font-semibold rounded-full border ${config.bg} ${config.text} ${config.border} ${sizeClass} ${className} tracking-tight select-none`}

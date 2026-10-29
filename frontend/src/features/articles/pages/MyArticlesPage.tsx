@@ -1,3 +1,4 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
@@ -16,6 +17,7 @@ import {
   type MyArticleRecord,
 } from '../api/articles.api'
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getStatusBadge); thuộc bài viết và phiên bản gửi duyệt.
 function getStatusBadge(status: string) {
   switch (status) {
     case 'Published':
@@ -34,11 +36,13 @@ function getStatusBadge(status: string) {
   }
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (MyArticlesPage); thuộc bài viết và phiên bản gửi duyệt.
 export const MyArticlesPage = ({
   onNavigate,
 }: {
   onNavigate: (path: string) => void
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
   const result = useApiData<ContentPage<MyArticleRecord>>(
@@ -47,6 +51,7 @@ export const MyArticlesPage = ({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <UserProfileShell
       activeTab="my-articles"
@@ -160,6 +165,9 @@ export const MyArticlesPage = ({
                         Phiên bản {item.publishedVersion.version} đang công khai
                       </p>
                     )}
+                    {item.versions[0]?.systemRejectionReason && <p className="rounded-lg bg-red-50 p-2 text-xs text-red-800">
+                      <strong>Hệ thống từ chối: </strong>{item.versions[0].systemRejectionReason}
+                    </p>}
                   </div>
                 </div>
 

@@ -1,3 +1,4 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using System.Security.Claims;
 using Application.Features.Articles;
 using Microsoft.AspNetCore.Authorization;
@@ -5,29 +6,35 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
 
+// ArticlesController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
 public sealed class ArticlesController(ArticleService service) : ControllerBase
 {
+    // List: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [AllowAnonymous]
     [HttpGet("/api/articles")]
     public Task<IActionResult> List([FromQuery] ArticleListQuery query, CancellationToken ct) =>
         Execute(async () => Ok(await service.ListPublicAsync(query, ct)));
 
+    // Get: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [AllowAnonymous]
     [HttpGet("/api/articles/{id:guid}")]
     public Task<IActionResult> Get(Guid id, CancellationToken ct) =>
         Execute(async () => Ok(await service.GetPublicAsync(id, ct)));
 
+    // Mine: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [Authorize(Roles = "User,Admin")]
     [HttpGet("/api/me/articles")]
     public Task<IActionResult> Mine([FromQuery] MyArticleListQuery query, CancellationToken ct) =>
         WithOwner(owner => service.ListMineAsync(owner, query, ct));
 
+    // MyDetail: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [Authorize(Roles = "User,Admin")]
     [HttpGet("/api/me/articles/{id:guid}")]
     public Task<IActionResult> MyDetail(Guid id, CancellationToken ct) =>
         WithOwner(owner => service.GetMineAsync(id, owner, ct));
 
+    // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [Authorize(Roles = "User,Admin")]
     [HttpPost("/api/me/articles")]
     public Task<IActionResult> Create([FromBody] ArticleDraftRequest request, CancellationToken ct) =>
@@ -37,11 +44,13 @@ public sealed class ArticlesController(ArticleService service) : ControllerBase
             return CreatedAtAction(nameof(MyDetail), new { id = result.Id }, result);
         });
 
+    // Update: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [Authorize(Roles = "User,Admin")]
     [HttpPut("/api/me/articles/{id:guid}")]
     public Task<IActionResult> Update(Guid id, [FromBody] ArticleDraftRequest request, CancellationToken ct) =>
         WithOwner(owner => service.UpdateAsync(id, owner, request, ct));
 
+    // Delete: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
     [Authorize(Roles = "User,Admin")]
     [HttpDelete("/api/me/articles/{id:guid}")]
     public Task<IActionResult> Delete(Guid id, CancellationToken ct) =>
@@ -51,21 +60,25 @@ public sealed class ArticlesController(ArticleService service) : ControllerBase
             return NoContent();
         });
 
+    // Submit: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     [Authorize(Roles = "User,Admin")]
     [HttpPost("/api/me/articles/{id:guid}/submit")]
     public Task<IActionResult> Submit(Guid id, CancellationToken ct) =>
         WithOwner(owner => service.SubmitAsync(id, owner, ct));
 
+    // WithOwner: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private Task<IActionResult> WithOwner<T>(Func<string, Task<T>> action) =>
         User.Identity?.IsAuthenticated == true && User.FindFirstValue("sub") is { Length: > 0 } ownerId
             ? Execute(async () => Ok(await action(ownerId)))
             : Task.FromResult<IActionResult>(Unauthorized());
 
+    // WithOwnerResult: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private Task<IActionResult> WithOwnerResult(Func<string, Task<IActionResult>> action) =>
         User.Identity?.IsAuthenticated == true && User.FindFirstValue("sub") is { Length: > 0 } ownerId
             ? Execute(() => action(ownerId))
             : Task.FromResult<IActionResult>(Unauthorized());
 
+    // Execute: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private async Task<IActionResult> Execute(Func<Task<IActionResult>> action)
     {
         try { return await action(); }

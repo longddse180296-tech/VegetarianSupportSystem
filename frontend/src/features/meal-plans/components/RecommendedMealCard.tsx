@@ -1,7 +1,9 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Sparkles, RefreshCw } from 'lucide-react'
 import type { RecommendedMealItem } from '../types/mealPlans.types'
 
+// Cấu trúc RecommendedMealCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface RecommendedMealCardProps {
   meal: RecommendedMealItem
   isSwappingActive?: boolean
@@ -9,12 +11,14 @@ interface RecommendedMealCardProps {
   onViewRecipe?: (recipeId?: string) => void
 }
 
+// Thành phần RecommendedMealCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const RecommendedMealCard: React.FC<RecommendedMealCardProps> = ({
   meal,
   isSwappingActive = false,
   onToggleSwap,
   onViewRecipe,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div
       className={`bg-white rounded-3xl p-5 border transition-all shadow-xs flex flex-col justify-between gap-4 ${

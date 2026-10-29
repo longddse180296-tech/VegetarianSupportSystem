@@ -1,3 +1,4 @@
+/* Chức năng: giao diện và thành phần dùng chung. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
 .app-shell {
   min-height: 100vh;
   display: flex;
