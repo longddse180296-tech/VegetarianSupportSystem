@@ -1,5 +1,7 @@
 # Hướng dẫn nhóm nhận bản release — 28/10/2026
 
+Cập nhật 29/10/2026: sửa mở khóa nguyên liệu bằng endpoint activate thật; FE chỉ đổi trạng thái sau khi lưu thành công. Máy demo đã chuyển upload sang `.local/media` và `.local/public-images` ở gốc repository qua Storage__PrivateRoot/Storage__PublicImageRoot trong backend/.env. Hai biến cần là đường dẫn tuyệt đối theo máy; nếu không cấu hình, backend vẫn dùng mặc định backend/src/Api/.local. Việc chuyển file local không tự chạy khi pull, file upload/.env không được push lên Git.
+
 ## Lấy và chạy source
 
 Giữ hoặc commit thay đổi cá nhân trước khi chuyển nhánh/pull. Bản này đã bỏ cache pnpm, dùng npm và package-lock.json; không cần pnpm.

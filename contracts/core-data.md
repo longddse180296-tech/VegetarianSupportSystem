@@ -1,5 +1,7 @@
 # Core Data — tuần 1
 
+Cập nhật 29/10/2026: `POST /api/admin/ingredients/{id}/activate` chỉ Admin, trả 204; đặt IsActive=true và UpdatedAt khi cần, giữ nguyên dinh dưỡng và liên kết công thức. Gọi lại vẫn 204; thiếu nguyên liệu trả 404; Guest/User trả 401/403. Sau mở khóa, API công khai và ô chọn nguyên liệu lấy lại được mục này. FE chờ request thành công mới đổi trạng thái/báo thành công, lỗi giữ trạng thái cũ.
+
 Cập nhật 28/10/2026: mốc dinh dưỡng theo đơn vị Admin chọn được dùng trực tiếp: g → 100 g; kg → 1 kg; ml → 100 ml; Số lượng (`đơn vị` trong API) → 1 đơn vị. Công thức cộng các chỉ số theo `lượng dùng / NutritionBasisQuantity`, rồi chia khẩu phần; ml và Số lượng không đổi sang gam. Ví dụ nhập 200 kcal/100 ml thì 50 ml đóng góp 100 kcal; nhập 200 kcal/1 đơn vị thì 2 đơn vị đóng góp 400 kcal trước khi chia khẩu phần. Form công thức tự lấy đơn vị, hiển thị hướng dẫn đúng loại. Dữ liệu cũ thực sự theo 100 g nhưng DefaultUnit=ml không được tự đổi nhãn hoặc số liệu; cần nhập lại chỉ số theo mốc ml trong quản lý nguyên liệu. Không thay dữ liệu gốc bằng số liệu suy đoán. Kiểm tra API/DB/SignalR: `--nutrition-units-only` trên chương trình IntegrationTests.
 
 OpenAPI runtime `/openapi/v1.json` mô tả schema chi tiết. JSON dùng camelCase; ID là UUID. Category chỉ dùng cho Recipe.

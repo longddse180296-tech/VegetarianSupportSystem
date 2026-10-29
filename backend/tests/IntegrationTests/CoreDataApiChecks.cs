@@ -357,6 +357,26 @@ internal static class CoreDataApiChecks
         Check(!(await client.GetFromJsonAsync<IngredientPage>("/api/ingredients?pageSize=100"))!.Items.Any(item => item.Id == tofu.Id),
             "inactive ingredient excluded from new recipe ingredient picker");
         var detail = await client.GetFromJsonAsync<RecipeResponse>("/api/recipes/" + recipe.Id);
+        client.DefaultRequestHeaders.Remove("Test-Role");
+        Check((await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/activate", null)).StatusCode == HttpStatusCode.Unauthorized,
+            "Guest cannot activate ingredient");
+        client.DefaultRequestHeaders.Add("Test-Role", "User");
+        Check((await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/activate", null)).StatusCode == HttpStatusCode.Forbidden,
+            "User cannot activate ingredient");
+        client.DefaultRequestHeaders.Remove("Test-Role");
+        client.DefaultRequestHeaders.Add("Test-Role", "Admin");
+        Check((await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/activate", null)).StatusCode == HttpStatusCode.NoContent,
+            "Admin activates ingredient");
+        var reopened = (await client.GetFromJsonAsync<IngredientResponse>("/api/ingredients/" + tofu.Id))!;
+        Check(reopened.IsActive && reopened.Name == tofu.Name && reopened.Calories == tofu.Calories,
+            "activation persists and restores public ingredient without changing nutrition");
+        Check((await client.GetFromJsonAsync<IngredientPage>("/api/ingredients?pageSize=100"))!.Items.Any(item => item.Id == tofu.Id),
+            "activated ingredient returns to recipe picker");
+        Check((await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/activate", null)).StatusCode == HttpStatusCode.NoContent,
+            "ingredient activation is idempotent");
+        Check((await client.PostAsync($"/api/admin/ingredients/{Guid.NewGuid()}/activate", null)).StatusCode == HttpStatusCode.NotFound,
+            "missing ingredient activation returns 404");
+        await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/deactivate", null);
         Check(detail!.Ingredients.Any(x => x.IngredientId == tofu.Id && !x.IsActive), "existing recipe keeps inactive ingredient");
         Check((await client.PostAsJsonAsync("/api/admin/recipes", Recipe("Inactive", Row(tofu.Id)))).StatusCode == HttpStatusCode.BadRequest, "new recipe cannot use inactive ingredient");
         Check((await client.PutAsJsonAsync("/api/admin/recipes/" + recipe.Id, Recipe("Tofu rice", Row(tofu.Id, 300)))).IsSuccessStatusCode, "existing recipe can retain inactive reference");

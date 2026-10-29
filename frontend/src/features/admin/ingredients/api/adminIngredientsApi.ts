@@ -10,4 +10,5 @@ export const adminIngredientsApi = {
   create: (input: IngredientInput) => apiClient.post<AdminIngredientItem>('/api/admin/ingredients', input),
   update: (id: string, input: IngredientInput) => apiClient.put<AdminIngredientItem>(`/api/admin/ingredients/${id}`, input),
   deactivate: (id: string) => apiClient.post<void>(`/api/admin/ingredients/${id}/deactivate`),
+  activate: (id: string) => apiClient.post<void>(`/api/admin/ingredients/${id}/activate`),
 }
