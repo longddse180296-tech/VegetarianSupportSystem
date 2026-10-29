@@ -1,11 +1,14 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
 
+// CoreDataControllerBase: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public abstract class CoreDataControllerBase : ControllerBase
 {
+    // Execute: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     protected async Task<IActionResult> Execute(Func<Task<IActionResult>> action)
     {
         try

@@ -1,11 +1,14 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Persistence.Configurations;
 
+// RestaurantConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class RestaurantConfiguration : IEntityTypeConfiguration<Restaurant>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<Restaurant> builder)
     {
         builder.ToTable("Restaurants", table =>
@@ -30,8 +33,10 @@ public sealed class RestaurantConfiguration : IEntityTypeConfiguration<Restauran
     }
 }
 
+// RestaurantDietaryTypeConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class RestaurantDietaryTypeConfiguration : IEntityTypeConfiguration<RestaurantDietaryType>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<RestaurantDietaryType> builder)
     {
         builder.ToTable("RestaurantDietaryTypes");
@@ -41,8 +46,10 @@ public sealed class RestaurantDietaryTypeConfiguration : IEntityTypeConfiguratio
     }
 }
 
+// RestaurantAmenityConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class RestaurantAmenityConfiguration : IEntityTypeConfiguration<RestaurantAmenity>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<RestaurantAmenity> builder)
     {
         builder.ToTable("RestaurantAmenities");
@@ -55,8 +62,10 @@ public sealed class RestaurantAmenityConfiguration : IEntityTypeConfiguration<Re
     }
 }
 
+// RestaurantFeaturedDishConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class RestaurantFeaturedDishConfiguration : IEntityTypeConfiguration<RestaurantFeaturedDish>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<RestaurantFeaturedDish> builder)
     {
         builder.ToTable("RestaurantFeaturedDishes", table =>

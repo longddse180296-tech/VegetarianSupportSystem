@@ -1,10 +1,13 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
 namespace Api.Configuration;
 
+// BearerOpenApiTransformer: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class BearerOpenApiTransformer : IOpenApiDocumentTransformer
 {
+    // TransformAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public Task TransformAsync(
         OpenApiDocument document,
         OpenApiDocumentTransformerContext context,
@@ -97,6 +100,7 @@ public sealed class BearerOpenApiTransformer : IOpenApiDocumentTransformer
         return Task.CompletedTask;
     }
 
+    // SetFileUploadRequestBody: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     private static void SetFileUploadRequestBody(OpenApiOperation operation, string fieldName)
     {
         operation.RequestBody = new OpenApiRequestBody

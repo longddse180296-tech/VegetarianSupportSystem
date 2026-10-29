@@ -1,3 +1,4 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type {
   ActivityLevel,
@@ -10,10 +11,12 @@ import type {
   UserProfile,
 } from '../types'
 
+// Cấu trúc BackendItem quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface BackendItem {
   id: string
   name: string
 }
+// Cấu trúc BackendProfile quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface BackendProfile {
   userId: string
   fullName: string
@@ -47,6 +50,7 @@ interface BackendProfile {
   updatedAtUtc: string
 }
 
+// Cấu trúc BackendEstimate quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface BackendEstimate {
   bmi: number | null
   adultBmiCategory: BackendProfile['adultBmiCategory']
@@ -120,6 +124,7 @@ const categoryFromBackend: Record<
 
 const DEFAULT_AVATAR = ''
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (normalizedNames); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 function normalizedNames(names: string[]): string[] {
   const result = new Map<string, string>()
   for (const value of names) {
@@ -142,6 +147,7 @@ const EMPTY_RULES: HiddenIngredientRules = {
   gelatinHoney: false,
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (ageOn); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export function ageOn(birthDate: string | null): number {
   if (!birthDate) return 0
   const today = new Date()
@@ -155,6 +161,7 @@ export function ageOn(birthDate: string | null): number {
   return Math.max(0, age)
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (readUiExtras); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 function readUiExtras(): Pick<
   UserProfile,
   'avatarUrl' | 'hiddenIngredientRules' | 'preferredProteinSources'
@@ -166,6 +173,7 @@ function readUiExtras(): Pick<
   }
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapProfile); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 function mapProfile(data: BackendProfile): UserProfile {
   const metrics: BodyMetrics = {
     age: ageOn(data.birthDate),
@@ -208,6 +216,7 @@ function mapProfile(data: BackendProfile): UserProfile {
   }
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (bodyRequest); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 function bodyRequest(metrics: BodyMetrics) {
   const sexForEnergyEstimate: BackendProfile['sexForEnergyEstimate'] =
     metrics.gender === 'male'

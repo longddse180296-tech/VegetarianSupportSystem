@@ -1,5 +1,7 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 namespace Domain.Entities;
 
+// PasswordResetToken: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class PasswordResetToken
 {
     private PasswordResetToken() { }
@@ -19,9 +21,11 @@ public sealed class PasswordResetToken
     public DateTimeOffset ExpiresAtUtc { get; private set; }
     public DateTimeOffset? ConsumedAtUtc { get; private set; }
 
+    // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public static PasswordResetToken Create(string tokenHash, string userId,
         DateTimeOffset createdAtUtc, DateTimeOffset expiresAtUtc)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (tokenHash.Length != 64 || !tokenHash.All(Uri.IsHexDigit))
             throw new ArgumentException("Invalid token hash.", nameof(tokenHash));
         if (string.IsNullOrWhiteSpace(userId))

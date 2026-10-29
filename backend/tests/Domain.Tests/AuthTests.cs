@@ -143,8 +143,8 @@ public sealed class AuthTests
     private static AuthService CreateService(MemoryAccounts accounts, MemoryRevokedTokens? revoked = null) => new(
         accounts,
         new Pbkdf2PasswordHasher(),
-        new JwtAccessTokenIssuer("issuer", "audience", SigningKey),
-        revoked ?? new MemoryRevokedTokens());
+        revoked ?? new MemoryRevokedTokens(),
+        new AccountSessionService(accounts, new JwtAccessTokenIssuer("issuer", "audience", SigningKey)));
 
     private sealed class MemoryRevokedTokens : IRevokedAccessTokenRepository
     {
@@ -158,8 +158,20 @@ public sealed class AuthTests
         }
     }
 
-    private sealed class MemoryAccounts : IUserAccountRepository
+    private sealed class MemoryAccounts : IUserAccountRepository, IAccountSessionRepository
     {
+        public Task<bool> ReplaceAsync(User user, string id, string hash, DateTimeOffset expiry, CancellationToken ct)
+        {
+            return Task.FromResult(true);
+        }
+        public Task<User?> FindAsync(string id, string hash, DateTimeOffset now, CancellationToken ct) =>
+            Task.FromResult(Users.FirstOrDefault(x => x.ActiveSessionId == id && x.RefreshTokenHash == hash && x.SessionExpiresAtUtc > now && !x.IsLocked));
+        public Task EndAsync(string userId, string id, CancellationToken ct)
+        {
+            var user = Users.FirstOrDefault(x => x.Id == userId && x.ActiveSessionId == id);
+            user?.EndSession();
+            return Task.CompletedTask;
+        }
         public List<User> Users { get; } = [];
         public Task<User?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken) =>
             Task.FromResult(Users.FirstOrDefault(x => x.NormalizedEmail == normalizedEmail));

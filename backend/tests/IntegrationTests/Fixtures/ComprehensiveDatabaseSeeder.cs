@@ -164,10 +164,10 @@ public static class ComprehensiveDatabaseSeeder
             ContainsMilk = false,
             ContainsHoney = false,
             ContainsOtherAnimalProducts = false,
-            CaloriesPer100Gram = cal,
-            ProteinGramPer100Gram = pro,
-            CarbohydrateGramPer100Gram = carb,
-            FatGramPer100Gram = fat,
+            Calories = cal,
+            ProteinGram = pro,
+            CarbohydrateGram = carb,
+            FatGram = fat,
             Allergens = allergens,
             DefaultUnit = "g",
             Source = "Bảng thành phần thực phẩm Việt Nam (Viện Dinh Dưỡng)"
@@ -183,10 +183,10 @@ public static class ComprehensiveDatabaseSeeder
             ContainsMilk = true,
             ContainsHoney = false,
             ContainsOtherAnimalProducts = false,
-            CaloriesPer100Gram = cal,
-            ProteinGramPer100Gram = pro,
-            CarbohydrateGramPer100Gram = carb,
-            FatGramPer100Gram = fat,
+            Calories = cal,
+            ProteinGram = pro,
+            CarbohydrateGram = carb,
+            FatGram = fat,
             Allergens = "Sữa;Milk",
             DefaultUnit = "g",
             Source = "Bảng thành phần thực phẩm sữa"
@@ -202,10 +202,10 @@ public static class ComprehensiveDatabaseSeeder
             ContainsMilk = false,
             ContainsHoney = false,
             ContainsOtherAnimalProducts = false,
-            CaloriesPer100Gram = cal,
-            ProteinGramPer100Gram = pro,
-            CarbohydrateGramPer100Gram = carb,
-            FatGramPer100Gram = fat,
+            Calories = cal,
+            ProteinGram = pro,
+            CarbohydrateGram = carb,
+            FatGram = fat,
             Allergens = "Trứng;Egg",
             DefaultUnit = "g",
             Source = "Bảng thành phần thực phẩm trứng"
@@ -331,10 +331,10 @@ public static class ComprehensiveDatabaseSeeder
                     _ => item.Qty
                 };
 
-                totalCal += (ingredient.CaloriesPer100Gram ?? 0) * (grams / 100m);
-                totalPro += (ingredient.ProteinGramPer100Gram ?? 0) * (grams / 100m);
-                totalCarb += (ingredient.CarbohydrateGramPer100Gram ?? 0) * (grams / 100m);
-                totalFat += (ingredient.FatGramPer100Gram ?? 0) * (grams / 100m);
+                totalCal += (ingredient.Calories ?? 0) * (grams / 100m);
+                totalPro += (ingredient.ProteinGram ?? 0) * (grams / 100m);
+                totalCarb += (ingredient.CarbohydrateGram ?? 0) * (grams / 100m);
+                totalFat += (ingredient.FatGram ?? 0) * (grams / 100m);
             }
 
             recipe.CaloriesPerServing = Math.Round(totalCal / servings, 1);

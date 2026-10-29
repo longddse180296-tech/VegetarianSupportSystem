@@ -53,6 +53,8 @@ public sealed class FailedArticleModerationServiceTests
     {
         public bool Saved { get; private set; }
 
+        public Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> ids, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
         public Task<ModerationSubmission?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult<ModerationSubmission?>(submission.Id == id ? submission : null);
 

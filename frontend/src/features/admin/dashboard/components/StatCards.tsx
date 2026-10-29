@@ -1,3 +1,4 @@
+// Chức năng: thống kê và góp ý gửi đến Admin. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   Users,
@@ -9,12 +10,15 @@ import {
 } from 'lucide-react'
 import type { DashboardStats, StatMetric } from '../types/dashboard.types'
 
+// Cấu trúc StatCardsProps quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 interface StatCardsProps {
   stats: DashboardStats
   onNavigate?: (path: string) => void
 }
 
+// Thành phần StatCards nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thống kê và góp ý gửi đến Admin.
 export const StatCards: React.FC<StatCardsProps> = ({ stats, onNavigate }) => {
+  // Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (renderIcon); thuộc thống kê và góp ý gửi đến Admin.
   const renderIcon = (iconName: string) => {
     switch (iconName) {
       case 'users':
@@ -31,6 +35,7 @@ export const StatCards: React.FC<StatCardsProps> = ({ stats, onNavigate }) => {
     }
   }
 
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getBadgeStyle); thuộc thống kê và góp ý gửi đến Admin.
   const getBadgeStyle = (type: StatMetric['badgeType']) => {
     switch (type) {
       case 'success':
@@ -55,6 +60,7 @@ export const StatCards: React.FC<StatCardsProps> = ({ stats, onNavigate }) => {
     stats.categories,
   ]
 
+  // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {cards.map((item, idx) => (

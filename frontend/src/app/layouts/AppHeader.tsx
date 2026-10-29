@@ -1,3 +1,4 @@
+// Chức năng: giao diện và thành phần dùng chung. Bố trí phần điều hướng và vùng nội dung chung giữa các màn hình.
 import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { LogOut, UserCircle } from 'lucide-react'
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
   { key: 'foodscan', label: 'Quét thực phẩm', badge: 'HOT' as string | null },
 ]
 
+// Cấu trúc AppHeaderProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface AppHeaderProps {
   activeNav?: string
   isLoggedIn?: boolean
@@ -23,6 +25,7 @@ export interface AppHeaderProps {
   onNavigate?: (path: string) => void
 }
 
+// Thành phần AppHeader nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export default function AppHeader({
   activeNav = 'home',
   isLoggedIn = false,
@@ -31,15 +34,19 @@ export default function AppHeader({
   onLogout,
   onNavigate,
 }: AppHeaderProps) {
+  // Lưu dữ liệu và trạng thái thao tác của giao diện và thành phần dùng chung trong vòng đời màn hình.
   const [isScrolled, setIsScrolled] = useState(false)
 
+  // Đăng ký sự kiện phục vụ màn hình và dọn bộ lắng nghe khi không còn sử dụng.
   useEffect(() => {
+    // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleScroll); thuộc giao diện và thành phần dùng chung.
     const handleScroll = () => setIsScrolled(window.scrollY > 2)
     handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleNavClick); thuộc giao diện và thành phần dùng chung.
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
     if (onNavigate) {
       e.preventDefault()
@@ -47,6 +54,7 @@ export default function AppHeader({
     }
   }
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <header className={`app-header${isScrolled ? ' app-header-scrolled' : ''}`}>
       <div className="app-header-inner">
@@ -65,6 +73,7 @@ export default function AppHeader({
               const isActive = activeNav === item.key
               const path =
                 item.key === 'home' ? '/' : `/${item.key}`
+              // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <li key={item.key} className="app-nav-item">
                   <a

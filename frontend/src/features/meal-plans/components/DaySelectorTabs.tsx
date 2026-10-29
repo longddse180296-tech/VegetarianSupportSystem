@@ -1,7 +1,9 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { RefreshCw, Sliders, Bookmark, Check } from 'lucide-react'
 import type { DayOfWeek, DayPlanOption } from '../types/mealPlans.types'
 
+// Cấu trúc DaySelectorTabsProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DaySelectorTabsProps {
   days: DayPlanOption[]
   activeDay: DayOfWeek
@@ -13,6 +15,7 @@ interface DaySelectorTabsProps {
   isSaved?: boolean
 }
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (DaySelectorTabs); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DaySelectorTabs: React.FC<DaySelectorTabsProps> = ({
   days,
   activeDay,
@@ -23,6 +26,7 @@ export const DaySelectorTabs: React.FC<DaySelectorTabsProps> = ({
   isRegenerating = false,
   isSaved = false,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-4">
       {/* Action Bar matching Figma */}
@@ -77,6 +81,7 @@ export const DaySelectorTabs: React.FC<DaySelectorTabsProps> = ({
         {days.map((day) => {
           const isActive = activeDay === day.dayId
 
+          // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
           return (
             <button
               key={day.dayId}

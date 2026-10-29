@@ -1,3 +1,14 @@
+/* Chức năng: phân tích ảnh món ăn và nhãn thành phần. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
+.fsp-result-region {
+  scroll-margin-top: 100px;
+}
+
+.fsp-result-region:focus-visible {
+  outline: 2px solid #2e7d32;
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+
 .fsp-root {
   max-width: 1200px;
   margin: 0 auto;
@@ -139,6 +150,7 @@
   border-color: #f4e3b8;
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 880px) {
   .history-item {
     grid-template-columns: 1fr;
@@ -260,6 +272,7 @@
   gap: 22px;
   margin-bottom: 44px;
 }
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 960px) {
   .fsp-grid-cols {
     grid-template-columns: 1fr;
@@ -740,6 +753,7 @@
   gap: 16px;
   margin-bottom: 28px;
 }
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 900px) {
   .fsp-verdict-row {
     grid-template-columns: 1fr;
@@ -1020,6 +1034,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 720px) {
   .ingredient-grid-safe {
     grid-template-columns: 1fr;
@@ -1072,6 +1087,7 @@
   margin-bottom: 18px;
   align-items: start;
 }
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 720px) {
   .fsp-alt-head {
     grid-template-columns: 1fr;
@@ -1123,6 +1139,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 960px) {
   .alt-grid {
     grid-template-columns: 1fr;
@@ -1262,6 +1279,7 @@
   padding: 28px 28px;
   align-items: center;
 }
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 860px) {
   .cheatsheet-inner {
     grid-template-columns: 1fr;

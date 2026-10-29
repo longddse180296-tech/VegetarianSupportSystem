@@ -103,6 +103,7 @@ public sealed class ArticleWorkflowTests
 
     private sealed class SingleArticleRepository(Article article, string? ownerName = null) : IArticleRepository
     {
+        public Task<bool> HasDuplicatePublishedTitleAsync(Guid excludingArticleId, string title, CancellationToken ct) => Task.FromResult(false);
         public Task<Article?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult<Article?>(article.Id == id ? article : null);
         public Task<ArticlePage<Article>> ListMineAsync(string ownerId, MyArticleListQuery query, CancellationToken ct) => throw new NotImplementedException();
         public Task<ArticlePage<ArticleVersion>> ListPublicAsync(ArticleListQuery query, CancellationToken ct)
@@ -126,6 +127,8 @@ public sealed class ArticleWorkflowTests
 
     private sealed class EmptyModerationRepository : IModerationRepository
     {
+        public Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> ids, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
         public Task<ModerationSubmission?> GetByIdAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
         public Task<ModerationSubmission?> GetLatestForContentAsync(Guid contentId, CancellationToken ct) => throw new NotImplementedException();
         public Task<ModerationSubmission?> GetCurrentPublishedAsync(Guid contentId, CancellationToken ct) => throw new NotImplementedException();

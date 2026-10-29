@@ -1,5 +1,7 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { forwardRef } from 'react'
 
+// Cấu trúc TextareaProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string
   error?: string
@@ -25,6 +27,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const textareaId =
       id || (label ? `textarea-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined)
 
+    // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
     return (
       <div className={`${fullWidth ? 'w-full' : 'inline-block'} flex flex-col gap-1.5 text-left`}>
         {label && (

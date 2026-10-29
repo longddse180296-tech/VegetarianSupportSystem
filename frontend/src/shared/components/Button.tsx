@@ -1,5 +1,7 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 
+// Cấu trúc ButtonProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
@@ -9,6 +11,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   fullWidth?: boolean
 }
 
+// Thành phần Button nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
@@ -46,6 +49,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   const widthStyle = fullWidth ? 'w-full' : ''
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <button
       type={type}

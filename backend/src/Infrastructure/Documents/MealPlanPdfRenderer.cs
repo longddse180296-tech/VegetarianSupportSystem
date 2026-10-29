@@ -1,3 +1,4 @@
+// Chức năng: xuất tài liệu thực đơn. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using System.Globalization;
 using System.Text;
 using Application.Features.MealPlans;
@@ -5,8 +6,10 @@ using Domain.Enums;
 
 namespace Infrastructure.Documents;
 
+// MealPlanPdfRenderer: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class MealPlanPdfRenderer : IMealPlanPdfRenderer
 {
+    // Render: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public byte[] Render(MealPlanResponse plan)
     {
         var lines = new List<string>
@@ -38,7 +41,9 @@ public sealed class MealPlanPdfRenderer : IMealPlanPdfRenderer
         return WritePdf(lines);
     }
 
+    // Number: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static string Number(decimal value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+    // SlotName: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static string SlotName(MealSlot slot) => slot switch
     {
         MealSlot.Breakfast => "Breakfast",
@@ -47,10 +52,12 @@ public sealed class MealPlanPdfRenderer : IMealPlanPdfRenderer
         _ => slot.ToString()
     };
 
+    // WritePdf: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static byte[] WritePdf(IReadOnlyList<string> lines)
     {
         const int linesPerPage = 44;
         var pages = lines.Chunk(linesPerPage).ToArray();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (pages.Length == 0) pages = [[]];
 
         const int catalogObject = 1;
@@ -92,6 +99,7 @@ public sealed class MealPlanPdfRenderer : IMealPlanPdfRenderer
         return stream.ToArray();
     }
 
+    // BuildPageContent: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static string BuildPageContent(IEnumerable<string> lines)
     {
         var output = new StringBuilder("BT\n/F1 10 Tf\n48 800 Td\n");
@@ -105,6 +113,7 @@ public sealed class MealPlanPdfRenderer : IMealPlanPdfRenderer
         return output.Append("ET").ToString();
     }
 
+    // PdfText: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static string PdfText(string value)
     {
         var ascii = new string(value.Normalize(NormalizationForm.FormD)
@@ -112,6 +121,7 @@ public sealed class MealPlanPdfRenderer : IMealPlanPdfRenderer
         return ascii.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("(", "\\(", StringComparison.Ordinal).Replace(")", "\\)", StringComparison.Ordinal);
     }
 
+    // Write: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static void Write(Stream stream, string value) =>
         stream.Write(Encoding.ASCII.GetBytes(value));
 }

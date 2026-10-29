@@ -1,3 +1,4 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
@@ -32,6 +33,7 @@ import type {
   Restaurant,
 } from '../types/restaurant.types'
 
+// Cấu trúc RestaurantDetailPageProps quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface RestaurantDetailPageProps {
   restaurantId?: string
   onNavigate?: (path: string) => void
@@ -47,17 +49,20 @@ const CORE_DIET_TYPE_MAP: Record<string, string> = {
   'vegetarian-friendly': 'Trứng & Sữa (Lacto-ovo)',
 }
 
+// Thành phần RestaurantDetail nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc tra cứu và quản lý nhà hàng.
 export default function RestaurantDetail({
   restaurantId = '',
   onNavigate,
   isLoggedIn: _isLoggedIn,
 }: RestaurantDetailPageProps) {
+  // Lưu dữ liệu và trạng thái thao tác của tra cứu và quản lý nhà hàng trong vòng đời màn hình.
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -76,6 +81,7 @@ export default function RestaurantDetail({
     }
   }, [restaurantId])
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!restaurantId || !getStoredToken()) return
     let active = true
@@ -93,11 +99,13 @@ export default function RestaurantDetail({
     }
   }, [restaurantId])
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (showToast); thuộc tra cứu và quản lý nhà hàng.
   const showToast = (msg: string) => {
     setToast(msg)
     window.setTimeout(() => setToast(null), 1500)
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (openDirections); thuộc tra cứu và quản lý nhà hàng.
   const openDirections = () => {
     if (!restaurant) return
     window.open(
@@ -107,6 +115,7 @@ export default function RestaurantDetail({
     )
   }
 
+  // Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (openGoogleMaps); thuộc tra cứu và quản lý nhà hàng.
   const openGoogleMaps = () => {
     if (!restaurant) return
     const query = encodeURIComponent(
@@ -119,6 +128,7 @@ export default function RestaurantDetail({
     )
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleShare); thuộc tra cứu và quản lý nhà hàng.
   const handleShare = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href)
@@ -128,6 +138,7 @@ export default function RestaurantDetail({
     }
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (toggleSavedRestaurant); thuộc tra cứu và quản lý nhà hàng.
   const toggleSavedRestaurant = async () => {
     if (!restaurantId) return
     if (!getStoredToken()) {
@@ -149,6 +160,7 @@ export default function RestaurantDetail({
 
   // Nearby restaurants
   const [nearby, setNearby] = useState<Restaurant[]>([])
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     if (!restaurant) return
     let cancelled = false
@@ -211,9 +223,10 @@ export default function RestaurantDetail({
     restaurant.district,
     restaurant.city,
   )
-  const primaryDietKey = restaurant.dietTypes[0] ?? 'vegan'
-  const coreDietLabel = CORE_DIET_TYPE_MAP[primaryDietKey] ?? 'Thuần chay (Vegan)'
+  // Hiển thị đầy đủ loại đã khai báo, không lấy riêng loại đầu tiên làm nhãn cho cả nhà hàng.
+  const coreDietLabels = Array.from(new Set(restaurant.dietTypes)).map(type => CORE_DIET_TYPE_MAP[type] ?? type)
 
+  // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       {/* ===== Header với Breadcrumbs theo chuẩn hệ thống ===== */}
@@ -290,9 +303,9 @@ export default function RestaurantDetail({
           <div className="flex flex-col gap-4 rounded-[20px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
             {/* Chế độ ăn & Trạng thái */}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3.5 py-1 text-xs font-bold text-[#2E7D32] border border-[#A5D6A7]">
-                🌱 {coreDietLabel}
-              </span>
+              {coreDietLabels.map(label => <span key={label} className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3.5 py-1 text-xs font-bold text-[#2E7D32] border border-[#A5D6A7]">
+                🌱 {label}
+              </span>)}
 
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-[#2E7D32] border border-emerald-200">
                 ● Địa điểm ẩm thực chay
@@ -363,9 +376,9 @@ export default function RestaurantDetail({
 
             {/* Tiện ích quán (Dữ liệu thực tế từ hệ thống) */}
             <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-700">
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-2xs">
-                <span className="text-emerald-600">✓</span> {coreDietLabel}
-              </span>
+              {coreDietLabels.map(label => <span key={label} className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 shadow-2xs">
+                <span className="text-emerald-600">✓</span> {label}
+              </span>)}
               {restaurant.amenities && restaurant.amenities.map((amenity) => (
                 <span
                   key={amenity}

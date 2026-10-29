@@ -1,8 +1,10 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import type { UseFormSetValue } from 'react-hook-form'
 import { Check, ShieldAlert, Sparkles, Utensils } from 'lucide-react'
 import type { DietType, PersonalizationFormValues } from '../types/mealPlans.types'
 
+// Cấu trúc DietPreferenceFormCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DietPreferenceFormCardProps {
   dietType: DietType
   allergens: string[]
@@ -48,12 +50,14 @@ const PREFERENCE_OPTIONS = [
   'Ít dầu',
 ]
 
+// Thành phần DietPreferenceFormCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DietPreferenceFormCard: React.FC<DietPreferenceFormCardProps> = ({
   dietType,
   allergens,
   preferences,
   setValue,
 }) => {
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleToggleAllergen); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleToggleAllergen = (item: string) => {
     if (item === 'Không có') {
       setValue('allergens', ['Không có'])
@@ -68,6 +72,7 @@ export const DietPreferenceFormCard: React.FC<DietPreferenceFormCardProps> = ({
     }
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleTogglePreference); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const handleTogglePreference = (item: string) => {
     if (preferences.includes(item)) {
       setValue(
@@ -79,6 +84,7 @@ export const DietPreferenceFormCard: React.FC<DietPreferenceFormCardProps> = ({
     }
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs space-y-6">
       {/* 1. Phân loại ăn chay */}
@@ -97,6 +103,7 @@ export const DietPreferenceFormCard: React.FC<DietPreferenceFormCardProps> = ({
           {DIET_OPTIONS.map((opt) => {
             const isSelected = dietType === opt.id
 
+            // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <div
                 key={opt.id}
@@ -149,6 +156,7 @@ export const DietPreferenceFormCard: React.FC<DietPreferenceFormCardProps> = ({
           {ALLERGEN_OPTIONS.map((item) => {
             const isChecked = allergens.includes(item)
 
+            // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <label
                 key={item}
@@ -180,6 +188,7 @@ export const DietPreferenceFormCard: React.FC<DietPreferenceFormCardProps> = ({
           {PREFERENCE_OPTIONS.map((item) => {
             const isSelected = preferences.includes(item)
 
+            // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 key={item}

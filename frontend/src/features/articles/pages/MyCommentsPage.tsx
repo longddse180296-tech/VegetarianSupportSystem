@@ -1,3 +1,4 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import {
   ExternalLink,
@@ -19,6 +20,7 @@ import {
   type ContentPage,
 } from '../api/articles.api'
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getCommentStatusBadge); thuộc bài viết và phiên bản gửi duyệt.
 function getCommentStatusBadge(status: string) {
   switch (status) {
     case 'Visible':
@@ -32,11 +34,13 @@ function getCommentStatusBadge(status: string) {
   }
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (MyCommentsPage); thuộc bài viết và phiên bản gửi duyệt.
 export const MyCommentsPage = ({
   onNavigate,
 }: {
   onNavigate: (path: string) => void
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [type, setType] = useState('')
@@ -48,6 +52,7 @@ export const MyCommentsPage = ({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <UserProfileShell
       activeTab="my-comments"
@@ -60,7 +65,7 @@ export const MyCommentsPage = ({
       ]}
     >
       <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8 space-y-6 shadow-xs">
-        {/* Header */}
+        {/* Tiêu đề và thao tác chính. */}
         <div className="border-b border-slate-100 pb-5">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             Bình luận của tôi

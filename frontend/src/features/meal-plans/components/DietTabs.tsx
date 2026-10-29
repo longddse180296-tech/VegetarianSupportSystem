@@ -1,18 +1,22 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Leaf, Milk, Egg, Utensils } from 'lucide-react'
 import type { DietTabOption, DietType } from '../types/mealPlans.types'
 
+// Cấu trúc DietTabsProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface DietTabsProps {
   tabs: DietTabOption[]
   activeTab: DietType
   onTabChange: (tabId: DietType) => void
 }
 
+// Thành phần DietTabs nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const DietTabs: React.FC<DietTabsProps> = ({
   tabs,
   activeTab,
   onTabChange,
 }) => {
+  // Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (renderIcon); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const renderIcon = (iconName: DietTabOption['icon'], isActive: boolean) => {
     const iconClass = `w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-emerald-700'}`
     switch (iconName) {
@@ -28,11 +32,13 @@ export const DietTabs: React.FC<DietTabsProps> = ({
     }
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id
 
+        // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
         return (
           <button
             key={tab.id}

@@ -1,15 +1,19 @@
 # BE 2 — Core Data tuần 1
 
+Cập nhật 27/10/2026: Favorites lưu thêm `SavedFrom` cho công thức (`Recipe`/`Pantry`, nullable cho dữ liệu cũ), migration `20261027075305_AddFavoriteSaveSource`. Chi tiết contract và kiểm tra ở [Lưu công thức vào Profile](../docs/recipe-saves-2026-10-27.md).
+
 ## Trạng thái và phạm vi
 
 - Đã có Category, Ingredient, Recipe, RecipeIngredient và enum nguồn gốc/chế độ ăn.
-- Một recipe có một category; chưa cần RecipeCategory. Dinh dưỡng lưu trực tiếp theo 100 g ingredient và mỗi khẩu phần recipe; chưa cần NutritionInfo riêng.
+- Một recipe có một category; chưa cần RecipeCategory. Dinh dưỡng lưu theo mốc đơn vị của ingredient và mỗi khẩu phần recipe; chưa cần NutritionInfo riêng.
 - Có tạo/sửa/danh sách/chi tiết/ngừng sử dụng; DTO tách khỏi entity.
 - Có filter category/chế độ ăn/thời gian nấu/calo, tìm tên recipe hoặc tên/aliases ingredient.
+- Dinh dưỡng công thức tự tính bởi `RecipeNutritionService`, quy đổi thuần ở `Domain/Rules/RecipeNutritionRules`; xem trước realtime qua `Api/Hubs/RecipeNutritionHub`. Lưu luôn tính lại từ DB, không tin tổng do FE gửi. Không tự đổi ml/số lượng sang g, dữ liệu thiếu chặn lưu kèm lý do. Cần proxy WebSocket `/api` cho SignalR.
+- Nguyên liệu lưu dinh dưỡng kèm `NutritionBasisQuantity`/`NutritionBasisUnit` (100 g, 1 kg, 100 ml hoặc 1 đơn vị đếm). Các property dinh dưỡng Domain dùng tên tổng quát; cột SQL `*Per100Gram` cũ được giữ nguyên để bảo toàn dữ liệu. Migration `IngredientNutritionBasis` gán mốc 100 g cho bản ghi cũ, không suy ra mốc từ `DefaultUnit`. POST/PUT bắt buộc đơn vị và đủ bốn chỉ số; response vẫn giữ trường per-100g tương thích cho mốc g/kg.
 - Phân loại tính từ ingredient hiện tại, trả kết quả riêng cho bốn chế độ và giữ trạng thái chưa rõ.
 - Seed kiểm thử: 3 category, 7 ingredient, 6 recipe có nhãn [Mẫu]. Seed demo riêng: 8 category, 36 ingredient, 32 recipe, 12 restaurant có nhãn [Demo]. Dinh dưỡng chỉ để minh họa/kiểm thử.
-- Migration hiện có bao phủ toàn bộ entity hiện diện trong repository. Chưa có entity/config BE 1 hoặc BE 3 để ghép; không coi đây là xác nhận hoàn tất tích hợp toàn nhóm.
-- API Admin chờ xác thực thật của BE 1; kiểm tra quyền không có đường bypass trong API.
+- Migration hiện có bao phủ các entity đã tích hợp; giữ lịch sử và model snapshot, không xóa để làm gọn source.
+- API Admin dùng xác thực thật và kiểm tra phiên/quyền tại backend.
 
 ## Tìm code để sửa
 
@@ -51,13 +55,15 @@ Các catalog và seeder mẫu/demo đã chuyển sang `tests/IntegrationTests/Fi
 4. Chạy migration trên DB kiểm thử mới và kiểm tra nâng cấp DB đang ở migration trước.
 5. Khi có conflict snapshot, hợp nhất entity/config trước; chỉ regenerate migration chưa chia sẻ/chưa áp dụng. Không chỉ chọn một phía của snapshot.
 
-Hai migration hiện có: InitialCoreData và IngredientDietaryEvidence (thêm bằng chứng thành phần động vật khác; bản ghi cũ giữ null/chưa xác minh).
+Danh sách migration hiện hành nằm trong Infrastructure/Persistence/Migrations; kiểm tra bằng dotnet ef migrations list thay vì dựa vào số lượng trong báo cáo cũ.
 
 ```powershell
 dotnet ef migrations has-pending-model-changes --project backend/src/Infrastructure --startup-project backend/src/Api
 dotnet build backend/Backend.sln -c Release
 dotnet run --project backend/tests/IntegrationTests -c Release
 ```
+
+Chạy riêng kiểm thử Core Data (CRUD, đơn vị định lượng, phân loại/tìm kiếm, filter khai báo và tương thích): `dotnet run --project backend/tests/IntegrationTests -c Release -- --core-only`. Vẫn dùng database kiểm thử riêng ngẫu nhiên và xóa sau khi chạy; không chạy nhóm Auth/SMTP.
 
 Kiểm thử là chương trình console chạy HTTP thật trên loopback và SQL Server thật, exit khác 0 khi có assertion thất bại. Đây không phải project chạy bằng dotnet test. Mặc định dùng LocalDB; máy khác đặt CORE_DATA_TEST_CONNECTION tới SQL Server thử nghiệm. Chương trình luôn thay tên database bằng tên riêng ngẫu nhiên, tạo rồi xóa database đó trong finally. Danh tính giả lập chỉ nằm trong test host, không nằm trong API thật.
 

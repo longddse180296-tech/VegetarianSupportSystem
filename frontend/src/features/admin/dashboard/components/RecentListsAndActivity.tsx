@@ -1,3 +1,4 @@
+// Chức năng: thống kê và góp ý gửi đến Admin. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import {
   FileText,
@@ -15,6 +16,7 @@ import type {
   RecentVideoItem,
 } from '../types/dashboard.types'
 
+// Cấu trúc RecentListsAndActivityProps quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 interface RecentListsAndActivityProps {
   articles: RecentArticleItem[]
   videos: RecentVideoItem[]
@@ -22,12 +24,14 @@ interface RecentListsAndActivityProps {
   onNavigate?: (path: string) => void
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (RecentListsAndActivity); thuộc thống kê và góp ý gửi đến Admin.
 export const RecentListsAndActivity: React.FC<RecentListsAndActivityProps> = ({
   articles,
   videos,
   activities,
   onNavigate,
 }) => {
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getActivityIcon); thuộc thống kê và góp ý gửi đến Admin.
   const getActivityIcon = (type: RecentActivityItem['type']) => {
     switch (type) {
       case 'article':
@@ -64,6 +68,7 @@ export const RecentListsAndActivity: React.FC<RecentListsAndActivityProps> = ({
     }
   }
 
+  // Hiển thị giao diện thống kê và góp ý gửi đến Admin từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* Left Column (3/5): Recent Articles & Recent Videos */}

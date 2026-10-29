@@ -1,7 +1,6 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useRef, useState } from 'react'
 import {
-  Check,
-  ChevronDown,
   Compass,
   MapPin,
   Sparkles,
@@ -19,125 +18,21 @@ import type {
   RestaurantFilter as RestaurantFilterState,
 } from '../types/restaurant.types'
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
+import { RestaurantLocationPicker, type RestaurantLocationSelection } from '../components/RestaurantLocationPicker'
+import { hasRestaurantLocation } from '../utils/restaurantLocation'
 
+// Cấu trúc RestaurantsPageProps quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface RestaurantsPageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
-// Popular districts for manual location selection fallback
-const POPULAR_DISTRICTS = [
-  { value: 'all', label: 'Tất cả Quận / Huyện' },
-  { value: 'Quận 1', label: 'Quận 1, TP.HCM' },
-  { value: 'Quận 3', label: 'Quận 3, TP.HCM' },
-  { value: 'Quận 7', label: 'Quận 7, TP.HCM' },
-  { value: 'Thủ Đức', label: 'TP. Thủ Đức, TP.HCM' },
-  { value: 'Bình Thạnh', label: 'Bình Thạnh, TP.HCM' },
-  { value: 'Ba Đình', label: 'Ba Đình, Hà Nội' },
-  { value: 'Hoàn Kiếm', label: 'Hoàn Kiếm, Hà Nội' },
-  { value: 'Tây Hồ', label: 'Tây Hồ, Hà Nội' },
-  { value: 'Hải Châu', label: 'Hải Châu, Đà Nẵng' },
-  { value: 'Sơn Trà', label: 'Sơn Trà, Đà Nẵng' },
-]
-
-interface AmberDistrictSelectProps {
-  value: string
-  onChange: (value: string) => void
-  options: Array<{ value: string; label: string }>
-}
-
-function AmberDistrictSelect({ value, onChange, options }: AmberDistrictSelectProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  const selected = options.find((o) => o.value === value) || options[0]
-
-  useEffect(() => {
-    if (!isOpen) return
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen])
-
-  return (
-    <div ref={containerRef} className="relative inline-block text-left min-w-[210px]">
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-label="Chọn Quận / Huyện"
-        className={`h-9 w-full flex items-center justify-between gap-2 rounded-xl border bg-white px-3 text-xs font-semibold text-amber-950 transition-all duration-150 outline-none cursor-pointer shadow-2xs ${
-          isOpen
-            ? 'border-amber-500 ring-2 ring-amber-400/30'
-            : 'border-amber-300 hover:border-amber-400 hover:bg-amber-50/40'
-        }`}
-      >
-        <span className="truncate flex items-center gap-1.5">
-          <MapPin size={13} className="text-amber-600 shrink-0" />
-          <span className="truncate">{selected.label}</span>
-        </span>
-        <ChevronDown
-          size={14}
-          className={`text-amber-700 shrink-0 transition-transform duration-200 ${
-            isOpen ? 'rotate-180' : ''
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-
-      {isOpen && (
-        <div
-          role="listbox"
-          tabIndex={-1}
-          className="absolute left-0 top-full mt-1.5 w-full min-w-[220px] z-50 rounded-xl border border-amber-200/90 bg-white p-1.5 shadow-xl shadow-amber-950/10 max-h-60 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-100"
-        >
-          {options.map((opt) => {
-            const isSelected = opt.value === value
-            return (
-              <button
-                type="button"
-                role="option"
-                key={opt.value}
-                aria-selected={isSelected}
-                onClick={() => {
-                  onChange(opt.value)
-                  setIsOpen(false)
-                }}
-                className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs text-left transition-colors cursor-pointer select-none ${
-                  isSelected
-                    ? 'bg-amber-100 text-amber-950 font-bold'
-                    : 'text-slate-700 hover:bg-amber-50 hover:text-amber-950 font-medium'
-                }`}
-              >
-                <span className="truncate">{opt.label}</span>
-                {isSelected && <Check size={13} className="text-amber-700 shrink-0" />}
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
+// Danh sách nhà hàng và vị trí dùng chung một mốc tọa độ để giữ đúng thứ tự gần nhất.
 export default function RestaurantsPage({
   onNavigate,
   isLoggedIn: _isLoggedIn,
 }: RestaurantsPageProps) {
+  // Lưu dữ liệu và trạng thái thao tác của tra cứu và quản lý nhà hàng trong vòng đời màn hình.
   const [filter, setFilter] = useState<RestaurantFilterState>(DEFAULT_RESTAURANT_FILTER)
   const [items, setItems] = useState<Restaurant[]>([])
   const [totalCount, setTotalCount] = useState(0)
@@ -148,43 +43,34 @@ export default function RestaurantsPage({
 
   // Location Permission State: 'prompt' | 'granted' | 'denied'
   const [locationState, setLocationState] = useState<'prompt' | 'granted' | 'denied'>('prompt')
-  const [selectedDistrict, setSelectedDistrict] = useState<string>('all')
+  const [manualLocation, setManualLocation] = useState<RestaurantLocationSelection | null>(null)
+  const [isLocating, setIsLocating] = useState(false)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const locationRequest = useRef(0)
+  const hasLocation = hasRestaurantLocation(filter)
+  // Bỏ qua callback GPS đến muộn sau khi đổi sang chọn thủ công hoặc rời trang.
+  useEffect(() => () => { locationRequest.current++ }, [])
+  // Quay lại tab người dùng sau thao tác Admin thì lấy trạng thái công khai mới, giữ mốc vị trí/bộ lọc.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') setFilter(previous => ({ ...previous }))
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [])
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (showToast); thuộc tra cứu và quản lý nhà hàng.
   const showToast = (msg: string) => {
     setToast(msg)
     window.setTimeout(() => setToast(null), 2200)
   }
 
-  // Initial load
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setIsLoading(true)
-      setIsError(false)
-      try {
-        const res = await filterRestaurants(DEFAULT_RESTAURANT_FILTER)
-        if (cancelled) return
-        setItems(res.items)
-        setTotalCount(res.totalCount)
-        if (res.items.length > 0) {
-          setSelectedMapRestaurant(res.items[0])
-        }
-      } catch {
-        if (!cancelled) {
-          setIsError(true)
-          setItems([])
-          setTotalCount(0)
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   // Debounced filter update
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     let cancelled = false
     const t = window.setTimeout(() => {
@@ -220,77 +106,83 @@ export default function RestaurantsPage({
     }
   }, [filter])
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updateFilter); thuộc tra cứu và quản lý nhà hàng.
   const updateFilter = (patch: Partial<RestaurantFilterState>) => {
+    // Không hiện khoảng cách của vị trí cũ trong lúc đang tải kết quả cho vị trí mới.
+    setIsLoading(true)
     setFilter((prev) => ({ ...prev, ...patch }))
   }
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (resetFilter); thuộc tra cứu và quản lý nhà hàng.
   const resetFilter = () => {
-    setFilter(DEFAULT_RESTAURANT_FILTER)
-    setSelectedDistrict('all')
+    setIsLoading(true)
+    setFilter(previous => ({ ...DEFAULT_RESTAURANT_FILTER, latitude: previous.latitude, longitude: previous.longitude,
+      sort: hasRestaurantLocation(previous) ? 'distance_asc' : 'relevance' }))
     showToast('Đã đặt lại toàn bộ bộ lọc.')
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelect); thuộc tra cứu và quản lý nhà hàng.
   const handleSelect = (id: string) => {
     onNavigate?.(`/restaurants/${encodeURIComponent(id)}`)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleBook); thuộc tra cứu và quản lý nhà hàng.
   const handleBook = async (id: string) => {
     const r = await getRestaurantDetail(id)
     if (!r) return
     showToast(`📞 Đặt chỗ tại ${r.name.replace(/^\[Demo\]\s*/i, '')}: ${r.phoneNumber}`)
   }
 
-  // Handle Geolocation Request
+  // GPS chỉ dùng sau thao tác cho phép; tọa độ gửi về API dự án, không gửi sang dịch vụ tra cứu khu vực.
   const requestLocation = () => {
+    if (isLocating) return
     if (!navigator.geolocation) {
       setLocationState('denied')
-      showToast('Trình duyệt không hỗ trợ định vị tự động. Vui lòng chọn quận/huyện.')
+      setLocationError('Trình duyệt chưa hỗ trợ định vị. Bạn có thể chọn khu vực bên dưới.')
       return
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocationState('granted')
-        const lat = Number(position.coords.latitude.toFixed(6))
-        const lng = Number(position.coords.longitude.toFixed(6))
-        updateFilter({ latitude: lat, longitude: lng })
-        showToast('✅ Đã xác định vị trí hiện tại thành công!')
-      },
-      (_err) => {
-        setLocationState('denied')
-        showToast('Không thể lấy vị trí tự động. Hãy chọn Quận/Huyện thủ công bên dưới.')
-      },
-      { timeout: 8000 },
-    )
+    const request = ++locationRequest.current
+    setIsLocating(true)
+    setLocationError(null)
+    navigator.geolocation.getCurrentPosition(position => {
+      if (request !== locationRequest.current) return
+      const latitude = Number(position.coords.latitude.toFixed(6))
+      const longitude = Number(position.coords.longitude.toFixed(6))
+      setIsLocating(false)
+      if (!hasRestaurantLocation({ latitude, longitude })) {
+        setLocationError('Chưa nhận được vị trí hợp lệ. Vui lòng thử lại hoặc chọn khu vực.')
+        return
+      }
+      setLocationState('granted')
+      setManualLocation(null)
+      updateFilter({ latitude, longitude, city: 'all', sort: 'distance_asc' })
+    }, error => {
+      if (request !== locationRequest.current) return
+      setIsLocating(false)
+      setLocationState('denied')
+      setLocationError(error.code === 1
+        ? 'Bạn chưa cho phép truy cập vị trí. Hãy chọn khu vực hoặc bật quyền vị trí trong trình duyệt.'
+        : 'Chưa lấy được vị trí hiện tại. Bạn có thể thử lại hoặc chọn khu vực bên dưới.')
+    }, { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true })
+  }
+  const chooseManual = () => {
+    locationRequest.current++
+    setIsLocating(false)
+    setLocationState('denied')
+    setManualLocation(null)
+    setLocationError(null)
+    updateFilter({ latitude: undefined, longitude: undefined, city: 'all', distanceMaxKm: 0, sort: 'relevance' })
+  }
+  const changeManualLocation = (next: RestaurantLocationSelection | null) => {
+    locationRequest.current++
+    setIsLocating(false)
+    setLocationError(null)
+    setManualLocation(next)
+    updateFilter({ latitude: next?.latitude, longitude: next?.longitude, city: 'all', distanceMaxKm: 0,
+      sort: next ? 'distance_asc' : 'relevance' })
   }
 
-  // Handle Manual District Selection with corresponding center coordinates
-  const handleDistrictChange = (district: string) => {
-    setSelectedDistrict(district)
-    const districtCoords: Record<string, { lat: number; lng: number }> = {
-      'Quận 1': { lat: 10.7769, lng: 106.7008 },
-      'Quận 3': { lat: 10.7841, lng: 106.6868 },
-      'Quận 7': { lat: 10.7295, lng: 106.7219 },
-      'Thủ Đức': { lat: 10.85, lng: 106.7717 },
-      'Bình Thạnh': { lat: 10.803, lng: 106.709 },
-      'Ba Đình': { lat: 21.0359, lng: 105.8198 },
-      'Hoàn Kiếm': { lat: 21.0285, lng: 105.8542 },
-      'Tây Hồ': { lat: 21.0673, lng: 105.8241 },
-      'Hải Châu': { lat: 16.0471, lng: 108.2068 },
-      'Sơn Trà': { lat: 16.07, lng: 108.235 },
-    }
-
-    if (district === 'all') {
-      updateFilter({ city: 'all' })
-    } else {
-      const coords = districtCoords[district]
-      updateFilter({
-        city: district,
-        ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
-      })
-    }
-  }
-
+  // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       <PageHeading
@@ -303,82 +195,33 @@ export default function RestaurantsPage({
         eyebrow={<Badge icon={<MapPin size={14} />}>Địa điểm ẩm thực chay</Badge>}
       />
 
-        {/* ===== Location Banner with Fallback Manual Selection ===== */}
-        {locationState === 'prompt' && (
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-emerald-200/90 bg-gradient-to-r from-emerald-50/90 to-teal-50/70 p-4 sm:px-5 shadow-xs">
-            <div className="flex items-center gap-3 text-emerald-950 text-xs sm:text-sm font-semibold">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                <Compass size={20} />
-              </span>
-              <span>Cho phép truy cập vị trí để tìm nhà hàng chay gần bạn chính xác nhất.</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setLocationState('denied')}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                Chọn thủ công
-              </button>
-              <button
-                type="button"
-                onClick={requestLocation}
-                className="rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] px-4 py-2 text-xs font-bold text-white shadow-xs transition"
-              >
-                Cho phép vị trí
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Fallback UI: Khi người dùng từ chối hoặc chọn tìm thủ công theo Quận/Huyện */}
-        {locationState === 'denied' && (
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-amber-200 bg-amber-50/80 p-4 sm:px-5 shadow-xs">
-            <div className="flex items-center gap-3 text-amber-950 text-xs sm:text-sm font-medium">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-                <MapPin size={18} />
-              </span>
+        {/* Vị trí tự động và thủ công cùng cập nhật mốc sắp xếp, không trộn vị trí cũ với khu vực mới. */}
+        <section aria-label="Vị trí tìm nhà hàng" className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 sm:p-5">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+            <div className="flex min-w-0 gap-3 text-sm text-emerald-950">
+              <Compass size={22} className="shrink-0" />
               <div>
-                <strong className="font-bold">Tìm thủ công theo Quận/Huyện:</strong>
-                <p className="text-xs text-amber-800/90">Chọn khu vực để xem danh sách quán ăn chay tương ứng.</p>
+                <h2 className="font-bold">{locationState === 'granted' ? 'Nhà hàng gần vị trí của bạn' : 'Chọn vị trí tìm nhà hàng'}</h2>
+                <p className="mt-1 text-xs text-slate-600">{hasLocation
+                  ? manualLocation ? 'Đang xếp gần nhất từ ' + manualLocation.label + '.' : 'Đang xếp nhà hàng theo khoảng cách gần nhất.'
+                  : 'Cho phép định vị hoặc chọn khu vực để xem khoảng cách và nhà hàng gần nhất.'}</p>
               </div>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <AmberDistrictSelect
-                value={selectedDistrict}
-                onChange={handleDistrictChange}
-                options={POPULAR_DISTRICTS}
-              />
-
-              <button
-                type="button"
-                onClick={requestLocation}
-                className="inline-flex items-center gap-1 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100/50 transition-colors"
-              >
-                <Compass size={13} />
-                <span>Bật lại định vị</span>
+            <div className="flex flex-wrap gap-2">
+              {locationState !== 'denied' && <button type="button" onClick={chooseManual}
+                className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-900">Chọn thủ công</button>}
+              <button type="button" onClick={requestLocation} disabled={isLocating}
+                className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60">
+                {isLocating ? 'Đang lấy vị trí…' : locationState === 'granted' ? 'Cập nhật vị trí' : 'Dùng vị trí hiện tại'}
               </button>
             </div>
           </div>
-        )}
-
-        {/* Granted state indicator */}
-        {locationState === 'granted' && (
-          <div className="mb-5 flex items-center justify-between rounded-[16px] border border-emerald-200 bg-emerald-50/60 px-4 py-2.5 text-xs text-emerald-900">
-            <span className="flex items-center gap-2 font-medium">
-              <span className="h-2 w-2 rounded-full bg-emerald-600 animate-ping" />
-              Đang định vị quanh vị trí của bạn (bán kính ưu tiên 10km)
-            </span>
-            <button
-              type="button"
-              onClick={() => setLocationState('denied')}
-              className="text-emerald-700 underline font-semibold hover:text-emerald-800"
-            >
-              Đổi khu vực
-            </button>
-          </div>
-        )}
+          {locationError && <p role="status" className="text-xs text-amber-900">{locationError}</p>}
+          {locationState === 'denied' && <RestaurantLocationPicker value={manualLocation} onChange={changeManualLocation} />}
+          {hasLocation && <p className="text-xs text-slate-600">{manualLocation
+            ? 'Khoảng cách ước tính theo đường chim bay từ tâm khu vực đã chọn.'
+            : 'Khoảng cách ước tính theo đường chim bay từ vị trí thiết bị.'}</p>}
+        </section>
 
         {/* ===== Search + Filter bar ===== */}
         <div className="mb-6">
@@ -430,6 +273,7 @@ export default function RestaurantsPage({
                   >
                     <RestaurantCard
                       restaurant={r}
+                      showDistance={hasLocation}
                       featured={idx === 0}
                       isSelected={selectedMapRestaurant?.id === r.id}
                       onSelect={handleSelect}

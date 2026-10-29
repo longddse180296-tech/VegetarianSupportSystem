@@ -1,11 +1,15 @@
+// Chức năng: giao diện và thành phần dùng chung. Quản lý trạng thái, vòng đời yêu cầu và dữ liệu được tái sử dụng.
 import { useEffect, useState } from 'react'
 import { apiClient } from '../../../shared/api/apiClient'
 import { errorMessage } from '../utils/apiUi'
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (useApiData); thuộc giao diện và thành phần dùng chung.
 export function useApiData<T>(path: string | null) {
+  // Lưu dữ liệu và trạng thái thao tác của giao diện và thành phần dùng chung trong vòng đời màn hình.
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(!!path)
   const [error, setError] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     const controller = new AbortController()
     const timer = setTimeout(() => {

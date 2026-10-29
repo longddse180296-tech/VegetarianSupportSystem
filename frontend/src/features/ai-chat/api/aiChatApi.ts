@@ -1,3 +1,4 @@
+// Chức năng: hội thoại hỗ trợ ăn chay. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
 import type {
   AppRole,
@@ -29,10 +30,12 @@ const FAQS_FIGMA: FaqItem[] = [
   { id: 'f-3', icon: 'HelpCircle', question: 'Gợi ý món chay giàu protein hôm nay' },
 ]
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getUserProfile); thuộc hội thoại hỗ trợ ăn chay.
 export async function getUserProfile(): Promise<UserProfile | null> {
   return null
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getUserProfileFields); thuộc hội thoại hỗ trợ ăn chay.
 export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
   const token = getStoredToken()
   if (token) {
@@ -77,9 +80,9 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
           : 'Chưa đủ dữ liệu'
 
         const goalMap: Record<string, string> = {
-          Lose: 'Giảm mỡ & thanh lọc cơ thể',
-          LoseWeight: 'Giảm mỡ & thanh lọc cơ thể',
-          weight_loss: 'Giảm mỡ & thanh lọc cơ thể',
+          Lose: 'Giảm cân',
+          LoseWeight: 'Giảm cân',
+          weight_loss: 'Giảm cân',
           Maintain: 'Duy trì cân nặng',
           MaintainWeight: 'Duy trì cân nặng',
           maintain: 'Duy trì cân nặng',
@@ -118,10 +121,12 @@ export async function getUserProfileFields(): Promise<PersonalProfileField[]> {
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getFaqsFigma); thuộc hội thoại hỗ trợ ăn chay.
 export async function getFaqsFigma(): Promise<FaqItem[]> {
   return FAQS_FIGMA
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getChatHistory); thuộc hội thoại hỗ trợ ăn chay.
 export async function getChatHistory(): Promise<HistoryItem[]> {
   if (!getStoredToken()) return []
 
@@ -149,18 +154,22 @@ export async function getChatHistory(): Promise<HistoryItem[]> {
   return details.filter((item): item is NonNullable<typeof item> => item !== null)
 }
 
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (getDefaultBmi); thuộc hội thoại hỗ trợ ăn chay.
 export async function getDefaultBmi(): Promise<BMIResult | null> {
   return null
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipeSuggestions); thuộc hội thoại hỗ trợ ăn chay.
 export async function getRecipeSuggestions(_bmiScore = 22.5): Promise<RecipePreview[]> {
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getMealSuggestions); thuộc hội thoại hỗ trợ ăn chay.
 export async function getMealSuggestions(_bmiScore = 22.5): Promise<MealCard[]> {
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getWelcomeSuggestions); thuộc hội thoại hỗ trợ ăn chay.
 export async function getWelcomeSuggestions(
   appRole: AppRole,
 ): Promise<{
@@ -245,10 +254,12 @@ export async function getWelcomeSuggestions(
   }
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (makeId); thuộc hội thoại hỗ trợ ăn chay.
 function makeId(): string {
   return `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (buildUserMessage); thuộc hội thoại hỗ trợ ăn chay.
 export function buildUserMessage(content: string): ChatMessage {
   return {
     id: makeId(),
@@ -259,12 +270,14 @@ export function buildUserMessage(content: string): ChatMessage {
   }
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (createChatConversation); thuộc hội thoại hỗ trợ ăn chay.
 export async function createChatConversation(): Promise<string> {
   const conversation = await apiClient.post<{ id: string }>('/api/ai-chat/conversations')
   if (!conversation?.id) throw new Error('Không thể tạo hội thoại mới.')
   return conversation.id
 }
 
+// Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (sendMessageToAi); thuộc hội thoại hỗ trợ ăn chay.
 export async function sendMessageToAi(
   _role: ChatRole,
   content: string,

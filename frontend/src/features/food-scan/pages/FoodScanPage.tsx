@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { History as HistoryIcon, LogIn, ScanLine } from 'lucide-react'
 import { Badge, Button, PageHeading, SkeletonLoader } from '../../../shared/components'
@@ -25,13 +26,17 @@ import ScanHistoryDetail from '../components/ScanHistoryDetail'
 
 import './FoodScanPage.css'
 
+// Cấu trúc ScanTab quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 type ScanTab = 'scanner' | 'confirm' | 'result'
+// Cấu trúc HistoryStatus quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 type HistoryStatus = 'idle' | 'loading' | 'done'
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (labelIngredients); thuộc phân tích ảnh món ăn và nhãn thành phần.
 function labelIngredients(
   text: string,
   suggestions: Array<{ name: string; kind: IngredientKind }> = [],
 ): DraftIngredient[] {
+  // Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (normalizeName); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const normalizeName = (name: string) => name.trim().toLocaleLowerCase('vi')
     .replace(/\s+\d+(?:[.,]\d+)?\s*(?:kg|mg|g|ml|l|%)?\s*$/i, '').replace(/\s+/g, ' ')
   const kinds = new Map(suggestions.map((item) => [normalizeName(item.name), item.kind]))
@@ -49,6 +54,7 @@ function labelIngredients(
     }))
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (unresolvedQuestions); thuộc phân tích ảnh món ăn và nhãn thành phần.
 function unresolvedQuestions(analysis: ScanAnalysis, resolved: string[]): string[] {
   if (analysis.sourceType !== 'Dish') return []
   return [...new Set([
@@ -57,12 +63,15 @@ function unresolvedQuestions(analysis: ScanAnalysis, resolved: string[]): string
   ])].filter((question) => !resolved.includes(question))
 }
 
+// Cấu trúc FoodScanPageProps quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 interface FoodScanPageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (FoodScanPage); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodScanPageProps) {
+  // Lưu dữ liệu và trạng thái thao tác của phân tích ảnh món ăn và nhãn thành phần trong vòng đời màn hình.
   const [tab, setTab] = useState<ScanTab>('scanner')
   const [sourceType, setSourceType] = useState<ScanSourceType>('Dish')
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -76,7 +85,24 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
   const [result, setResult] = useState<SavedFoodScan | null>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const resultRef = useRef<HTMLElement>(null)
+
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
+  useEffect(() => {
+    if (tab !== 'result' || !result) return
+    const frame = requestAnimationFrame(() => {
+      const region = resultRef.current
+      if (!region) return
+      region.focus({ preventScroll: true })
+      region.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        block: 'start',
+      })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [tab, result])
 
   const [history, setHistory] = useState<ScanHistoryItem[]>([])
   const [historyState, setHistoryState] = useState<HistoryStatus>('idle')
@@ -91,6 +117,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
   const [detailError, setDetailError] = useState<string | null>(null)
   const detailRequestId = useRef(0)
 
+  // Khôi phục hoặc kết thúc trạng thái thao tác hiện tại (clearImage); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const clearImage = () => {
     setImageFile(null)
     setImagePreview(null)
@@ -100,6 +127,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     setTab('scanner')
   }
 
+  // Khôi phục hoặc kết thúc trạng thái thao tác hiện tại (resetScan); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const resetScan = () => {
     clearImage()
     setIngredients([])
@@ -109,12 +137,14 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     setIngredientsComplete(false)
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (changeSourceType); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const changeSourceType = (next: ScanSourceType) => {
     if (next === sourceType) return
     resetScan()
     setSourceType(next)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (processFile); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const processFile = (file: File) => {
     const validExtensions = /\.(jpe?g|png|webp)$/i
     const validMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
@@ -138,6 +168,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     reader.readAsDataURL(file)
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleFileChange); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -145,6 +176,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     processFile(file)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleAnalyze); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const handleAnalyze = async () => {
     if (!imageFile || isScanning) {
       if (!imageFile) setScanError('Hãy chọn ảnh trước khi phân tích.')
@@ -186,6 +218,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleEvaluate); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const handleEvaluate = async () => {
     if (!analysis || isScanning) return
     const unknownAnswers = unresolvedQuestions(analysis, resolvedQuestions).slice(0, 30)
@@ -221,6 +254,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     }
   }
 
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (handleLoadHistory); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const handleLoadHistory = async (page = 1) => {
     if (historyLoadingRef.current) return
     historyLoadingRef.current = true
@@ -240,6 +274,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     }
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelectHistory); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const handleSelectHistory = async (id: string) => {
     const requestId = ++detailRequestId.current
     setSelectedScanId(id)
@@ -258,6 +293,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
     }
   }
 
+  // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       <PageHeading
@@ -489,6 +525,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
             )}
 
             {tab === 'result' && (
+              <section ref={resultRef} tabIndex={-1} aria-label="Kết quả đánh giá thực phẩm" className="fsp-result-region">
               <ScanResultCard
                 result={result}
                 onResetAll={resetScan}
@@ -496,6 +533,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
                 onLoadHistory={() => { setTab('scanner'); void handleLoadHistory(1) }}
                 isLoggedIn={isLoggedIn}
               />
+              </section>
             )}
           </>
         )}

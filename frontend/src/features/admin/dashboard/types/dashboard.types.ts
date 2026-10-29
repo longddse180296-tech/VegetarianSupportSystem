@@ -1,3 +1,5 @@
+// Chức năng: thống kê và góp ý gửi đến Admin. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
+// Cấu trúc StatMetric quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 export interface StatMetric {
   title: string
   value: number
@@ -7,6 +9,7 @@ export interface StatMetric {
   linkPath: string
 }
 
+// Cấu trúc DashboardStats quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 export interface DashboardStats {
   members: StatMetric
   articles: StatMetric
@@ -15,6 +18,7 @@ export interface DashboardStats {
   categories: StatMetric
 }
 
+// Cấu trúc RecentArticleItem quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 export interface RecentArticleItem {
   id: string
   title: string
@@ -22,6 +26,7 @@ export interface RecentArticleItem {
   publishedAt: string
 }
 
+// Cấu trúc RecentVideoItem quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 export interface RecentVideoItem {
   id: string
   title: string
@@ -30,6 +35,7 @@ export interface RecentVideoItem {
   publishedAt: string
 }
 
+// Cấu trúc RecentActivityItem quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 export interface RecentActivityItem {
   id: string
   actorName: string
@@ -40,6 +46,7 @@ export interface RecentActivityItem {
   type: 'article' | 'video' | 'comment' | 'category' | 'user'
 }
 
+// Cấu trúc DashboardOverviewData quy định dữ liệu trao đổi trong thống kê và góp ý gửi đến Admin.
 export interface DashboardOverviewData {
   stats: DashboardStats
   recentArticles: RecentArticleItem[]

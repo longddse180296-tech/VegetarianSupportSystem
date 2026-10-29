@@ -1,16 +1,20 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../../shared/api/apiClient'
 import type { DietaryType } from '../../recipes/api/recipeContract'
 
+// Cấu trúc RestaurantFeaturedDishInput quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RestaurantFeaturedDishInput {
   name: string
   imageUrl: string | null
 }
 
+// Cấu trúc RestaurantFeaturedDish quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RestaurantFeaturedDish extends RestaurantFeaturedDishInput {
   id: string
   displayOrder: number
 }
 
+// Cấu trúc RestaurantInput quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RestaurantInput {
   name: string
   description: string | null
@@ -25,10 +29,11 @@ export interface RestaurantInput {
   priceToVnd: number | null
   imageUrl: string | null
   source: string | null
-  dietaryType: DietaryType | null
+  dietaryTypes: DietaryType[]
   amenities: string[]
   featuredDishes: RestaurantFeaturedDishInput[]
 }
+// Cấu trúc RestaurantSummary quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RestaurantSummary {
   id: string
   name: string
@@ -42,6 +47,7 @@ export interface RestaurantSummary {
   dietaryType: DietaryType | null
   amenities: string[]
 }
+// Cấu trúc RestaurantDetail quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export type RestaurantDetail = RestaurantInput &
   RestaurantSummary & {
     dataUpdatedAt: string
@@ -58,4 +64,6 @@ export const restaurantApi = {
     apiClient.put<RestaurantDetail>(`/api/admin/restaurants/${id}`, input),
   deactivate: (id: string) =>
     apiClient.post<void>(`/api/admin/restaurants/${id}/deactivate`),
+  activate: (id: string) =>
+    apiClient.post<void>(`/api/admin/restaurants/${id}/activate`),
 }

@@ -1,6 +1,8 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Check, Calendar } from 'lucide-react'
 
+// Thành phần SetupStepper nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const SetupStepper: React.FC = () => {
   const steps = [
     { number: 1, title: 'Bước 1', subtitle: 'Thông tin cơ thể', isCompleted: true },
@@ -9,6 +11,7 @@ export const SetupStepper: React.FC = () => {
     { number: 4, title: 'Bước 4', subtitle: 'Kế hoạch tuần', isCurrent: true },
   ]
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

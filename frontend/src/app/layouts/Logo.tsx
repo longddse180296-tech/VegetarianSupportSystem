@@ -1,13 +1,16 @@
+// Chức năng: giao diện và thành phần dùng chung. Bố trí phần điều hướng và vùng nội dung chung giữa các màn hình.
 import React from 'react'
 import logoFull from '../../assets/LOGO.png'
 import logoIcon from '../../assets/LOGO_ICON.png'
 
+// Cấu trúc LogoProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 interface LogoProps {
   className?: string
   iconSize?: 'sm' | 'md' | 'lg' | 'xl' | number
   showText?: boolean
 }
 
+// Thành phần Logo nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export const Logo: React.FC<LogoProps> = ({
   className = '',
   iconSize = 'md',
@@ -52,6 +55,7 @@ export const Logo: React.FC<LogoProps> = ({
     )
   }
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <span
       className={`app-brand-logo ${className}`}

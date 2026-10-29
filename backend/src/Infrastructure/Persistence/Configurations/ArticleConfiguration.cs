@@ -1,11 +1,14 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Persistence.Configurations;
 
+// ArticleConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class ArticleConfiguration : IEntityTypeConfiguration<Article>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<Article> builder)
     {
         builder.ToTable("Articles");
@@ -28,8 +31,10 @@ public sealed class ArticleConfiguration : IEntityTypeConfiguration<Article>
     }
 }
 
+// ArticleVersionConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class ArticleVersionConfiguration : IEntityTypeConfiguration<ArticleVersion>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<ArticleVersion> builder)
     {
         builder.ToTable("ArticleVersions");
@@ -50,8 +55,10 @@ public sealed class ArticleVersionConfiguration : IEntityTypeConfiguration<Artic
     }
 }
 
+// ArticleCategoryConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class ArticleCategoryConfiguration : IEntityTypeConfiguration<ArticleCategory>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<ArticleCategory> builder)
     {
         builder.ToTable("ArticleCategories");
@@ -61,8 +68,10 @@ public sealed class ArticleCategoryConfiguration : IEntityTypeConfiguration<Arti
     }
 }
 
+// ArticleDietaryTypeConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class ArticleDietaryTypeConfiguration : IEntityTypeConfiguration<ArticleDietaryType>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<ArticleDietaryType> builder)
     {
         builder.ToTable("ArticleDietaryTypes");
@@ -71,8 +80,10 @@ public sealed class ArticleDietaryTypeConfiguration : IEntityTypeConfiguration<A
     }
 }
 
+// ArticleVersionDietaryTypeConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class ArticleVersionDietaryTypeConfiguration : IEntityTypeConfiguration<ArticleVersionDietaryType>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<ArticleVersionDietaryType> builder)
     {
         builder.ToTable("ArticleVersionDietaryTypes");
@@ -81,8 +92,10 @@ public sealed class ArticleVersionDietaryTypeConfiguration : IEntityTypeConfigur
     }
 }
 
+// ArticleVersionCategoryConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class ArticleVersionCategoryConfiguration : IEntityTypeConfiguration<ArticleVersionCategory>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<ArticleVersionCategory> builder)
     {
         builder.ToTable("ArticleVersionCategories");

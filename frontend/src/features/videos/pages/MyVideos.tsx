@@ -1,7 +1,10 @@
+// Chức năng: video, bản nháp và nội dung công khai. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
 import { Button, EmptyState, Input, Modal, Select, Textarea } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
+import { VideoFileMetadata } from '../components/VideoFileMetadata'
+import { formatVideoDuration } from '../utils/videoMetadata'
 import {
   createVideo,
   getPrivateMediaUrl,
@@ -14,10 +17,12 @@ import {
   type VideoDetails,
 } from '../api/backendVideos'
 
+// Cấu trúc Props quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface Props {
   onNavigate?: (path: string) => void
 }
 
+// Cấu trúc VideoForm quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface VideoForm {
   title: string
   description: string
@@ -27,10 +32,12 @@ interface VideoForm {
   submitNow: boolean
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (emptyForm); thuộc video, bản nháp và nội dung công khai.
 const emptyForm = (): VideoForm => ({
   title: '', description: '', categoryId: '', media: null, thumbnail: null, submitNow: true,
 })
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (statusOf); thuộc video, bản nháp và nội dung công khai.
 function statusOf(video: VideoDetails): { key: string; label: string; color: string } {
   switch (video.adminReviewStatus) {
     case 'Published': return { key: 'published', label: 'Đã xuất bản', color: 'bg-emerald-100 text-emerald-800' }
@@ -43,6 +50,7 @@ function statusOf(video: VideoDetails): { key: string; label: string; color: str
   }
 }
 
+// Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (validateFile); thuộc video, bản nháp và nội dung công khai.
 function validateFile(file: File, thumbnail: boolean): string | null {
   const max = (thumbnail ? 10 : 200) * 1024 * 1024
   const types = thumbnail ? ['image/jpeg', 'image/png', 'image/webp'] : ['video/mp4', 'video/webm']
@@ -51,8 +59,11 @@ function validateFile(file: File, thumbnail: boolean): string | null {
   return null
 }
 
+// Thành phần VideoThumbnail nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc video, bản nháp và nội dung công khai.
 function VideoThumbnail({ video }: { video: VideoDetails }) {
+  // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [url, setUrl] = useState<string | null>(null)
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!video.thumbnailUrl) return
     if (video.adminReviewStatus === 'Published') return
@@ -69,12 +80,15 @@ function VideoThumbnail({ video }: { video: VideoDetails }) {
     }
   }, [video.id, video.thumbnailUrl, video.adminReviewStatus])
   const source = video.adminReviewStatus === 'Published' ? video.thumbnailUrl : url
+  // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return <div className="flex aspect-video w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm text-slate-500 sm:w-48">
     {source ? <img src={source} alt={video.title} className="h-full w-full object-cover" /> : 'Chưa có ảnh bìa'}
   </div>
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (MyVideosPage); thuộc video, bản nháp và nội dung công khai.
 export default function MyVideosPage({ onNavigate }: Props) {
+  // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [videos, setVideos] = useState<VideoDetails[]>([])
   const [categories, setCategories] = useState<VideoCategoryOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -91,6 +105,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
   const [form, setForm] = useState<VideoForm>(emptyForm)
   const [saving, setSaving] = useState(false)
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     let active = true
     void Promise.all([listVideos(true), listVideoCategories().catch(() => [])])
@@ -106,6 +121,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
     return () => { active = false }
   }, [refresh])
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (categoryName); thuộc video, bản nháp và nội dung công khai.
   const categoryName = (id: string | null) => categories.find((item) => item.id === id)?.name ?? 'Chưa chọn danh mục'
   const filtered = useMemo(() => videos
     .filter((video) => tab === 'all' || statusOf(video).key === tab)
@@ -117,6 +133,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
   const currentPage = Math.min(page, pageCount)
   const visible = filtered.slice((currentPage - 1) * 6, currentPage * 6)
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (startCreate); thuộc video, bản nháp và nội dung công khai.
   const startCreate = () => {
     setEditing(null)
     setSavedDraftId(null)
@@ -125,6 +142,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
     setOpen(true)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (startEdit); thuộc video, bản nháp và nội dung công khai.
   const startEdit = (video: VideoDetails) => {
     setEditing(video)
     setSavedDraftId(null)
@@ -133,6 +151,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
     setOpen(true)
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (save); thuộc video, bản nháp và nội dung công khai.
   const save = async () => {
     const title = form.title.trim()
     if (!title) { setError('Vui lòng nhập tiêu đề video.'); return }
@@ -178,6 +197,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
     }
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (sendDraft); thuộc video, bản nháp và nội dung công khai.
   const sendDraft = async (video: VideoDetails) => {
     setError(null)
     try {
@@ -189,6 +209,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
     }
   }
 
+  // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <UserProfileShell
       activeTab="my-videos"
@@ -229,6 +250,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
             {visible.map((video) => {
               const status = statusOf(video)
               const editable = status.key !== 'pending'
+              // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return <article key={video.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm:flex-row">
                 <VideoThumbnail video={video} />
                 <div className="min-w-0 flex-1">
@@ -236,6 +258,8 @@ export default function MyVideosPage({ onNavigate }: Props) {
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.color}`}>{status.label}</span>
                     <span className="text-xs text-slate-500">{categoryName(video.categoryId)}</span>
                     <span className="text-xs text-slate-500">{video.uploadStatus === 'Ready' ? 'Tệp đã tải lên' : 'Chưa có tệp phát được'}</span>
+                    {video.durationSeconds != null && <span className="text-xs text-slate-500">{formatVideoDuration(video.durationSeconds)}</span>}
+                    {video.metadataStatus === 'Processing' && <span className="text-xs text-slate-500">Đang xử lý thời lượng</span>}
                   </div>
                   <h2 className="mt-2 text-lg font-bold text-slate-900">{video.title}</h2>
                   <p className="mt-1 line-clamp-2 text-sm text-slate-600">{video.description}</p>
@@ -278,6 +302,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
               onChange={(event) => setForm((value) => ({ ...value, media: event.target.files?.[0] ?? null }))} />
           </label>
           {editing?.mediaUrl && <p className="text-xs text-emerald-700">Video hiện tại đã có tệp. Chọn tệp mới để thay thế.</p>}
+          <VideoFileMetadata file={form.media} />
           <label className="block text-sm font-semibold text-slate-700">Ảnh bìa (JPG/PNG/WEBP, tối đa 10 MB)
             <input className="mt-2 block w-full text-sm" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
               onChange={(event) => setForm((value) => ({ ...value, thumbnail: event.target.files?.[0] ?? null }))} />

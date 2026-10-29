@@ -1,5 +1,9 @@
 # Hợp đồng API
 
+Hợp đồng báo cáo bài viết/video và xử lý của Admin ở [content-reports.md](content-reports.md).
+
+Hợp đồng góp ý từ trang Liên hệ và hộp thư riêng của Admin ở [feedback.md](feedback.md).
+
 FE và BE thống nhất endpoint, request/response, mã lỗi, phân trang, trạng thái xử lý và ví dụ trước khi triển khai một tính năng.
 
 Nguồn OpenAPI chính hiện được sinh từ backend trong môi trường Development tại `/openapi/v1.json`. Hợp đồng nghiệp vụ và giới hạn hiện hành cho Moderation/AiChat ở [moderation-aichat.md](moderation-aichat.md).
@@ -42,3 +46,5 @@ Phân biệt bắt buộc:
 - Kết quả phân loại chế độ ăn không phải bảo đảm an toàn dị ứng.
 
 Thay đổi hợp đồng API cần FE và BE cùng xem xét. FE có thể dùng mock khớp hợp đồng trong khi BE đang triển khai.
+
+Rà soát thông báo quản trị ngày 28/10/2026: thông báo nghiệp vụ, quyền truy cập và lỗi biểu mẫu hiển thị bằng tiếng Việt; vai trò hiển thị là “Quản trị viên”, “Người dùng”. Giá trị role/enum, mã HTTP và cấu trúc request/response giữ nguyên. FE chuyển các lỗi kiểm tra dữ liệu mặc định của ASP.NET sang hướng dẫn tiếng Việt và không hiển thị chi tiết kỹ thuật của lỗi máy chủ. Không dựa vào nguyên văn thông báo để xác định trạng thái nghiệp vụ.

@@ -1,3 +1,4 @@
+// Chức năng: hội thoại hỗ trợ ăn chay. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using System.Security.Claims;
 using System.Text.Json;
 using Application.Features.AiChat;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
 
+// AiChatController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
 [Authorize(Roles = "User,Admin")]
 [Route("api/ai-chat")]
@@ -16,12 +18,14 @@ public sealed class AiChatController(
     private const int MaxPromptLength = 4000;
     private const string GuestSessionKey = "AiChat.GuestState.v1";
 
+    // CreateConversation: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPost("conversations")]
     [Authorize]
     public async Task<ActionResult<AiChatConversationDto>> CreateConversation(
         CancellationToken cancellationToken)
     {
         var userId = CurrentUserId();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (userId is null)
         {
             return Unauthorized();
@@ -34,6 +38,7 @@ public sealed class AiChatController(
             conversation);
     }
 
+    // ListConversations: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("conversations")]
     [Authorize]
     public async Task<ActionResult<AiChatPage<AiChatConversationDto>>> ListConversations(
@@ -42,6 +47,7 @@ public sealed class AiChatController(
         CancellationToken cancellationToken = default)
     {
         var userId = CurrentUserId();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (userId is null)
         {
             return Unauthorized();
@@ -56,6 +62,7 @@ public sealed class AiChatController(
             userId, page, pageSize, cancellationToken));
     }
 
+    // GetConversation: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("conversations/{conversationId:guid}")]
     [Authorize]
     public async Task<ActionResult<AiChatConversationDto>> GetConversation(
@@ -63,6 +70,7 @@ public sealed class AiChatController(
         CancellationToken cancellationToken)
     {
         var userId = CurrentUserId();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (userId is null)
         {
             return Unauthorized();
@@ -73,6 +81,7 @@ public sealed class AiChatController(
         return conversation is null ? NotFound() : Ok(conversation);
     }
 
+    // ListMessages: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("conversations/{conversationId:guid}/messages")]
     [Authorize]
     public async Task<ActionResult<AiChatPage<AiChatMessageDto>>> ListMessages(
@@ -82,6 +91,7 @@ public sealed class AiChatController(
         CancellationToken cancellationToken = default)
     {
         var userId = CurrentUserId();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (userId is null)
         {
             return Unauthorized();
@@ -97,6 +107,7 @@ public sealed class AiChatController(
         return messages is null ? NotFound() : Ok(messages);
     }
 
+    // SubmitMessage: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     [HttpPost("conversations/{conversationId:guid}/messages")]
     [Authorize]
     public async Task<ActionResult<AiChatSubmissionDto>> SubmitMessage(
@@ -105,6 +116,7 @@ public sealed class AiChatController(
         CancellationToken cancellationToken)
     {
         var userId = CurrentUserId();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (userId is null)
         {
             return Unauthorized();
@@ -120,20 +132,24 @@ public sealed class AiChatController(
         return submission is null ? NotFound() : Ok(submission);
     }
 
+    // GetGuestSession: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("guest/session")]
     [AllowAnonymous]
     public ActionResult<AiChatGuestSessionInfo> GetGuestSession()
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (User.Identity?.IsAuthenticated == true) return Forbid();
         return Ok(guestChatService.GetSessionInfo(ReadGuestState()));
     }
 
+    // SubmitGuestMessage: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     [HttpPost("guest/messages")]
     [AllowAnonymous]
     public async Task<ActionResult<GuestChatResponse>> SubmitGuestMessage(
         [FromBody] AiChatMessageRequest request,
         CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (User.Identity?.IsAuthenticated == true) return Forbid();
         if (!TryNormalizePrompt(request.Content, out var content))
         {
@@ -160,6 +176,7 @@ public sealed class AiChatController(
         };
     }
 
+    // CurrentUserId: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private string? CurrentUserId()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ??
@@ -169,9 +186,11 @@ public sealed class AiChatController(
             : userId;
     }
 
+    // ReadGuestState: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     private AiChatGuestState ReadGuestState()
     {
         var json = HttpContext.Session.GetString(GuestSessionKey);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (json is null)
         {
             return new AiChatGuestState();
@@ -190,17 +209,20 @@ public sealed class AiChatController(
         return new AiChatGuestState();
     }
 
+    // TryNormalizePrompt: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static bool TryNormalizePrompt(string? value, out string content)
     {
         content = value?.Trim() ?? string.Empty;
         return content.Length is >= 1 and <= MaxPromptLength;
     }
 
+    // IsValidPaging: Đánh giá điều kiện nghiệp vụ để quyết định nhánh xử lý.
     private static bool IsValidPaging(int page, int pageSize) =>
         page >= 1 &&
         pageSize is >= 1 and <= 100 &&
         (long)(page - 1) * pageSize <= int.MaxValue;
 
+    // InvalidPrompt: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private ActionResult InvalidPrompt()
     {
         ModelState.AddModelError(nameof(AiChatMessageRequest.Content),
@@ -208,14 +230,17 @@ public sealed class AiChatController(
         return ValidationProblem(ModelState);
     }
 
+    // InvalidPaging: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private ActionResult InvalidPaging()
     {
         ModelState.AddModelError("pagination", "Page must be positive and pageSize must be between 1 and 100.");
         return ValidationProblem(ModelState);
     }
 
+    // AiChatMessageRequest: định nghĩa dữ liệu trao đổi của tính năng.
     public sealed record AiChatMessageRequest(string? Content);
 
+    // GuestChatResponse: định nghĩa dữ liệu trao đổi của tính năng.
     public sealed record GuestChatResponse(
         string Status,
         string? Answer,

@@ -1,8 +1,10 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState, useMemo } from 'react'
 import { Search, Calendar, Check } from 'lucide-react'
 import { Select } from '../../../shared/components/Select'
 import type { SavedMealPlanItem } from '../types/mealPlans.types'
 
+// Cấu trúc SavedPlansSectionProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface SavedPlansSectionProps {
   savedPlans: SavedMealPlanItem[]
   onViewPlanDetail?: (planId: string) => void
@@ -10,12 +12,14 @@ interface SavedPlansSectionProps {
   applyingPlanId?: string | null
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (SavedPlansSection); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const SavedPlansSection: React.FC<SavedPlansSectionProps> = ({
   savedPlans,
   onViewPlanDetail,
   onApplyPlan,
   applyingPlanId,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGoalFilter, setSelectedGoalFilter] = useState<string>('all')
 
@@ -32,6 +36,7 @@ export const SavedPlansSection: React.FC<SavedPlansSectionProps> = ({
     })
   }, [savedPlans, searchQuery, selectedGoalFilter])
 
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getTagBadgeClasses); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const getTagBadgeClasses = (color: SavedMealPlanItem['goalTagColor']) => {
     switch (color) {
       case 'emerald':
@@ -47,6 +52,7 @@ export const SavedPlansSection: React.FC<SavedPlansSectionProps> = ({
     }
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-4">
       {/* Header and Filter Controls */}
@@ -98,6 +104,7 @@ export const SavedPlansSection: React.FC<SavedPlansSectionProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlans.map((plan) => {
             const isApplying = applyingPlanId === plan.id
+            // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <div
                 key={plan.id}

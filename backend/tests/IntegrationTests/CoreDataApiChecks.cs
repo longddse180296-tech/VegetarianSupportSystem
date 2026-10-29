@@ -46,6 +46,13 @@ internal static class CoreDataApiChecks
             client.DefaultRequestHeaders.Remove("Test-Role");
         }
         client.DefaultRequestHeaders.Add("Test-Role", "Admin");
+        var legacyModeration = await client.PostAsJsonAsync("/api/moderation/submissions", new {
+            contentType = ModeratedContentType.Article, title = "Legacy route test", textContent = "Test only"
+        });
+        Check(legacyModeration.StatusCode == HttpStatusCode.BadRequest &&
+            (await legacyModeration.Content.ReadAsStringAsync()).Contains("/api/me/articles/", StringComparison.Ordinal),
+            "legacy article submission route gives actionable draft guidance instead of false service outage");
+        Check(!await db.ModerationSubmissions.AnyAsync(item => item.Title == "Legacy route test"), "legacy route cannot create detached moderation content");
         var created = await client.PostAsJsonAsync("/api/admin/categories", new CategoryRequest { Name = "  Main  " });
         Check(created.StatusCode == HttpStatusCode.Created && created.Headers.Location is not null, "Admin category create 201 + Location");
         var category = (await created.Content.ReadFromJsonAsync<CategoryResponse>())!;
@@ -57,25 +64,32 @@ internal static class CoreDataApiChecks
         Check((await client.PostAsJsonAsync("/api/admin/categories", new CategoryRequest { Name = "  " })).StatusCode == HttpStatusCode.BadRequest, "blank name 400");
         var tofuResult = await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest
         {
-            Name = "Tofu", Aliases = "bean curd", Origin = IngredientOrigin.Plant, DefaultUnit = "g"
+            Name = "Tofu", Aliases = "bean curd", Origin = IngredientOrigin.Plant, DefaultUnit = "g",
+            Calories = 100, ProteinGram = 10, CarbohydrateGram = 5, FatGram = 3
         });
         var tofu = (await tofuResult.Content.ReadFromJsonAsync<IngredientResponse>())!;
         var riceResult = await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest
         {
-            Name = "Rice", Origin = IngredientOrigin.Plant, DefaultUnit = "g"
+            Name = "Rice", Origin = IngredientOrigin.Plant, DefaultUnit = "g",
+            Calories = 100, ProteinGram = 2, CarbohydrateGram = 20, FatGram = 0
         });
         var rice = (await riceResult.Content.ReadFromJsonAsync<IngredientResponse>())!;
         Check((await client.PutAsJsonAsync("/api/admin/ingredients/" + rice.Id, new IngredientRequest
         {
-            Name = "Rice", Origin = IngredientOrigin.Plant, DefaultUnit = "g", CaloriesPer100Gram = 100
+            Name = "Rice", Origin = IngredientOrigin.Plant, DefaultUnit = "g", Calories = 100,
+            ProteinGram = 2, CarbohydrateGram = 20, FatGram = 0
         })).IsSuccessStatusCode, "update ingredient nutrition");
         Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Invalid origin", Origin = (IngredientOrigin)99 })).StatusCode == HttpStatusCode.BadRequest, "invalid origin 400");
-        Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Negative calories", CaloriesPer100Gram = -1 })).StatusCode == HttpStatusCode.BadRequest, "negative nutrition 400");
+        Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Negative calories", DefaultUnit = "g", Calories = -1, ProteinGram = 0, CarbohydrateGram = 0, FatGram = 0 })).StatusCode == HttpStatusCode.BadRequest, "negative nutrition 400");
         RecipeRequest Recipe(string name, params RecipeIngredientRequest[] rows) => new()
         {
             CategoryId = category.Id,
             Name = name,
+            Description = "Đậu hũ và cơm dùng kèm rau xanh.",
             Servings = 2,
+            PrepTimeMinutes = 0,
+            CookTimeMinutes = 10,
+            ImageUrl = "https://example.test/recipe-cover.jpg",
             Instructions = "Cook",
             DeclaredDietaryType = DietaryType.Vegan,
             Ingredients = rows,
@@ -118,7 +132,21 @@ internal static class CoreDataApiChecks
         }
         Check(recipeResult.StatusCode == HttpStatusCode.Created, "recipe graph saved");
         var recipe = (await recipeResult.Content.ReadFromJsonAsync<RecipeResponse>())!;
-        Check(recipe.Ingredients.Count == 2 && recipe.CategoryName == "Main" && recipe.CaloriesPerServing == 123.456m, "recipe detail and decimal precision");
+        Check(recipe.Ingredients.Count == 2 && recipe.CategoryName == "Main" && recipe.CaloriesPerServing == 100m,
+            "recipe nutrition is calculated on server and ignores forged manual totals");
+        foreach (var field in new[] { "categoryId", "imageUrl", "servings", "prepTimeMinutes", "cookTimeMinutes" })
+        {
+            var payload = System.Text.Json.JsonSerializer.SerializeToNode(Recipe("Missing required " + field, Row(tofu.Id)),
+                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!.AsObject();
+            payload.Remove(field);
+            Check((await client.PostAsJsonAsync("/api/admin/recipes", payload)).StatusCode == HttpStatusCode.BadRequest,
+                "recipe requires explicit " + field);
+        }
+        var countUnits = await client.PutAsJsonAsync("/api/admin/recipes/" + recipe.Id, Recipe("Tofu rice",
+            new RecipeIngredientRequest { IngredientId = tofu.Id, Quantity = 2, Unit = "đơn vị", Note = "2 miếng cỡ vừa" },
+            new RecipeIngredientRequest { IngredientId = rice.Id, Quantity = 150, Unit = "g" }));
+        Check(countUnits.StatusCode == HttpStatusCode.BadRequest,
+            "recipe rejects a count unit when ingredient data requires grams");
         Check((await client.PostAsJsonAsync("/api/admin/recipes", Recipe("Duplicate", Row(tofu.Id), Row(tofu.Id)))).StatusCode == HttpStatusCode.BadRequest, "reject duplicate ingredients");
         Check((await client.PostAsJsonAsync("/api/admin/recipes", Recipe("Missing", Row(Guid.NewGuid())))).StatusCode == HttpStatusCode.BadRequest, "reject missing ingredient");
         Check((await client.PostAsJsonAsync("/api/admin/recipes", Recipe("Zero", Row(tofu.Id, 0)))).StatusCode == HttpStatusCode.BadRequest, "reject zero quantity");
@@ -155,6 +183,8 @@ internal static class CoreDataApiChecks
             "restaurant trims data and retains three featured dishes");
         var nearby = await client.GetFromJsonAsync<RestaurantPage>("/api/restaurants?latitude=10.776889&longitude=106.700806&maxDistanceKm=1");
         Check(nearby!.Items.Single().Id == restaurant.Id && nearby.Items.Single().DistanceKm == 0m, "restaurant distance filter uses supplied location");
+        Check(nearby.Items.Single().Latitude == restaurantRequest.Latitude && nearby.Items.Single().Longitude == restaurantRequest.Longitude,
+            "restaurant cards and map receive stored coordinates without inferred markers");
         Check((await client.GetAsync("/api/restaurants?latitude=10")).StatusCode == HttpStatusCode.BadRequest, "restaurant rejects incomplete coordinates");
         Check((await client.PostAsJsonAsync("/api/admin/restaurants", new RestaurantRequest
         {
@@ -164,6 +194,42 @@ internal static class CoreDataApiChecks
             FeaturedDishes = restaurantRequest.FeaturedDishes
         })).StatusCode == HttpStatusCode.Conflict,
             "restaurant duplicate name 409");
+        // Nhà hàng nhiều loại: kiểm tra lưu thật, đọc lại, lọc từng loại và bỏ chọn khi cập nhật.
+        RestaurantRequest MultiDietRequest(params DietaryType[] types) => new()
+        {
+            Name = "Multi diet restaurant",
+            Address = restaurantRequest.Address,
+            DietaryTypes = types,
+            FeaturedDishes = restaurantRequest.FeaturedDishes
+        };
+        var multiResult = await client.PostAsJsonAsync("/api/admin/restaurants",
+            MultiDietRequest(DietaryType.Vegan, DietaryType.OvoVegetarian, DietaryType.LactoVegetarian));
+        Check(multiResult.StatusCode == HttpStatusCode.Created, "restaurant accepts multiple declared diets");
+        var multi = (await multiResult.Content.ReadFromJsonAsync<RestaurantResponse>())!;
+        var multiDetail = (await client.GetFromJsonAsync<RestaurantResponse>("/api/restaurants/" + multi.Id))!;
+        Check(multiDetail.DietaryType is null && multiDetail.DietaryTypes.ToHashSet().SetEquals(
+            [DietaryType.Vegan, DietaryType.OvoVegetarian, DietaryType.LactoVegetarian]),
+            "restaurant persists and returns every declared diet without inventing one primary diet");
+        foreach (var diet in new[] { DietaryType.Vegan, DietaryType.LactoVegetarian, DietaryType.OvoVegetarian, DietaryType.LactoOvoVegetarian })
+        {
+            var filtered = (await client.GetFromJsonAsync<RestaurantPage>("/api/restaurants?dietaryType=" + (int)diet))!;
+            Check(filtered.Items.Any(item => item.Id == multi.Id) == (diet != DietaryType.LactoOvoVegetarian),
+                "restaurant filter matches only selected diet: " + diet);
+        }
+        var multiUpdated = await client.PutAsJsonAsync("/api/admin/restaurants/" + multi.Id,
+            MultiDietRequest(DietaryType.OvoVegetarian));
+        Check(multiUpdated.IsSuccessStatusCode &&
+            (await multiUpdated.Content.ReadFromJsonAsync<RestaurantResponse>())!.DietaryTypes.SequenceEqual([DietaryType.OvoVegetarian]),
+            "restaurant update removes deselected diets and retains selected diet");
+        Check(!(await client.GetFromJsonAsync<RestaurantPage>("/api/restaurants?dietaryType=1"))!.Items.Any(item => item.Id == multi.Id),
+            "removed restaurant diet no longer matches public filter");
+        foreach (var invalid in new[] { Array.Empty<DietaryType>(), new[] { (DietaryType)99 }, new[] { DietaryType.Vegan, DietaryType.Vegan } })
+            Check((await client.PutAsJsonAsync("/api/admin/restaurants/" + multi.Id, MultiDietRequest(invalid))).StatusCode == HttpStatusCode.BadRequest,
+                "restaurant rejects missing, unknown or duplicate diets: " + string.Join(',', invalid));
+        Check((await client.GetFromJsonAsync<RestaurantResponse>("/api/admin/restaurants/" + multi.Id))!.DietaryTypes.SequenceEqual([DietaryType.OvoVegetarian]),
+            "invalid restaurant update keeps stored diets intact");
+        Check((await client.PostAsync("/api/admin/restaurants/" + multi.Id + "/deactivate", null)).StatusCode == HttpStatusCode.NoContent,
+            "deactivate multi-diet fixture after checks");
         var recipeFavoriteResult = await client.PostAsJsonAsync("/api/favorites", new FavoriteRequest
         {
             TargetType = FavoriteTargetType.Recipe,
@@ -288,15 +354,45 @@ internal static class CoreDataApiChecks
         client.DefaultRequestHeaders.Remove("Test-UserId");
         await client.PostAsync("/api/admin/ingredients/" + tofu.Id + "/deactivate", null);
         Check((await client.GetAsync("/api/ingredients/" + tofu.Id)).StatusCode == HttpStatusCode.NotFound, "inactive ingredient hidden publicly");
+        Check(!(await client.GetFromJsonAsync<IngredientPage>("/api/ingredients?pageSize=100"))!.Items.Any(item => item.Id == tofu.Id),
+            "inactive ingredient excluded from new recipe ingredient picker");
         var detail = await client.GetFromJsonAsync<RecipeResponse>("/api/recipes/" + recipe.Id);
+        client.DefaultRequestHeaders.Remove("Test-Role");
+        Check((await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/activate", null)).StatusCode == HttpStatusCode.Unauthorized,
+            "Guest cannot activate ingredient");
+        client.DefaultRequestHeaders.Add("Test-Role", "User");
+        Check((await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/activate", null)).StatusCode == HttpStatusCode.Forbidden,
+            "User cannot activate ingredient");
+        client.DefaultRequestHeaders.Remove("Test-Role");
+        client.DefaultRequestHeaders.Add("Test-Role", "Admin");
+        Check((await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/activate", null)).StatusCode == HttpStatusCode.NoContent,
+            "Admin activates ingredient");
+        var reopened = (await client.GetFromJsonAsync<IngredientResponse>("/api/ingredients/" + tofu.Id))!;
+        Check(reopened.IsActive && reopened.Name == tofu.Name && reopened.Calories == tofu.Calories,
+            "activation persists and restores public ingredient without changing nutrition");
+        Check((await client.GetFromJsonAsync<IngredientPage>("/api/ingredients?pageSize=100"))!.Items.Any(item => item.Id == tofu.Id),
+            "activated ingredient returns to recipe picker");
+        Check((await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/activate", null)).StatusCode == HttpStatusCode.NoContent,
+            "ingredient activation is idempotent");
+        Check((await client.PostAsync($"/api/admin/ingredients/{Guid.NewGuid()}/activate", null)).StatusCode == HttpStatusCode.NotFound,
+            "missing ingredient activation returns 404");
+        await client.PostAsync($"/api/admin/ingredients/{tofu.Id}/deactivate", null);
         Check(detail!.Ingredients.Any(x => x.IngredientId == tofu.Id && !x.IsActive), "existing recipe keeps inactive ingredient");
         Check((await client.PostAsJsonAsync("/api/admin/recipes", Recipe("Inactive", Row(tofu.Id)))).StatusCode == HttpStatusCode.BadRequest, "new recipe cannot use inactive ingredient");
         Check((await client.PutAsJsonAsync("/api/admin/recipes/" + recipe.Id, Recipe("Tofu rice", Row(tofu.Id, 300)))).IsSuccessStatusCode, "existing recipe can retain inactive reference");
         Check((await client.PatchAsync("/api/admin/categories/" + category.Id + "/deactivate", null)).StatusCode == HttpStatusCode.NoContent, "category PATCH deactivate 204");
+        Check((await client.GetAsync("/api/categories/" + category.Id)).StatusCode == HttpStatusCode.NotFound,
+            "inactive category hidden from public category detail");
+        Check(!(await client.GetFromJsonAsync<CategoryPage>("/api/categories?pageSize=100"))!.Items.Any(item => item.Id == category.Id),
+            "inactive category excluded from active category list");
         Check((await client.PutAsJsonAsync("/api/admin/recipes/" + recipe.Id, Recipe("Tofu rice", Row(tofu.Id, 300)))).IsSuccessStatusCode, "existing recipe can retain inactive category");
         Check((await client.PostAsJsonAsync("/api/admin/recipes", Recipe("Inactive category", Row(rice.Id)))).StatusCode == HttpStatusCode.BadRequest, "new recipe cannot use inactive category");
         var page = await client.GetFromJsonAsync<RecipePage>("/api/recipes?categoryId=" + category.Id + "&pageSize=1");
         Check(page!.Items.Count == 1 && page.TotalCount == 1, "category filter and pagination");
+        Check((await client.GetFromJsonAsync<RecipeResponse>("/api/recipes/" + recipe.Id))!.CategoryName == category.Name,
+            "public existing recipe retains category name after category is locked");
+        // Chặn lỗi thẻ công thức báo thiếu mô tả dù trang chi tiết đã có dữ liệu.
+        Check(page.Items[0].Description == detail.Description && !string.IsNullOrWhiteSpace(page.Items[0].Description), "recipe list preserves saved detail description");
         Check((await client.GetFromJsonAsync<RecipePage>("/api/recipes?pageNumber=2147483647&pageSize=100"))!.Items.Count == 0, "large page avoids integer overflow");
         Check((await client.GetAsync("/api/recipes?pageSize=101")).StatusCode == HttpStatusCode.BadRequest, "invalid page size 400");
         Check((await client.GetFromJsonAsync<IngredientPage>("/api/admin/ingredients?search=bean"))!.TotalCount == 1, "alias search and admin inactive list");
@@ -308,6 +404,21 @@ internal static class CoreDataApiChecks
         await client.PostAsync("/api/admin/restaurants/" + restaurant.Id + "/deactivate", null);
         Check((await client.GetAsync("/api/restaurants/" + restaurant.Id)).StatusCode == HttpStatusCode.NotFound, "inactive restaurant hidden publicly");
         Check((await client.GetAsync("/api/admin/restaurants/" + restaurant.Id)).IsSuccessStatusCode, "Admin can inspect inactive restaurant");
+        // Mở khóa phải lưu DB và khôi phục public; không chỉ thay trạng thái hiển thị trên FE.
+        client.DefaultRequestHeaders.Remove("Test-Role");
+        Check((await client.PostAsync($"/api/admin/restaurants/{restaurant.Id}/activate", null)).StatusCode == HttpStatusCode.Unauthorized, "Guest cannot reactivate restaurant");
+        client.DefaultRequestHeaders.Add("Test-Role", "User");
+        Check((await client.PostAsync($"/api/admin/restaurants/{restaurant.Id}/activate", null)).StatusCode == HttpStatusCode.Forbidden, "User cannot reactivate restaurant");
+        client.DefaultRequestHeaders.Remove("Test-Role");
+        client.DefaultRequestHeaders.Add("Test-Role", "Admin");
+        Check((await client.PostAsync($"/api/admin/restaurants/{Guid.NewGuid()}/activate", null)).StatusCode == HttpStatusCode.NotFound, "reactivate missing restaurant returns 404");
+        Check((await client.PostAsync($"/api/admin/restaurants/{restaurant.Id}/activate", null)).StatusCode == HttpStatusCode.NoContent, "Admin reactivation succeeds after saving");
+        Check(await db.Restaurants.AsNoTracking().AnyAsync(item => item.Id == restaurant.Id && item.IsActive), "restaurant reactivation persists in SQL");
+        Check((await client.GetAsync($"/api/restaurants/{restaurant.Id}")).IsSuccessStatusCode, "reactivated restaurant detail visible publicly");
+        Check((await client.GetFromJsonAsync<RestaurantPage>("/api/restaurants"))!.Items.Any(item => item.Id == restaurant.Id), "reactivated restaurant returns to public list");
+        Check((await client.PostAsync($"/api/admin/restaurants/{restaurant.Id}/activate", null)).StatusCode == HttpStatusCode.NoContent, "restaurant reactivation idempotent");
+        Check(!await db.Favorites.AsNoTracking().AnyAsync(item => item.TargetType == FavoriteTargetType.Restaurant && item.TargetId == restaurant.Id), "reactivation does not recreate removed favorites");
+        await client.PostAsync($"/api/admin/restaurants/{restaurant.Id}/deactivate", null);
         // Simulate precheck races by bypassing the application name lookup.
         db.Categories.Add(new Domain.Entities.Category { Name = "MAIN" });
         try { await new CategoryRepository(db).SaveAsync(ct); throw new Exception("Unique index missing"); }

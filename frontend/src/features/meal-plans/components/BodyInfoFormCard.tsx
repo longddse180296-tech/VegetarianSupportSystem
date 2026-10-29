@@ -1,3 +1,4 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import type { UseFormRegister, UseFormSetValue } from 'react-hook-form'
 import { Activity, Sparkles, User } from 'lucide-react'
@@ -8,6 +9,7 @@ import type {
   PersonalizationFormValues,
 } from '../types/mealPlans.types'
 
+// Cấu trúc BodyInfoFormCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface BodyInfoFormCardProps {
   register: UseFormRegister<PersonalizationFormValues>
   setValue: UseFormSetValue<PersonalizationFormValues>
@@ -16,6 +18,7 @@ interface BodyInfoFormCardProps {
   bmiAnalysis: BmiAnalysisResult
 }
 
+// Thành phần BodyInfoFormCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const BodyInfoFormCard: React.FC<BodyInfoFormCardProps> = ({
   register,
   setValue,
@@ -23,9 +26,10 @@ export const BodyInfoFormCard: React.FC<BodyInfoFormCardProps> = ({
   activityLevel,
   bmiAnalysis,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs space-y-6">
-      {/* Header */}
+      {/* Tiêu đề và thao tác chính. */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-[#EAF5EE] text-[#1E6531] flex items-center justify-center shrink-0">

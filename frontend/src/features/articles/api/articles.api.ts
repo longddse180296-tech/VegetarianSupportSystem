@@ -1,3 +1,4 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type { BackendDietaryType } from '../../../shared/constants'
 import type {
@@ -5,12 +6,14 @@ import type {
   AiStatus,
   Submission,
 } from '../../admin/moderation/api/adminModerationApi'
+// Cấu trúc ContentPage quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ContentPage<T> {
   items: T[]
   totalCount: number
   page: number
   pageSize: number
 }
+// Cấu trúc PublicArticleSummary quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface PublicArticleSummary {
   id: string
   title: string
@@ -24,10 +27,12 @@ export interface PublicArticleSummary {
   version: number
   publishedAt: string
 }
+// Cấu trúc PublicArticleDetail quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface PublicArticleDetail extends PublicArticleSummary {
   content: string
   relatedArticles: PublicArticleSummary[]
 }
+// Cấu trúc MyArticleRecord quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface MyArticleRecord {
   id: string
   title: string
@@ -47,10 +52,12 @@ export interface MyArticleRecord {
     aiStatus: AiStatus
     adminStatus: AdminStatus
     aiSummary: string | null
+    systemRejectionReason?: string | null
     adminFeedback: string | null
     submittedAt: string
   }>
 }
+// Cấu trúc ArticleInput quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface ArticleInput {
   title: string
   content: string
@@ -58,6 +65,7 @@ export interface ArticleInput {
   coverImageUrl: string | null
   dietaryType: BackendDietaryType | null
 }
+// Cấu trúc CommentRecord quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface CommentRecord {
   id: string
   targetType: 'Article' | 'Video'
@@ -74,6 +82,7 @@ export interface CommentRecord {
   moderatedBy: string | null
   moderatedAt: string | null
 }
+// Cấu trúc Reaction quy định dữ liệu trao đổi trong bài viết và phiên bản gửi duyệt.
 export interface Reaction {
   count: number
   reactedByMe: boolean

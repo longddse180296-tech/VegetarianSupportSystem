@@ -1,16 +1,20 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import './AlertError.css';
 
+// Cấu trúc AlertErrorProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 interface AlertErrorProps {
   title?: string;
   message?: string;
   onRetry?: () => void;
 }
 
+// Thành phần AlertError nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc giao diện và thành phần dùng chung.
 export default function AlertError({
   title = 'Đã có lỗi xảy ra',
   message = 'Không thể tải dữ liệu vào lúc này. Vui lòng thử lại.',
   onRetry,
 }: AlertErrorProps) {
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="alert-error" role="alert" aria-live="assertive">
       <div className="alert-icon" aria-hidden="true">

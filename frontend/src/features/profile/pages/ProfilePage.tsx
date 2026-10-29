@@ -1,3 +1,4 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import React, { useState, useEffect } from 'react'
 import { UserProfileShell } from '../components/UserProfileShell'
 import { useAuth } from '../../auth'
@@ -8,16 +9,19 @@ import type { UserProfile, ProfileStats, RecentPost } from '../types'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { getDietaryTypeLabel } from '../../../shared/constants'
 
+// Cấu trúc ProfilePageProps quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface ProfilePageProps {
   onNavigate?: (path: string) => void
   initialViewMode?: 'overview' | 'settings'
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (ProfilePage); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export const ProfilePage: React.FC<ProfilePageProps> = ({
   onNavigate,
   initialViewMode = 'overview',
 }) => {
   const { user, updateUser } = useAuth()
+  // Lưu dữ liệu và trạng thái thao tác của hồ sơ và nhu cầu dinh dưỡng cá nhân trong vòng đời màn hình.
   const [viewMode, setViewMode] = useState<'overview' | 'settings'>(
     initialViewMode,
   )
@@ -40,8 +44,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [saveNotice, setSaveNotice] = useState<string | null>(null)
   const [reloadTrigger, setReloadTrigger] = useState(0)
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     let isMounted = true
+    // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (loadData); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
     const loadData = async () => {
       try {
         const [profData, statsData, postsData] = await Promise.allSettled([
@@ -86,12 +92,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     }
   }, [reloadTrigger])
 
+  // Thử lại việc lấy dữ liệu và đồng bộ trạng thái hiển thị (handleRetry); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const handleRetry = () => {
     setIsLoading(true)
     setError(null)
     setReloadTrigger((prev) => prev + 1)
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (handleUpdateProfile); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
     setIsUpdating(true)
     try {
@@ -115,6 +123,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const displayAvatar = profile?.avatarUrl || user?.avatarUrl
   const displayDiet = getDietaryTypeLabel(profile?.dietaryType)
 
+  // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <UserProfileShell
       activeTab="overview"

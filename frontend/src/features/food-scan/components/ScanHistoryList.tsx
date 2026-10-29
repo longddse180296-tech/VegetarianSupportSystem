@@ -1,6 +1,8 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { SkeletonLoader, StatusBadge } from '../../../shared/components'
 import type { ScanHistoryItem } from '../types/foodScan.types'
 
+// Cấu trúc ScanHistoryListProps quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export interface ScanHistoryListProps {
   historyState: 'idle' | 'loading' | 'done'
   history: ScanHistoryItem[]
@@ -11,6 +13,7 @@ export interface ScanHistoryListProps {
   onSelect: (id: string) => void
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (ScanHistoryList); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export default function ScanHistoryList({
   historyState,
   history,
@@ -21,6 +24,7 @@ export default function ScanHistoryList({
   onSelect,
 }: ScanHistoryListProps) {
   if (historyState === 'idle') return null
+  // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="mt-4 pt-3 border-t border-slate-100">
       <div className="mb-2 text-xs font-bold text-slate-700">Lịch sử quét gần đây</div>

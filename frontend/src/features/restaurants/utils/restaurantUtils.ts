@@ -1,3 +1,4 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 /**
  * Format address string and deduplicate repeated districts/cities
  * Example: Converts "Quận 3, TP.HCM, Quận 3" to "Quận 3, TP.HCM"

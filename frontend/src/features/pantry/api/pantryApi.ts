@@ -1,3 +1,4 @@
+// Chức năng: tủ bếp và nguyên liệu sẵn có. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type {
   AddIngredientFormState,
@@ -71,6 +72,7 @@ export const INGREDIENT_RECIPE_MAP: Record<string, string[]> = {
   'Bơ lạt': ['Bánh kếp chuối trứng sữa (Pancake)', 'Bánh mì bơ tỏi phô mai Mozzarella', 'Khoai tây nghiền bơ sữa đút lò', 'Nấm đùi gà xào bơ tỏi'],
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipesForIngredient); thuộc tủ bếp và nguyên liệu sẵn có.
 export function getRecipesForIngredient(name: string): string[] {
   const trimmed = name.trim().toLowerCase()
   for (const [key, recipes] of Object.entries(INGREDIENT_RECIPE_MAP)) {
@@ -81,12 +83,14 @@ export function getRecipesForIngredient(name: string): string[] {
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getPantryCategories); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function getPantryCategories(): Promise<
   Array<{ key: PantryCategory | 'all'; emoji: string; label: string }>
 > {
   return CATEGORY_ORDER
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (getQuickAddChips); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function getQuickAddChips(): Promise<
   Array<{ name: string; emoji: string; cls: string }>
 > {
@@ -94,12 +98,14 @@ export async function getQuickAddChips(): Promise<
 }
 
 // ---------- 4 Core Vegetarian Diet Types & Evaluation Logic ----------
+// Cấu trúc CoreDietType quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export type CoreDietType =
   | 'Thuần chay (Vegan)'
   | 'Ăn chay có sữa (Lacto)'
   | 'Chay có trứng (Ovo)'
   | 'Trứng & Sữa (Lacto-ovo)'
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (evaluateIngredientForDiet); thuộc tủ bếp và nguyên liệu sẵn có.
 export function evaluateIngredientForDiet(
   name: string,
   diet: CoreDietType,
@@ -184,6 +190,7 @@ export function evaluateIngredientForDiet(
   }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getSubstitutionForIngredient); thuộc tủ bếp và nguyên liệu sẵn có.
 export function getSubstitutionForIngredient(
   name: string,
   _diet?: CoreDietType,
@@ -294,6 +301,7 @@ export function getSubstitutionForIngredient(
 }
 
 // ---------- Real Backend Interfaces & Adapters ----------
+// Cấu trúc BackendPantryItem quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 interface BackendPantryItem {
   id: string
   ingredientId: string | null
@@ -310,6 +318,7 @@ interface BackendPantryItem {
   updatedAt: string | null
 }
 
+// Cấu trúc BackendPantryRecipeSuggestion quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 interface BackendPantryRecipeSuggestion {
   recipeId: string
   recipeName: string
@@ -322,6 +331,7 @@ interface BackendPantryRecipeSuggestion {
   missingIngredients: Array<{ ingredientId: string; name: string; quantity: number; unit: string; isAvailable: boolean }>
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (inferCategoryFromName); thuộc tủ bếp và nguyên liệu sẵn có.
 function inferCategoryFromName(name: string): PantryCategory {
   const lower = name.toLowerCase()
   if (/(cải|rau|xà lách|cà chua|bí|cà rốt|dưa|ngò|hành|tỏi)/.test(lower)) return 'rau-cu-qua'
@@ -335,8 +345,10 @@ function inferCategoryFromName(name: string): PantryCategory {
   return 'khac'
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapBackendPantryItem); thuộc tủ bếp và nguyên liệu sẵn có.
 function mapBackendPantryItem(backendItem: BackendPantryItem): PantryItem {
-  let isSuitable: PantrySuitability = 'suitable'
+  // Chỉ backend đối chiếu đủ nguồn gốc và hồ sơ; chưa có bằng chứng thì giữ trạng thái chưa đủ thông tin.
+  let isSuitable: PantrySuitability = backendItem.dietaryCompatibility === 'Compatible' ? 'suitable' : 'unchecked'
   if (backendItem.dietaryCompatibility === 'Incompatible') {
     isSuitable = 'unsuitable'
   } else if (
@@ -348,16 +360,16 @@ function mapBackendPantryItem(backendItem: BackendPantryItem): PantryItem {
     isSuitable = 'unchecked'
   }
 
-  let note = backendItem.dietaryNotice || 'Đã kiểm tra kho nguyên liệu cá nhân'
-  if (backendItem.allergenWarnings && backendItem.allergenWarnings.length > 0) {
-    note = `Cảnh báo dị ứng: ${backendItem.allergenWarnings.join(', ')}`
-  }
+  const note = [backendItem.dietaryNotice,
+    backendItem.allergenWarnings?.length ? `Cảnh báo dị ứng: ${backendItem.allergenWarnings.join(', ')}` : null,
+    backendItem.avoidedFoodWarnings?.length ? `Thực phẩm cần tránh: ${backendItem.avoidedFoodWarnings.join(', ')}` : null,
+  ].filter(Boolean).join(' · ') || 'Chưa đủ thông tin để đánh giá mức độ phù hợp.'
 
   return {
     id: backendItem.id,
     name: backendItem.name,
-    quantity: backendItem.quantity ? Number(backendItem.quantity) : 1,
-    unit: backendItem.unit || 'g',
+    quantity: backendItem.quantity,
+    unit: backendItem.unit,
     category: inferCategoryFromName(backendItem.name),
     isSuitable,
     suitableNote: note,
@@ -365,10 +377,11 @@ function mapBackendPantryItem(backendItem: BackendPantryItem): PantryItem {
   }
 }
 
-export async function getPantryItems(category: PantryCategory | 'all' = 'all'): Promise<PantryItem[]> {
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getPantryItems); thuộc tủ bếp và nguyên liệu sẵn có.
+export async function getPantryItems(category: PantryCategory | 'all' = 'all', signal?: AbortSignal): Promise<PantryItem[]> {
   const url = '/api/pantry/items'
   try {
-    const backendItems = await apiClient.get<BackendPantryItem[]>(url)
+    const backendItems = await apiClient.get<BackendPantryItem[]>(url, { signal })
     if (backendItems && Array.isArray(backendItems)) {
       const mapped = backendItems.map(mapBackendPantryItem)
       if (category === 'all') return mapped
@@ -376,11 +389,13 @@ export async function getPantryItems(category: PantryCategory | 'all' = 'all'): 
     }
   } catch (err) {
     console.error('[pantryApi.getPantryItems] Lỗi khi gọi API: ' + url, err)
+    throw err
   }
 
-  return []
+  throw new Error('Chưa thể đọc danh sách nguyên liệu. Vui lòng thử tải lại.')
 }
 
+// Cấu trúc CatalogIngredient quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export interface CatalogIngredient {
   id: string
   name: string
@@ -392,6 +407,7 @@ export interface CatalogIngredient {
   recipeNames?: string[]
 }
 
+// Xóa mục được chọn theo phạm vi và điều kiện của tính năng (removeVietnameseDiacritics); thuộc tủ bếp và nguyên liệu sẵn có.
 export function removeVietnameseDiacritics(str: string): string {
   return str
     .normalize('NFD')
@@ -403,6 +419,7 @@ export function removeVietnameseDiacritics(str: string): string {
 
 let cachedCatalog: CatalogIngredient[] | null = null
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (fetchAllCatalogIngredients); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function fetchAllCatalogIngredients(): Promise<CatalogIngredient[]> {
   if (cachedCatalog && cachedCatalog.length > 0) return cachedCatalog
   try {
@@ -423,6 +440,7 @@ export async function fetchAllCatalogIngredients(): Promise<CatalogIngredient[]>
   return []
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (searchCatalogIngredients); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function searchCatalogIngredients(keyword: string): Promise<CatalogIngredient[]> {
   const term = keyword.trim()
   if (!term) return []
@@ -454,12 +472,14 @@ export async function searchCatalogIngredients(keyword: string): Promise<Catalog
   }
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (addPantryItem); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function addPantryItem(
   form: AddIngredientFormState & { ingredientId?: string },
 ): Promise<PantryItem> {
-  const qty =
-    Number.isFinite(Number(form.quantity)) && Number(form.quantity) > 0 ? Number(form.quantity) : 1
-  const unitStr = form.unit.trim() || 'g'
+  const qty = Number(form.quantity)
+  const unitStr = form.unit.trim()
+  if (!Number.isFinite(qty) || qty <= 0 || !unitStr)
+    throw new Error('Vui lòng nhập số lượng lớn hơn 0 và chọn đơn vị trước khi lưu.')
 
   const payload: { name?: string; ingredientId?: string; quantity: number; unit: string } = {
     quantity: qty,
@@ -481,6 +501,7 @@ export async function addPantryItem(
   throw new Error('Không thể thêm nguyên liệu vào tủ bếp.')
 }
 
+// Xóa mục được chọn theo phạm vi và điều kiện của tính năng (deletePantryItem); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function deletePantryItem(id: string): Promise<{ deleted: boolean; remaining: number }> {
   const url = `/api/pantry/items/${id}`
   try {
@@ -488,10 +509,11 @@ export async function deletePantryItem(id: string): Promise<{ deleted: boolean; 
     return { deleted: true, remaining: 0 }
   } catch (err) {
     console.error('[pantryApi.deletePantryItem] Lỗi khi gọi API: ' + url, err)
-    return { deleted: false, remaining: 0 }
+    throw err
   }
 }
 
+// Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updatePantryItem); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function updatePantryItem(
   id: string,
   data: { name: string; quantity?: number; unit?: string },
@@ -500,19 +522,20 @@ export async function updatePantryItem(
   try {
     const updated = await apiClient.put<BackendPantryItem>(url, {
       name: data.name.trim(),
-      quantity: data.quantity ?? 1,
-      unit: data.unit?.trim() || 'g',
+      quantity: data.quantity ?? null,
+      unit: data.unit?.trim() || null,
     })
     if (updated && updated.id) {
       return mapBackendPantryItem(updated)
     }
-    return null
+    throw new Error('Chưa nhận được nguyên liệu đã cập nhật. Vui lòng tải lại trước khi thử tiếp.')
   } catch (err) {
     console.error('[pantryApi.updatePantryItem] Lỗi khi gọi API: ' + url, err)
-    return null
+    throw err
   }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipeMatches); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMatch[]> {
   const url = '/api/pantry/recipe-suggestions'
   try {
@@ -526,7 +549,7 @@ export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMat
           s.imageUrl ||
           'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
         timeMin: s.totalTimeMinutes,
-        kcal: s.caloriesPerServing ? Math.round(s.caloriesPerServing) : 350,
+        kcal: s.caloriesPerServing === null ? null : Math.round(s.caloriesPerServing),
         tag: 'Gợi ý từ tủ bếp',
         matchedIngredients: s.availableIngredients.map((i) => i.name),
         totalIngredients: s.availableIngredients.length + s.missingIngredients.length,
@@ -536,11 +559,13 @@ export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMat
     }
   } catch (err) {
     console.error('[pantryApi.getRecipeMatches] Lỗi khi gọi API: ' + url, err)
+    throw err
   }
 
   return []
 }
 
+// Cấu trúc PantrySubstitutionCandidate quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export interface PantrySubstitutionCandidate {
   ingredientId: string
   name: string
@@ -550,6 +575,7 @@ export interface PantrySubstitutionCandidate {
   avoidedFoodWarnings: string[]
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getSubstitutionCandidates); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function getSubstitutionCandidates(
   pantryItemId: string,
 ): Promise<PantrySubstitutionCandidate[]> {

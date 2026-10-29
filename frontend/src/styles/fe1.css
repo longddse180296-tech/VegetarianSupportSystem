@@ -1,3 +1,4 @@
+/* Chức năng: giao diện và thành phần dùng chung. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
 /* FE1 follows the existing FE2 font stack and shared Button palette.
    Keep these rules scoped so public FE2 pages retain their own presentation. */
 .fe1-ui {
@@ -143,6 +144,7 @@
 }
 
 /* Keep the existing public header usable with the common 14px button text. */
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 640px) {
   .fe1-ui .app-header-inner {
     display: grid;
@@ -170,6 +172,7 @@
   }
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (prefers-reduced-motion: reduce) {
   .fe1-ui :where(button),
   .fe1-ui .fe1-control {

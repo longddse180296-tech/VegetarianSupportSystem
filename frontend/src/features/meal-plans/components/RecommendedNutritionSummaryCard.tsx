@@ -1,16 +1,20 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Check, ShoppingCart } from 'lucide-react'
 import type { PantryUtilization, RecommendedNutritionSummary } from '../types/mealPlans.types'
 
+// Cấu trúc RecommendedNutritionSummaryCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface RecommendedNutritionSummaryCardProps {
   nutrition: RecommendedNutritionSummary
   pantry: PantryUtilization
 }
 
+// Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (RecommendedNutritionSummaryCard); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const RecommendedNutritionSummaryCard: React.FC<RecommendedNutritionSummaryCardProps> = ({
   nutrition,
   pantry,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Card 1: Tổng dinh dưỡng trong ngày */}

@@ -1,3 +1,4 @@
+/* Chức năng: giao diện và thành phần dùng chung. Bố trí phần điều hướng và vùng nội dung chung giữa các màn hình. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
 .fe1-admin .admin-page-title,
 .fe1-ui .fe1-admin .admin-page-title {
   margin: 0;
@@ -187,6 +188,7 @@
   padding: 16px 24px;
 }
 
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
 @media (max-width: 639px) {
   .fe1-admin .admin-filter-bar { padding: 16px; }
   .fe1-admin .ui-modal-panel { max-height: calc(100dvh - 32px); }

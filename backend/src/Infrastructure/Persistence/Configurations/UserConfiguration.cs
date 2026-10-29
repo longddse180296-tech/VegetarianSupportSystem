@@ -1,11 +1,14 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Persistence.Configurations;
 
+// UserConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.ToTable("Users", table =>
@@ -18,6 +21,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.NormalizedEmail).HasMaxLength(254).IsRequired();
         builder.Property(x => x.PasswordHash).HasMaxLength(1_000).IsRequired();
         builder.Property(x => x.TokenVersion).HasDefaultValue(0);
+        builder.Property(x => x.ActiveSessionId).HasMaxLength(32);
+        builder.Property(x => x.RefreshTokenHash).HasMaxLength(64);
+        builder.HasIndex(x => x.ActiveSessionId).IsUnique().HasFilter("[ActiveSessionId] IS NOT NULL");
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(x => x.LockReason).HasMaxLength(1_000);
         builder.HasIndex(x => x.NormalizedEmail).IsUnique();
@@ -29,8 +35,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
     }
 }
 
+// UserProfileConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProfile>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<UserProfile> builder)
     {
         builder.ToTable("UserProfiles", table =>
@@ -59,8 +67,10 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
     }
 }
 
+// UserAllergyConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class UserAllergyConfiguration : IEntityTypeConfiguration<UserAllergy>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<UserAllergy> builder)
     {
         builder.ToTable("UserAllergies");
@@ -73,8 +83,10 @@ public sealed class UserAllergyConfiguration : IEntityTypeConfiguration<UserAlle
     }
 }
 
+// UserAvoidedFoodConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class UserAvoidedFoodConfiguration : IEntityTypeConfiguration<UserAvoidedFood>
 {
+    // Configure: Ánh xạ entity, ràng buộc và quan hệ cho cơ sở dữ liệu.
     public void Configure(EntityTypeBuilder<UserAvoidedFood> builder)
     {
         builder.ToTable("UserAvoidedFoods");

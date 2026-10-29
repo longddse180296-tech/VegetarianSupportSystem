@@ -1,9 +1,11 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useState } from 'react'
 import type { ChangeEvent, DragEvent, RefObject } from 'react'
 import { CheckCircle2, FileText, RefreshCw, Upload, UtensilsCrossed, X } from 'lucide-react'
 import { Button } from '../../../shared/components'
 import type { ScanSourceType } from '../types/foodScan.types'
 
+// Cấu trúc ScanUploadPanelProps quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 interface ScanUploadPanelProps {
   sourceType: ScanSourceType
   imageFile: File | null
@@ -17,6 +19,7 @@ interface ScanUploadPanelProps {
   onClearImage: () => void
 }
 
+// Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (ScanUploadPanel); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export default function ScanUploadPanel({
   sourceType,
   imageFile,
@@ -30,20 +33,24 @@ export default function ScanUploadPanel({
   onClearImage,
 }: ScanUploadPanelProps) {
   const isDish = sourceType === 'Dish'
+  // Lưu dữ liệu và trạng thái thao tác của phân tích ảnh món ăn và nhãn thành phần trong vòng đời màn hình.
   const [isDragging, setIsDragging] = useState(false)
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleDragOver); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     if (!isDragging) setIsDragging(true)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleDragLeave); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleDrop); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
@@ -54,6 +61,7 @@ export default function ScanUploadPanel({
     }
   }
 
+  // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-6">
       {/* 1. Chọn loại ảnh */}

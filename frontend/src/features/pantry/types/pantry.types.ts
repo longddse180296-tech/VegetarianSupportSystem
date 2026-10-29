@@ -1,3 +1,5 @@
+// Chức năng: tủ bếp và nguyên liệu sẵn có. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
+// Cấu trúc PantryCategory quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export type PantryCategory =
   | 'rau-cu-qua'
   | 'hat-ngu-coc'
@@ -21,19 +23,22 @@ export const PANTRY_CATEGORY_LABELS: Record<PantryCategory, string> = {
   khac: 'Khác',
 }
 
+// Cấu trúc PantrySuitability quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export type PantrySuitability = 'suitable' | 'warning' | 'unsuitable' | 'unchecked'
 
+// Cấu trúc PantryItem quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export interface PantryItem {
   id: string
   name: string
-  quantity: number
-  unit: string
+  quantity: number | null
+  unit: string | null
   category: PantryCategory
   isSuitable: PantrySuitability
   suitableNote: string
   addedAt: string
 }
 
+// Cấu trúc RecipeMatch quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export interface RecipeMatch {
   id: string
   title: string
@@ -44,10 +49,11 @@ export interface RecipeMatch {
   totalIngredients: number
   missingList: string[]
   timeMin: number
-  kcal: number
+  kcal: number | null
   tag: string
 }
 
+// Cấu trúc AddIngredientFormState quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export interface AddIngredientFormState {
   name: string
   quantity: string

@@ -1,0 +1,50 @@
+/* Chức năng: trang chủ và thông tin giới thiệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình. Kiểu dáng áp dụng cho bố cục, trạng thái và màn hình tương ứng. */
+.information-page { background: #f7faf7; color: #23452e; padding: 32px 24px 80px; }
+.information-shell { max-width: 1120px; margin: 0 auto; }
+.information-back { display: inline-flex; align-items: center; gap: 8px; color: #54735d; font-size: 14px; text-decoration: none; }
+.information-hero { padding: 44px 0 40px; max-width: 780px; }
+.information-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #397b4b; font-size: 12px; font-weight: 700; letter-spacing: 2px; }
+.information-hero h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.2; letter-spacing: -1px; margin: 18px 0 16px; font-weight: 750; }
+.information-hero p { font-size: 18px; line-height: 1.7; color: #627568; margin: 0; }
+.information-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 36px; align-items: start; }
+.information-nav { display: flex; flex-direction: column; gap: 6px; }
+.information-nav > span { color: #718377; font-size: 11px; letter-spacing: 1.5px; font-weight: 700; padding: 12px 16px; }
+.information-nav a { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; text-decoration: none; color: #526d5a; font-size: 14px; }
+.information-nav a[aria-current='page'] { background: #e4efe5; color: #245e35; font-weight: 700; }
+.information-nav a:hover { background: #edf3ed; }
+.information-content { background: white; border: 1px solid #e1eae1; border-radius: 20px; padding: 8px 36px 28px; }
+.information-content section { display: flex; gap: 18px; padding: 28px 0; border-bottom: 1px solid #edf1ec; }
+.information-number { font-size: 12px; color: #7b9981; font-weight: 600; padding-top: 5px; }
+.information-content h2 { font-size: 19px; line-height: 1.5; font-weight: 700; margin: 0 0 10px; }
+.information-content p { font-size: 15px; line-height: 1.9; color: #5c6c61; margin: 0; }
+.information-action { padding-top: 26px; }
+.information-action a { display: inline-flex; align-items: center; gap: 8px; color: #2d713f; font-size: 14px; font-weight: 650; text-decoration: underline; text-underline-offset: 4px; }
+.information-page a:focus-visible { outline: 2px solid #397b4b; outline-offset: 4px; border-radius: 4px; }
+.contact-feedback-form { padding: 28px 0; border-bottom: 1px solid #edf1ec; }
+.contact-feedback-form fieldset { border: 0; padding: 0; margin: 24px 0 0; min-width: 0; }
+.contact-feedback-form label { display: block; color: #23452e; font-size: 14px; font-weight: 600; margin-bottom: 18px; }
+.contact-feedback-form label span { color: #718377; font-size: 12px; font-weight: 400; }
+.contact-feedback-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.contact-feedback-form input, .contact-feedback-form textarea { display: block; width: 100%; background: #fff; border: 1px solid #d5e1d7; border-radius: 10px; padding: 12px; margin-top: 8px; color: #23452e; font: inherit; font-weight: 400; }
+.contact-feedback-form textarea { resize: vertical; min-height: 140px; }
+.contact-feedback-form input:focus, .contact-feedback-form textarea:focus { outline: 2px solid #397b4b; outline-offset: 2px; }
+.contact-feedback-form #feedback-note { font-size: 13px; }
+.contact-feedback-form button { display: inline-flex; align-items: center; gap: 8px; margin-top: 20px; padding: 13px 20px; background: #286b3b; color: white; border: 0; border-radius: 10px; font-size: 14px; font-weight: 650; cursor: pointer; }
+.contact-feedback-form button:hover { background: #20582f; }
+.contact-feedback-form button:focus-visible { outline: 2px solid #397b4b; outline-offset: 3px; }
+.contact-feedback-form fieldset:disabled { opacity: .65; }
+.contact-feedback-error, .contact-feedback-success { padding: 14px; margin-top: 18px; border-radius: 10px; font-size: 14px; overflow-wrap: anywhere; }
+.contact-feedback-error { color: #9f2533; background: #fff0f1; }
+.contact-feedback-success { color: #245e35; background: #e4efe5; }
+/* Điều chỉnh bố cục theo kích thước màn hình để giữ khả năng đọc và thao tác. */
+@media (max-width: 720px) {
+  .information-page { padding: 24px 18px 48px; }
+  .information-hero { padding: 32px 0; }
+  .information-layout { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .information-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .information-nav > span { grid-column: 1 / -1; padding: 0 12px 8px; }
+  .information-nav a { padding: 12px; font-size: 13px; }
+  .information-content { padding: 0 20px 24px; }
+  .information-content section { gap: 12px; padding: 24px 0; }
+  .contact-feedback-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}

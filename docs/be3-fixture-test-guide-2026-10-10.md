@@ -1,6 +1,6 @@
 # Dữ liệu mẫu và cách chạy 56 test case BE 3
 
-Ngày 10/10/2026. Dùng với [bộ test case BE 3](be3-test-cases-2026-10-09.md) trên LocalDB `(localdb)\MSSQLLocalDB`, database `VegetarianSupport`. Tài liệu này là **đầu vào cụ thể** cho từng case; kết quả mong đợi đầy đủ nằm trong bộ test case. Không sửa FE.
+Ngày 10/10/2026. Dùng với [bộ test case BE 3](archive/be3-test-cases-2026-10-09.md) trên LocalDB `(localdb)\MSSQLLocalDB`, database `VegetarianSupport`. Tài liệu này là **đầu vào cụ thể** cho từng case; kết quả mong đợi đầy đủ nằm trong bộ test case. Không sửa FE.
 
 ## Đã nạp vào SQL và file local
 

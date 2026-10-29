@@ -1,3 +1,4 @@
+// Chức năng: video, bản nháp và nội dung công khai. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useState } from 'react'
 import { Info, Upload } from 'lucide-react'
 import {
@@ -11,6 +12,7 @@ import type { UploadVideoFormState, VideoCategory } from '../types/video.types'
 import { CATEGORY_LABELS, INITIAL_UPLOAD_FORM } from '../types/video.types'
 import { uploadPublicImage } from '../../../shared/api/publicImageApi'
 
+// Cấu trúc UploadVideoModalProps quy định dữ liệu trao đổi trong video, bản nháp và nội dung công khai.
 interface UploadVideoModalProps {
   isOpen: boolean
   onClose: () => void
@@ -22,16 +24,19 @@ const CATEGORY_OPTIONS: SelectOption[] = (
   Object.keys(CATEGORY_LABELS) as VideoCategory[]
 ).map((k) => ({ value: k, label: CATEGORY_LABELS[k] }))
 
+// Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (UploadVideoModal); thuộc video, bản nháp và nội dung công khai.
 export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
   submitting = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [form, setForm] = useState<UploadVideoFormState>(INITIAL_UPLOAD_FORM)
   const [errors, setErrors] = useState<Partial<Record<keyof UploadVideoFormState, string>>>({})
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updateField); thuộc video, bản nháp và nội dung công khai.
   const updateField = <K extends keyof UploadVideoFormState>(
     key: K,
     value: UploadVideoFormState[K],
@@ -40,6 +45,7 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
     setErrors((prev) => ({ ...prev, [key]: undefined }))
   }
 
+  // Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (validate); thuộc video, bản nháp và nội dung công khai.
   const validate = (): boolean => {
     const next: Partial<Record<keyof UploadVideoFormState, string>> = {}
     if (!form.title.trim()) next.title = 'Vui lòng nhập tiêu đề video'
@@ -52,6 +58,7 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
     return Object.keys(next).length === 0
   }
 
+  // Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (uploadThumbnail); thuộc video, bản nháp và nội dung công khai.
   const uploadThumbnail = async (file?: File) => {
     if (!file || submitting || uploadingThumbnail) return
     setUploadingThumbnail(true)
@@ -69,6 +76,7 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
     }
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSubmit); thuộc video, bản nháp và nội dung công khai.
   const handleSubmit = async () => {
     if (!validate()) return
     try {
@@ -81,6 +89,7 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
     }
   }
 
+  // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <Modal
       isOpen={isOpen}

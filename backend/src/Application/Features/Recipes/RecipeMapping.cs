@@ -1,10 +1,13 @@
+// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Entities;
 using Domain.Rules;
 
 namespace Application.Features.Recipes;
 
+// RecipeMapping: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 internal static class RecipeMapping
 {
+    // ToResponse: Chuyển dữ liệu nội bộ sang cấu trúc trả về cho bên gọi.
     public static RecipeResponse ToResponse(Recipe entity) => new(
         entity.Id,
         entity.CategoryId,
@@ -31,6 +34,7 @@ internal static class RecipeMapping
             .ToArray(),
         DietaryRules.Classify(entity.RecipeIngredients.Select(row => row.Ingredient!)));
 
+    // ToSummary: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public static RecipeSummary ToSummary(Recipe entity) => new(
         entity.Id,
         entity.Name,
@@ -50,8 +54,11 @@ internal static class RecipeMapping
         entity.RecipeIngredients
             .OrderBy(x => x.Ingredient!.Name)
             .Select(x => x.Ingredient!.Name)
-            .ToArray());
+            .ToArray(),
+        // Danh sách dùng cùng mô tả đã lưu với trang chi tiết, không tự tạo nội dung thay thế.
+        entity.Description);
 
+    // ToIngredientResponse: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static RecipeIngredientResponse ToIngredientResponse(RecipeIngredient row) => new(
         row.IngredientId,
         row.Ingredient!.Name,

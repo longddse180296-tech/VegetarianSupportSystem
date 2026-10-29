@@ -1,16 +1,20 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Sparkles, Bot, CheckCircle2 } from 'lucide-react'
 import type { WeeklyPlanOverview } from '../types/mealPlans.types'
 
+// Cấu trúc WeeklyOverviewSectionProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface WeeklyOverviewSectionProps {
   overview: WeeklyPlanOverview
   aiExplanation: string
 }
 
+// Thành phần WeeklyOverviewSection nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const WeeklyOverviewSection: React.FC<WeeklyOverviewSectionProps> = ({
   overview,
   aiExplanation,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="space-y-6">
       {/* 1. 5 Metric Cards */}

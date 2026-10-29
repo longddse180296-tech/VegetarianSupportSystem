@@ -1,12 +1,16 @@
+// Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, ChefHat, Sparkles, UtensilsCrossed } from 'lucide-react'
 import { Badge, EmptyState, PageHeading, SkeletonCard } from '../../../shared/components'
-import { getRecipes, toggleFavorite } from '../api/recipeApi'
+import { getRecipes } from '../api/recipeApi'
+import { useRecipeSaves } from '../../favorites/hooks/useRecipeSaves'
+import AlertError from '../../../shared/components/AlertError'
 import { RecipeCard } from '../components/RecipeCard'
 import { RecipeFilterBar } from '../components/RecipeFilterBar'
 import type { Recipe, RecipeDietCategory, RecipeListFilter, RecipeSortOption } from '../types/recipe.types'
 import { DEFAULT_RECIPE_FILTER } from '../types/recipe.types'
 
+// Cấu trúc RecipeListProps quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface RecipeListProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
@@ -44,6 +48,7 @@ const OpenFridgeIcon = ({ size = 28, className = '' }: { size?: number; classNam
   </svg>
 )
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (matchesCategory); thuộc công thức và định lượng nguyên liệu.
 function matchesCategory(r: Recipe, category: string) {
   if (!category || category === 'all') return true
   const rCat = (r.category || '').toLowerCase().trim()
@@ -84,6 +89,7 @@ function matchesCategory(r: Recipe, category: string) {
   return rCat.includes(target) || target.includes(rCat)
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (matchesCook); thuộc công thức và định lượng nguyên liệu.
 function matchesCook(r: Recipe, tier: string) {
   if (tier === 'all') return true
   const t = r.cookTimeMinutes
@@ -94,6 +100,7 @@ function matchesCook(r: Recipe, tier: string) {
   return true
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (matchesKcal); thuộc công thức và định lượng nguyên liệu.
 function matchesKcal(r: Recipe, tier: string) {
   if (tier === 'all') return true
   const k = r.nutrition.kcal
@@ -105,11 +112,13 @@ function matchesKcal(r: Recipe, tier: string) {
   return true
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (RecipeList); thuộc công thức và định lượng nguyên liệu.
 export default function RecipeList({
   onNavigate,
   isLoggedIn: _isLoggedIn,
   initialSearch = '',
 }: RecipeListProps) {
+  // Lưu dữ liệu và trạng thái thao tác của công thức và định lượng nguyên liệu trong vòng đời màn hình.
   const [filter, setFilter] = useState<RecipeListFilter>(() => ({
     ...DEFAULT_RECIPE_FILTER,
     search: initialSearch,
@@ -118,7 +127,7 @@ export default function RecipeList({
   const [_totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [isError, setIsError] = useState(false)
-  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const recipeSaves = useRecipeSaves('Recipe')
   const [heroToast, setHeroToast] = useState<string | null>(null)
   const [page, setPage] = useState(1)
 
@@ -129,6 +138,7 @@ export default function RecipeList({
   const [dietPill, setDietPill] = useState('all')
   const [sort] = useState<RecipeSortOption>('relevance')
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (loadList); thuộc công thức và định lượng nguyên liệu.
   const loadList = async (next: Partial<RecipeListFilter> = {}) => {
     const applied: RecipeListFilter = { ...filter, ...next }
     setIsLoading(true)
@@ -146,11 +156,13 @@ export default function RecipeList({
     }
   }
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     void loadList()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     const t = window.setTimeout(() => {
       void loadList()
@@ -159,10 +171,12 @@ export default function RecipeList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter.search, filter.diet, filter.difficulty, filter.sort, filter.favoritesOnly])
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updateFilter); thuộc công thức và định lượng nguyên liệu.
   const updateFilter = (patch: Partial<RecipeListFilter>) => {
     setFilter((prev) => ({ ...prev, ...patch }))
   }
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (resetFilter); thuộc công thức và định lượng nguyên liệu.
   const resetFilter = () => {
     setFilter(DEFAULT_RECIPE_FILTER)
     setCategory('all')
@@ -172,10 +186,12 @@ export default function RecipeList({
     setPage(1)
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelect); thuộc công thức và định lượng nguyên liệu.
   const handleSelect = (id: string) => {
     onNavigate?.(`/recipes/${encodeURIComponent(id)}`)
   }
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (handlePageChange); thuộc công thức và định lượng nguyên liệu.
   const handlePageChange = (nextPage: number) => {
     setPage(nextPage)
     const el = document.getElementById('recipes-list-section')
@@ -184,28 +200,27 @@ export default function RecipeList({
     }
   }
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleToggleFavorite); thuộc công thức và định lượng nguyên liệu.
   const handleToggleFavorite = async (
     id: string,
     next: boolean,
   ): Promise<{ ok: boolean; next: boolean }> => {
-    setTogglingId(id)
+    if (!recipeSaves.authenticated) {
+      onNavigate?.('/auth/login?returnUrl=%2Frecipes')
+      return { ok: false, next: false }
+    }
     try {
-      const res = await toggleFavorite(id, next)
-      setAllItems((prev) =>
-        prev.map((r) =>
-          r.id === id
-            ? { ...r, isFavorite: res.isFavorite, favoriteCount: res.favoriteCount }
-            : r,
-        ),
-      )
-      setHeroToast(next ? 'Đã lưu vào yêu thích ❤️' : 'Đã gỡ khỏi mục yêu thích')
+      const saved = await recipeSaves.toggle(id)
+      setHeroToast(saved ? 'Đã lưu vào Profile → Mục đã lưu → Công thức.' : 'Đã bỏ lưu công thức.')
       window.setTimeout(() => setHeroToast(null), 1500)
-      return { ok: true, next: res.isFavorite }
-    } finally {
-      setTogglingId(null)
+      return { ok: true, next: saved }
+    } catch (error) {
+      setHeroToast(error instanceof Error ? error.message : 'Chưa thể lưu công thức. Vui lòng thử lại.')
+      return { ok: false, next: !next }
     }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (showToast); thuộc công thức và định lượng nguyên liệu.
   const showToast = (msg: string) => {
     setHeroToast(msg)
     window.setTimeout(() => setHeroToast(null), 1500)
@@ -241,8 +256,10 @@ export default function RecipeList({
   const safePage = Math.min(page, totalPages)
   const pagedItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
+  // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
+      {recipeSaves.error && <AlertError message={recipeSaves.error} onRetry={recipeSaves.reload} />}
       <PageHeading
         title="Công thức món chay"
         description="Khám phá những công thức chay ngon, lành mạnh và dễ thực hiện mỗi ngày được tinh chỉnh khoa học theo nhu cầu dinh dưỡng."
@@ -381,10 +398,10 @@ export default function RecipeList({
                 {pagedItems.map((r) => (
                   <RecipeCard
                     key={r.id}
-                    recipe={r}
+                    recipe={{ ...r, isFavorite: recipeSaves.isSaved(r.id) }}
                     onSelect={handleSelect}
                     onToggleFavorite={handleToggleFavorite}
-                    isTogglingFavorite={togglingId === r.id}
+                    isTogglingFavorite={recipeSaves.isSaving(r.id) || (recipeSaves.authenticated && !recipeSaves.ready)}
                   />
                 ))}
               </div>
@@ -402,6 +419,7 @@ export default function RecipeList({
                 {Array.from({ length: totalPages }).map((_, i) => {
                   const idx = i + 1
                   const active = idx === safePage
+                  // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                   return (
                     <button
                       key={idx}

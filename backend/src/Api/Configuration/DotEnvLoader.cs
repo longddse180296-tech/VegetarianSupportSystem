@@ -1,9 +1,13 @@
+// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 namespace Api.Configuration;
 
+// DotEnvLoader: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 internal static class DotEnvLoader
 {
+    // Load: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public static void Load(string path)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!File.Exists(path)) return;
 
         foreach (var rawLine in File.ReadLines(path))

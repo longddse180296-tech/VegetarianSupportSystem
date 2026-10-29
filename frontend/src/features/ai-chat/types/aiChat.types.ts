@@ -1,7 +1,11 @@
+// Chức năng: hội thoại hỗ trợ ăn chay. Khai báo cấu trúc dữ liệu để các màn hình và hàm xử lý dùng thống nhất.
+// Cấu trúc ChatRole quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export type ChatRole = 'user' | 'assistant'
+// Cấu trúc AppRole quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export type AppRole = 'Guest' | 'User' | 'Admin'
 
 // ---------- User Profile & Guest Session ----------
+// Cấu trúc UserProfile quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface UserProfile {
   bmi: number // 22.5
   bmiStatus: string // 'Bình thường'
@@ -11,6 +15,7 @@ export interface UserProfile {
   allergyAvoid: string // 'Đậu phộng'
 }
 
+// Cấu trúc GuestSession quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface GuestSession {
   remainingQuestions: number // default 3
   maxQuestions: number // 3
@@ -18,8 +23,10 @@ export interface GuestSession {
 }
 
 // ---------- BMI Information & Asian Standard Scale ----------
+// Cấu trúc BMIStatusTone quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export type BMIStatusTone = 'underweight' | 'normal' | 'overweight' | 'obese'
 
+// Cấu trúc BmiInfo quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface BmiInfo {
   value: number // 22.5
   statusLabel: string // 'Chuẩn' / 'Bình thường'
@@ -31,6 +38,7 @@ export interface BmiInfo {
   medicalDisclaimer: string
 }
 
+// Cấu trúc BMIResult quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface BMIResult extends BmiInfo {
   label: string
   dailyKcalRangeMin: number
@@ -41,6 +49,7 @@ export interface BMIResult extends BmiInfo {
 }
 
 // ---------- Meal Suggestion Card ----------
+// Cấu trúc MealCard quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface MealCard {
   id: string
   tag: string // 'Tối • Thanh lọc' | 'Tối • Dễ tiêu'
@@ -51,11 +60,13 @@ export interface MealCard {
   recipeId?: string
 }
 
+// Cấu trúc RecipePreviewTag quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface RecipePreviewTag {
   label: string
   tone: 'green' | 'teal' | 'amber' | 'neutral'
 }
 
+// Cấu trúc RecipePreview quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface RecipePreview {
   id: string
   tags: RecipePreviewTag[]
@@ -67,6 +78,7 @@ export interface RecipePreview {
 }
 
 // ---------- Chat Message ----------
+// Cấu trúc ChatMessage quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface ChatMessage {
   id: string
   sender?: 'user' | 'assistant'
@@ -85,6 +97,7 @@ export interface ChatMessage {
 }
 
 // ---------- Sidebar and Navigation ----------
+// Cấu trúc PersonalProfileField quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface PersonalProfileField {
   key: string
   label: string
@@ -92,6 +105,7 @@ export interface PersonalProfileField {
   tone: 'ok' | 'soft' | 'warn' | 'info'
 }
 
+// Cấu trúc FaqItem quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface FaqItem {
   id: string
   icon?: string
@@ -99,6 +113,7 @@ export interface FaqItem {
   answer?: string
 }
 
+// Cấu trúc HistoryItem quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface HistoryItem {
   id: string
   title: string
@@ -107,6 +122,7 @@ export interface HistoryItem {
   tone: 'recent' | 'mid' | 'old'
 }
 
+// Cấu trúc RecipeSuggestion quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface RecipeSuggestion {
   id: string
   title: string
@@ -118,6 +134,7 @@ export interface RecipeSuggestion {
   matchReason: string
 }
 
+// Cấu trúc ChatConversation quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface ChatConversation {
   id: string
   title: string
@@ -127,6 +144,7 @@ export interface ChatConversation {
   roleLabel?: AppRole
 }
 
+// Cấu trúc ProfileSummary quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface ProfileSummary {
   displayName: string
   role: AppRole
@@ -136,6 +154,7 @@ export interface ProfileSummary {
   joinAt: string
 }
 
+// Cấu trúc AiReplyPayload quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface AiReplyPayload {
   reply: string
   recipeSuggestions?: RecipeSuggestion[]
@@ -145,6 +164,7 @@ export interface AiReplyPayload {
   }
 }
 
+// Cấu trúc GuestChatState quy định dữ liệu trao đổi trong hội thoại hỗ trợ ăn chay.
 export interface GuestChatState {
   questionsRemaining: number
   limit: number

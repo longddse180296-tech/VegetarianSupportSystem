@@ -1,3 +1,4 @@
+// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using System.Text.Json.Serialization;
 using Application.Features.Profiles;
 using Domain.Enums;
@@ -6,11 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
 
+// ProfilesController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
 [Authorize(Roles = "User,Admin")]
 [Route("api/profile/me")]
 public sealed class ProfilesController(ProfileService profiles) : ControllerBase
 {
+    // Get: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet]
     public async Task<ActionResult<ProfileDetails>> Get(CancellationToken cancellationToken)
     {
@@ -18,6 +21,7 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
+    // Update: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPut]
     public async Task<ActionResult<ProfileDetails>> Update(
         [FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
@@ -37,6 +41,7 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         }
     }
 
+    // SetDiet: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPut("diet")]
     public async Task<ActionResult<ProfileDetails>> SetDiet(
         [FromBody] SetDietRequest request, CancellationToken cancellationToken)
@@ -52,6 +57,7 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         }
     }
 
+    // UpdatePersonal: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPut("personal")]
     public async Task<ActionResult<ProfileDetails>> UpdatePersonal(
         [FromBody] UpdatePersonalRequest request, CancellationToken cancellationToken)
@@ -69,6 +75,7 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         }
     }
 
+    // UpdateBody: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPut("body")]
     public async Task<ActionResult<ProfileDetails>> UpdateBody(
         [FromBody] UpdateBodyRequest request, CancellationToken cancellationToken)
@@ -87,6 +94,7 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         }
     }
 
+    // PreviewBody: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [HttpPost("body/estimate")]
     public async Task<ActionResult<ProfileEstimate>> PreviewBody(
         [FromBody] UpdateBodyRequest request, CancellationToken cancellationToken)
@@ -105,6 +113,7 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         }
     }
 
+    // AddAllergy: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPost("allergies")]
     public async Task<ActionResult<ProfileItem>> AddAllergy(
         [FromBody] ProfileItemRequest request, CancellationToken cancellationToken)
@@ -119,6 +128,7 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         catch (ProfileConflictException ex) { return ConflictProblem(ex.Message); }
     }
 
+    // RenameAllergy: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [HttpPut("allergies/{id:guid}")]
     public async Task<IActionResult> RenameAllergy(
         Guid id, [FromBody] ProfileItemRequest request, CancellationToken cancellationToken)
@@ -133,10 +143,12 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         catch (ProfileConflictException ex) { return ConflictProblem(ex.Message); }
     }
 
+    // RemoveAllergy: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
     [HttpDelete("allergies/{id:guid}")]
     public async Task<IActionResult> RemoveAllergy(Guid id, CancellationToken cancellationToken) =>
         await profiles.RemoveAllergyAsync(CurrentUserId, id, cancellationToken) ? NoContent() : NotFound();
 
+    // AddAvoidedFood: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPost("avoided-foods")]
     public async Task<ActionResult<ProfileItem>> AddAvoidedFood(
         [FromBody] ProfileItemRequest request, CancellationToken cancellationToken)
@@ -151,6 +163,7 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         catch (ProfileConflictException ex) { return ConflictProblem(ex.Message); }
     }
 
+    // RenameAvoidedFood: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [HttpPut("avoided-foods/{id:guid}")]
     public async Task<IActionResult> RenameAvoidedFood(
         Guid id, [FromBody] ProfileItemRequest request, CancellationToken cancellationToken)
@@ -165,24 +178,28 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         catch (ProfileConflictException ex) { return ConflictProblem(ex.Message); }
     }
 
+    // RemoveAvoidedFood: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
     [HttpDelete("avoided-foods/{id:guid}")]
     public async Task<IActionResult> RemoveAvoidedFood(Guid id, CancellationToken cancellationToken) =>
         await profiles.RemoveAvoidedFoodAsync(CurrentUserId, id, cancellationToken) ? NoContent() : NotFound();
 
     private string CurrentUserId => User.FindFirst("sub")!.Value;
 
+    // Invalid: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private ActionResult Invalid(ArgumentException ex)
     {
         ModelState.AddModelError(ex.ParamName ?? "request", ex.Message);
         return ValidationProblem(ModelState);
     }
 
+    // ConflictProblem: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private ObjectResult ConflictProblem(string message) => Conflict(new ProblemDetails
     {
         Status = StatusCodes.Status409Conflict,
         Title = message
     });
 
+    // UpdateProfileRequest: định nghĩa dữ liệu trao đổi của tính năng.
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record UpdateProfileRequest(
         string? FullName,
@@ -196,13 +213,16 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         WeightGoal? WeightGoal,
         string? RestaurantArea)
     {
+        // ToCommand: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
         public UpdateProfile ToCommand() => new(FullName, PhoneNumber, Diet, BirthDate,
             SexForEnergyEstimate, HeightCm, WeightKg, ActivityLevel, WeightGoal, RestaurantArea);
     }
 
+    // UpdatePersonalRequest: định nghĩa dữ liệu trao đổi của tính năng.
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record UpdatePersonalRequest(string? FullName, string? PhoneNumber, string? RestaurantArea);
 
+    // UpdateBodyRequest: định nghĩa dữ liệu trao đổi của tính năng.
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record UpdateBodyRequest(
         DateOnly? BirthDate,
@@ -212,9 +232,11 @@ public sealed class ProfilesController(ProfileService profiles) : ControllerBase
         ActivityLevel? ActivityLevel,
         WeightGoal? WeightGoal);
 
+    // ProfileItemRequest: định nghĩa dữ liệu trao đổi của tính năng.
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record ProfileItemRequest(string? Name);
 
+    // SetDietRequest: định nghĩa dữ liệu trao đổi của tính năng.
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record SetDietRequest([property: JsonRequired] VegetarianDiet? Diet);
 }

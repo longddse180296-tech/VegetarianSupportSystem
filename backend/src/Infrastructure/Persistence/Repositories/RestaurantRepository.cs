@@ -1,3 +1,4 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Common.Exceptions;
 using Application.Features.Restaurants;
 using Domain.Entities;
@@ -9,11 +10,14 @@ using System.Text.RegularExpressions;
 
 namespace Infrastructure.Persistence.Repositories;
 
+// RestaurantRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class RestaurantRepository(AppDbContext db) : IRestaurantRepository
 {
+    // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<IReadOnlyList<Restaurant>> ListAsync(RestaurantListQuery request, bool includeInactive, CancellationToken ct)
     {
         var query = db.Restaurants.AsNoTracking().AsQueryable();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!includeInactive)
             query = query.Where(restaurant => restaurant.IsActive);
         if (request.DietaryType.HasValue)
@@ -35,17 +39,21 @@ public sealed class RestaurantRepository(AppDbContext db) : IRestaurantRepositor
             .ToArray();
     }
 
+    // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<Restaurant?> GetAsync(Guid id, CancellationToken ct) => db.Restaurants
         .Include(restaurant => restaurant.DietaryTypes)
         .Include(restaurant => restaurant.Amenities)
         .Include(restaurant => restaurant.FeaturedDishes)
         .SingleOrDefaultAsync(restaurant => restaurant.Id == id, ct);
 
+    // NameExistsAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public Task<bool> NameExistsAsync(string name, Guid? exceptId, CancellationToken ct) =>
         db.Restaurants.AnyAsync(restaurant => restaurant.Name == name && restaurant.Id != exceptId, ct);
 
+    // Add: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void Add(Restaurant entity) => db.Restaurants.Add(entity);
 
+    // SaveAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task SaveAsync(CancellationToken ct)
     {
         try
@@ -54,12 +62,14 @@ public sealed class RestaurantRepository(AppDbContext db) : IRestaurantRepositor
         }
         catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
         {
-            throw new ConflictException("Restaurant name or amenity already exists.");
+            throw new ConflictException("Tên nhà hàng hoặc tiện ích bị trùng. Vui lòng kiểm tra lại thông tin đã nhập.");
         }
     }
 
+    // MatchesSearch: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static bool MatchesSearch(Restaurant restaurant, string? value)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(value)) return true;
         var search = Normalize(value);
         return Normalize(restaurant.Name).Contains(search, StringComparison.Ordinal) ||
@@ -67,13 +77,16 @@ public sealed class RestaurantRepository(AppDbContext db) : IRestaurantRepositor
             Normalize(restaurant.District).Contains(search, StringComparison.Ordinal);
     }
 
+    // MatchesDistrict: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static bool MatchesDistrict(Restaurant restaurant, string? value) =>
         string.IsNullOrWhiteSpace(value) ||
         Normalize(restaurant.District).Contains(Normalize(value), StringComparison.Ordinal) ||
         Normalize(restaurant.Address).Contains(Normalize(value), StringComparison.Ordinal);
 
+    // Normalize: Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý.
     private static string Normalize(string? value)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         var decomposed = value.Normalize(NormalizationForm.FormD);
         var plain = new string(decomposed.Where(character => CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark).ToArray())

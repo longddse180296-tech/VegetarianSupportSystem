@@ -1,9 +1,11 @@
+// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 using Domain.Enums;
 
 namespace Application.Features.Recipes;
 
+// RecipeListQuery: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class RecipeListQuery
 {
     [Range(1, int.MaxValue)]
@@ -17,10 +19,16 @@ public sealed class RecipeListQuery
     [EnumDataType(typeof(DietaryType))]
     public DietaryType? DietaryType { get; init; }
 
+    [EnumDataType(typeof(DietaryType))]
+    public DietaryType? DeclaredDietaryType { get; init; }
+
     [Range(0, 10080)]
     public int? MaxCookTimeMinutes { get; init; }
 
     [Range(typeof(decimal), "0", "999999999", ParseLimitsInInvariantCulture = true)]
     [DecimalPrecision(3)]
     public decimal? MaxCaloriesPerServing { get; init; }
+
+    [RegularExpression("^(asc|desc)$")]
+    public string? CalorieSort { get; init; }
 }

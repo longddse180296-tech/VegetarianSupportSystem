@@ -1,16 +1,20 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { Lightbulb, BookOpen } from 'lucide-react'
 import type { WeeklyProTip } from '../types/mealPlans.types'
 
+// Cấu trúc WeeklyProTipCardProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface WeeklyProTipCardProps {
   proTip: WeeklyProTip
   onActionClick?: () => void
 }
 
+// Thành phần WeeklyProTipCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const WeeklyProTipCard: React.FC<WeeklyProTipCardProps> = ({
   proTip,
   onActionClick,
 }) => {
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/90 via-emerald-50/60 to-white p-5 md:p-6 shadow-2xs">
       {/* Left Icon + Text */}

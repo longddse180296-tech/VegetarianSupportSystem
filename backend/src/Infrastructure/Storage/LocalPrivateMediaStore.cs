@@ -1,9 +1,11 @@
+// Chức năng: lưu trữ và kiểm tra tệp tải lên. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Features.Videos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 namespace Infrastructure.Storage;
 
+// LocalPrivateMediaStore: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class LocalPrivateMediaStore : IPrivateMediaStore
 {
     private readonly string root;
@@ -19,8 +21,10 @@ public sealed class LocalPrivateMediaStore : IPrivateMediaStore
         }.Select(Path.GetFullPath).Where(path => !string.Equals(path, root, StringComparison.OrdinalIgnoreCase)).ToArray();
     }
 
+    // SaveAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task<string> SaveAsync(Stream source, string extension, long maxBytes, CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (extension is not ("mp4" or "webm" or "jpg" or "png" or "webp"))
             throw new ArgumentException("Unsupported media type.", nameof(extension));
         var key = $"{Guid.NewGuid():N}.{extension}";
@@ -51,9 +55,24 @@ public sealed class LocalPrivateMediaStore : IPrivateMediaStore
         }
     }
 
+    // Dọn tệp mới bị từ chối sau probe để thao tác thử lại không tích lũy video rác.
+    public Task DeleteAsync(string key, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (key != Path.GetFileName(key) || !Guid.TryParseExact(Path.GetFileNameWithoutExtension(key), "N", out _))
+            throw new ArgumentException("Khóa media không hợp lệ.");
+        var path = Path.GetFullPath(Path.Combine(root, key));
+        if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Khóa media không hợp lệ.");
+        File.Delete(path);
+        return Task.CompletedTask;
+    }
+
+    // OpenReadAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public Task<Stream?> OpenReadAsync(string key, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(key) || key != Path.GetFileName(key) ||
             !Guid.TryParseExact(Path.GetFileNameWithoutExtension(key), "N", out _))
             return Task.FromResult<Stream?>(null);

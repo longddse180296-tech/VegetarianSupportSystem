@@ -1,9 +1,12 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 import { ArrowRight, Clock, MapPin } from 'lucide-react'
 import type { Restaurant, RestaurantDietType } from '../types/restaurant.types'
 import { DIET_TYPE_LABELS } from '../types/restaurant.types'
 import { formatAddress } from '../utils/restaurantUtils'
+import { formatRestaurantDistance } from '../utils/restaurantLocation'
 
+// Cấu trúc RestaurantCardProps quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface RestaurantCardProps {
   restaurant: Restaurant
   featured?: boolean
@@ -13,6 +16,7 @@ interface RestaurantCardProps {
   ctaLabel?: string
   onNavigate?: (path: string) => void
   isSelected?: boolean
+  showDistance?: boolean
 }
 
 /* ---------- Helpers ---------- */
@@ -25,12 +29,14 @@ const DIET_TAG_CLASS: Record<string, string> = {
   'vegetarian-friendly': 'bg-[#F3E5F5] text-[#6A1B9A] border-[#CE93D8]',
 }
 
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (dietPillClass); thuộc tra cứu và quản lý nhà hàng.
 function dietPillClass(d: string): string {
   return DIET_TAG_CLASS[d] ?? 'bg-[#F8FAF8] text-[#4B5563] border-[#E5E7EB]'
 }
 
 const FALLBACK_RESTAURANT_IMG = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
 
+// Thành phần RestaurantCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc tra cứu và quản lý nhà hàng.
 export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   restaurant,
   featured = false,
@@ -40,10 +46,13 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   ctaLabel = 'Xem chi tiết',
   onNavigate,
   isSelected = false,
+  showDistance = false,
 }) => {
+  // Lưu dữ liệu và trạng thái thao tác của tra cứu và quản lý nhà hàng trong vòng đời màn hình.
   const [imgError, setImgError] = React.useState(false)
   const displayImage = imgError || !restaurant.imageUrl ? FALLBACK_RESTAURANT_IMG : restaurant.imageUrl
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleCTAClick); thuộc tra cứu và quản lý nhà hàng.
   const handleCTAClick = (e?: React.MouseEvent) => {
     e?.stopPropagation()
     if (onNavigate) {
@@ -141,6 +150,9 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           </p>
 
           {/* Giờ mở cửa & Khoảng giá thực tế từ Database */}
+          {showDistance && <p className="mt-2 text-xs font-semibold text-emerald-800">
+            {restaurant.distanceKm == null ? 'Chưa xác định khoảng cách' : `Cách khoảng ${formatRestaurantDistance(restaurant.distanceKm)}`}
+          </p>}
           {(restaurant.openingHours || restaurant.priceRange) && (
             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
               {restaurant.openingHours && (
@@ -196,6 +208,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   }
 
   // ---- Compact/grid card (used in Nearby on detail page) ----
+  // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <article className="group flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/80 shadow-xs hover:shadow-md">
       <div className="relative overflow-hidden rounded-[14px] aspect-[4/3] bg-slate-900">
@@ -211,15 +224,16 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       <div className="mt-3 flex flex-1 flex-col gap-1.5">
         {restaurant.dietTypes.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            <span
+            {Array.from(new Set(restaurant.dietTypes)).map(diet => <span
+              key={diet}
               className={`inline-flex items-center rounded-full border px-2 py-[1px] text-[10px] font-bold ${dietPillClass(
-                restaurant.dietTypes[0],
+                diet,
               )}`}
             >
               {DIET_TYPE_LABELS[
-                restaurant.dietTypes[0] as RestaurantDietType
-              ] ?? restaurant.dietTypes[0]}
-            </span>
+                diet as RestaurantDietType
+              ] ?? diet}
+            </span>)}
           </div>
         )}
 

@@ -1,3 +1,4 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Application.Abstractions.AI;
 using Domain.Enums;
 using Domain.Rules;
@@ -6,8 +7,10 @@ using System.Text.Json;
 
 namespace Application.Features.FoodScanning;
 
+// FoodScanningService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanRepository repository)
 {
+    // AnalyzeLabelAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task<LabelImageScanResult> AnalyzeLabelAsync(byte[] imageBytes, string mimeType,
         CancellationToken cancellationToken)
     {
@@ -26,12 +29,14 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             ingredients);
     }
 
+    // EvaluateAndSaveAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task<SavedFoodScan> EvaluateAndSaveAsync(string userId, string sourceType,
         IReadOnlyList<ConfirmedIngredient> ingredients, bool ingredientsComplete,
         string? correctedLabelText, bool labelIncomplete, IReadOnlyList<string> unknownAnswers,
         Guid? previousScanId, CancellationToken ct)
     {
         var profile = await repository.GetProfileAsync(userId, ct);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (profile.Diet is null)
             throw new InvalidOperationException("Hãy thiết lập chế độ ăn trong hồ sơ trước khi đánh giá cá nhân.");
         var evidence = await repository.FindIngredientEvidenceAsync(
@@ -69,20 +74,24 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             evidence);
     }
 
+    // GetOwnedAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<SavedFoodScan?> GetOwnedAsync(Guid id, string userId, CancellationToken ct)
     {
         var record = await repository.GetOwnedAsync(id, userId, ct);
         return record is null ? null : Map(record);
     }
 
+    // ListOwnedAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<FoodScanPage> ListOwnedAsync(string userId, int page, int pageSize,
         CancellationToken ct)
     {
-        if (page < 1 || pageSize is < 1 or > 100) throw new ArgumentException("Invalid pagination.");
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
+        if (page < 1 || pageSize is < 1 or > 100) throw new ArgumentException("Thông tin phân trang chưa hợp lệ. Vui lòng tải lại danh sách.");
         var (items, total) = await repository.ListOwnedAsync(userId, page, pageSize, ct);
         return new FoodScanPage(items.Select(Map).ToArray(), total, page, pageSize);
     }
 
+    // Map: Chuyển dữ liệu nội bộ sang cấu trúc trả về cho bên gọi.
     private static SavedFoodScan Map(FoodScanRecord record)
     {
         var result = JsonSerializer.Deserialize<FoodScanEvaluation>(record.ResultJson)!;
@@ -106,6 +115,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             result.CatalogEvidence ?? []);
     }
 
+    // BuildAllergyWarnings: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static IReadOnlyList<string> BuildAllergyWarnings(ScanProfileSnapshot profile,
         IReadOnlyList<ConfirmedIngredient> ingredients,
         IReadOnlyList<ScanIngredientEvidence> evidence) =>
@@ -115,6 +125,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
                 StringComparison.OrdinalIgnoreCase) == true))
             .Select(allergy => $"Thành phần đã xác nhận hoặc dữ liệu nguyên liệu có thể chứa dị nguyên: {allergy}.")
             .Distinct().ToArray();
+    // AnalyzeDishAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task<DishImageScanResult> AnalyzeDishAsync(
         byte[] imageBytes,
         string mimeType,
@@ -144,6 +155,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             suggestedKinds);
     }
 
+    // Evaluate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public FoodScanEvaluation Evaluate(
         IReadOnlyList<ConfirmedIngredient> ingredients,
         bool ingredientsComplete)
@@ -160,6 +172,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
     }
 }
 
+// DishImageScanResult: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record DishImageScanResult(
     string ProcessingStatus,
     string? SuggestedDishName,
@@ -171,15 +184,21 @@ public sealed record DishImageScanResult(
     string Note,
     IReadOnlyList<IngredientKind> SuggestedIngredientKinds);
 
+// ConfirmedIngredient: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record ConfirmedIngredient(string Name, IngredientKind Kind,
     string Source = "UserConfirmed");
+// DietAssessment: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record DietAssessment(VegetarianDiet Diet, FoodScanAssessmentStatus Status);
+// FoodScanEvaluation: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record FoodScanEvaluation(IReadOnlyList<DietAssessment> Assessments, string Note,
     IReadOnlyList<ScanIngredientEvidence>? CatalogEvidence = null);
+// LabelImageScanResult: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record LabelImageScanResult(string ProcessingStatus, string? ExtractedText,
     bool IsIncomplete, string? ErrorCode, string Note,
     IReadOnlyList<LabelIngredientSuggestion> SuggestedIngredients);
+// LabelIngredientSuggestion: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record LabelIngredientSuggestion(string Name, IngredientKind Kind);
+// SavedFoodScan: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record SavedFoodScan(Guid Id, DateTimeOffset CreatedAtUtc, int ResultVersion,
     Guid? PreviousScanId,
     string SourceType, IReadOnlyList<DietAssessment> Assessments, string Note,
@@ -187,4 +206,5 @@ public sealed record SavedFoodScan(Guid Id, DateTimeOffset CreatedAtUtc, int Res
     IReadOnlyList<ConfirmedIngredient> Ingredients, string? CorrectedLabelText,
     bool LabelIncomplete, IReadOnlyList<string> UnknownAnswers, bool IngredientsComplete,
     IReadOnlyList<ScanIngredientEvidence> CatalogEvidence);
+// FoodScanPage: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record FoodScanPage(IReadOnlyList<SavedFoodScan> Items, int TotalCount, int Page, int PageSize);

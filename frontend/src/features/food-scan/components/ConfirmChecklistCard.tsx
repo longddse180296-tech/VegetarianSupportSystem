@@ -1,3 +1,4 @@
+// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import {
   AlertCircle,
   ArrowLeft,
@@ -17,6 +18,7 @@ import {
 } from '../api/foodScanApi'
 import type { DraftIngredient, IngredientKind } from '../types/foodScan.types'
 
+// Cấu trúc ConfirmChecklistCardProps quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export interface ConfirmChecklistCardProps {
   analysis: ScanAnalysis
   ingredients: DraftIngredient[]
@@ -35,6 +37,7 @@ export interface ConfirmChecklistCardProps {
   onBack: () => void
 }
 
+// Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (ConfirmChecklistCard); thuộc phân tích ảnh món ăn và nhãn thành phần.
 export default function ConfirmChecklistCard({
   analysis,
   ingredients,
@@ -63,12 +66,14 @@ export default function ConfirmChecklistCard({
     questions.every((question) => resolvedQuestions.includes(question)) &&
     !labelIncomplete
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updateIngredient); thuộc phân tích ảnh món ăn và nhãn thành phần.
   const updateIngredient = (id: string, changes: Partial<DraftIngredient>) => {
     onIngredientsChange(ingredients.map((item) =>
       item.id === id ? { ...item, ...changes, source: 'UserEdited' } : item,
     ))
   }
 
+  // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <section className="space-y-6">
       {/* Thông tin ban đầu từ AI/OCR */}
@@ -155,16 +160,17 @@ export default function ConfirmChecklistCard({
             && (item.source === 'AiSuggested' || item.source === 'LabelOcr')) && (
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              leftIcon={<CheckCircle2 size={13} />}
+              variant="primary"
+              size="md"
+              leftIcon={<CheckCircle2 size={18} />}
+              disabled={isSaving}
               onClick={() => onIngredientsChange(ingredients.map((item) =>
                 item.name.trim() && item.kind !== 'Unknown'
                   && (item.source === 'AiSuggested' || item.source === 'LabelOcr')
                   ? { ...item, source: 'UserConfirmed' }
                   : item,
               ))}
-              className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+              className="!bg-[#2E7D32] !text-white hover:!bg-[#1B5E20] !font-bold shadow-sm w-full sm:w-auto"
             >
               Xác nhận các loại đã chọn
             </Button>
@@ -183,6 +189,21 @@ export default function ConfirmChecklistCard({
           >
             Thêm nguyên liệu
           </Button>
+        </div>
+
+        <div
+          role="note"
+          aria-label="Lưu ý về kết quả AI"
+          className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+        >
+          <AlertCircle size={20} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="font-bold">AI có thể mắc sai lầm.</p>
+            <p className="mt-1 leading-relaxed">
+              Vui lòng kiểm tra, chỉnh sửa và xác nhận lại tên cùng loại của từng nguyên liệu trước khi đánh giá.
+              Nếu chưa chắc chắn, hãy chọn “Chưa rõ” thay vì xác nhận theo gợi ý của AI.
+            </p>
+          </div>
         </div>
 
         {ingredients.length === 0 && (
@@ -317,6 +338,7 @@ export default function ConfirmChecklistCard({
           <ul className="space-y-2.5">
             {questions.map((question) => {
               const isChecked = resolvedQuestions.includes(question)
+              // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return (
                 <li
                   key={question}

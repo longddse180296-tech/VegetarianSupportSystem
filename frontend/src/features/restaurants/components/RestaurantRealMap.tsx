@@ -1,9 +1,12 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { Restaurant } from '../types/restaurant.types'
 import { formatAddress } from '../utils/restaurantUtils'
+import { formatRestaurantDistance } from '../utils/restaurantLocation'
 
+// Cấu trúc RestaurantRealMapProps quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface RestaurantRealMapProps {
   restaurants: Restaurant[]
   selectedRestaurant: Restaurant | null
@@ -11,71 +14,46 @@ interface RestaurantRealMapProps {
   onNavigate?: (path: string) => void
 }
 
-// Known coordinates for districts/cities in Vietnam
-const DISTRICT_COORDS: Record<string, [number, number]> = {
-  'quận 1': [10.7769, 106.7008],
-  'quận 3': [10.7841, 106.6868],
-  'quận 7': [10.7295, 106.7219],
-  'thủ đức': [10.85, 106.7717],
-  'bình thạnh': [10.803, 106.709],
-  'ba đình': [21.0359, 105.8198],
-  'hoàn kiếm': [21.0285, 105.8542],
-  'tây hồ': [21.0673, 105.8241],
-  'long biên': [21.0462, 105.894],
-  'hải châu': [16.0471, 108.2068],
-  'sơn trà': [16.07, 108.235],
-  'đà nẵng': [16.0544, 108.2022],
-  'hà nội': [21.0285, 105.8542],
-  'tp.hcm': [10.7769, 106.7008],
+// Chỉ dùng tọa độ nhà hàng đã lưu; thiếu dữ liệu thì không dựng marker ở một vị trí giả.
+function resolveCoordinates(restaurant: Restaurant): [number, number] | null {
+  return typeof restaurant.geoLat === 'number' && Number.isFinite(restaurant.geoLat) && Math.abs(restaurant.geoLat) <= 90 &&
+    typeof restaurant.geoLng === 'number' && Number.isFinite(restaurant.geoLng) && Math.abs(restaurant.geoLng) <= 180
+    ? [restaurant.geoLat, restaurant.geoLng] : null
+}
+// Popup Leaflet dùng HTML nên phải escape nội dung từ database trước khi ghép chuỗi.
+function escapeMapHtml(value: string): string {
+  return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!)
 }
 
-function resolveCoordinates(r: Restaurant, index: number): [number, number] {
-  if (typeof r.geoLat === 'number' && typeof r.geoLng === 'number' && !isNaN(r.geoLat) && !isNaN(r.geoLng)) {
-    return [r.geoLat, r.geoLng]
-  }
-
-  // Derive coordinates based on district or city
-  const searchStr = `${r.district || ''} ${r.city || ''} ${r.address || ''}`.toLowerCase()
-  for (const [key, coords] of Object.entries(DISTRICT_COORDS)) {
-    if (searchStr.includes(key)) {
-      // Deterministic slight offset so markers in the same district don't overlap completely
-      const offsetLat = ((index % 5) - 2) * 0.0035
-      const offsetLng = (((index * 3) % 5) - 2) * 0.0035
-      return [coords[0] + offsetLat, coords[1] + offsetLng]
-    }
-  }
-
-  // Default to TP.HCM center
-  const offsetLat = ((index % 5) - 2) * 0.004
-  const offsetLng = (((index * 2) % 5) - 2) * 0.004
-  return [10.7769 + offsetLat, 106.7008 + offsetLng]
-}
-
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (RestaurantRealMap); thuộc tra cứu và quản lý nhà hàng.
 export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
   restaurants,
   selectedRestaurant,
   onSelectRestaurant,
   onNavigate,
 }) => {
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<string, L.Marker>>(new Map())
 
   // Initialize Map
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return
 
     // Default center in Vietnam
     const map = L.map(mapContainerRef.current, {
-      center: [10.7769, 106.7008],
-      zoom: 13,
+      center: [16, 106],
+      zoom: 6,
       zoomControl: true,
-      attributionControl: false,
+      attributionControl: true,
     })
 
     // OpenStreetMap Tile Layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map)
 
     mapInstanceRef.current = map
@@ -87,6 +65,7 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
   }, [])
 
   // Update Markers when restaurants list changes
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map) return
@@ -99,15 +78,17 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
 
     const bounds = L.latLngBounds([])
 
-    restaurants.forEach((r, idx) => {
-      const [lat, lng] = resolveCoordinates(r, idx)
+    restaurants.forEach((r) => {
+      const coordinates = resolveCoordinates(r)
+      if (!coordinates) return
+      const [lat, lng] = coordinates
       const latLng = L.latLng(lat, lng)
       bounds.extend(latLng)
 
       const isSelected = selectedRestaurant?.id === r.id
       const cleanName = r.name.replace(/^\[Demo\]\s*/i, '')
       const address = formatAddress(r.address, r.district, r.city)
-      const distance = r.distanceKm ? `${r.distanceKm.toFixed(1)} km` : '1.2 km'
+      const distance = formatRestaurantDistance(r.distanceKm)
 
       // Custom HTML Pin Marker
       const customPinHtml = `
@@ -129,7 +110,7 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
             transition: transform 0.2s;
           ">
             <span>🥗</span>
-            <span>${cleanName.slice(0, 16)}${cleanName.length > 16 ? '...' : ''}</span>
+            <span>${escapeMapHtml(cleanName.slice(0, 16))}${cleanName.length > 16 ? '...' : ''}</span>
           </div>
           <div style="
             width: 0;
@@ -154,17 +135,17 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
       const popupHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; width: 220px; padding: 4px;">
           <div style="width: 100%; height: 95px; border-radius: 10px; overflow: hidden; margin-bottom: 8px; background-color: #0f172a;">
-            <img src="${r.imageUrl}" alt="${cleanName}" style="width: 100%; height: 100%; object-fit: cover;" />
+            <img src="${escapeMapHtml(r.imageUrl)}" alt="${escapeMapHtml(cleanName)}" style="width: 100%; height: 100%; object-fit: cover;" />
           </div>
           <h4 style="margin: 0 0 4px 0; font-size: 13.5px; font-weight: 700; color: #0f172a; line-height: 1.3;">
-            ${cleanName}
+            ${escapeMapHtml(cleanName)}
           </h4>
           <p style="margin: 0 0 6px 0; font-size: 11px; color: #64748b; line-height: 1.4;">
-            📍 ${address}
+            📍 ${escapeMapHtml(address)}
           </p>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 11px; font-weight: 600; color: #166534;">
-            <span>${r.openingHours ? `🕒 ${r.openingHours}` : ''}</span>
-            <span>${r.distanceKm ? `🧭 ${distance}` : ''}</span>
+            <span>${r.openingHours ? `🕒 ${escapeMapHtml(r.openingHours)}` : ''}</span>
+            <span>${distance ? `🧭 Cách khoảng ${distance}` : ''}</span>
           </div>
           <button id="btn-popup-${r.id}" style="
             width: 100%;
@@ -224,6 +205,7 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
   }, [restaurants, selectedRestaurant, onSelectRestaurant, onNavigate])
 
   // Center & Open Popup for selected restaurant
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map || !selectedRestaurant) return
@@ -238,6 +220,7 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
     }
   }, [selectedRestaurant])
 
+  // Hiển thị giao diện tra cứu và quản lý nhà hàng từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="relative h-full w-full overflow-hidden rounded-[20px] bg-slate-100 shadow-xs">
       <div ref={mapContainerRef} className="h-full w-full min-h-[520px] z-10" />
@@ -245,7 +228,7 @@ export const RestaurantRealMap: React.FC<RestaurantRealMapProps> = ({
       {/* Floating map info badge */}
       <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-emerald-800 shadow-md backdrop-blur-xs border border-emerald-100">
         <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
-        <span>Bản đồ trực tiếp ({restaurants.length} quán)</span>
+        <span>Bản đồ trực tiếp ({restaurants.filter(restaurant => resolveCoordinates(restaurant) !== null).length} quán có tọa độ)</span>
       </div>
     </div>
   )

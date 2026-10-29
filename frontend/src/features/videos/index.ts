@@ -1,3 +1,4 @@
+// Chức năng: video, bản nháp và nội dung công khai. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 // Pages
 export { default as VideoList } from './pages/VideoList'
 export { default as VideoListPage } from './pages/VideoList'

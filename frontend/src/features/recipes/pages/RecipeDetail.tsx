@@ -1,8 +1,10 @@
+// Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
   ChefHat,
+  Bookmark,
   Clock,
   Clock3,
   Flame,
@@ -25,7 +27,10 @@ import type {
   RelatedVideoCard,
 } from '../types/recipe.types'
 import { RecipeImage } from '../components/RecipeImage'
+import { useRecipeSaves } from '../../favorites/hooks/useRecipeSaves'
+import AlertError from '../../../shared/components/AlertError'
 
+// Cấu trúc RecipeDetailProps quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface RecipeDetailProps {
   recipeId?: string
   onNavigate?: (path: string) => void
@@ -34,6 +39,7 @@ interface RecipeDetailProps {
 }
 
 // Utility function to remove [Mẫu] / [Demo] prefixes from backend seeder
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanText); thuộc công thức và định lượng nguyên liệu.
 function cleanText(str?: string): string {
   if (!str) return ''
   return str
@@ -43,6 +49,7 @@ function cleanText(str?: string): string {
 }
 
 // Check if step text is a placeholder instruction
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (isInstructionPlaceholder); thuộc công thức và định lượng nguyên liệu.
 function isInstructionPlaceholder(text?: string): boolean {
   if (!text) return true
   const lower = text.trim().toLowerCase()
@@ -55,6 +62,7 @@ function isInstructionPlaceholder(text?: string): boolean {
   )
 }
 
+// Thành phần RecipeDetail nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc công thức và định lượng nguyên liệu.
 export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   recipeId = '',
   onNavigate,
@@ -77,6 +85,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     rawFrom === 'mealplans' ||
     rawFrom === 'mealplan'
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleBack); thuộc công thức và định lượng nguyên liệu.
   const handleBack = () => {
     const target = isFromMealPlans ? '/meal-plans' : '/recipes'
     if (onNavigate) {
@@ -90,10 +99,26 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     ? 'Quay lại thực đơn'
     : 'Quay lại danh sách công thức'
 
+  // Lưu dữ liệu và trạng thái thao tác của công thức và định lượng nguyên liệu trong vòng đời màn hình.
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isNotFound, setIsNotFound] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const recipeSaves = useRecipeSaves('Recipe')
+  // Lưu cùng mục công thức của Profile; khách đăng nhập rồi quay lại đúng công thức đang xem.
+  const saveRecipe = async () => {
+    if (!recipeSaves.authenticated) {
+      onNavigate?.(`/auth/login?returnUrl=${encodeURIComponent(`/recipes/${recipeId}`)}`)
+      return
+    }
+    try {
+      const saved = await recipeSaves.toggle(recipeId)
+      setToast(saved ? 'Đã lưu vào Profile → Mục đã lưu → Công thức.' : 'Đã bỏ lưu công thức.')
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Chưa lưu được công thức. Vui lòng thử lại.')
+    }
+    window.setTimeout(() => setToast(null), 2500)
+  }
   const [relatedRecipes, setRelatedRecipes] = useState<Recipe[]>([])
   const [relatedArticles, setRelatedArticles] = useState<RelatedBlogCard[]>([])
   const [relatedVideos, setRelatedVideos] = useState<RelatedVideoCard[]>([])
@@ -101,6 +126,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
 
   const [hasReportedMissing, setHasReportedMissing] = useState(false)
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     let cancelled = false
     void (async () => {
@@ -156,6 +182,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     }
   }, [recipeId])
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (showToast); thuộc công thức và định lượng nguyên liệu.
   const showToast = (msg: string) => {
     setToast(msg)
     window.setTimeout(() => setToast(null), 2000)
@@ -171,6 +198,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     })
   }, [recipe])
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleReportMissingSteps); thuộc công thức và định lượng nguyên liệu.
   const handleReportMissingSteps = () => {
     setHasReportedMissing(true)
     showToast('📢 Cảm ơn bạn! Đã gửi báo cáo thiếu hướng dẫn tới Ban biên tập để ưu tiên cập nhật.')
@@ -235,6 +263,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   const cleanRecipeTitle = cleanText(recipe.title)
   const cleanRecipeDesc = cleanText(recipe.description)
 
+  // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="min-h-screen bg-[#F8FAFB] text-[#1F2937] font-['Inter'] pb-16">
       <div className="mx-auto w-full max-w-[1140px] px-4 sm:px-6 pt-6">
@@ -277,6 +306,16 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
               <h1 className="text-[28px] font-extrabold leading-[1.25] text-[#111827] sm:text-[34px] tracking-tight">
                 {cleanRecipeTitle}
               </h1>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => void saveRecipe()}
+                  leftIcon={<Bookmark size={16} fill={recipeSaves.isSaved(recipeId) ? 'currentColor' : 'none'} />}
+                  isLoading={recipeSaves.isSaving(recipeId)} disabled={recipeSaves.authenticated && !recipeSaves.ready}
+                  aria-pressed={recipeSaves.isSaved(recipeId)}>
+                  {recipeSaves.isSaved(recipeId) ? 'Đã lưu công thức' : 'Lưu công thức'}
+                </Button>
+                <Button variant="ghost" onClick={() => onNavigate?.('/favorites?type=Recipe')}>Xem công thức đã lưu</Button>
+              </div>
+              {recipeSaves.error && <AlertError message={recipeSaves.error} onRetry={recipeSaves.reload} />}
 
               {cleanRecipeDesc && (
                 <p className="mt-3 text-[14.5px] leading-relaxed text-slate-600">
@@ -379,6 +418,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                 {recipe.ingredients.map((ig, idx) => {
                   const cleanedName = cleanText(ig.name)
                   const cleanedNote = cleanText(ig.note)
+                  // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                   return (
                     <div
                       key={ig.id || `${ig.name}-${idx}`}
@@ -456,6 +496,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                   const stepNum = step.stepNumber || step.stepNo || idx + 1
                   const instructionText =
                     cleanText(step.instruction || step.description || step.title || '')
+                  // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                   return (
                     <div key={stepNum} className="flex items-start gap-3.5">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#E8F5E9] text-[13px] font-bold text-[#2E7D32]">
@@ -524,6 +565,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
               {relatedRecipes.map((rel) => {
                 const relCalories = rel.nutrition.kcal ?? rel.calories
+                // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                 return (
                   <article
                     key={rel.id}
@@ -640,6 +682,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
               {relatedVideos.slice(0, 3).map((vid, idx) => {
+                // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                 return (
                   <article
                     key={vid.id || idx}
@@ -665,9 +708,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                       >
                         <Play size={20} className="translate-x-0.5 fill-slate-800" />
                       </button>
-                      <span className="absolute bottom-2 right-2 rounded bg-black/75 px-2 py-0.5 text-[11px] font-bold text-white">
+                      {vid.duration && <span className="absolute bottom-2 right-2 rounded bg-black/75 px-2 py-0.5 text-[11px] font-bold text-white">
                         {vid.duration}
-                      </span>
+                      </span>}
                     </div>
                     <div className="flex flex-1 flex-col p-4">
                       <div className="text-[12px] font-semibold text-slate-500">{vid.channel}</div>
@@ -746,7 +789,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
 
                   <div className="shrink-0">
                     <span className="rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11.5px] font-bold text-[#2E7D32]">
-                      {rest.distanceKm} km
+                      {rest.distanceKm === null ? 'Chưa có khoảng cách' : `${rest.distanceKm} km`}
                     </span>
                   </div>
                 </div>

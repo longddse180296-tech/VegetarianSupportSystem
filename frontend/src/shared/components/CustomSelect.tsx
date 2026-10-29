@@ -1,6 +1,8 @@
+// Chức năng: giao diện và thành phần dùng chung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 
+// Cấu trúc CustomSelectOption quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface CustomSelectOption<T extends string | number = string> {
   value: T
   label: string
@@ -9,6 +11,7 @@ export interface CustomSelectOption<T extends string | number = string> {
   disabled?: boolean
 }
 
+// Cấu trúc CustomSelectProps quy định dữ liệu trao đổi trong giao diện và thành phần dùng chung.
 export interface CustomSelectProps<T extends string | number = string> {
   value: T | null | undefined
   onChange: (value: T) => void
@@ -25,6 +28,7 @@ export interface CustomSelectProps<T extends string | number = string> {
   size?: 'sm' | 'md'
 }
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (CustomSelect); thuộc giao diện và thành phần dùng chung.
 export function CustomSelect<T extends string | number = string>({
   value,
   onChange,
@@ -40,7 +44,9 @@ export function CustomSelect<T extends string | number = string>({
   required = false,
   size = 'md',
 }: CustomSelectProps<T>) {
+  // Lưu dữ liệu và trạng thái thao tác của giao diện và thành phần dùng chung trong vòng đời màn hình.
   const [isOpen, setIsOpen] = useState(false)
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const containerRef = useRef<HTMLDivElement>(null)
 
   const selectedOption = options.find(opt => opt.value === value)
@@ -61,15 +67,18 @@ export function CustomSelect<T extends string | number = string>({
   )
 
   // Click outside listener
+  // Đăng ký sự kiện phục vụ màn hình và dọn bộ lắng nghe khi không còn sử dụng.
   useEffect(() => {
     if (!isOpen) return
 
+    // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleClickOutside); thuộc giao diện và thành phần dùng chung.
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false)
       }
     }
 
+    // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleKeyDown); thuộc giao diện và thành phần dùng chung.
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsOpen(false)
@@ -89,6 +98,7 @@ export function CustomSelect<T extends string | number = string>({
 
   const heightClass = size === 'sm' ? 'min-h-[38px] py-1.5 px-3 text-xs' : 'min-h-[44px] py-2.5 px-3.5 text-sm'
 
+  // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div
       className={`relative flex flex-col gap-1.5 text-left ${isOpen ? 'z-30' : 'z-10'} ${className}`}
@@ -149,6 +159,7 @@ export function CustomSelect<T extends string | number = string>({
         >
           {options.map(option => {
             const isSelected = option.value === value
+            // Hiển thị thành phần giao diện dùng chung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
             return (
               <button
                 type="button"

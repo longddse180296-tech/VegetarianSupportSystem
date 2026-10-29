@@ -1,7 +1,9 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 
 namespace Domain.Entities;
 
+// Restaurant: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class Restaurant
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -28,6 +30,7 @@ public sealed class Restaurant
     public ICollection<RestaurantFeaturedDish> FeaturedDishes { get; set; } = new List<RestaurantFeaturedDish>();
 }
 
+// RestaurantDietaryType: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class RestaurantDietaryType
 {
     public Guid RestaurantId { get; set; }
@@ -35,6 +38,7 @@ public sealed class RestaurantDietaryType
     public DietaryType DietaryType { get; set; }
 }
 
+// RestaurantAmenity: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class RestaurantAmenity
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -43,6 +47,7 @@ public sealed class RestaurantAmenity
     public string Name { get; set; } = string.Empty;
 }
 
+// RestaurantFeaturedDish: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class RestaurantFeaturedDish
 {
     public Guid Id { get; set; } = Guid.NewGuid();

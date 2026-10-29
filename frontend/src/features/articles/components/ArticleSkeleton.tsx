@@ -1,6 +1,9 @@
+// Chức năng: bài viết và phiên bản gửi duyệt. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React from 'react'
 
+// Thành phần ArticleCardSkeleton nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleCardSkeleton: React.FC = () => {
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="flex flex-col rounded-2xl bg-white p-4 shadow-sm border border-gray-100 animate-pulse">
       <div className="w-full h-48 bg-gray-200 rounded-xl mb-4" />
@@ -22,7 +25,9 @@ export const ArticleCardSkeleton: React.FC = () => {
   )
 }
 
+// Thành phần FeaturedArticleSkeleton nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc bài viết và phiên bản gửi duyệt.
 export const FeaturedArticleSkeleton: React.FC = () => {
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-100 animate-pulse items-center">
       <div className="md:col-span-5 h-52 sm:h-56 md:h-60 bg-gray-200 rounded-2xl" />
@@ -52,7 +57,9 @@ export const FeaturedArticleSkeleton: React.FC = () => {
   )
 }
 
+// Thành phần ArticleDetailSkeleton nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleDetailSkeleton: React.FC = () => {
+  // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 animate-pulse">
       <div className="w-32 h-5 bg-gray-200 rounded mb-4" />

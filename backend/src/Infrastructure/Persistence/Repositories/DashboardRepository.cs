@@ -1,13 +1,16 @@
+// Chức năng: thống kê và góp ý gửi đến Admin. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Features.Administration;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
 
+// DashboardRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class DashboardRepository(AppDbContext db) : IDashboardRepository
 {
     private const int RecentActivityLimit = 10;
 
+    // GetOverviewAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<DashboardOverview> GetOverviewAsync(CancellationToken cancellationToken)
     {
         var registered = await db.Users.AsNoTracking().CountAsync(cancellationToken);
@@ -55,6 +58,7 @@ public sealed class DashboardRepository(AppDbContext db) : IDashboardRepository
             await GetRecentActivityAsync(cancellationToken));
     }
 
+    // GetRecentActivityAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     private async Task<IReadOnlyList<DashboardActivity>> GetRecentActivityAsync(CancellationToken cancellationToken)
     {
         var registrations = await db.Users.AsNoTracking()

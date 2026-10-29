@@ -1,7 +1,7 @@
+// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState } from 'react'
 import {
   Calendar,
-  Check,
   CheckCircle2,
   ExternalLink,
   Info,
@@ -14,34 +14,26 @@ import type { UserProfile } from '../../profile/types'
 import { mealPlanApi, nextMonday } from '../api/mealPlanApi'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
 import { Badge, Breadcrumb, PageHeading } from '../../../shared/components'
-import {
-  DIETARY_TYPES,
-  DIETARY_TYPE_LABELS,
-  type DietaryType,
-} from '../../../shared/constants'
+import { DIETARY_TYPE_LABELS } from '../../../shared/constants'
 
+// Cấu trúc PersonalizationSetupPageProps quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 interface PersonalizationSetupPageProps {
   onNavigate?: (path: string) => void
 }
 
-const DIET_DESCRIPTIONS: Record<DietaryType, string> = {
-  Vegan: 'Thực vật 100%, không trứng, không sữa, không mật ong.',
-  'Lacto-vegetarian': 'Sử dụng thực vật và sữa/chế phẩm từ sữa, không dùng trứng.',
-  'Ovo-vegetarian': 'Sử dụng thực vật và trứng, không dùng sữa và chế phẩm sữa.',
-  'Lacto-ovo vegetarian': 'Chế độ ăn chay linh hoạt, sử dụng cả trứng và sữa.',
-}
-
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (PersonalizationSetupPage); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const PersonalizationSetupPage = ({
   onNavigate,
 }: PersonalizationSetupPageProps) => {
+  // Lưu dữ liệu và trạng thái thao tác của thực đơn bảy ngày và danh sách đi chợ trong vòng đời màn hình.
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('Thực đơn chay 7 ngày')
   const [weekStartDate, setWeekStartDate] = useState(nextMonday)
-  const [selectedDiet, setSelectedDiet] = useState<DietaryType | ''>('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     let active = true
     profileApi
@@ -49,9 +41,6 @@ export const PersonalizationSetupPage = ({
       .then((value) => {
         if (!active) return
         setProfile(value)
-        if (value.dietaryType) {
-          setSelectedDiet(value.dietaryType as DietaryType)
-        }
       })
       .catch((err) => {
         if (active)
@@ -67,16 +56,13 @@ export const PersonalizationSetupPage = ({
     }
   }, [])
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (generate); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const generate = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (busy || !selectedDiet || !name.trim()) return
+    if (busy || !profile?.dietaryType || !name.trim()) return
     setBusy(true)
     setError(null)
     try {
-      // Auto-save dietary type to user profile if not yet saved or if changed
-      if (profile?.dietaryType !== selectedDiet) {
-        await profileApi.updateProfile({ dietaryType: selectedDiet })
-      }
       const plan = await mealPlanApi.generate(name.trim(), weekStartDate)
       onNavigate?.(`/meal-plans/${plan.id}`)
     } catch (err) {
@@ -105,11 +91,12 @@ export const PersonalizationSetupPage = ({
     )
   }
 
+  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
       <PageHeading
         title="Thực đơn cá nhân hóa 7 ngày"
-        description="21 bữa sáng, trưa và tối từ công thức đang hoạt động, tinh chỉnh chính xác theo chế độ ăn, dị ứng và thực phẩm cần tránh."
+        description="Lập 21 bữa sáng, trưa và tối từ kho công thức, dựa trên chế độ ăn, dị ứng và thực phẩm cần tránh đã khai báo."
         breadcrumbs={[
           { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
           { label: 'Thực đơn', onClick: () => onNavigate?.('/meal-plans') },
@@ -144,7 +131,7 @@ export const PersonalizationSetupPage = ({
                 {profile?.dietaryType ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-[#2E7D32]">
                     <CheckCircle2 size={13} />
-                    {profile.dietaryType}
+                    {DIETARY_TYPE_LABELS[profile.dietaryType]}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
@@ -212,16 +199,16 @@ export const PersonalizationSetupPage = ({
               className="inline-flex items-center gap-2 text-xs font-bold text-[#2E7D32] hover:text-[#1B5E20] hover:underline transition-colors"
             >
               <ExternalLink size={14} />
-              Cập nhật dị ứng &amp; chỉ số trong Hồ sơ
+              Cập nhật chế độ ăn, dị ứng &amp; chỉ số trong Hồ sơ
             </button>
             <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              Hệ thống sẽ lưu snapshot hồ sơ tại thời điểm tạo. Đổi món và tạo lại
-              sẽ tuân thủ các điều kiện bắt buộc này.
+              Thực đơn sẽ lưu chế độ ăn, dị ứng và thực phẩm cần tránh tại thời điểm tạo.
+              Khi đổi món hoặc tạo lại, các lựa chọn này vẫn được áp dụng.
             </p>
           </div>
         </section>
 
-        {/* Right Column: Form Thiết lập & Chọn chế độ ăn */}
+        {/* Right Column: Thông tin thực đơn */}
         <form
           onSubmit={generate}
           className="lg:col-span-7 rounded-3xl border border-slate-200 bg-white p-6 space-y-6 shadow-sm"
@@ -235,75 +222,33 @@ export const PersonalizationSetupPage = ({
                 Thông tin kế hoạch 7 ngày
               </h2>
               <p className="text-xs text-slate-500">
-                Chọn chế độ ăn và thời gian bắt đầu thực đơn
+                Đặt tên và chọn thời gian bắt đầu thực đơn
               </p>
             </div>
           </div>
 
-          {/* Chọn nhanh chế độ ăn */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-bold text-slate-800">
-                Chế độ ăn cho thực đơn <span className="text-rose-500">*</span>
-              </label>
-              {!profile?.dietaryType && (
-                <span className="text-xs text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full font-medium">
-                  Chọn 1 trong 4 chế độ dưới đây
-                </span>
-              )}
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-3">
-              {DIETARY_TYPES.map((diet) => {
-                const isSelected = selectedDiet === diet
-                const isProfileDiet = profile?.dietaryType === diet
-                return (
-                  <div
-                    key={diet}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedDiet(diet)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        setSelectedDiet(diet)
-                      }
-                    }}
-                    className={`relative text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? 'border-[#2E7D32] bg-emerald-50/60 ring-2 ring-[#2E7D32]/20 shadow-sm'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
-                    }`}
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm">
+            {profile?.dietaryType ? (
+              <p className="text-emerald-900">
+                Chế độ ăn áp dụng: <strong>{DIETARY_TYPE_LABELS[profile.dietaryType]}</strong>.
+                {' '}Tự động lấy từ hồ sơ của bạn.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-amber-800">
+                  {profile ? 'Bạn chưa lưu chế độ ăn trong hồ sơ.' : 'Chưa tải được hồ sơ. Vui lòng tải lại trang để thử lại.'}
+                </p>
+                {profile && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate?.('/profile')}
+                    className="font-bold text-[#2E7D32] underline"
                   >
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-900">
-                          {DIETARY_TYPE_LABELS[diet]}
-                        </span>
-                        <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            isSelected
-                              ? 'border-[#2E7D32] bg-[#2E7D32] text-white'
-                              : 'border-slate-300 bg-white'
-                          }`}
-                        >
-                          {isSelected && <Check size={11} strokeWidth={3} />}
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 leading-snug">
-                        {DIET_DESCRIPTIONS[diet]}
-                      </p>
-                    </div>
-
-                    {isProfileDiet && (
-                      <span className="mt-2 text-[10px] font-bold text-[#2E7D32] bg-emerald-100/70 px-2 py-0.5 rounded-md inline-block w-fit">
-                        Theo hồ sơ của bạn
-                      </span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                    Cập nhật hồ sơ
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -345,7 +290,7 @@ export const PersonalizationSetupPage = ({
           <div className="pt-2">
             <button
               type="submit"
-              disabled={busy || !selectedDiet || !name.trim()}
+              disabled={busy || !profile?.dietaryType || !name.trim()}
               className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-bold py-3.5 px-6 shadow-sm hover:shadow transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
             >
               {busy ? (
@@ -360,9 +305,9 @@ export const PersonalizationSetupPage = ({
                 </>
               )}
             </button>
-            {!selectedDiet && (
+            {profile && !profile.dietaryType && (
               <p className="text-center text-xs text-amber-700 mt-2 font-medium">
-                Vui lòng chọn 1 chế độ ăn ở trên để tiếp tục
+                Cập nhật chế độ ăn trong hồ sơ để tiếp tục.
               </p>
             )}
           </div>

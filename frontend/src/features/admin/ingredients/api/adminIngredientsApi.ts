@@ -1,3 +1,4 @@
+// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../../shared/api/apiClient'
 import type { AdminIngredientItem, IngredientInput } from '../types/adminIngredients.types'
 
@@ -9,4 +10,5 @@ export const adminIngredientsApi = {
   create: (input: IngredientInput) => apiClient.post<AdminIngredientItem>('/api/admin/ingredients', input),
   update: (id: string, input: IngredientInput) => apiClient.put<AdminIngredientItem>(`/api/admin/ingredients/${id}`, input),
   deactivate: (id: string) => apiClient.post<void>(`/api/admin/ingredients/${id}/deactivate`),
+  activate: (id: string) => apiClient.post<void>(`/api/admin/ingredients/${id}/activate`),
 }

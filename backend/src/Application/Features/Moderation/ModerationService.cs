@@ -1,3 +1,4 @@
+// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Entities;
 using Domain.Enums;
 using Application.Features.Favorites;
@@ -5,27 +6,37 @@ using Application.Features.Videos;
 
 namespace Application.Features.Moderation;
 
+// ModerationService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class ModerationService(IModerationRepository repository, IVideoPublication videos,
     IFavoriteRepository? favorites = null)
 {
+    // GetAuthorNamesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
+    public Task<IReadOnlyDictionary<string, string>> GetAuthorNamesAsync(IEnumerable<string> userIds, CancellationToken ct) =>
+        repository.AuthorNamesAsync(userIds, ct);
+
+    // SubmitFirstVideoAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     public async Task<ModerationSubmission> SubmitFirstVideoAsync(Guid videoId, string ownerUserId,
         string title, string description, string mediaKey, CancellationToken ct)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (await repository.GetLatestForContentAsync(videoId, ct) is not null)
-            throw new ModerationException(ModerationError.Conflict, "Video was already submitted.");
+            throw new ModerationException(ModerationError.Conflict, "Video này đã được gửi duyệt. Bạn có thể theo dõi trạng thái trong Video của tôi.");
         var submission = ModerationSubmission.Submit(videoId, 1, ModeratedContentType.Video,
             ownerUserId, title, description, mediaKey, DateTimeOffset.UtcNow);
         await repository.AddAsync(submission, ct);
+        // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveChangesAsync(ct);
         return submission;
     }
+    // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     public async Task<ModerationSubmission> SubmitAsync(
         string ownerUserId,
         SubmitModerationCommand command,
         CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(ownerUserId) || ownerUserId.Length > 450)
-            throw new ModerationException(ModerationError.Forbidden, "A signed-in user is required.");
+            throw new ModerationException(ModerationError.Forbidden, "Vui lòng đăng nhập để tiếp tục.");
 
         if (!Enum.IsDefined(command.ContentType)
             || string.IsNullOrWhiteSpace(command.Title)
@@ -34,13 +45,13 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             || command.TextContent.Length > 50_000
             || command.MediaReference?.Length > 2_000)
         {
-            throw new ModerationException(ModerationError.Validation, "Content type, title and text content are required and must fit the allowed lengths.");
+            throw new ModerationException(ModerationError.Validation, "Vui lòng nhập loại nội dung, tiêu đề và nội dung theo giới hạn hiển thị trên biểu mẫu.");
         }
 
         if (command.ContentType == ModeratedContentType.Video
             && string.IsNullOrWhiteSpace(command.MediaReference))
         {
-            throw new ModerationException(ModerationError.Validation, "A stored video media reference is required.");
+            throw new ModerationException(ModerationError.Validation, "Vui lòng tải video lên thành công trước khi gửi duyệt.");
         }
 
         Guid contentId;
@@ -48,21 +59,21 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         if (command.ContentId is { } existingId)
         {
             if (existingId == Guid.Empty)
-                throw new ModerationException(ModerationError.Validation, "Content ID must not be empty.");
+                throw new ModerationException(ModerationError.Validation, "Vui lòng chọn nội dung cần thao tác.");
 
             var latest = await repository.GetLatestForContentAsync(existingId, cancellationToken)
-                ?? throw new ModerationException(ModerationError.NotFound, "Content was not found.");
+                ?? throw new ModerationException(ModerationError.NotFound, "Không tìm thấy nội dung hoặc nội dung không còn khả dụng.");
 
             if (latest.OwnerUserId != ownerUserId)
-                throw new ModerationException(ModerationError.Forbidden, "This content belongs to another user.");
+                throw new ModerationException(ModerationError.Forbidden, "Bạn chỉ có thể quản lý nội dung của mình.");
 
             if (latest.ContentType != command.ContentType)
-                throw new ModerationException(ModerationError.Validation, "Content type cannot change between versions.");
+                throw new ModerationException(ModerationError.Validation, "Không thể đổi loại nội dung giữa các phiên bản.");
 
             if (latest.AdminReviewStatus is not (
                 AdminReviewStatus.RevisionRequested or AdminReviewStatus.Rejected or AdminReviewStatus.Published))
             {
-                throw new ModerationException(ModerationError.Conflict, "The latest version cannot be resubmitted yet.");
+                throw new ModerationException(ModerationError.Conflict, "Phiên bản hiện tại chưa thể gửi duyệt lại. Vui lòng kiểm tra trạng thái và phản hồi của Quản trị viên.");
             }
 
             contentId = existingId;
@@ -85,24 +96,28 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             DateTimeOffset.UtcNow);
 
         await repository.AddAsync(submission, cancellationToken);
+        // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveChangesAsync(cancellationToken);
         return submission;
     }
 
+    // GetOwnedAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<ModerationSubmission> GetOwnedAsync(
         Guid submissionId,
         string ownerUserId,
         CancellationToken cancellationToken)
     {
         var submission = await repository.GetByIdAsync(submissionId, cancellationToken)
-            ?? throw new ModerationException(ModerationError.NotFound, "Submission was not found.");
+            ?? throw new ModerationException(ModerationError.NotFound, "Không tìm thấy bản nội dung đã gửi hoặc bạn không có quyền xem.");
 
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (submission.OwnerUserId != ownerUserId)
-            throw new ModerationException(ModerationError.NotFound, "Submission was not found.");
+            throw new ModerationException(ModerationError.NotFound, "Không tìm thấy bản nội dung đã gửi hoặc bạn không có quyền xem.");
 
         return submission;
     }
 
+    // GetOwnedPageAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<ModerationPage> GetOwnedPageAsync(
         string ownerUserId,
         ModeratedContentType? contentType,
@@ -110,17 +125,19 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         int pageSize,
         CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(ownerUserId) || ownerUserId.Length > 450)
-            throw new ModerationException(ModerationError.Forbidden, "A signed-in user is required.");
+            throw new ModerationException(ModerationError.Forbidden, "Vui lòng đăng nhập để tiếp tục.");
 
         ValidatePage(page, pageSize);
         if (contentType is { } type && !Enum.IsDefined(type))
-            throw new ModerationException(ModerationError.Validation, "Invalid content type.");
+            throw new ModerationException(ModerationError.Validation, "Loại nội dung chưa hợp lệ. Vui lòng chọn lại.");
         return repository.SearchAsync(
             new ModerationSearch(ownerUserId, contentType, null, null, page, pageSize),
             cancellationToken);
     }
 
+    // RetryAiAsync: Thử lại thao tác khi trạng thái hiện tại cho phép.
     public async Task<ModerationSubmission> RetryAiAsync(
         Guid submissionId,
         string ownerUserId,
@@ -128,8 +145,9 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
     {
         var submission = await GetOwnedAsync(submissionId, ownerUserId, cancellationToken);
         var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (latest?.Id != submission.Id)
-            throw new ModerationException(ModerationError.Conflict, "Cannot retry AI on an older version.");
+            throw new ModerationException(ModerationError.Conflict, "Hệ thống chỉ có thể kiểm tra lại phiên bản mới nhất.");
 
         try
         {
@@ -140,23 +158,26 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             throw new ModerationException(ModerationError.Conflict, ex.Message);
         }
 
+        // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveChangesAsync(cancellationToken);
         return submission;
     }
 
     // Called by a trusted backend AI worker after it has performed a real check.
     // It is intentionally not exposed as an HTTP endpoint.
+    // RecordAiResultAsync: Ghi kết quả AI độc lập với quyết định xuất bản của Admin.
     public async Task<ModerationSubmission> RecordAiResultAsync(
         Guid submissionId,
         ModerationAiResult result,
         CancellationToken cancellationToken)
     {
         var submission = await repository.GetByIdAsync(submissionId, cancellationToken)
-            ?? throw new ModerationException(ModerationError.NotFound, "Submission was not found.");
+            ?? throw new ModerationException(ModerationError.NotFound, "Không tìm thấy bản nội dung đã gửi hoặc bạn không có quyền xem.");
 
         var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (latest?.Id != submission.Id)
-            throw new ModerationException(ModerationError.Conflict, "AI result belongs to an older version.");
+            throw new ModerationException(ModerationError.Conflict, "Kết quả kiểm tra của Hệ thống thuộc phiên bản cũ. Vui lòng tải lại bản mới nhất.");
 
         try
         {
@@ -180,18 +201,21 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             throw new ModerationException(ModerationError.Conflict, ex.Message);
         }
 
+        // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveChangesAsync(cancellationToken);
         return submission;
     }
 
+    // GetForAdminAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<ModerationSubmission> GetForAdminAsync(
         Guid submissionId,
         CancellationToken cancellationToken)
     {
         return await repository.GetByIdAsync(submissionId, cancellationToken)
-            ?? throw new ModerationException(ModerationError.NotFound, "Submission was not found.");
+            ?? throw new ModerationException(ModerationError.NotFound, "Không tìm thấy bản nội dung đã gửi hoặc bạn không có quyền xem.");
     }
 
+    // GetAdminPageAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<ModerationPage> GetAdminPageAsync(
         ModeratedContentType? contentType,
         AiFlagStatus? aiStatus,
@@ -201,6 +225,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         CancellationToken cancellationToken)
     {
         ValidatePage(page, pageSize);
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if ((contentType is { } type && !Enum.IsDefined(type))
             || (aiStatus is { } ai && !Enum.IsDefined(ai))
             || (adminStatus is { } admin && !Enum.IsDefined(admin)))
@@ -213,6 +238,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             cancellationToken);
     }
 
+    // DecideAsync: Áp dụng quyết định Admin lên đúng phiên bản và ghi lại lịch sử xử lý.
     public async Task<ModerationSubmission> DecideAsync(
         Guid submissionId,
         ModerationDecisionType decision,
@@ -220,27 +246,28 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         string reason,
         CancellationToken cancellationToken)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(adminUserId) || adminUserId.Length > 450)
-            throw new ModerationException(ModerationError.Forbidden, "An Admin identity is required.");
+            throw new ModerationException(ModerationError.Forbidden, "Thao tác này cần tài khoản Quản trị viên.");
 
         if (!Enum.IsDefined(decision) || string.IsNullOrWhiteSpace(reason) || reason.Length > 2_000)
-            throw new ModerationException(ModerationError.Validation, "A valid decision and a reason of at most 2000 characters are required.");
+            throw new ModerationException(ModerationError.Validation, "Vui lòng chọn kết quả xử lý và nhập lý do không quá 2.000 ký tự.");
 
         var submission = await repository.GetByIdAsync(submissionId, cancellationToken)
-            ?? throw new ModerationException(ModerationError.NotFound, "Submission was not found.");
+            ?? throw new ModerationException(ModerationError.NotFound, "Không tìm thấy bản nội dung đã gửi hoặc bạn không có quyền xem.");
 
         if (decision == ModerationDecisionType.Approve)
         {
             var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
             if (latest?.Id != submission.Id)
-                throw new ModerationException(ModerationError.Conflict, "Cannot approve an older version.");
+                throw new ModerationException(ModerationError.Conflict, "Chỉ có thể duyệt phiên bản mới nhất. Vui lòng tải lại nội dung.");
             var readyForAdmin = submission.ContentType == ModeratedContentType.Video
                 ? submission.AiFlagStatus == AiFlagStatus.NotSubmitted
                 : submission.AiFlagStatus is AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial or AiFlagStatus.Failed;
             if (submission.AdminReviewStatus != AdminReviewStatus.PendingAdminReview
                 || !readyForAdmin)
             {
-                throw new ModerationException(ModerationError.Conflict, "Submission is not ready for Admin review.");
+                throw new ModerationException(ModerationError.Conflict, "Nội dung chưa ở trạng thái có thể xử lý. Vui lòng tải lại để kiểm tra.");
             }
 
             await repository.ExecuteInTransactionAsync(async ct =>
@@ -285,6 +312,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         return submission;
     }
 
+    // ToFavoriteTargetType: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static FavoriteTargetType ToFavoriteTargetType(ModeratedContentType contentType) => contentType switch
     {
         ModeratedContentType.Article => FavoriteTargetType.Article,
@@ -292,10 +320,12 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         _ => throw new ArgumentOutOfRangeException(nameof(contentType), contentType, "Unsupported favorite target.")
     };
 
+    // ValidatePage: Kiểm tra dữ liệu và điều kiện nghiệp vụ; dừng xử lý khi không hợp lệ.
     private static void ValidatePage(int page, int pageSize)
     {
+        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (page < 1 || pageSize is < 1 or > 100
             || (long)(page - 1) * pageSize > int.MaxValue)
-            throw new ModerationException(ModerationError.Validation, "Page must be positive and page size must be between 1 and 100.");
+            throw new ModerationException(ModerationError.Validation, "Trang phải từ 1 trở lên và số mục mỗi trang phải từ 1 đến 100.");
     }
 }

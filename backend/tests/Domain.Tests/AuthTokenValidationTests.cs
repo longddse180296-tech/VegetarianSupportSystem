@@ -44,6 +44,24 @@ public sealed class AuthTokenValidationTests
     }
 
     [Fact]
+    public async Task ReplacedSessionReturnsSpecificReasonAndCannotReviveAfterLogout()
+    {
+        var user = NewUser();
+        var issuer = new JwtAccessTokenIssuer(Issuer, Audience, SigningKey);
+        var legacy = ValidateJwt(issuer.Issue(user).Value);
+        user.StartSession(Guid.NewGuid().ToString("N"), new string('a', 64), DateTimeOffset.UtcNow.AddDays(7));
+        var first = ValidateJwt(issuer.Issue(user).Value);
+        user.StartSession(Guid.NewGuid().ToString("N"), new string('b', 64), DateTimeOffset.UtcNow.AddDays(7));
+        var validator = new AccountTokenValidator(new Accounts(user), new RevokedTokens());
+        Assert.False(await validator.IsValidAsync(first, default));
+        Assert.Equal("SESSION_REPLACED", validator.FailureCode);
+        Assert.True(await validator.IsValidAsync(ValidateJwt(issuer.Issue(user).Value), default));
+        user.EndSession();
+        Assert.False(await validator.IsValidAsync(first, default));
+        Assert.False(await validator.IsValidAsync(legacy, default));
+    }
+
+    [Fact]
     public async Task LockedOrMissingAccountCannotUseExistingToken()
     {
         var user = NewUser();

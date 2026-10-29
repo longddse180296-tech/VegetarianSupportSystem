@@ -1,3 +1,4 @@
+// Chức năng: tra cứu và quản lý nhà hàng. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type {
   DishChip,
@@ -14,6 +15,7 @@ import type {
 import { DEFAULT_RESTAURANT_FILTER } from '../types/restaurant.types'
 
 // ---------- Real Backend Interfaces & Adapters ----------
+// Cấu trúc BackendRestaurantSummary quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface BackendRestaurantSummary {
   id: string
   name: string
@@ -26,8 +28,11 @@ interface BackendRestaurantSummary {
   dietaryTypes: Array<string | number>
   amenities: string[]
   distanceKm: number | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
+// Cấu trúc BackendRestaurantResponse quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface BackendRestaurantResponse {
   id: string
   name: string
@@ -53,6 +58,7 @@ interface BackendRestaurantResponse {
   distanceKm: number | null
 }
 
+// Cấu trúc BackendRestaurantPage quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 interface BackendRestaurantPage {
   items: BackendRestaurantSummary[]
   pageNumber: number
@@ -60,6 +66,7 @@ interface BackendRestaurantPage {
   totalCount: number
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapDietType); thuộc tra cứu và quản lý nhà hàng.
 function mapDietType(dt: string | number): Exclude<RestaurantDietType, 'all'> {
   if (typeof dt === 'string') {
     const s = dt.trim().toLowerCase()
@@ -83,11 +90,12 @@ function mapDietType(dt: string | number): Exclude<RestaurantDietType, 'all'> {
   return 'vegan'
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapSummaryToRestaurant); thuộc tra cứu và quản lý nhà hàng.
 function mapSummaryToRestaurant(item: BackendRestaurantSummary): Restaurant {
   const fallbackImg =
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
   const img = item.imageUrl || fallbackImg
-  const dist = item.distanceKm ? Number(item.distanceKm) : 0
+  const dist = item.distanceKm == null ? null : Number(item.distanceKm)
   const dietTypes = (item.dietaryTypes || []).map(mapDietType)
 
   let priceRange: string | undefined
@@ -106,6 +114,8 @@ function mapSummaryToRestaurant(item: BackendRestaurantSummary): Restaurant {
     city: item.district || '',
     district: item.district || '',
     distanceKm: dist,
+    geoLat: item.latitude == null ? undefined : Number(item.latitude),
+    geoLng: item.longitude == null ? undefined : Number(item.longitude),
     openingHours: '',
     closingDay: '',
     phoneNumber: '',
@@ -114,7 +124,7 @@ function mapSummaryToRestaurant(item: BackendRestaurantSummary): Restaurant {
       max: item.priceToVnd || 0,
     },
     priceRange,
-    dietTypes: dietTypes.length > 0 ? dietTypes : ['vegan'],
+    dietTypes,
     rating: 0,
     reviewCount: 0,
     imageUrl: img,
@@ -128,11 +138,12 @@ function mapSummaryToRestaurant(item: BackendRestaurantSummary): Restaurant {
   }
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapDetailToRestaurant); thuộc tra cứu và quản lý nhà hàng.
 function mapDetailToRestaurant(item: BackendRestaurantResponse): Restaurant {
   const fallbackImg =
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
   const img = item.imageUrl || fallbackImg
-  const dist = item.distanceKm ? Number(item.distanceKm) : 0
+  const dist = item.distanceKm == null ? null : Number(item.distanceKm)
   const dietTypes = (item.dietaryTypes || []).map(mapDietType)
 
   let priceRange: string | undefined
@@ -150,8 +161,8 @@ function mapDetailToRestaurant(item: BackendRestaurantResponse): Restaurant {
     address: item.address,
     city: item.district || '',
     district: item.district || '',
-    geoLat: item.latitude ? Number(item.latitude) : undefined,
-    geoLng: item.longitude ? Number(item.longitude) : undefined,
+    geoLat: item.latitude == null ? undefined : Number(item.latitude),
+    geoLng: item.longitude == null ? undefined : Number(item.longitude),
     distanceKm: dist,
     openingHours: item.openingHours || '',
     closingDay: '',
@@ -164,7 +175,7 @@ function mapDetailToRestaurant(item: BackendRestaurantResponse): Restaurant {
     },
     priceRange,
     amenities: item.amenities || [],
-    dietTypes: dietTypes.length > 0 ? dietTypes : ['vegan'],
+    dietTypes,
     rating: 0,
     reviewCount: 0,
     imageUrl: img,
@@ -180,6 +191,7 @@ function mapDetailToRestaurant(item: BackendRestaurantResponse): Restaurant {
 }
 
 // ---------- Public API ----------
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRestaurants); thuộc tra cứu và quản lý nhà hàng.
 export async function getRestaurants(
   inputFilter: Partial<RestaurantFilter> = {},
 ): Promise<RestaurantListResponse> {
@@ -202,13 +214,8 @@ export async function getRestaurants(
     params.set('latitude', String(applied.latitude))
     params.set('longitude', String(applied.longitude))
   }
-  if (applied.distanceMaxKm > 0) {
+  if (applied.distanceMaxKm > 0 && applied.latitude !== undefined && applied.longitude !== undefined) {
     params.set('maxDistanceKm', String(applied.distanceMaxKm))
-    // Backend validation requires latitude and longitude if maxDistanceKm is supplied
-    if (!params.has('latitude') || !params.has('longitude')) {
-      params.set('latitude', '10.7769')
-      params.set('longitude', '106.7008')
-    }
   }
   params.set('pageNumber', '1')
   params.set('pageSize', '50')
@@ -234,6 +241,7 @@ export async function getRestaurants(
   return { items: [], totalCount: 0, appliedFilter: applied }
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRestaurantDetail); thuộc tra cứu và quản lý nhà hàng.
 export async function getRestaurantDetail(id: string): Promise<Restaurant | null> {
   const url = `/api/restaurants/${id}`
   try {
@@ -252,6 +260,7 @@ export async function getRestaurantDetail(id: string): Promise<Restaurant | null
 }
 
 // Alias (filterRestaurants)
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (filterRestaurants); thuộc tra cứu và quản lý nhà hàng.
 export async function filterRestaurants(
   inputFilter: Partial<RestaurantFilter> = {},
 ): Promise<RestaurantListResponse> {
@@ -268,14 +277,17 @@ const DISH_CHIPS_DATA: DishChip[] = [
   { label: 'Há cảo chay', count: 6, emoji: '🥟' },
 ]
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getDishChips); thuộc tra cứu và quản lý nhà hàng.
 export async function getDishChips(): Promise<DishChip[]> {
   return DISH_CHIPS_DATA
 }
 
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (getMapPins); thuộc tra cứu và quản lý nhà hàng.
 export async function getMapPins(): Promise<MapPinMarker[]> {
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRestaurantMenu); thuộc tra cứu và quản lý nhà hàng.
 export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
   const url = `/api/restaurants/${id}`
   try {
@@ -301,6 +313,7 @@ export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getWeekHours); thuộc tra cứu và quản lý nhà hàng.
 export async function getWeekHours(id: string): Promise<WeekHour[]> {
   let openTime = '08:00 - 21:30'
   try {
@@ -334,14 +347,17 @@ export async function getWeekHours(id: string): Promise<WeekHour[]> {
   }))
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getReviewComments); thuộc tra cứu và quản lý nhà hàng.
 export async function getReviewComments(_id: string): Promise<ReviewComment[]> {
   return []
 }
 
+// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRelatedContent); thuộc tra cứu và quản lý nhà hàng.
 export async function getRelatedContent(_id: string): Promise<RelatedContentCard[]> {
   return []
 }
 
+// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (toggleRestaurantFavorite); thuộc tra cứu và quản lý nhà hàng.
 export async function toggleRestaurantFavorite(
   id: string,
   nextState?: boolean,

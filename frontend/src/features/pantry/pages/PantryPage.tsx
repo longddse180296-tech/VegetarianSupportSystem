@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+// Chức năng: tủ bếp và nguyên liệu sẵn có. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  Bookmark,
   Calendar,
   CheckCircle2,
   Clock as ClockIcon,
@@ -31,8 +33,6 @@ import {
   CATEGORY_ORDER,
   type CoreDietType,
   deletePantryItem,
-  evaluateIngredientForDiet,
-  fetchAllCatalogIngredients,
   getPantryCategories,
   getPantryItems,
   getQuickAddChips,
@@ -44,6 +44,8 @@ import {
   updatePantryItem,
 } from '../api/pantryApi'
 import { profileApi } from '../../profile/api/profileApi'
+import AlertError from '../../../shared/components/AlertError'
+import { useRecipeSaves } from '../../favorites/hooks/useRecipeSaves'
 import type {
   AddIngredientFormState,
   PantryCategory,
@@ -53,7 +55,8 @@ import type {
 } from '../types/pantry.types'
 import { DEFAULT_UNITS } from '../types/pantry.types'
 
-function suitabilityTone(s: PantrySuitability, diet?: CoreDietType): {
+// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (suitabilityTone); thuộc tủ bếp và nguyên liệu sẵn có.
+function suitabilityTone(s: PantrySuitability, diet?: CoreDietType | null): {
   label: string
   cls: string
   tagCls: string
@@ -101,12 +104,15 @@ function suitabilityTone(s: PantrySuitability, diet?: CoreDietType): {
   }
 }
 
+// Cấu trúc PantryPageProps quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 interface PantryPageProps {
   onNavigate?: (path: string) => void
   isLoggedIn?: boolean
 }
 
+// Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (PantryPage); thuộc tủ bếp và nguyên liệu sẵn có.
 export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) {
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     if (isLoggedIn === false) {
       try {
@@ -119,21 +125,40 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
   }, [isLoggedIn, onNavigate])
   /* ---------------- STATES ---------------- */
   const [items, setItems] = useState<PantryItem[]>([])
-  const [currentDiet, setCurrentDiet] = useState<CoreDietType>('Thuần chay (Vegan)')
+  const [currentDiet, setCurrentDiet] = useState<CoreDietType | null>(null)
+  const [profileAllergies, setProfileAllergies] = useState<string[]>([])
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [profileError, setProfileError] = useState<string | null>(null)
   const [matches, setMatches] = useState<RecipeMatch[]>([])
-  const [isLoadingItems, setIsLoadingItems] = useState(false)
+  const [isLoadingItems, setIsLoadingItems] = useState(true)
+  const [pantryError, setPantryError] = useState<string | null>(null)
+  const [pendingItem, setPendingItem] = useState<string | null>(null)
   const [isLoadingMatches, setIsLoadingMatches] = useState(false)
   const [isAddSubmitting, setIsAddSubmitting] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState<string | null>(null)
+  const recipeSaves = useRecipeSaves('Pantry')
+
+  // Công thức trong tủ bếp dùng cùng kho đã lưu của Profile; không phải thao tác thêm vào thực đơn tuần.
+  const saveRecipe = async (match: RecipeMatch) => {
+    try {
+      const saved = await recipeSaves.toggle(match.id)
+      setToast(saved ? `Đã lưu ${match.title} vào Profile → Mục đã lưu → Công thức.` : `Đã bỏ lưu ${match.title}.`)
+      window.setTimeout(() => setToast(null), 2500)
+    } catch (error) {
+      setPantryError(error instanceof Error ? error.message : 'Chưa lưu được công thức. Vui lòng thử lại.')
+    }
+  }
 
   const [quickAddChips, setQuickAddChips] = useState<typeof QUICK_ADD_CHIPS>(QUICK_ADD_CHIPS)
 
   const [catalogSuggestions, setCatalogSuggestions] = useState<CatalogIngredient[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
+  // Giữ tham chiếu giữa các lần render để quản lý yêu cầu hoặc phần tử giao diện.
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (handleSearchChange); thuộc tủ bếp và nguyên liệu sẵn có.
   const handleSearchChange = (value: string) => {
     setSearch(value)
     if (!value.trim()) {
@@ -142,6 +167,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     }
   }
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     if (!search.trim()) return
 
@@ -164,7 +190,9 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     }
   }, [search])
 
+  // Đăng ký sự kiện phục vụ màn hình và dọn bộ lắng nghe khi không còn sử dụng.
   useEffect(() => {
+    // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleClickOutside); thuộc tủ bếp và nguyên liệu sẵn có.
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false)
@@ -174,6 +202,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelectCatalogItem); thuộc tủ bếp và nguyên liệu sẵn có.
   const handleSelectCatalogItem = async (ing: CatalogIngredient) => {
     setShowDropdown(false)
     setSearch('')
@@ -187,9 +216,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
         ingredientId: ing.id,
       })
       setItems((prev) => [item, ...prev.filter((i) => i.id !== item.id)])
-      const evalRes = evaluateIngredientForDiet(item.name, currentDiet)
-      const t = suitabilityTone(evalRes.isSuitable, currentDiet)
-      showToast(`✨ Đã thêm ${item.name} (${t.label})`)
+      showToast(`Đã lưu ${item.name} vào tủ bếp.`)
     } catch {
       setForm({
         name: ing.name,
@@ -204,6 +231,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     }
   }
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     let cancelled = false
     void (async () => {
@@ -219,35 +247,49 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     }
   }, [])
 
-  const syncDietFromProfile = useCallback(async () => {
-    try {
-      const p = await profileApi.getProfile()
-      if (p?.dietaryType) {
-        if (p.dietaryType === 'Lacto-vegetarian') {
-          setCurrentDiet('Ăn chay có sữa (Lacto)')
-        } else if (p.dietaryType === 'Ovo-vegetarian') {
-          setCurrentDiet('Chay có trứng (Ovo)')
-        } else if (p.dietaryType === 'Lacto-ovo vegetarian') {
-          setCurrentDiet('Trứng & Sữa (Lacto-ovo)')
-        } else if (p.dietaryType === 'Vegan') {
-          setCurrentDiet('Thuần chay (Vegan)')
+  // Hồ sơ đổi thì lấy lại đánh giá từ máy chủ, không phân loại lại chỉ từ tên nguyên liệu trên frontend.
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+    let profileRequest = 0
+    const loadProfile = (reloadPantry = false) => {
+      const request = ++profileRequest
+      setProfileLoading(true)
+      void profileApi.getProfile(controller.signal).then(profile => {
+        if (!active || request !== profileRequest) return
+        const diets: Record<string, CoreDietType> = {
+          Vegan: 'Thuần chay (Vegan)', 'Lacto-vegetarian': 'Ăn chay có sữa (Lacto)',
+          'Ovo-vegetarian': 'Chay có trứng (Ovo)', 'Lacto-ovo vegetarian': 'Trứng & Sữa (Lacto-ovo)',
         }
-      }
-    } catch {
-      // offline fallback
+        setCurrentDiet(diets[profile.dietaryType] ?? null)
+        setProfileAllergies(profile.allergies || [])
+        setProfileError(null)
+        setProfileLoading(false)
+        if (reloadPantry) void getPantryItems('all', controller.signal).then(items => {
+          if (active && request === profileRequest) setItems(items)
+        }).catch(error => { if (active) setPantryError(error instanceof Error ? error.message : 'Chưa cập nhật được đánh giá tủ bếp.') })
+      }).catch(error => {
+        if (active && request === profileRequest) {
+          setProfileLoading(false)
+          setCurrentDiet(null)
+          setProfileAllergies([])
+          setProfileError(error instanceof Error ? error.message : 'Chưa đọc được hồ sơ để đối chiếu nguyên liệu.')
+        }
+      })
+    }
+    const profileUpdated = () => loadProfile(true)
+    const profileVisible = () => { if (document.visibilityState === 'visible') loadProfile(true) }
+    loadProfile()
+    window.addEventListener('vegetarian_user_updated', profileUpdated)
+    window.addEventListener('focus', profileUpdated)
+    document.addEventListener('visibilitychange', profileVisible)
+    return () => {
+      active = false; controller.abort()
+      window.removeEventListener('vegetarian_user_updated', profileUpdated)
+      window.removeEventListener('focus', profileUpdated)
+      document.removeEventListener('visibilitychange', profileVisible)
     }
   }, [])
-
-  useEffect(() => {
-    void syncDietFromProfile()
-    const handleProfileUpdate = () => {
-      void syncDietFromProfile()
-    }
-    window.addEventListener('vegetarian_user_updated', handleProfileUpdate)
-    return () => {
-      window.removeEventListener('vegetarian_user_updated', handleProfileUpdate)
-    }
-  }, [syncDietFromProfile])
 
   const [form, setForm] = useState<AddIngredientFormState>({
     name: '',
@@ -261,26 +303,34 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
 
   const UNIT_OPTIONS: SelectOption[] = DEFAULT_UNITS.map((u) => ({ value: u, label: u }))
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (showToast); thuộc tủ bếp và nguyên liệu sẵn có.
   const showToast = (msg: string) => {
     setToast(msg)
     window.setTimeout(() => setToast(null), 1700)
   }
 
+  // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (loadItems); thuộc tủ bếp và nguyên liệu sẵn có.
   const loadItems = async () => {
     setIsLoadingItems(true)
-    try {
-      const data = await getPantryItems('all')
-      setItems(data)
-    } finally {
-      setIsLoadingItems(false)
-    }
+    setPantryError(null)
+    try { setItems(await getPantryItems('all')) }
+    catch (error) { setPantryError(error instanceof Error ? error.message : 'Chưa tải được tủ bếp. Vui lòng thử lại.') }
+    finally { setIsLoadingItems(false) }
   }
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
-    void fetchAllCatalogIngredients()
-    void loadItems()
+    const controller = new AbortController()
+    // Không biến lỗi mạng thành tủ bếp rỗng; hủy cập nhật khi người dùng rời màn hình.
+    void getPantryItems('all', controller.signal).then(data => {
+      if (!controller.signal.aborted) setItems(data)
+    }).catch(error => {
+      if (!controller.signal.aborted) setPantryError(error instanceof Error ? error.message : 'Chưa tải được tủ bếp.')
+    }).finally(() => { if (!controller.signal.aborted) setIsLoadingItems(false) })
+    return () => controller.abort()
   }, [])
 
+  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     let cancelled = false
     void (async () => {
@@ -288,6 +338,11 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
       try {
         const data = await getRecipeMatches(items)
         if (!cancelled) setMatches(data)
+      } catch (error) {
+        if (!cancelled) {
+          setMatches([])
+          setPantryError(error instanceof Error ? error.message : 'Chưa tải được gợi ý món ăn. Vui lòng thử lại.')
+        }
       } finally {
         if (!cancelled) setIsLoadingMatches(false)
       }
@@ -297,16 +352,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     }
   }, [items])
 
-  const itemsWithDiet = useMemo(() => {
-    return items.map((it) => {
-      const evalRes = evaluateIngredientForDiet(it.name, currentDiet)
-      return {
-        ...it,
-        isSuitable: evalRes.isSuitable,
-        suitableNote: evalRes.note,
-      }
-    })
-  }, [items, currentDiet])
+  const itemsWithDiet = items
 
   const stats = useMemo(() => {
     const suit = itemsWithDiet.filter((i) => i.isSuitable === 'suitable').length
@@ -321,7 +367,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
 
   const suggestedReplacements = useMemo(() => {
     return violatingItems.map((item) => {
-      const sub = getSubstitutionForIngredient(item.name, currentDiet)
+      const sub = getSubstitutionForIngredient(item.name, currentDiet ?? undefined)
       return {
         item,
         ...sub,
@@ -330,86 +376,56 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
   }, [violatingItems, currentDiet])
 
   const dietBadgeText = useMemo(() => {
-    return currentDiet ? `Phù hợp ${currentDiet}` : 'Phù hợp Ăn chay'
+    return currentDiet ? `Đối chiếu ${currentDiet}` : 'Chưa chọn chế độ ăn'
   }, [currentDiet])
 
+  // Khôi phục hoặc kết thúc trạng thái thao tác hiện tại (resetForm); thuộc tủ bếp và nguyên liệu sẵn có.
   const resetForm = () => {
     setForm({ name: '', quantity: '', unit: 'g', category: 'rau-cu-qua' })
     setFormErrors({})
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (openAdd); thuộc tủ bếp và nguyên liệu sẵn có.
   const openAdd = () => {
     resetForm()
     setShowAddModal(true)
   }
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (closeAdd); thuộc tủ bếp và nguyên liệu sẵn có.
   const closeAdd = () => {
     if (isAddSubmitting) return
     resetForm()
     setShowAddModal(false)
   }
 
+  // Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (validateForm); thuộc tủ bếp và nguyên liệu sẵn có.
   const validateForm = (): boolean => {
     const next: Partial<Record<keyof AddIngredientFormState, string>> = {}
     if (!form.name.trim()) next.name = 'Vui lòng nhập tên nguyên liệu'
     else if (form.name.trim().length < 2) next.name = 'Tên tối thiểu 2 ký tự'
-    if (form.quantity !== '' && Number.isNaN(Number(form.quantity)))
-      next.quantity = 'Số lượng phải là số'
+    if (!form.quantity.trim() || !Number.isFinite(Number(form.quantity)) || Number(form.quantity) <= 0)
+      next.quantity = 'Vui lòng nhập số lượng lớn hơn 0.'
     if (!form.unit.trim()) next.unit = 'Vui lòng chọn đơn vị'
     setFormErrors(next)
     return Object.keys(next).length === 0
   }
 
+  // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSubmitAdd); thuộc tủ bếp và nguyên liệu sẵn có.
   const handleSubmitAdd = async () => {
-    if (!validateForm()) return
+    if (isAddSubmitting || !validateForm()) return
     setIsAddSubmitting(true)
+    setPantryError(null)
     try {
-      let targetIngredientId = form.ingredientId
-      if (!targetIngredientId) {
-        try {
-          const matched = await searchCatalogIngredients(form.name)
-          const found = matched.find(
-            (m) =>
-              m.name.toLowerCase() === form.name.trim().toLowerCase() ||
-              m.name.toLowerCase().includes(form.name.trim().toLowerCase()),
-          )
-          if (found) targetIngredientId = found.id
-        } catch {
-          // ignore
-        }
-      }
-
-      try {
-        const item = await addPantryItem({
-          ...form,
-          name: form.name.trim(),
-          ingredientId: targetIngredientId,
-        })
-        setItems((prev) => [item, ...prev.filter((i) => i.id !== item.id)])
-        const evalRes = evaluateIngredientForDiet(item.name, currentDiet)
-        const t = suitabilityTone(evalRes.isSuitable, currentDiet)
-        showToast(`✨ Đã thêm ${item.name} (${t.label})`)
-      } catch {
-        const localItem: PantryItem = {
-          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          name: form.name.trim(),
-          quantity: Number(form.quantity) || 1,
-          unit: form.unit || 'g',
-          category: (form.category as PantryCategory) || 'rau-cu-qua',
-          isSuitable: 'suitable',
-          suitableNote: 'Đã thêm vào tủ bếp',
-          addedAt: new Date().toISOString(),
-        }
-        setItems((prev) => [localItem, ...prev.filter((i) => i.id !== localItem.id)])
-        const evalRes = evaluateIngredientForDiet(localItem.name, currentDiet)
-        const t = suitabilityTone(evalRes.isSuitable, currentDiet)
-        showToast(`Đã thêm ${localItem.name} · ${t.label}`)
-      }
+      const item = await addPantryItem({ ...form, name: form.name.trim() })
+      setItems(previous => [item, ...previous.filter(existing => existing.id !== item.id)])
+      showToast('Đã lưu ' + item.name + ' vào tủ bếp.')
       closeAdd()
-    } finally {
-      setIsAddSubmitting(false)
-    }
+    } catch (error) {
+      // Không tạo nguyên liệu cục bộ để giả thành công; giữ nội dung biểu mẫu cho lần thử lại.
+      setPantryError(error instanceof Error ? error.message : 'Chưa lưu được nguyên liệu. Vui lòng thử lại.')
+    } finally { setIsAddSubmitting(false) }
   }
 
+  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (handleQuickAdd); thuộc tủ bếp và nguyên liệu sẵn có.
   const handleQuickAdd = async (name: string) => {
     try {
       const results = await searchCatalogIngredients(name)
@@ -433,54 +449,44 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     setShowAddModal(true)
   }
 
+  // Xóa mục được chọn theo phạm vi và điều kiện của tính năng (handleDelete); thuộc tủ bếp và nguyên liệu sẵn có.
   const handleDelete = async (id: string) => {
-    const cur = items.find((i) => i.id === id)
-    const r = await deletePantryItem(id)
-    if (r.deleted) {
-      setItems((prev) => prev.filter((i) => i.id !== id))
-      showToast(`Đã xóa ${cur?.name ?? 'nguyên liệu'}`)
-    } else {
-      setItems((prev) => prev.filter((i) => i.id !== id))
-      showToast(`Đã xóa ${cur?.name ?? 'nguyên liệu'}`)
-    }
-  }
-
-  const handleApplyReplacement = async (
-    item: PantryItem,
-    newIngredientName: string,
-    newCategory: PantryCategory,
-  ) => {
+    if (pendingItem) return
+    setPendingItem(id)
+    setPantryError(null)
     try {
-      await updatePantryItem(item.id, {
-        name: newIngredientName,
-        quantity: item.quantity,
-        unit: item.unit,
-      })
-    } catch {
-      // offline fallback
-    }
-
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === item.id
-          ? {
-              ...i,
-              name: newIngredientName,
-              category: newCategory,
-              isSuitable: 'suitable' as const,
-              suitableNote: `Đã thay thế an toàn theo hồ sơ ${currentDiet}.`,
-            }
-          : i,
-      ),
-    )
-
-    showToast(`✨ Đã thay thế "${item.name}" bằng "${newIngredientName}"`)
+      await deletePantryItem(id)
+      setItems(previous => previous.filter(item => item.id !== id))
+      showToast('Đã xóa nguyên liệu khỏi tủ bếp.')
+    } catch (error) {
+      setPantryError(error instanceof Error ? error.message : 'Chưa xóa được nguyên liệu. Danh sách được giữ nguyên để bạn thử lại.')
+    } finally { setPendingItem(null) }
   }
 
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleApplyReplacement); thuộc tủ bếp và nguyên liệu sẵn có.
+  const handleApplyReplacement = async (item: PantryItem, name: string, _category: PantryCategory) => {
+    if (pendingItem) return
+    setPendingItem(item.id)
+    setPantryError(null)
+    try {
+      const updated = await updatePantryItem(item.id, { name, quantity: item.quantity ?? undefined, unit: item.unit ?? undefined })
+      if (!updated) throw new Error('Chưa nhận được kết quả thay nguyên liệu. Vui lòng tải lại.')
+      // Hiển thị đúng kết quả phân loại backend, không tự gắn nhãn an toàn sau khi đổi tên.
+      setItems(previous => previous.map(existing => existing.id === item.id ? updated : existing))
+      showToast('Đã cập nhật nguyên liệu trong tủ bếp.')
+    } catch (error) {
+      setPantryError(error instanceof Error ? error.message : 'Chưa thay được nguyên liệu. Dữ liệu cũ được giữ nguyên.')
+    } finally { setPendingItem(null) }
+  }
+
+  // Hiển thị giao diện tủ bếp và nguyên liệu sẵn có từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="ui-page-container py-8 space-y-6">
+      {recipeSaves.error && <AlertError message={recipeSaves.error} onRetry={recipeSaves.reload} />}
+      {pantryError && <AlertError title="Chưa hoàn tất thao tác với tủ bếp" message={pantryError} onRetry={() => void loadItems()} />}
+      {pendingItem && <p role="status" className="text-sm text-slate-600">Đang cập nhật nguyên liệu...</p>}
       <PageHeading
-        title="Gợi ý Món Chay Từ Tủ Bếp AI"
+        title="Gợi ý Món Chay Từ Tủ bếp"
         description="Khám phá các món ăn ngon, chuẩn dinh dưỡng từ nguyên liệu sẵn có gian bếp của bạn cùng Trợ lý AI thông minh."
         breadcrumbs={[
           { label: 'Trang chủ', onClick: () => onNavigate?.('/') },
@@ -489,6 +495,20 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
         ]}
         eyebrow={<Badge icon={<SparklesIcon size={14} />}>Trợ lý nguyên liệu &amp; Tủ bếp</Badge>}
       />
+
+        {/* Tủ bếp chỉ dùng chế độ ăn/dị ứng đã khai báo; không yêu cầu chỉ số cơ thể để gợi ý món. */}
+        <section aria-label="Hồ sơ áp dụng cho tủ bếp" className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-bold text-slate-900">Hồ sơ áp dụng cho tủ bếp</h2>
+            <button type="button" className="min-h-10 text-sm font-semibold text-emerald-800 underline" onClick={() => onNavigate?.('/profile')}>Cập nhật hồ sơ</button>
+          </div>
+          {profileLoading ? <p role="status" className="text-sm text-slate-600">Đang đọc chế độ ăn và dị ứng...</p>
+            : profileError ? <p role="alert" className="text-sm text-red-800">{profileError} Vui lòng kiểm tra hồ sơ trước khi chọn món.</p>
+            : <div className="grid gap-3 text-sm sm:grid-cols-2">
+              <div><p className="font-semibold">Chế độ ăn</p><p>{currentDiet || 'Chưa khai báo chế độ ăn trong hồ sơ.'}</p></div>
+              <div><p className="font-semibold">Dị ứng đã khai báo</p>{profileAllergies.length ? <div className="mt-1 flex flex-wrap gap-1.5">{profileAllergies.map(name => <span key={name} className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-red-800">{name}</span>)}</div> : <p>Chưa khai báo dị ứng.</p>}</div>
+            </div>}
+        </section>
 
         {/* ================= MAIN 2 COLUMNS ================= */}
         <section className="grid gap-6 lg:grid-cols-12 items-start">
@@ -543,6 +563,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
                       <div className="divide-y divide-slate-100">
                         {catalogSuggestions.map((ing) => {
                           const recipes = ing.recipeNames || []
+                          // Hiển thị giao diện tủ bếp và nguyên liệu sẵn có từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                           return (
                             <button
                               key={ing.id}
@@ -621,7 +642,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-[13px] font-bold text-slate-900">
                       <ShieldCheck size={16} className="text-[#2E7D32]" />
-                      <span>Kiểm tra Chế độ {currentDiet}:</span>
+                      <span>Đối chiếu chế độ ăn và dị ứng trong hồ sơ:</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-[12px] font-bold">
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-emerald-800">
@@ -733,7 +754,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
 
               {items.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-emerald-200/90 bg-white/80 p-3.5 text-[12.5px] text-slate-600 leading-relaxed">
-                  🌱 Khi bạn thêm nguyên liệu chưa phù hợp với chế độ {currentDiet}, AI sẽ tự động phân tích và đưa ra các lựa chọn thay thế thuần thực vật an toàn tại đây.
+                  🌱 Nguyên liệu được đối chiếu với chế độ ăn và dị ứng đã khai báo. Kiểm tra thành phần của lựa chọn thay thế trước khi sử dụng.
                 </div>
               ) : suggestedReplacements.length === 0 ? (
                 <div className="rounded-xl border border-emerald-200 bg-white p-3.5 shadow-2xs">
@@ -741,10 +762,10 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
                     <span className="text-[20px]" aria-hidden>🌱</span>
                     <div>
                       <div className="text-[13px] font-bold text-emerald-800">
-                        Tủ bếp 100% phù hợp chế độ {currentDiet}
+                        Chưa ghi nhận nguyên liệu không phù hợp với chế độ {currentDiet}
                       </div>
                       <div className="text-[12px] text-slate-500 mt-0.5">
-                        Không phát hiện nguyên liệu nào vi phạm quy tắc. Khi bạn thêm nguyên liệu chưa hợp, AI sẽ tự động gợi ý thay thế tại đây.
+                        Kết quả dựa trên thông tin nguyên liệu hiện có. Gợi ý thay thế sẽ xuất hiện khi hệ thống có dữ liệu phù hợp.
                       </div>
                     </div>
                   </div>
@@ -816,10 +837,11 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
                           </span>
                         </div>
                         <p className="mt-0.5 text-[13px] text-slate-500">
-                          AI đã đối chiếu và tìm thấy các công thức tối ưu dinh dưỡng dựa trên nguyên liệu trong bếp của bạn.
+                          Công thức được đối chiếu với hồ sơ và nguyên liệu trong tủ bếp. Bạn có thể lưu để xem lại trong Profile.
                         </p>
                       </div>
                     </div>
+                    <Button variant="outline" leftIcon={<Bookmark size={15} />} onClick={() => onNavigate?.('/favorites?type=Recipe')}>Công thức đã lưu</Button>
                   </div>
                 </div>
 
@@ -852,7 +874,10 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
                           showToast(`🍲 Đang mở công thức: ${m.title}`)
                           onNavigate?.(`/recipes/${encodeURIComponent(m.id)}`)
                         }}
-                        onSave={() => showToast(`📌 Đã lưu: ${m.title} vào kế hoạch tuần`)}
+                        saved={recipeSaves.isSaved(m.id)}
+                        saving={recipeSaves.isSaving(m.id)}
+                        saveDisabled={!recipeSaves.ready}
+                        onSave={() => void saveRecipe(m)}
                       />
                     ))
                   )}
@@ -879,7 +904,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
       {/* =============== ADD MODAL =============== */}
       <Modal
         isOpen={showAddModal}
-        onClose={closeAdd}
+        onClose={() => { if (!isAddSubmitting) closeAdd() }}
         maxWidth="md"
         title={
           <span className="flex items-center gap-2">
@@ -887,7 +912,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
             Thêm nguyên liệu vào Tủ bếp AI
           </span>
         }
-        description={`Nhập tên và số lượng nguyên liệu. Hệ thống sẽ tự động phân tích mức độ phù hợp với chế độ ${currentDiet}.`}
+        description={`Nhập tên và số lượng nguyên liệu. Hệ thống sẽ tự động phân tích mức độ phù hợp với hồ sơ đã khai báo.`}
         footer={
           <>
             <Button
@@ -913,6 +938,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
         }
       >
         <div className="grid gap-4 sm:grid-cols-2">
+          {pantryError && <div className="sm:col-span-2"><AlertError message={pantryError} /></div>}
           <div className="sm:col-span-2">
             <Input
               label="Tên nguyên liệu"
@@ -982,12 +1008,13 @@ function ItemRow({
   onDelete,
 }: {
   item: PantryItem
-  currentDiet?: CoreDietType
+  currentDiet?: CoreDietType | null
   onDelete: () => void
 }) {
   const t = suitabilityTone(item.isSuitable, currentDiet)
   const d = new Date(item.addedAt)
   const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`
+  // Hiển thị giao diện tủ bếp và nguyên liệu sẵn có từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div
       className={`group flex items-center justify-between gap-3 rounded-[12px] border ${t.border} ${t.bg} px-3 py-2.5 transition hover:shadow-xs`}
@@ -1008,7 +1035,7 @@ function ItemRow({
           </div>
           <div className="mt-0.5 flex items-center gap-2 text-[11.5px] text-slate-500">
             <span className="font-semibold text-slate-700">
-              {item.quantity} {item.unit}
+              {item.quantity === null ? 'Chưa có định lượng' : `${item.quantity} ${item.unit ?? ''}`}
             </span>
             <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
@@ -1029,6 +1056,7 @@ function ItemRow({
   )
 }
 
+// Thành phần ReplacementRow nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc tủ bếp và nguyên liệu sẵn có.
 function ReplacementRow({
   icon,
   from,
@@ -1042,6 +1070,7 @@ function ReplacementRow({
   description?: string
   onApply: () => void
 }) {
+  // Hiển thị giao diện tủ bếp và nguyên liệu sẵn có từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="rounded-[12px] border border-emerald-200 bg-white p-3 shadow-2xs transition hover:border-emerald-400">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -1077,17 +1106,25 @@ function ReplacementRow({
   )
 }
 
+// Thành phần MatchCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc tủ bếp và nguyên liệu sẵn có.
 function MatchCard({
   m,
   currentDiet = 'Thuần chay (Vegan)',
   onViewRecipe,
   onSave,
+  saved,
+  saving,
+  saveDisabled,
 }: {
   m: RecipeMatch
-  currentDiet?: CoreDietType
+  currentDiet?: CoreDietType | null
   onViewRecipe: () => void
   onSave: () => void
+  saved: boolean
+  saving: boolean
+  saveDisabled: boolean
 }) {
+  // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (onKey); thuộc tủ bếp và nguyên liệu sẵn có.
   const onKey =
     (fn: () => void) =>
     (e: React.KeyboardEvent): void => {
@@ -1102,6 +1139,7 @@ function MatchCard({
     (m.matchedIngredients.length === Math.min(3, m.totalIngredients) ||
       m.matchedIngredients.length >= 3)
 
+  // Hiển thị giao diện tủ bếp và nguyên liệu sẵn có từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div
       className="group flex h-full flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-md"
@@ -1132,7 +1170,7 @@ function MatchCard({
                 : 'bg-amber-100/90 text-amber-900 border border-amber-200'
             }`}
           >
-            ✓ Chuẩn {currentDiet}
+            Theo hồ sơ {currentDiet || 'đã khai báo'}
           </span>
         </div>
         <div className="absolute right-3 top-3 flex items-center gap-2">
@@ -1174,10 +1212,10 @@ function MatchCard({
 
         {/* Nutrition 4 col */}
         <div className="grid grid-cols-4 gap-1 rounded-xl border border-slate-100 bg-slate-50/70 p-2 text-center">
-          <NutriBox label="Calo" value={`${m.kcal}`} unit="" tone="amber" />
-          <NutriBox label="Đạm" value={`${Math.round(m.kcal * 0.18 / 4)}`} unit="g" tone="green" />
-          <NutriBox label="Carb" value={`${Math.round(m.kcal * 0.5 / 4)}`} unit="g" tone="blue" />
-          <NutriBox label="Béo" value={`${Math.round(m.kcal * 0.3 / 9)}`} unit="g" tone="rose" />
+          <NutriBox label="Calo" value={m.kcal === null ? '—' : `${m.kcal}`} unit="kcal" tone="amber" />
+          <NutriBox label="Đạm" value="—" unit="g" tone="green" />
+          <NutriBox label="Carb" value="—" unit="g" tone="blue" />
+          <NutriBox label="Béo" value="—" unit="g" tone="rose" />
         </div>
 
         {/* MATCH % PROGRESS BAR */}
@@ -1210,10 +1248,14 @@ function MatchCard({
             type="button"
             variant="outline"
             size="md"
-            leftIcon={<Calendar size={14} />}
+            leftIcon={<Bookmark size={14} fill={saved ? 'currentColor' : 'none'} />}
             onClick={onSave}
+            isLoading={saving}
+            disabled={saveDisabled}
             className="!h-9.5 !w-9.5 shrink-0 !rounded-xl !p-0 !border-slate-300"
-            aria-label="Lưu vào kế hoạch tuần"
+            aria-label={`${saved ? 'Bỏ lưu' : 'Lưu công thức'} ${m.title}`}
+            aria-pressed={saved}
+            title={saved ? 'Bỏ lưu công thức' : 'Lưu vào Profile → Mục đã lưu → Công thức'}
           />
         </div>
       </div>
@@ -1221,6 +1263,7 @@ function MatchCard({
   )
 }
 
+// Thành phần NutriBox nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc tủ bếp và nguyên liệu sẵn có.
 function NutriBox({
   label,
   value,
@@ -1238,6 +1281,7 @@ function NutriBox({
     amber: 'text-[#92400E]',
     rose: 'text-[#9F1239]',
   }
+  // Hiển thị giao diện tủ bếp và nguyên liệu sẵn có từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="rounded-lg bg-white px-1 py-1">
       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
