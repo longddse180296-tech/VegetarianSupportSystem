@@ -9,12 +9,14 @@ Theo yêu cầu bổ sung ngày 22/10/2026: User/Admin báo cáo nội dung côn
 
 Nội dung phải đang công khai. Details tối đa 2000 ký tự sau trim, bắt buộc khi reason=Other. Backend lấy reporterId từ token và lưu ID phiên bản công khai, tiêu đề tại thời điểm báo cáo; không nhận thông tin này từ client.
 
-`201`: `{ id, status: "Pending" }`. `400`: dữ liệu sai; `401`: chưa đăng nhập; `404`: nội dung không tồn tại/không công khai; `409`: tài khoản đã có báo cáo Pending cho cùng targetType + targetId. Unique filtered index chống gửi trùng đồng thời. `429`: quá 10 lượt/15 phút theo IP; request tối đa 16 KB.
+`201`: `{ id, status: "Pending" }`. `400`: dữ liệu sai; `401`: chưa đăng nhập; `404`: nội dung không tồn tại/không công khai; `409`: tài khoản đã gửi báo cáo cho cùng `targetType` + `targetId` (chống spam báo cáo lặp lại). Unique filtered index chống gửi trùng đồng thời. `429`: quá 10 lượt/15 phút theo IP; request tối đa 16 KB.
+
+`GET /api/content-reports/status?targetType=Article&targetId=guid` — User/Admin: trả `{ hasReported: boolean }` để giao diện khóa nút báo cáo khi người dùng đã gửi báo cáo cho nội dung đó.
 
 ## Admin
 
-- `GET /api/admin/content-reports?status=Pending&targetType=Article&page=1&pageSize=10`: bộ lọc tùy chọn; page >= 1, pageSize 1–50. `200`: `{ items, total, page, pageSize }`, mới nhất trước.
-- Item: `{ id, targetType, targetId, submissionId, contentTitle, contentVersion, reporterId, reason, details, status, createdAt, resolvedAt, resolvedBy, resolutionNote, pendingReporterCount }`. `pendingReporterCount` là số người có báo cáo Pending cho cùng `targetType` + `targetId` trên toàn bộ dữ liệu, không chỉ trang hiện tại; các báo cáo đã xử lý không được tính.
+- `GET /api/admin/content-reports?status=Pending&targetType=Article&page=1&pageSize=10&groupByTarget=true`: bộ lọc tùy chọn; page >= 1, pageSize 1–50. `200`: `{ items, total, page, pageSize }`, mới nhất trước. Khi `groupByTarget=true`, các báo cáo cùng `targetType` + `targetId` được gộp thành 1 mục kèm `totalReportCount` và mảng `reports` chứa chi tiết từng lý do báo cáo của người dùng.
+- Item: `{ id, targetType, targetId, submissionId, contentTitle, contentVersion, reporterId, reporterName, reason, details, status, createdAt, resolvedAt, resolvedBy, resolutionNote, pendingReporterCount, totalReportCount, reports }`. `pendingReporterCount` là số người có báo cáo Pending cho cùng `targetType` + `targetId` trên toàn bộ dữ liệu, không chỉ trang hiện tại; các báo cáo đã xử lý không được tính.
 - `POST /api/admin/content-reports/{id}/resolve`: `{ status: "Resolved" | "Dismissed", note: "..." }`. Note bắt buộc 1–2000 ký tự. `204` thành công; `400` dữ liệu sai; `404` không tồn tại; `409` đã được xử lý hoặc bị cập nhật đồng thời.
 - `401` nếu chưa đăng nhập, `403` nếu không phải Admin. Không có API công khai danh sách báo cáo.
 - `GET /api/admin/moderation/submissions` và `GET /api/admin/moderation/submissions/{id}` trả thêm `pendingReporterCount` cho từng nội dung để hiện huy hiệu tại màn duyệt bài viết/video. Số đếm theo nội dung, không phụ thuộc phiên bản.

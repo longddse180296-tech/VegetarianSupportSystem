@@ -23,12 +23,24 @@ public sealed class ContentReportsController(ContentReportService service) : Con
         return StatusCode(201, await service.CreateAsync(userId, request, ct));
     });
 
+    // GetMyReportStatus: Kiểm tra người dùng hiện tại đã gửi báo cáo cho nội dung này chưa.
+    [Authorize(Roles = "User,Admin")]
+    [HttpGet("/api/content-reports/status")]
+    public Task<IActionResult> GetMyReportStatus([FromQuery] ModeratedContentType targetType,
+        [FromQuery] Guid targetId, CancellationToken ct) => Execute(async () =>
+    {
+        if (User.GetUserId() is not { } userId) return Unauthorized();
+        var hasReported = await service.HasReportedAsync(userId, targetType, targetId, ct);
+        return Ok(new { hasReported });
+    });
+
     // List: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [Authorize(Roles = "Admin")]
     [HttpGet("/api/admin/content-reports")]
     public Task<IActionResult> List([FromQuery] ContentReportStatus? status, [FromQuery] ModeratedContentType? targetType,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default) =>
-        Execute(async () => Ok(await service.ListAsync(status, targetType, page, pageSize, ct)));
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] bool groupByTarget = false,
+        CancellationToken ct = default) =>
+        Execute(async () => Ok(await service.ListAsync(status, targetType, page, pageSize, ct, groupByTarget)));
 
     // Resolve: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [Authorize(Roles = "Admin")]

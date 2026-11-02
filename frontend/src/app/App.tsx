@@ -44,11 +44,11 @@ const AppContent: React.FC = () => {
 
   // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (onNavigate); thuộc giao diện và thành phần dùng chung.
   const onNavigate = (path: string) => {
-    setCurrentPath(path)
     if (typeof window !== 'undefined') {
       window.location.hash = path
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     }
+    setCurrentPath(path)
   }
 
   // Kết thúc phiên sử dụng và dọn thông tin đăng nhập đã lưu (handleLogout); thuộc giao diện và thành phần dùng chung.
