@@ -6,6 +6,7 @@ import {
   Bookmark,
   Calendar,
   ChefHat,
+  Heart,
   MessageSquare,
   Reply,
   RotateCcw,
@@ -20,7 +21,7 @@ import {
   recordVideoView,
   type VideoDetails,
 } from '../api/backendVideos'
-import { getSavedVideo, toggleVideoLike, toggleVideoSave } from '../api/videoApi'
+import { getSavedVideo, toggleCommentLike, toggleVideoLike, toggleVideoSave } from '../api/videoApi'
 import ReportContentButton from '../../reports/components/ReportContentButton'
 import { formatVideoDuration } from '../utils/videoMetadata'
 
@@ -48,25 +49,84 @@ interface Reaction {
   reactedByMe: boolean
 }
 
-const CURATED_THUMBNAILS = [
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
-]
+// Thành phần VideoCommentLike hiển thị và xử lý thao tác thích bình luận trong trang chi tiết video.
+function VideoCommentLike({
+  comment,
+  requireLogin,
+  onError,
+}: {
+  comment: Comment
+  requireLogin: () => boolean
+  onError: (msg: string) => void
+}) {
+  const [reaction, setReaction] = useState<Reaction>({
+    count: comment.likeCount,
+    reactedByMe: false,
+  })
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    const token = getStoredToken()
+    void apiClient
+      .get<Reaction>(`/api/comments/${encodeURIComponent(comment.id)}/like`, {
+        requiresAuth: Boolean(token),
+      })
+      .then((res) => {
+        if (active) setReaction(res)
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [comment.id])
+
+  const handleToggle = async () => {
+    if (busy || comment.body === null) return
+    if (!requireLogin()) return
+    setBusy(true)
+    const prev = reaction
+    const nextLiked = !prev.reactedByMe
+    setReaction({
+      count: prev.reactedByMe ? Math.max(0, prev.count - 1) : prev.count + 1,
+      reactedByMe: nextLiked,
+    })
+    try {
+      const updated = await toggleCommentLike(comment.id, nextLiked)
+      setReaction(updated)
+    } catch (reason) {
+      setReaction(prev)
+      onError(errorMessage(reason, 'Không thể thích bình luận.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={busy || comment.body === null}
+      onClick={() => void handleToggle()}
+      className={`inline-flex items-center gap-1.5 font-semibold transition-colors ${
+        reaction.reactedByMe
+          ? 'text-emerald-700 hover:text-emerald-800'
+          : 'text-slate-600 hover:text-emerald-700'
+      } disabled:opacity-50`}
+    >
+      <Heart
+        size={13}
+        className={reaction.reactedByMe ? 'fill-emerald-700 text-emerald-700' : ''}
+      />
+      <span>{reaction.reactedByMe ? 'Đã thích' : 'Thích'}</span>
+      <span className="font-bold">({reaction.count})</span>
+    </button>
+  )
+}
 
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanPrefix); thuộc video, bản nháp và nội dung công khai.
 function cleanPrefix(text?: string | null): string {
   if (!text) return ''
   return text.replace(/^\[Chế độ:[^\]]+\]\s*/i, '').replace(/^\[Mẫu\]\s*/i, '').trim()
-}
-
-// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getFallbackThumbnail); thuộc video, bản nháp và nội dung công khai.
-function getFallbackThumbnail(id: string): string {
-  const hash = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  return CURATED_THUMBNAILS[hash % CURATED_THUMBNAILS.length]
 }
 
 
@@ -139,7 +199,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
 
     const token = getStoredToken()
     const taskLike = apiClient
-      .get<Reaction>(`/api/videos/${encodeURIComponent(videoId)}/reactions/like`, {
+      .get<Reaction>(`/api/videos/${encodeURIComponent(videoId)}/like`, {
         requiresAuth: Boolean(token),
       })
       .then((result) => (active ? setReaction(result) : undefined))
@@ -309,7 +369,11 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
         {comment.body ?? 'Bình luận đã được ẩn hoặc gỡ.'}
       </p>
       <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
-        <span>{comment.likeCount} lượt thích</span>
+        <VideoCommentLike
+          comment={comment}
+          requireLogin={requireLogin}
+          onError={(msg) => setActionError(msg)}
+        />
         {!isReply && comment.body !== null && (
           <button
             type="button"
@@ -368,7 +432,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
             <video
               key={video.id}
               src={video.mediaUrl ?? undefined}
-              poster={video.thumbnailUrl ?? getFallbackThumbnail(video.id)}
+              poster={video.thumbnailUrl?.trim() || undefined}
               controls
               preload="metadata"
               className="h-full w-full object-contain"

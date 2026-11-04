@@ -66,6 +66,9 @@ builder.Services.AddSingleton<CapturingResetEmailSender>();
 builder.Services.AddSingleton<IPasswordResetEmailSender>(provider =>
     provider.GetRequiredService<CapturingResetEmailSender>());
 builder.Services.AddControllers().AddApplicationPart(typeof(CategoriesController).Assembly);
+if (args.Contains("--content-deletion-only", StringComparer.Ordinal))
+    builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 if (args.Contains("--reports-only", StringComparer.Ordinal) || args.Contains("--moderation-live-only", StringComparer.Ordinal))
     builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(allowIntegerValues: false)));
@@ -152,6 +155,15 @@ void Check(bool condition, string name)
 
 try
 {
+    if (args.Contains("--content-deletion-only", StringComparer.Ordinal))
+    {
+        await db.Database.EnsureCreatedAsync();
+        await app.StartAsync();
+        using var deletionClient = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+        await OwnerContentDeletionChecks.RunAsync(deletionClient, db, Check);
+        Console.WriteLine($"ALL {checks} CONTENT DELETION CHECKS PASSED");
+        return;
+    }
     if (args.Contains("--auth-sessions-only", StringComparer.Ordinal))
     {
         await db.Database.MigrateAsync();

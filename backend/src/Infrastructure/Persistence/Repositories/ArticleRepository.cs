@@ -136,9 +136,14 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
     // InTransactionAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task<T> InTransactionAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken ct)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        var result = await action(ct);
-        await transaction.CommitAsync(ct);
-        return result;
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        try
+        {
+            var result = await action(ct);
+            await transaction.CommitAsync(ct);
+            return result;
+        }
+        catch (SqlException ex) when (ex.Number == 1205)
+        { throw new ArticleException(ArticleError.Conflict, "Bài viết đang thay đổi ở phiên khác. Vui lòng tải lại và thử lại."); }
     }
 }

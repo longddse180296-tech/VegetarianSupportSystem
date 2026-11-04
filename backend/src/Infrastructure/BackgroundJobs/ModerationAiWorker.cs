@@ -46,7 +46,7 @@ public sealed class ModerationAiWorker(IServiceScopeFactory scopes, ILogger<Mode
             using var itemScope = scopes.CreateScope();
             var itemRepository = itemScope.ServiceProvider.GetRequiredService<IModerationRepository>();
             var submission = await itemRepository.GetByIdAsync(id, cancellationToken);
-            if (submission?.AiFlagStatus != AiFlagStatus.Checking) continue;
+            if (submission?.AiFlagStatus != AiFlagStatus.Checking || submission.AdminReviewStatus != AdminReviewStatus.Submitted) continue;
             var latest = await itemRepository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
             if (latest?.Id != id) continue;
 

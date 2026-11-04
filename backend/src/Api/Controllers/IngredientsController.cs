@@ -64,6 +64,19 @@ public sealed class IngredientsController(IngredientService service) : CoreDataC
     public Task<IActionResult> Update(Guid id, IngredientRequest request, CancellationToken ct) =>
         Execute(async () => Ok(await service.UpdateAsync(id, request, ct)));
 
+    // Chỉ Admin được mở khóa; gọi lại khi đang hoạt động vẫn thành công.
+    [CoreDataAdmin]
+    [HttpPost("/api/admin/ingredients/{id:guid}/activate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public Task<IActionResult> Activate(Guid id, CancellationToken ct) =>
+        Execute(async () =>
+        {
+            await service.ActivateAsync(id, ct);
+            return NoContent();
+        });
+
     // Deactivate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [CoreDataAdmin]
     [HttpPost("/api/admin/ingredients/{id:guid}/deactivate")]

@@ -19,8 +19,9 @@ public sealed class ContentReportService(IContentReportRepository repository, Ti
             throw new ModerationException(ModerationError.Validation, "Chọn lý do hợp lệ và nhập mô tả tối đa 2000 ký tự; lý do Khác cần có mô tả.");
         var content = await repository.GetPublicContentAsync(request.TargetType, request.TargetId, ct)
             ?? throw new ModerationException(ModerationError.NotFound, "Nội dung không tồn tại hoặc không còn công khai.");
-        if (await repository.HasPendingAsync(reporterId, request.TargetType, request.TargetId, ct))
-            throw new ModerationException(ModerationError.Conflict, "Bạn đã gửi báo cáo cho nội dung này và đang chờ Quản trị viên xem xét.");
+        if (await repository.HasPendingAsync(reporterId, request.TargetType, request.TargetId, ct) ||
+            await repository.HasReportedAsync(reporterId, request.TargetType, request.TargetId, ct))
+            throw new ModerationException(ModerationError.Conflict, "Bạn đã gửi báo cáo cho nội dung này rồi, không thể gửi báo cáo lặp lại.");
         var report = new ContentReport
         {
             TargetType = request.TargetType, TargetId = request.TargetId, ReporterId = reporterId,
@@ -31,15 +32,21 @@ public sealed class ContentReportService(IContentReportRepository repository, Ti
         return new ContentReportReceipt(report.Id, report.Status);
     }
 
+    // HasReportedAsync: Kiểm tra người dùng hiện tại đã báo cáo nội dung này chưa.
+    public Task<bool> HasReportedAsync(string reporterId, ModeratedContentType type, Guid targetId, CancellationToken ct) =>
+        string.IsNullOrWhiteSpace(reporterId) || !Enum.IsDefined(type) || targetId == Guid.Empty
+            ? Task.FromResult(false)
+            : repository.HasReportedAsync(reporterId, type, targetId, ct);
+
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<ContentReportPage> ListAsync(ContentReportStatus? status, ModeratedContentType? type,
-        int page, int pageSize, CancellationToken ct)
+        int page, int pageSize, CancellationToken ct, bool groupByTarget = false)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if ((status.HasValue && !Enum.IsDefined(status.Value)) || (type.HasValue && !Enum.IsDefined(type.Value)) ||
             page < 1 || pageSize is < 1 or > 50 || (long)(page - 1) * pageSize > int.MaxValue)
             throw new ModerationException(ModerationError.Validation, "Bộ lọc hoặc phân trang không hợp lệ.");
-        return repository.ListAsync(status, type, page, pageSize, ct);
+        return repository.ListAsync(status, type, page, pageSize, ct, groupByTarget);
     }
 
     // ResolveAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.

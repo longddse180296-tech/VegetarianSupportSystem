@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddSingleton(new PasswordResetOptions(configuration["PasswordReset:ResetPageUrl"]));
         services.AddSingleton<IAccountPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IModerationRepository, ModerationRepository>();
+        services.AddScoped<IOwnerContentDeletionRepository, OwnerContentDeletionRepository>();
         services.AddScoped<IContentReportRepository, ContentReportRepository>();
         services.AddScoped<VideoRepository>();
         services.AddScoped<IVideoRepository>(sp => sp.GetRequiredService<VideoRepository>());

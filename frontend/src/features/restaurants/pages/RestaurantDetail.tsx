@@ -1,4 +1,5 @@
 // Chức năng: tra cứu và quản lý nhà hàng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
@@ -286,13 +287,9 @@ export default function RestaurantDetail({
           {/* ================= 1. ẢNH ĐẠI DIỆN CHÍNH THỰC TẾ ================= */}
           <div className="relative flex flex-col h-full">
             <div className="group relative aspect-[16/10] sm:aspect-[4/3] lg:aspect-auto lg:h-full lg:min-h-[400px] w-full overflow-hidden rounded-[20px] bg-slate-900 shadow-md">
-              <img
-                src={restaurant.imageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80'}
+              <ContentImage
+                src={restaurant.imageUrl}
                 alt={cleanName}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src =
-                    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80'
-                }}
                 className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
@@ -434,14 +431,10 @@ export default function RestaurantDetail({
                   className="group relative flex flex-col overflow-hidden rounded-[16px] border border-slate-200/90 bg-white p-3.5 shadow-2xs transition-all hover:border-emerald-400/80 hover:shadow-md"
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[12px] bg-slate-900 mb-3">
-                    <img
+                    <ContentImage
                       src={item.imageUrl}
                       alt={item.name}
                       loading="lazy"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
-                      }}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>

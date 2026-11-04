@@ -91,6 +91,10 @@ export async function getPublicVideo(id: string): Promise<VideoDetails> {
 export const getMyVideo = (id: string) =>
   apiClient.get<VideoDetails>(`/api/me/videos/${encodeURIComponent(id)}`)
 
+// Backend kiểm tra chính chủ; chỉ cập nhật danh sách sau khi xóa thành công.
+export const deleteVideo = (id: string) =>
+  apiClient.delete<void>(`/api/me/videos/${encodeURIComponent(id)}`)
+
 // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (createVideo); thuộc video, bản nháp và nội dung công khai.
 export const createVideo = (title: string, description: string, categoryId: string | null) =>
   apiClient.post<VideoDetails>('/api/me/videos', { title, description, categoryId })

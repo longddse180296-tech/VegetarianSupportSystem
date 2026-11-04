@@ -1,4 +1,5 @@
 // Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import { useState } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
@@ -50,6 +51,7 @@ export const MyArticlesPage = ({
   )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
@@ -113,6 +115,7 @@ export const MyArticlesPage = ({
         </div>
 
         <Feedback error={error || result.error} />
+        {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
 
         {/* Danh sách bài viết */}
         {result.loading ? (
@@ -128,17 +131,11 @@ export const MyArticlesPage = ({
                 className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 hover:border-emerald-200 transition-all shadow-xs"
               >
                 <div className="flex flex-col sm:flex-row gap-4">
-                  {item.coverImageUrl && (
-                    <img
-                      alt={item.title}
-                      src={item.coverImageUrl}
-                      onError={(e) => {
-                        ;(e.currentTarget as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80'
-                      }}
-                      className="w-full sm:w-28 h-28 rounded-xl object-cover shrink-0"
-                    />
-                  )}
+                  <ContentImage
+                    alt={item.title}
+                    src={item.coverImageUrl}
+                    className="w-full sm:w-28 h-28 rounded-xl object-cover shrink-0"
+                  />
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
@@ -190,18 +187,20 @@ export const MyArticlesPage = ({
                       Xem bản công khai
                     </Button>
                   )}
-                  {!item.versions.length && (
+                  {item.status !== 'Removed' && (
                     <Button
                       size="sm"
                       variant="ghost"
                       disabled={busy}
                       className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                       onClick={async () => {
-                        if (!window.confirm('Xóa bản nháp chưa gửi này?')) return
+                        if (!window.confirm('Xóa bài viết này? Bài viết sẽ ngừng hiển thị công khai và không thể khôi phục trên giao diện.')) return
                         setBusy(true)
                         setError(null)
+                        setNotice(null)
                         try {
                           await articleApi.remove(item.id)
+                          setNotice('Đã xóa bài viết. Nội dung đã gửi duyệt được giữ trong lịch sử với trạng thái Đã gỡ.')
                           result.reload()
                         } catch (reason) {
                           setError(errorMessage(reason))
@@ -210,7 +209,7 @@ export const MyArticlesPage = ({
                         }
                       }}
                     >
-                      Xóa nháp
+                      Xóa bài viết
                     </Button>
                   )}
                 </div>

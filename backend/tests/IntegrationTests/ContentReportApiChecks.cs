@@ -58,6 +58,11 @@ internal static class ContentReportApiChecks
         check(list.GetProperty("total").GetInt32() == 2 && list.GetProperty("items").GetArrayLength() == 1, "Admin reports filter and pagination work");
         check(list.GetProperty("items")[0].GetProperty("pendingReporterCount").GetInt32() == 2,
             "Pending reporter count includes all reporters across pagination");
+        var groupedList = await client.GetFromJsonAsync<JsonElement>($"{adminRoute}?status=Pending&targetType=Article&groupByTarget=true");
+        check(groupedList.GetProperty("total").GetInt32() == 1 &&
+              groupedList.GetProperty("items")[0].GetProperty("totalReportCount").GetInt32() == 2 &&
+              groupedList.GetProperty("items")[0].GetProperty("reports").GetArrayLength() == 2,
+            "Admin grouped reports combine multiple reports of the same content into one item with expandable reasons");
         var namedReports = await client.GetFromJsonAsync<JsonElement>($"{adminRoute}?pageSize=50");
         check(namedReports.GetProperty("items").EnumerateArray().Single(item => item.GetProperty("id").GetGuid() == articleReportId)
             .GetProperty("reporterName").GetString() == "Người báo cáo kiểm thử", "Admin report returns reporter display name");
@@ -96,7 +101,7 @@ internal static class ContentReportApiChecks
         client.DefaultRequestHeaders.Remove("Test-Role");
         client.DefaultRequestHeaders.Add("Test-Role", "User");
         response = await client.PostAsJsonAsync(route, articleRequest);
-        check(response.StatusCode == HttpStatusCode.Created, "Reporter can report again after previous report is closed");
+        check(response.StatusCode == HttpStatusCode.Conflict, "Reporter cannot spam repeated reports on the same content even after previous report is closed");
         response = await client.PostAsJsonAsync(route, articleRequest);
         check(response.StatusCode == HttpStatusCode.TooManyRequests, "Report endpoint rate limits repeated requests");
     }

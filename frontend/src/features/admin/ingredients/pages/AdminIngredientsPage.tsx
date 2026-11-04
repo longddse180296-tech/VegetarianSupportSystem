@@ -634,6 +634,8 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                       setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: false } : it))
                       setNotice(`Đã ngừng sử dụng nguyên liệu “${statusTarget.name}”.`)
                     } else {
+                      // Chỉ báo mở khóa sau khi backend đã lưu thành công; lỗi giữ nguyên trạng thái cũ.
+                      await adminIngredientsApi.activate(statusTarget.id)
                       setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: true } : it))
                       setNotice(`Đã mở khóa và kích hoạt lại nguyên liệu “${statusTarget.name}”.`)
                     }

@@ -1,4 +1,5 @@
 // Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, Bookmark, Calendar, Edit3, Heart, Leaf, MessageSquare, Plus, ThumbsUp, User } from 'lucide-react'
 import { useAuth } from '../../auth'
@@ -199,7 +200,7 @@ export const ArticleDetail = ({
           <article className="rounded-[24px] border border-slate-200 bg-white overflow-hidden shadow-xs">
             {article.data.coverImageUrl ? (
               <div className="relative aspect-[21/9] max-h-[400px] w-full overflow-hidden bg-slate-100">
-                <img
+                <ContentImage
                   alt={article.data.title}
                   src={article.data.coverImageUrl}
                   className="w-full h-full object-cover"
@@ -549,7 +550,7 @@ export const ArticleDetail = ({
                   >
                     <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                       {item.coverImageUrl ? (
-                        <img
+                        <ContentImage
                           src={item.coverImageUrl}
                           alt={item.title}
                           className="h-full w-full object-cover transition duration-300 group-hover:scale-105"

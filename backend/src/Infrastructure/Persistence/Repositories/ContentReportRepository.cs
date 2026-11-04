@@ -30,6 +30,11 @@ public sealed class ContentReportRepository(AppDbContext db) : IContentReportRep
         db.ContentReports.AnyAsync(x => x.ReporterId == reporter && x.TargetType == type &&
             x.TargetId == id && x.Status == ContentReportStatus.Pending, ct);
 
+    // HasReportedAsync: Kiểm tra người dùng đã từng gửi báo cáo cho nội dung này chưa để chống spam lặp lại.
+    public Task<bool> HasReportedAsync(string reporter, ModeratedContentType type, Guid id, CancellationToken ct) =>
+        db.ContentReports.AnyAsync(x => x.ReporterId == reporter && x.TargetType == type &&
+            x.TargetId == id, ct);
+
     // AddAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task AddAsync(ContentReport report, CancellationToken ct)
     {
@@ -42,12 +47,75 @@ public sealed class ContentReportRepository(AppDbContext db) : IContentReportRep
 
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<ContentReportPage> ListAsync(ContentReportStatus? status, ModeratedContentType? type,
-        int page, int pageSize, CancellationToken ct)
+        int page, int pageSize, CancellationToken ct, bool groupByTarget = false)
     {
         var query = db.ContentReports.AsNoTracking();
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (status.HasValue) query = query.Where(x => x.Status == status.Value);
         if (type.HasValue) query = query.Where(x => x.TargetType == type.Value);
+
+        if (groupByTarget)
+        {
+            var allMatching = await query
+                .OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)
+                .Select(x => new
+                {
+                    Report = x,
+                    ReporterName = db.Users.Where(user => user.Id == x.ReporterId)
+                        .Select(user => user.FullName).FirstOrDefault()
+                })
+                .ToListAsync(ct);
+
+            var grouped = allMatching
+                .GroupBy(x => (x.Report.TargetType, x.Report.TargetId))
+                .OrderByDescending(g => g.Max(x => x.Report.CreatedAt))
+                .ToList();
+
+            var groupedTotal = grouped.Count;
+            var pageGroups = grouped.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var targetIdsOnPage = pageGroups.Select(g => g.Key.TargetId).Distinct().ToArray();
+
+            var pendingCounts = targetIdsOnPage.Length == 0
+                ? new Dictionary<(ModeratedContentType, Guid), int>()
+                : await db.ContentReports.AsNoTracking()
+                    .Where(x => targetIdsOnPage.Contains(x.TargetId) && x.Status == ContentReportStatus.Pending)
+                    .GroupBy(x => new { x.TargetType, x.TargetId })
+                    .ToDictionaryAsync(g => (g.Key.TargetType, g.Key.TargetId), g => g.Count(), ct);
+
+            var groupedItems = pageGroups.Select(g =>
+            {
+                var latest = g.First();
+                var r = latest.Report;
+                var pendingCount = pendingCounts.GetValueOrDefault((r.TargetType, r.TargetId), 0);
+                var entries = g.Select(entry => new ContentReportEntry(
+                    entry.Report.Id,
+                    entry.Report.SubmissionId,
+                    entry.Report.ContentVersion,
+                    entry.Report.ReporterId,
+                    entry.ReporterName,
+                    entry.Report.Reason,
+                    entry.Report.Details,
+                    entry.Report.Status,
+                    entry.Report.CreatedAt,
+                    entry.Report.ResolvedAt,
+                    entry.Report.ResolvedBy,
+                    entry.Report.ResolutionNote)).ToList();
+                var groupStatus = entries.Any(e => e.Status == ContentReportStatus.Pending)
+                    ? ContentReportStatus.Pending
+                    : r.Status;
+                return new ContentReportItem(r.Id, r.TargetType, r.TargetId, r.SubmissionId,
+                    r.ContentTitle, r.ContentVersion, r.ReporterId, r.Reason, r.Details, groupStatus, r.CreatedAt,
+                    r.ResolvedAt, r.ResolvedBy, r.ResolutionNote, pendingCount)
+                {
+                    ReporterName = latest.ReporterName,
+                    TotalReportCount = entries.Count,
+                    Reports = entries
+                };
+            }).ToList();
+
+            return new ContentReportPage(groupedItems, groupedTotal, page, pageSize);
+        }
+
         var total = await query.CountAsync(ct);
         var items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)
             .Skip((page - 1) * pageSize).Take(pageSize)

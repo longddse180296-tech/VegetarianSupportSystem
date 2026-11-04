@@ -99,6 +99,16 @@ public sealed class ModerationSubmission
         UpdatedAtUtc = now;
     }
 
+    // Chủ sở hữu rút nội dung ở mọi trạng thái; giữ kết quả AI và quyết định Admin, không giả quyết định của Admin.
+    public void RemoveByOwner(string ownerId, DateTimeOffset now)
+    {
+        if (OwnerUserId != ownerId) throw new InvalidOperationException("Bạn chỉ có thể xóa nội dung của mình.");
+        if (AdminReviewStatus == AdminReviewStatus.Removed && !IsCurrentPublished) return;
+        AdminReviewStatus = AdminReviewStatus.Removed;
+        IsCurrentPublished = false;
+        UpdatedAtUtc = now;
+    }
+
     // RecordAiResult: Ghi kết quả AI độc lập với quyết định xuất bản của Admin.
     public void RecordAiResult(
         AiFlagStatus status,
@@ -115,7 +125,7 @@ public sealed class ModerationSubmission
         if (ContentType == ModeratedContentType.Video)
             throw new InvalidOperationException("Video do Quản trị viên xem trực tiếp và quyết định, không qua kiểm tra tự động.");
 
-        if (AiFlagStatus != AiFlagStatus.Checking)
+        if (AiFlagStatus != AiFlagStatus.Checking || AdminReviewStatus != AdminReviewStatus.Submitted)
             throw new InvalidOperationException("Chỉ có thể ghi kết quả khi Hệ thống đang kiểm tra nội dung.");
 
         if (status is not (AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial or AiFlagStatus.Failed))

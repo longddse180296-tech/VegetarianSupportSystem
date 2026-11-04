@@ -36,18 +36,6 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         return ToMine(article);
     }
 
-    // DeleteAsync: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
-    public async Task DeleteAsync(Guid id, string ownerId, CancellationToken ct)
-    {
-        var article = await GetOwnedAsync(id, ownerId, ct);
-        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
-        if (article.Versions.Count != 0)
-            throw new ArticleException(ArticleError.Conflict, "Chỉ có thể xóa bản nháp chưa gửi duyệt.");
-        repository.Remove(article);
-        // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
-        await repository.SaveAsync(ct);
-    }
-
     // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     public async Task<MyArticleDetail> SubmitAsync(Guid id, string ownerId, CancellationToken ct)
     {

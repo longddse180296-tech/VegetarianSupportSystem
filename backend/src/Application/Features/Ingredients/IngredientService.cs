@@ -66,6 +66,16 @@ public sealed class IngredientService(IIngredientRepository repository)
         await repository.SaveAsync(ct);
     }
 
+    // Kích hoạt lại giữ nguyên dinh dưỡng và liên kết công thức, lưu trạng thái thật xuống database.
+    public async Task ActivateAsync(Guid id, CancellationToken ct)
+    {
+        var entity = await FindAsync(id, ct);
+        if (entity.IsActive) return;
+        entity.IsActive = true;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await repository.SaveAsync(ct);
+    }
+
     // FindAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     private async Task<Ingredient> FindAsync(Guid id, CancellationToken ct) =>
         await repository.GetAsync(id, ct) ?? throw new KeyNotFoundException("Không tìm thấy nguyên liệu hoặc nguyên liệu không còn khả dụng.");
