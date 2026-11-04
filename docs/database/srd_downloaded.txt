@@ -1,0 +1,3165 @@
+﻿VEGETARIAN SUPPORT
+Software Requirement Document
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Thành phố Hồ Chí Minh, tháng 11 năm 2026
+________________
+
+
+Đặc tả yêu cầu phần mềm Vegetarian Support
+Bản soạn ngày 02/11/2026. Nguồn đối chiếu: nhánh release, commit 2b7a784. Đây là bản chờ nhóm xác nhận thông tin hành chính, minh chứng demo và nghiệm thu. Các chỗ CẦN BỔ SUNG phải được hoàn thiện trước khi nộp.
+Thông tin
+	Giá trị
+	Môn học
+	SWP391
+	Học kỳ
+	Fall 2026
+	Lớp và mã nhóm
+	CẦN BỔ SUNG
+	Giảng viên
+	CẦN BỔ SUNG
+	Thành viên và MSSV
+	CẦN BỔ SUNG danh sách 5 thành viên
+	Phiên bản tài liệu
+	0.9 — chờ xác nhận trước nộp
+	
+
+Vai trò theo phân công
+	Họ và tên
+	MSSV
+	FE 1
+	CẦN BỔ SUNG
+	CẦN BỔ SUNG
+	FE 2
+	CẦN BỔ SUNG
+	CẦN BỔ SUNG
+	BE 1
+	CẦN BỔ SUNG
+	CẦN BỔ SUNG
+	BE 2
+	CẦN BỔ SUNG
+	CẦN BỔ SUNG
+	BE 3
+	CẦN BỔ SUNG
+	CẦN BỔ SUNG
+	
+
+Phân công vai trò tham chiếu docs/work-assignment.md. Nhóm cần xác nhận tên người phụ trách thực tế và người phê duyệt báo cáo trước khi nộp.
+________________
+
+
+MỤC LỤC
+Lịch sử thay đổi        4
+I. Overview        4
+1. Introduction        4
+2. Existing Systems        4
+3. Business Process        5
+4. System Functions        6
+5. Entity Relationship Diagram        7
+6. State transition diagram        9
+II. Functional Requirements        10
+1. Tài khoản và phiên đăng nhập        10
+2. Hồ sơ cá nhân        11
+3. Công thức công khai        11
+4. Nguyên liệu và công thức Admin        11
+5. Bài viết và phiên bản        11
+6. Video và media riêng tư        12
+7. Kiểm duyệt nội dung        12
+8. Bình luận và tương tác        12
+9. Nhà hàng chay        13
+10. Mục đã lưu        13
+11. Tủ bếp        13
+12. Thực đơn cá nhân        13
+13. Đi chợ và xuất PDF        14
+14. Trợ lý AI        14
+15. Scan món ăn và nhãn        14
+16. Báo cáo nội dung        15
+17. Thành viên và dashboard        15
+18. Góp ý và nội dung nổi bật        16
+19. Yêu cầu phi chức năng và giới hạn nghiệm thu        16
+20. Bằng chứng kiểm tra source        16
+III. Database Design        17
+1. Database Schema        17
+2. Table Detail        18
+
+
+________________
+
+
+Lịch sử thay đổi
+Ngày
+	Loại
+	Phụ trách
+	Nội dung
+	02/11/2026
+	A
+	CẦN BỔ SUNG
+	Soạn báo cáo từ source release 2b7a784; chưa ghi nhận phê duyệt của nhóm.
+	
+
+I. Overview
+1. Introduction
+Vegetarian Support là ứng dụng web hỗ trợ người dùng tìm nội dung ăn chay, quản lý thông tin ăn uống và xây dựng kế hoạch từ kho công thức được quản trị. Vấn đề hệ thống hướng tới là thông tin công thức, thành phần, chế độ ăn và nguyên liệu cá nhân đang phân tán, trong khi ảnh món ăn không đủ để xác nhận thành phần ẩn. Hệ thống kết hợp dữ liệu có cấu trúc, xác nhận của người dùng và AI hỗ trợ; quyền xuất bản nội dung vẫn thuộc Admin.
+Sản phẩm phục vụ Guest, User và Admin trên trình duyệt. Frontend React/TypeScript giao tiếp ASP.NET Core API; dữ liệu lưu SQL Server, media lưu kho tệp cấu hình. Gemini và SMTP là dịch vụ phụ thuộc. Kết quả dinh dưỡng chỉ tham khảo; chưa có đo lường thực nghiệm độ chính xác scan hoặc tải hệ thống để công bố.
+  
+
+Hình 1. Sơ đồ bối cảnh. Bản đồ/chỉ đường là liên kết ngoài; không có tích hợp thanh toán hoặc đặt bàn.
+2. Existing Systems
+2.1 Eat This Much
+Eat This Much giới thiệu khả năng lập kế hoạch theo mục tiêu năng lượng và lựa chọn kiểu ăn, bao gồm vegan. Dự án tham khảo cách bắt đầu từ nhu cầu ăn uống để đề xuất bữa ăn. Vegetarian Support giới hạn kế hoạch trong kho công thức nội bộ và bổ sung quy trình xác nhận bằng chứng scan cùng kiểm duyệt nội dung. So sánh này xác định phạm vi thiết kế, không phải đánh giá chất lượng hay độ chính xác giữa hai sản phẩm. Nguồn chính thức, truy cập 02/11/2026: https://www.eatthismuch.com/ và https://www.eatthismuch.com/how-to/.
+2.2 Quy trình tìm kiếm và ghi chép thủ công
+Một phương án hiện có là tìm công thức trên nhiều trang rồi ghi nguyên liệu và bữa ăn trong ghi chú hoặc bảng tính. Phương án linh hoạt nhưng người dùng phải tự đối chiếu chế độ ăn, cộng lượng đi chợ và cập nhật sau khi đổi món. Đây là mô hình đối chiếu nghiệp vụ, không phải kết quả khảo sát người dùng. Chưa có khảo sát định lượng nên báo cáo không đưa số liệu tiết kiệm thời gian.
+3. Business Process
+Quy trình nội dung có các làn trách nhiệm: tác giả chuẩn bị nháp; backend tiền kiểm và gọi AI cho bài viết; Gemini trả bằng chứng; Admin đọc và quyết định; public chỉ đọc phiên bản đã xuất bản. Video bỏ qua làn Gemini. Trùng tiêu đề bài đang công khai bị hệ thống từ chối trước AI, có lý do riêng.
+  
+
+Hình 2. Luồng nội dung theo tác nhân. Các nhánh sửa/gửi lại tạo phiên bản kiểm duyệt mới, không sửa bản gửi cũ.
+  
+
+Sơ đồ swimlane luồng bài viết hợp lệ. Tiêu đề trùng dẫn đến Rejected trước Gemini; video bỏ qua làn Gemini; AI lỗi vẫn chuyển Admin kiểm tra trực tiếp.
+Bước
+	Tác nhân
+	Xử lý và kết quả
+	1
+	User
+	Lưu nháp bài viết hoặc video của mình.
+	2
+	Backend
+	Kiểm tra owner, dữ liệu và phiên bản. Tiền kiểm tiêu đề bài viết.
+	3
+	Gemini / Backend
+	Bài viết được gắn cờ, phạm vi và bằng chứng. Video chuyển Admin trực tiếp.
+	4
+	Admin
+	Duyệt, yêu cầu sửa hoặc từ chối; ghi lý do.
+	5
+	Hệ thống
+	Công khai đúng phiên bản được duyệt hoặc giữ bản công khai cũ.
+	
+
+  
+
+Hình 3. Quy trình scan. Nhận diện không thay thế việc xác nhận thành phần ẩn.
+4. System Functions
+a. Screen Flow
+  
+
+Hình 4. Luồng màn hình theo nhóm chức năng; backend kiểm tra lại quyền.
+b. Screen Details
+Mã
+	Màn hình hoặc nhóm
+	Mục đích
+	FR01
+	Tài khoản và phiên đăng nhập
+	Đăng ký, đăng nhập, đăng xuất, quên và đặt lại mật khẩu
+	FR02
+	Hồ sơ cá nhân
+	Khai báo chế độ ăn, dị ứng, thực phẩm cần tránh và chỉ số cơ thể
+	FR03
+	Công thức công khai
+	Tìm, lọc, sắp xếp và xem công thức
+	FR04
+	Nguyên liệu và công thức Admin
+	Quản lý nguyên liệu, danh mục và công thức; tự tính dinh dưỡng
+	FR05
+	Bài viết và phiên bản
+	Tạo nháp, xem trước, gửi duyệt, sửa và gửi phiên bản mới
+	FR06
+	Video và media riêng tư
+	Tạo nháp, upload, xem trước, gửi duyệt và phát video
+	FR07
+	Kiểm duyệt nội dung
+	Xem hàng đợi, bằng chứng AI bài viết và quyết định theo phiên bản
+	FR08
+	Bình luận và tương tác
+	Bình luận, phản hồi, hữu ích/thích và quản trị bình luận
+	FR09
+	Nhà hàng chay
+	Tìm theo khu vực, khoảng cách và loại ăn chay; xem chỉ đường
+	FR10
+	Mục đã lưu
+	Lưu/bỏ lưu công thức, bài viết, video và nhà hàng
+	FR11
+	Tủ bếp
+	Quản lý nguyên liệu hiện có, đối chiếu hồ sơ và gợi ý công thức
+	FR12
+	Thực đơn cá nhân
+	Tạo kế hoạch 7 ngày, đổi món và áp dụng tuần mới
+	FR13
+	Đi chợ và xuất PDF
+	Tổng hợp lượng nguyên liệu cần mua, đánh dấu mua và tải PDF
+	FR14
+	Trợ lý AI
+	Hỏi kiến thức chung, thay thế nguyên liệu và xem hội thoại của mình
+	FR15
+	Scan món ăn và nhãn
+	Nhận diện ảnh/OCR, xác nhận dữ kiện và đánh giá theo bằng chứng
+	FR16
+	Báo cáo nội dung
+	Gửi báo cáo bài/video công khai và xem hàng đợi riêng tư
+	FR17
+	Thành viên và dashboard
+	Xem số liệu, tìm thành viên và khóa/mở khóa có lý do
+	FR18
+	Góp ý và nội dung nổi bật
+	Gửi góp ý từ Liên hệ và ghim nội dung trên trang chủ
+	
+
+c. User Authorization
+Chức năng
+	Guest
+	User
+	Admin
+	Xem nội dung công khai / nhà hàng
+	Có
+	Có
+	Có
+	Chat AI
+	Dùng thử
+	Có hồ sơ/lịch sử
+	Có
+	Hồ sơ / tủ bếp / scan / thực đơn
+	Không
+	Của mình
+	Của mình
+	Tạo bài viết / video
+	Không
+	Của mình
+	Theo quyền nội dung
+	Bình luận / lưu / báo cáo nội dung
+	Không
+	Có
+	Có
+	Duyệt/gỡ nội dung
+	Không
+	Không
+	Có
+	Quản lý dữ liệu / thành viên / dashboard
+	Không
+	Không
+	Có
+	Xem góp ý và báo cáo riêng tư
+	Không
+	Không
+	Có
+	
+
+Guest là trạng thái chưa xác thực, không có hàng Users riêng. Chủ sở hữu lấy từ danh tính JWT, không lấy từ request body. Những API chỉ dành owner trả 404 khi không thuộc quyền để hạn chế lộ dữ liệu. Admin không mặc nhiên đọc mọi dữ liệu cá nhân nếu endpoint vẫn giới hạn theo owner.
+5. Entity Relationship Diagram
+Mô hình vật lý trích từ AppDbContextModelSnapshot.cs có 39 bảng và 314 cột. Các sơ đồ sau chia theo cụm để dễ đọc. Mũi tên hướng từ bảng có FK đến bảng được tham chiếu. Các trường ContentType/ContentId là tham chiếu đa hình ở nghiệp vụ nếu snapshot không khai báo FK; không được hiểu là FK SQL chỉ vì có hậu tố Id.
+  
+
+Hình ERD. Tài khoản và dữ liệu cá nhân. Chi tiết PK/FK và kiểu dữ liệu nằm ở phần III.
+  
+
+Hình ERD. Nội dung và kiểm duyệt. Chi tiết PK/FK và kiểu dữ liệu nằm ở phần III.
+  
+
+Hình ERD. Công thức và thực đơn. Chi tiết PK/FK và kiểu dữ liệu nằm ở phần III.
+Nhóm
+	Thực thể
+	Vai trò
+	Tài khoản
+	Users, UserProfiles, UserAllergies, UserAvoidedFoods
+	Danh tính, phiên và ràng buộc cá nhân
+	Nội dung
+	Articles, ArticleVersions, Videos, ModerationSubmissions
+	Nháp, phiên bản gửi, bản công khai và trạng thái
+	Cốt lõi
+	Ingredients, Recipes, RecipeIngredients, Categories
+	Nguồn dữ liệu thành phần và dinh dưỡng
+	Cá nhân hóa
+	MealPlans, MealPlanMeals, PantryItems, FoodScanRecords
+	Kế hoạch và kết quả gắn snapshot
+	Tương tác
+	Comments, Favorites, ContentReports, ContentReactions
+	Tương tác và báo cáo nội dung
+	
+
+6. State transition diagram
+AdminReviewStatus: Draft → Submitted → PendingAdminReview → Published / RevisionRequested / Rejected; Published → Removed. Video từ submit vào PendingAdminReview, AiFlagStatus=NotSubmitted. Với bài viết trùng tiêu đề, Submitted → Rejected trước khi gọi AI. AI Checking → Passed / Flagged / Partial / Failed, sau đó chuyển bản gửi sang hàng đợi Admin. NotSubmitted không có nghĩa đã được AI chấp thuận.
+Upload video: AwaitingUpload → Processing → Ready hoặc Failed; chỉ hoàn thành kiểm tra tệp/metadata mới tiếp tục gửi. Scan: ảnh hợp lệ → NeedsConfirmation; lỗi phân tích → AnalysisFailed. Ba kết quả chế độ ăn là SuitableBasedOnProvidedInformation, Incompatible, InsufficientInformation; đây không phải ba trạng thái xử lý tệp. Đánh giá lại lưu bản ghi mới, liên kết previousScanId.
+II. Functional Requirements
+Mỗi mã FR bên dưới là một nhóm yêu cầu có thể truy vết tới contract và thư mục triển khai. Điều kiện thành công và nhánh lỗi mô tả hành vi mong đợi; không thay cho biên bản nghiệm thu UI hoặc tích hợp dịch vụ thật.
+1. Tài khoản và phiên đăng nhập
+Mã và tác nhân: FR01 — Guest, User, Admin
+Mục đích: Đăng ký, đăng nhập, đăng xuất, quên và đặt lại mật khẩu
+Kích hoạt và luồng chính: Tại menu Đăng nhập/Đăng ký; người dùng nhập dữ liệu và gửi biểu mẫu.
+Dữ liệu và quy tắc: Họ tên 1–150 ký tự; email hợp lệ tối đa 254; mật khẩu 6–128 ký tự không có khoảng trắng, khớp xác nhận. Đăng ký chỉ tạo User. JWT có hạn 1 giờ; phiên gia hạn tối đa 7 ngày, mỗi tài khoản một phiên trình duyệt.
+Ngoại lệ và kiểm tra: Email trùng 409; sai thông tin/phiên bị thay thế 401; sai body 400. Quên mật khẩu không tiết lộ tài khoản tồn tại; token đặt lại dùng một lần và hết hạn sau 20 phút.
+Bố cục và truy vết: Màn hình theo frontend/src/features/auth. Hợp đồng: contracts/auth.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+  
+
+Màn hình đăng nhập thực tế từ frontend local; chưa thực hiện đăng nhập hay xác nhận dịch vụ backend.
+2. Hồ sơ cá nhân
+Mã và tác nhân: FR02 — User, Admin
+Mục đích: Khai báo chế độ ăn, dị ứng, thực phẩm cần tránh và chỉ số cơ thể
+Kích hoạt và luồng chính: Từ Hồ sơ, sửa thông tin và lưu; hồ sơ được dùng trong tính năng cá nhân hóa.
+Dữ liệu và quy tắc: Bốn loại ăn chay Vegan/Lacto/Ovo/Lacto-ovo. Kiểm tra dữ liệu cơ thể ở backend; BMI/TDEE là ước tính tham khảo. Hồ sơ chỉ thuộc tài khoản hiện tại.
+Ngoại lệ và kiểm tra: Thiếu chế độ ăn khi scan/lập thực đơn phải hoàn thiện hồ sơ. Thay đổi hồ sơ không sửa ngược snapshot kết quả cũ.
+Bố cục và truy vết: Màn hình theo frontend/src/features/profile. Hợp đồng: contracts/profile.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+3. Công thức công khai
+Mã và tác nhân: FR03 — Guest, User, Admin
+Mục đích: Tìm, lọc, sắp xếp và xem công thức
+Kích hoạt và luồng chính: Mở Công thức, nhập tên/nguyên liệu, chọn bộ lọc và xem chi tiết.
+Dữ liệu và quy tắc: Lọc theo danh mục, chế độ ăn tương thích, thời gian nấu, calo. Phân trang và sắp xếp trước phân trang. Chi tiết gồm khẩu phần, định lượng, hướng dẫn, dinh dưỡng và đánh giá bốn chế độ.
+Ngoại lệ và kiểm tra: Chỉ trả công thức hoạt động; công thức ẩn/không tồn tại trả 404. Dinh dưỡng chưa biết giữ null; không hiển thị như 0.
+Bố cục và truy vết: Màn hình theo frontend/src/features/recipes. Hợp đồng: contracts/core-data.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+4. Nguyên liệu và công thức Admin
+Mã và tác nhân: FR04 — Admin
+Mục đích: Quản lý nguyên liệu, danh mục và công thức; tự tính dinh dưỡng
+Kích hoạt và luồng chính: Vào khu vực quản trị, tạo hoặc sửa nguyên liệu trước khi tạo công thức.
+Dữ liệu và quy tắc: Nguyên liệu: g/kg/ml/đơn vị, bốn giá trị dinh dưỡng không âm. Mốc lần lượt 100 g/1 kg/100 ml/1 đơn vị. Công thức cộng giá trị × lượng/mốc rồi chia khẩu phần. SignalR trả kết quả xem trước; server tính lại khi lưu.
+Ngoại lệ và kiểm tra: Thiếu chỉ số hoặc đơn vị không khớp thì báo lỗi, không lưu tổng một phần. Chỉ quy đổi g/kg. Không đổi ml/số lượng sang g. Tên trùng kể cả đã ngừng sử dụng trả 409.
+Bố cục và truy vết: Màn hình theo frontend/src/features/admin. Hợp đồng: contracts/core-data.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+5. Bài viết và phiên bản
+Mã và tác nhân: FR05 — User, Admin; Guest chỉ xem công khai
+Mục đích: Tạo nháp, xem trước, gửi duyệt, sửa và gửi phiên bản mới
+Kích hoạt và luồng chính: Từ Bài viết của tôi, tạo hoặc mở nháp rồi gửi duyệt.
+Dữ liệu và quy tắc: Owner quản lý nội dung của mình. Bản gửi gắn contentId/version. Bản đã công khai vẫn giữ khi tác giả sửa nháp. Public chỉ đọc phiên bản được duyệt.
+Ngoại lệ và kiểm tra: Tiền kiểm trùng tiêu đề bài công khai tạo Rejected kèm lý do hệ thống và không gọi AI. Người khác không đọc/sửa bản nháp; xung đột trạng thái trả 409.
+Bố cục và truy vết: Màn hình theo frontend/src/features/articles. Hợp đồng: contracts/articles.md; docs/article-title-precheck-2026-10-28.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+6. Video và media riêng tư
+Mã và tác nhân: FR06 — User, Admin; Guest chỉ xem Published
+Mục đích: Tạo nháp, upload, xem trước, gửi duyệt và phát video
+Kích hoạt và luồng chính: Từ Video của tôi tạo nội dung, tải file và ảnh đại diện, đợi xử lý rồi gửi.
+Dữ liệu và quy tắc: MP4/WEBM tối đa 200 MB, ảnh JPG/PNG/WEBP tối đa 10 MB. Kiểm tra chữ ký file và FFprobe ở server. Media nháp chỉ owner/Admin đọc. Video gửi thẳng Admin, không gọi AI.
+Ngoại lệ và kiểm tra: 400 file không hợp lệ; 503 storage/FFprobe không khả dụng. Không có metadata thì không tạo thời lượng giả. Ready không bảo đảm codec phát trên mọi trình duyệt.
+Bố cục và truy vết: Màn hình theo frontend/src/features/videos. Hợp đồng: contracts/videos.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+7. Kiểm duyệt nội dung
+Mã và tác nhân: FR07 — Admin
+Mục đích: Xem hàng đợi, bằng chứng AI bài viết và quyết định theo phiên bản
+Kích hoạt và luồng chính: Admin chọn bản gửi; xem văn bản/ảnh hoặc phát video; nhập lý do quyết định.
+Dữ liệu và quy tắc: Bài viết có AI Passed/Flagged/Partial/Failed độc lập trạng thái Admin. AI lỗi vẫn chuyển Admin xem trực tiếp. Approve/RequestRevision/Reject; Remove chỉ áp dụng bản đang công khai. Nhật ký lưu người, thời điểm, phiên bản và lý do.
+Ngoại lệ và kiểm tra: AI không tự xuất bản. Partial phải nêu phạm vi chưa kiểm tra. Safety block hoặc quota không được coi là kết luận nội dung vi phạm. RowVersion/xung đột phải tải lại.
+Bố cục và truy vết: Màn hình theo frontend/src/features/admin/moderation. Hợp đồng: contracts/moderation-aichat.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+8. Bình luận và tương tác
+Mã và tác nhân: FR08 — User, Admin; Guest chỉ đọc công khai
+Mục đích: Bình luận, phản hồi, hữu ích/thích và quản trị bình luận
+Kích hoạt và luồng chính: Mở nội dung công khai rồi gửi bình luận hoặc thao tác tương tác.
+Dữ liệu và quy tắc: Backend xác minh nội dung, quyền owner và trạng thái. Người dùng sửa/xóa bình luận của mình; Admin quản lý theo contract. Like/helpful khác với lưu yêu thích.
+Ngoại lệ và kiểm tra: Chưa đăng nhập 401; truy cập không hợp lệ hoặc nội dung không công khai bị từ chối; không suy quyền chỉ từ nút FE.
+Bố cục và truy vết: Màn hình theo frontend/src/features/comments. Hợp đồng: contracts/comments.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+9. Nhà hàng chay
+Mã và tác nhân: FR09 — Guest, User, Admin
+Mục đích: Tìm theo khu vực, khoảng cách và loại ăn chay; xem chỉ đường
+Kích hoạt và luồng chính: Mở Nhà hàng, nhập tìm kiếm/lọc; cho phép vị trí nếu muốn tìm theo bán kính.
+Dữ liệu và quy tắc: Hiển thị nhiều loại ăn chay đã khai báo, địa chỉ, giờ mở cửa, tiện ích và giá tham khảo. Khoảng cách dùng tọa độ thật; không cấp vị trí thì không tự gửi vị trí mặc định. Admin quản lý dữ liệu.
+Ngoại lệ và kiểm tra: Không có tọa độ giữ trạng thái chưa xác định. Dữ liệu khai báo của nhà hàng không phải chứng nhận chế độ ăn hay dị ứng. Không có đặt bàn/đánh giá nhà hàng trong MVP.
+Bố cục và truy vết: Màn hình theo frontend/src/features/restaurants. Hợp đồng: contracts/restaurants.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+10. Mục đã lưu
+Mã và tác nhân: FR10 — User, Admin
+Mục đích: Lưu/bỏ lưu công thức, bài viết, video và nhà hàng
+Kích hoạt và luồng chính: Chọn nút lưu trên nội dung, sau đó mở Mục đã lưu.
+Dữ liệu và quy tắc: Dữ liệu gắn user hiện tại; danh sách theo loại nội dung. Favorite khác với reaction; số đếm dùng dữ liệu thực.
+Ngoại lệ và kiểm tra: Nội dung bị ẩn/gỡ hoặc không còn hợp lệ được xử lý theo contract; lỗi API không được biến thành thành công hoặc danh sách rỗng giả.
+Bố cục và truy vết: Màn hình theo frontend/src/features/favorites. Hợp đồng: contracts/favorites.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+11. Tủ bếp
+Mã và tác nhân: FR11 — User, Admin
+Mục đích: Quản lý nguyên liệu hiện có, đối chiếu hồ sơ và gợi ý công thức
+Kích hoạt và luồng chính: Thêm/sửa/xóa nguyên liệu, nhập lượng nếu biết rồi xem gợi ý.
+Dữ liệu và quy tắc: Lượng không biết giữ null. Tính độ khớp từ dữ liệu; chỉ áp dụng thay thế khi người dùng chọn. Nguyên liệu chưa rõ nguồn gốc không tự xem là phù hợp.
+Ngoại lệ và kiểm tra: Không đánh giá độ tươi từ ảnh. API lỗi giữ lỗi thật; không tự gán số lượng 1/đơn vị g. Dị ứng/thực phẩm tránh luôn được xét riêng.
+Bố cục và truy vết: Màn hình theo frontend/src/features/pantry. Hợp đồng: contracts/pantry.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+12. Thực đơn cá nhân
+Mã và tác nhân: FR12 — User, Admin
+Mục đích: Tạo kế hoạch 7 ngày, đổi món và áp dụng tuần mới
+Kích hoạt và luồng chính: Hoàn thiện hồ sơ rồi chọn tạo thực đơn, tên và tuần bắt đầu.
+Dữ liệu và quy tắc: Đúng 7 × 3 vị trí Breakfast/Lunch/Dinner. Chỉ dùng công thức hoạt động và phù hợp điều kiện bắt buộc. Giữ snapshot hồ sơ/công thức. Đổi món nhận recipeId thật và khẩu phần 1–20, cập nhật tổng.
+Ngoại lệ và kiểm tra: Không đủ món trả 409; không bỏ dị ứng/chế độ ăn để đủ 21 vị trí. Không cam kết 21 món khác nhau. Chỉ owner đọc/xóa/đổi món trong kế hoạch.
+Bố cục và truy vết: Màn hình theo frontend/src/features/meal-plans. Hợp đồng: contracts/meal-plans.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+13. Đi chợ và xuất PDF
+Mã và tác nhân: FR13 — User, Admin
+Mục đích: Tổng hợp lượng nguyên liệu cần mua, đánh dấu mua và tải PDF
+Kích hoạt và luồng chính: Từ chi tiết thực đơn mở danh sách đi chợ hoặc chọn Xuất PDF.
+Dữ liệu và quy tắc: Tổng hợp snapshot theo nguyên liệu và đơn vị, trừ lượng tủ bếp đã khớp định lượng. Xem tuần/ngày và đánh dấu đã mua. Áp dụng tuần mới giữ snapshot kế hoạch và cập nhật lượng tủ bếp.
+Ngoại lệ và kiểm tra: Tên tủ bếp không khớp không được trừ lượng. Tổng lượng theo ngày phải bằng tuần. Không truy cập kế hoạch của người khác.
+Bố cục và truy vết: Màn hình theo frontend/src/features/meal-plans. Hợp đồng: contracts/meal-plans.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+14. Trợ lý AI
+Mã và tác nhân: FR14 — Guest dùng thử; User, Admin dùng hồ sơ
+Mục đích: Hỏi kiến thức chung, thay thế nguyên liệu và xem hội thoại của mình
+Kích hoạt và luồng chính: Mở Trợ lý AI, nhập câu hỏi; tài khoản có thể tạo hội thoại mới.
+Dữ liệu và quy tắc: Gemini chỉ được gọi backend. Guest dùng session và hạn mức thực tế do server trả. User có ngữ cảnh hồ sơ và lịch sử. Gợi ý món dẫn tới kho công thức; không tự tạo kế hoạch đã lưu.
+Ngoại lệ và kiểm tra: Thiếu key/quota/lỗi provider trả trạng thái không khả dụng. Không giả câu trả lời thành công. Không tuyên bố tư vấn y tế hoặc lượt hỏi không giới hạn.
+Bố cục và truy vết: Màn hình theo frontend/src/features/ai-chat. Hợp đồng: contracts/moderation-aichat.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+15. Scan món ăn và nhãn
+Mã và tác nhân: FR15 — User, Admin có hồ sơ; Guest xem giới thiệu
+Mục đích: Nhận diện ảnh/OCR, xác nhận dữ kiện và đánh giá theo bằng chứng
+Kích hoạt và luồng chính: Chọn loại ảnh, tải ảnh, sửa nguyên liệu hoặc OCR, trả lời bổ sung rồi đánh giá.
+Dữ liệu và quy tắc: JPG/PNG/WEBP tối đa 10 MB; xác minh chữ ký. Đánh giá Vegan/Lacto/Ovo/Lacto-ovo. Dữ kiện AiSuggested/LabelOcr chưa xác nhận được coi chưa rõ. Có vi phạm đã xác nhận thì Incompatible dù còn yếu tố chưa biết. Lưu snapshot và version.
+Ngoại lệ và kiểm tra: Guest không upload. Thiếu hồ sơ 409; ảnh không nhận diện 422; provider lỗi 503. Không có vi phạm nhưng còn thiếu thông tin thì InsufficientInformation. Dị ứng riêng; không thấy dị nguyên không có nghĩa an toàn.
+Bố cục và truy vết: Màn hình theo frontend/src/features/food-scan. Hợp đồng: contracts/food-scanning.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+  
+
+Màn hình thực tế Guest được yêu cầu đăng nhập trước khi scan.
+16. Báo cáo nội dung
+Mã và tác nhân: FR16 — User, Admin gửi; Admin xử lý
+Mục đích: Gửi báo cáo bài/video công khai và xem hàng đợi riêng tư
+Kích hoạt và luồng chính: Người dùng chọn báo cáo trên nội dung; Admin mở quản lý báo cáo.
+Dữ liệu và quy tắc: Báo cáo gắn đối tượng, lý do và người gửi. Admin ghi xử lý hoặc bác bỏ có lý do. Luồng báo cáo không tự gỡ nội dung.
+Ngoại lệ và kiểm tra: Guest phải đăng nhập; User không xem danh sách báo cáo riêng của Admin. Không thay quyết định kiểm duyệt bằng số lượng báo cáo.
+Bố cục và truy vết: Màn hình theo frontend/src/features/reports; frontend/src/features/admin/reports. Hợp đồng: contracts/content-reports.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+17. Thành viên và dashboard
+Mã và tác nhân: FR17 — Admin
+Mục đích: Xem số liệu, tìm thành viên và khóa/mở khóa có lý do
+Kích hoạt và luồng chính: Mở Dashboard hoặc Thành viên trong quản trị.
+Dữ liệu và quy tắc: Dashboard dùng thống kê thật và hàng đợi. Backend đối chiếu tài khoản/role/trạng thái khóa. Khóa làm mất hiệu lực phiên; mở khóa không khôi phục phiên cũ.
+Ngoại lệ và kiểm tra: Không thêm role ngoài Guest/User/Admin; không gán số liệu mẫu thành dữ liệu vận hành. Thiếu dữ liệu hiển thị trạng thái trống.
+Bố cục và truy vết: Màn hình theo frontend/src/features/admin. Hợp đồng: contracts/admin-members.md; contracts/admin-dashboard.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+18. Góp ý và nội dung nổi bật
+Mã và tác nhân: FR18 — Khách gửi theo contract; Admin quản lý
+Mục đích: Gửi góp ý từ Liên hệ và ghim nội dung trên trang chủ
+Kích hoạt và luồng chính: Mở Liên hệ để gửi góp ý; Admin xem hộp thư và quản lý nội dung nổi bật.
+Dữ liệu và quy tắc: Hộp thư riêng của Admin. Nội dung nổi bật tham chiếu nội dung hợp lệ; dữ liệu hiển thị từ hệ thống. Đây là phần bổ sung có contract trong repository.
+Ngoại lệ và kiểm tra: Không coi góp ý là bình luận công khai; không công khai email/thông tin người gửi. Phạm vi cần nhóm xác nhận cùng bản MVP cuối.
+Bố cục và truy vết: Màn hình theo frontend/src/features/home; frontend/src/features/admin/dashboard. Hợp đồng: contracts/feedback.md; contracts/featured-content.md. Trạng thái loading/empty/error phải phân biệt với thành công.
+19. Yêu cầu phi chức năng và giới hạn nghiệm thu
+Mã
+	Yêu cầu
+	Cách xác minh
+	NFR01
+	API kiểm tra JWT, role, khóa tài khoản và owner; không trả hash/secret.
+	Kiểm thử 401/403/404, phiên thay thế và truy cập chéo owner.
+	NFR02
+	Gemini/SMTP/FFprobe chỉ từ backend; lỗi không tạo kết quả giả.
+	Giả lập lỗi và thử riêng dịch vụ thật trên môi trường demo.
+	NFR03
+	Danh sách lớn có phân trang; null khác 0; tiếng Việt cho lỗi người dùng.
+	Kiểm tra API contract và FE error states.
+	NFR04
+	HTTPS, reverse proxy /api và WebSocket cho hub khi triển khai.
+	Chưa nghiệm thu production; phải kiểm tra trên URL deploy thật.
+	NFR05
+	Không công bố latency, throughput hay độ chính xác scan khi chưa đo.
+	Bổ sung kế hoạch/tập dữ liệu thực nghiệm nếu nhóm có.
+	NFR06
+	Bảo toàn snapshot, lịch sử quyết định và không lộ dữ liệu cá nhân.
+	Test thay hồ sơ, bản sửa nội dung và quyền đọc snapshot.
+	
+
+20. Bằng chứng kiểm tra source
+Ngày 02/11/2026: backend build Release đạt, dotnet test --no-build đạt 180/180; frontend lint/build đạt, npm test đạt 68/68. Chưa chạy executable IntegrationTests và chưa nghiệm thu Gemini/SMTP thật hoặc UI sau đăng nhập. Còn cảnh báo NU1902/NU1903 của System.Security.Cryptography.Pkcs 9.0.4 và bundle FE trên 500 kB. Tham chiếu: README.md, docs/mvp.md, contracts/ và EF Core model snapshot.
+________________
+
+
+III. Database Design
+1. Database Schema
+Hệ quản trị sử dụng SQL Server, không dùng MySQL như ví dụ trong template. Lược đồ sau phản ánh EF Core model snapshot trong source tại commit đã ghi ở đầu báo cáo; chưa so sánh với database vận hành. Migration là nguồn để tái tạo schema. Không xuất dữ liệu sức khỏe, tài khoản hay media thật vào báo cáo.
+STT
+	Tên bảng SQL
+	Số cột
+	1
+	AiChatConversations
+	4
+	2
+	AiChatMessages
+	5
+	3
+	Articles
+	10
+	4
+	ArticleCategories
+	2
+	5
+	ArticleDietaryTypes
+	2
+	6
+	ArticleVersions
+	9
+	7
+	ArticleVersionCategories
+	2
+	8
+	ArticleVersionDietaryTypes
+	2
+	9
+	Categories
+	6
+	10
+	Comments
+	13
+	11
+	ContactFeedback
+	7
+	12
+	ContentReactions
+	5
+	13
+	ContentReports
+	15
+	14
+	Favorites
+	6
+	15
+	FeaturedContent
+	4
+	16
+	FoodScanRecords
+	9
+	17
+	Ingredients
+	20
+	18
+	MealPlans
+	8
+	19
+	MealPlanMeals
+	14
+	20
+	MealPlanMealIngredients
+	6
+	21
+	MealPlanShoppingItems
+	9
+	22
+	MemberStatusChanges
+	6
+	23
+	ModerationDecisions
+	7
+	24
+	ModerationSubmissions
+	24
+	25
+	PantryItems
+	8
+	26
+	PasswordResetTokens
+	5
+	27
+	Recipes
+	17
+	28
+	RecipeIngredients
+	5
+	29
+	Restaurants
+	18
+	30
+	RestaurantAmenities
+	3
+	31
+	RestaurantDietaryTypes
+	2
+	32
+	RestaurantFeaturedDishes
+	5
+	33
+	RevokedAccessTokens
+	2
+	34
+	Users
+	16
+	35
+	UserAllergies
+	5
+	36
+	UserAvoidedFoods
+	5
+	37
+	UserProfiles
+	10
+	38
+	Videos
+	14
+	39
+	VideoMediaMetadata
+	4
+	
+
+2. Table Detail
+Ký hiệu: PK là khóa chính; FK chỉ ghi khi có quan hệ thật trong snapshot; NN có giá trị Có là bắt buộc, dấu — là cho phép null. nvarchar(max) và snapshot JSON giữ nguyên kiểu lưu trữ. Cột enum lưu chuỗi hay số theo kiểu SQL đã cấu hình. Unique index tổng hợp được liệt kê dưới từng bảng, không tự suy một cột là duy nhất.
+1. AiChatConversations
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	UpdatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	4
+	UserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX UserId, UpdatedAtUtc.
+2. AiChatMessages
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	Content
+	nvarchar(max)
+	Có
+	—
+	
+
+	3
+	ConversationId
+	uniqueidentifier
+	Có
+	FK → AiChatConversations
+	
+
+	4
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	5
+	Role
+	nvarchar(16)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX ConversationId, CreatedAtUtc, Id.
+3. Articles
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	DraftCategory
+	nvarchar(120)
+	Có
+	—
+	
+
+	4
+	DraftContent
+	nvarchar(max)
+	Có
+	—
+	
+
+	5
+	DraftCoverImageUrl
+	nvarchar(2000)
+	—
+	—
+	
+
+	6
+	DraftTitle
+	nvarchar(200)
+	Có
+	—
+	
+
+	7
+	ModerationContentId
+	uniqueidentifier
+	—
+	—
+	
+
+	8
+	OwnerUserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	9
+	RowVersion
+	rowversion
+	Có
+	—
+	Kiểm soát đồng thời
+	10
+	UpdatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE ModerationContentId; INDEX OwnerUserId, UpdatedAt.
+4. ArticleCategories
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	ArticleId
+	uniqueidentifier
+	Có
+	PK, FK → Articles
+	
+
+	2
+	Category
+	nvarchar(120)
+	Có
+	PK
+	
+
+	
+
+Chỉ mục: INDEX ArticleId.
+5. ArticleDietaryTypes
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	ArticleId
+	uniqueidentifier
+	Có
+	PK, FK → Articles
+	
+
+	2
+	DietaryType
+	int
+	Có
+	PK
+	
+
+	
+
+Chỉ mục: INDEX ArticleId.
+6. ArticleVersions
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	ArticleId
+	uniqueidentifier
+	Có
+	FK → Articles
+	
+
+	3
+	Category
+	nvarchar(120)
+	Có
+	—
+	
+
+	4
+	Content
+	nvarchar(max)
+	Có
+	—
+	
+
+	5
+	CoverImageUrl
+	nvarchar(2000)
+	—
+	—
+	
+
+	6
+	SubmissionId
+	uniqueidentifier
+	Có
+	FK → ModerationSubmissions
+	
+
+	7
+	SubmittedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	8
+	Title
+	nvarchar(200)
+	Có
+	—
+	
+
+	9
+	Version
+	int
+	Có
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE SubmissionId; UNIQUE ArticleId, Version.
+7. ArticleVersionCategories
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	ArticleVersionId
+	uniqueidentifier
+	Có
+	PK, FK → ArticleVersions
+	
+
+	2
+	Category
+	nvarchar(120)
+	Có
+	PK
+	
+
+	
+
+Chỉ mục: INDEX ArticleVersionId.
+8. ArticleVersionDietaryTypes
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	ArticleVersionId
+	uniqueidentifier
+	Có
+	PK, FK → ArticleVersions
+	
+
+	2
+	DietaryType
+	int
+	Có
+	PK
+	
+
+	
+
+Chỉ mục: INDEX ArticleVersionId.
+9. Categories
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	Description
+	nvarchar(500)
+	—
+	—
+	
+
+	4
+	IsActive
+	bit
+	Có
+	—
+	
+
+	5
+	Name
+	nvarchar(120)
+	Có
+	—
+	
+
+	6
+	UpdatedAt
+	datetimeoffset
+	—
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE Name.
+10. Comments
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	AuthorId
+	nvarchar(450)
+	Có
+	—
+	
+
+	3
+	Body
+	nvarchar(2000)
+	Có
+	—
+	
+
+	4
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	5
+	ModeratedAt
+	datetimeoffset
+	—
+	—
+	
+
+	6
+	ModeratedBy
+	nvarchar(450)
+	—
+	—
+	
+
+	7
+	ModerationReason
+	nvarchar(1000)
+	—
+	—
+	
+
+	8
+	ParentId
+	uniqueidentifier
+	—
+	FK → Comments
+	
+
+	9
+	RowVersion
+	rowversion
+	Có
+	—
+	Kiểm soát đồng thời
+	10
+	Status
+	nvarchar(16)
+	Có
+	—
+	
+
+	11
+	TargetId
+	uniqueidentifier
+	Có
+	—
+	
+
+	12
+	TargetType
+	nvarchar(16)
+	Có
+	—
+	
+
+	13
+	UpdatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX ParentId; INDEX AuthorId, CreatedAt; INDEX Status, CreatedAt; INDEX TargetType, TargetId, CreatedAt.
+11. ContactFeedback
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	Email
+	nvarchar(254)
+	Có
+	—
+	
+
+	4
+	Message
+	nvarchar(4000)
+	Có
+	—
+	
+
+	5
+	Name
+	nvarchar(100)
+	Có
+	—
+	
+
+	6
+	ReadAt
+	datetimeoffset
+	—
+	—
+	
+
+	7
+	Subject
+	nvarchar(150)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX CreatedAt, Id.
+12. ContentReactions
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	TargetId
+	uniqueidentifier
+	Có
+	—
+	
+
+	4
+	TargetType
+	nvarchar(24)
+	Có
+	—
+	
+
+	5
+	UserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX TargetType, TargetId; UNIQUE UserId, TargetType, TargetId.
+13. ContentReports
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	ContentTitle
+	nvarchar(200)
+	Có
+	—
+	
+
+	3
+	ContentVersion
+	int
+	Có
+	—
+	
+
+	4
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	5
+	Details
+	nvarchar(2000)
+	—
+	—
+	
+
+	6
+	Reason
+	nvarchar(30)
+	Có
+	—
+	
+
+	7
+	ReporterId
+	nvarchar(450)
+	Có
+	—
+	
+
+	8
+	ResolutionNote
+	nvarchar(2000)
+	—
+	—
+	
+
+	9
+	ResolvedAt
+	datetimeoffset
+	—
+	—
+	
+
+	10
+	ResolvedBy
+	nvarchar(450)
+	—
+	—
+	
+
+	11
+	RowVersion
+	rowversion
+	Có
+	—
+	Kiểm soát đồng thời
+	12
+	Status
+	nvarchar(20)
+	Có
+	—
+	
+
+	13
+	SubmissionId
+	uniqueidentifier
+	Có
+	—
+	
+
+	14
+	TargetId
+	uniqueidentifier
+	Có
+	—
+	
+
+	15
+	TargetType
+	nvarchar(20)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX Status, CreatedAt; UNIQUE ReporterId, TargetType, TargetId.
+14. Favorites
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	SavedFrom
+	nvarchar(16)
+	—
+	—
+	
+
+	4
+	TargetId
+	uniqueidentifier
+	Có
+	—
+	
+
+	5
+	TargetType
+	nvarchar(16)
+	Có
+	—
+	
+
+	6
+	UserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX UserId, CreatedAt; UNIQUE UserId, TargetType, TargetId.
+15. FeaturedContent
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	ContentType
+	nvarchar(16)
+	Có
+	PK
+	
+
+	2
+	ContentId
+	uniqueidentifier
+	Có
+	PK
+	
+
+	3
+	PinnedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	4
+	PinnedByUserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX ContentType, PinnedAt.
+16. FoodScanRecords
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	InputJson
+	nvarchar(max)
+	Có
+	—
+	Snapshot/JSON theo cấu hình nghiệp vụ
+	4
+	OwnerUserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	5
+	PreviousScanId
+	uniqueidentifier
+	—
+	—
+	
+
+	6
+	ProfileSnapshotJson
+	nvarchar(max)
+	Có
+	—
+	Snapshot/JSON theo cấu hình nghiệp vụ
+	7
+	ResultJson
+	nvarchar(max)
+	Có
+	—
+	Snapshot/JSON theo cấu hình nghiệp vụ
+	8
+	ResultVersion
+	int
+	Có
+	—
+	
+
+	9
+	SourceType
+	nvarchar(20)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX OwnerUserId, CreatedAtUtc.
+17. Ingredients
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	Aliases
+	nvarchar(1000)
+	—
+	—
+	
+
+	3
+	Allergens
+	nvarchar(1000)
+	—
+	—
+	
+
+	4
+	Calories
+	decimal(12,3)
+	—
+	—
+	
+
+	5
+	CarbohydrateGram
+	decimal(12,3)
+	—
+	—
+	
+
+	6
+	ContainsEgg
+	bit
+	Có
+	—
+	
+
+	7
+	ContainsHoney
+	bit
+	Có
+	—
+	
+
+	8
+	ContainsMilk
+	bit
+	Có
+	—
+	
+
+	9
+	ContainsOtherAnimalProducts
+	bit
+	—
+	—
+	
+
+	10
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	11
+	DefaultUnit
+	nvarchar(40)
+	—
+	—
+	
+
+	12
+	FatGram
+	decimal(12,3)
+	—
+	—
+	
+
+	13
+	IsActive
+	bit
+	Có
+	—
+	
+
+	14
+	Name
+	nvarchar(120)
+	Có
+	—
+	
+
+	15
+	NutritionBasisQuantity
+	decimal(12,3)
+	Có
+	—
+	
+
+	16
+	NutritionBasisUnit
+	nvarchar(40)
+	Có
+	—
+	
+
+	17
+	Origin
+	int
+	Có
+	—
+	
+
+	18
+	ProteinGram
+	decimal(12,3)
+	—
+	—
+	
+
+	19
+	Source
+	nvarchar(1000)
+	—
+	—
+	
+
+	20
+	UpdatedAt
+	datetimeoffset
+	—
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE Name.
+18. MealPlans
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	Name
+	nvarchar(120)
+	Có
+	—
+	
+
+	4
+	ProfileDiet
+	nvarchar(16)
+	Có
+	—
+	
+
+	5
+	ProfileSnapshot
+	nvarchar(4000)
+	Có
+	—
+	Snapshot/JSON theo cấu hình nghiệp vụ
+	6
+	UpdatedAt
+	datetimeoffset
+	—
+	—
+	
+
+	7
+	UserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	8
+	WeekStartDate
+	date
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX UserId, WeekStartDate.
+19. MealPlanMeals
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CaloriesPerServing
+	decimal(12,3)
+	—
+	—
+	
+
+	3
+	CarbohydrateGramPerServing
+	decimal(12,3)
+	—
+	—
+	
+
+	4
+	DayNumber
+	int
+	Có
+	—
+	
+
+	5
+	FatGramPerServing
+	decimal(12,3)
+	—
+	—
+	
+
+	6
+	ImageUrl
+	nvarchar(max)
+	—
+	—
+	
+
+	7
+	MealPlanId
+	uniqueidentifier
+	Có
+	FK → MealPlans
+	
+
+	8
+	ProteinGramPerServing
+	decimal(12,3)
+	—
+	—
+	
+
+	9
+	RecipeId
+	uniqueidentifier
+	Có
+	—
+	
+
+	10
+	RecipeName
+	nvarchar(120)
+	Có
+	—
+	
+
+	11
+	Servings
+	int
+	Có
+	—
+	
+
+	12
+	Slot
+	nvarchar(16)
+	Có
+	—
+	
+
+	13
+	SwapCount
+	int
+	Có
+	—
+	
+
+	14
+	TotalTimeMinutes
+	int
+	Có
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE MealPlanId, DayNumber, Slot.
+20. MealPlanMealIngredients
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	IngredientId
+	uniqueidentifier
+	Có
+	—
+	
+
+	3
+	IngredientName
+	nvarchar(120)
+	Có
+	—
+	
+
+	4
+	MealPlanMealId
+	uniqueidentifier
+	Có
+	FK → MealPlanMeals
+	
+
+	5
+	Quantity
+	decimal(12,3)
+	Có
+	—
+	
+
+	6
+	Unit
+	nvarchar(40)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE MealPlanMealId, IngredientId, Unit.
+21. MealPlanShoppingItems
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	IngredientId
+	uniqueidentifier
+	Có
+	—
+	
+
+	3
+	IngredientName
+	nvarchar(120)
+	Có
+	—
+	
+
+	4
+	IsPurchased
+	bit
+	Có
+	—
+	
+
+	5
+	MealPlanId
+	uniqueidentifier
+	Có
+	FK → MealPlans
+	
+
+	6
+	PantryQuantity
+	decimal(12,3)
+	Có
+	—
+	
+
+	7
+	QuantityToBuy
+	decimal(12,3)
+	Có
+	—
+	
+
+	8
+	RequiredQuantity
+	decimal(12,3)
+	Có
+	—
+	
+
+	9
+	Unit
+	nvarchar(40)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE MealPlanId, IngredientId, Unit.
+22. MemberStatusChanges
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	AdminId
+	nvarchar(450)
+	Có
+	FK → Users
+	
+
+	3
+	IsLocked
+	bit
+	Có
+	—
+	
+
+	4
+	OccurredAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	5
+	Reason
+	nvarchar(1000)
+	Có
+	—
+	
+
+	6
+	UserId
+	nvarchar(450)
+	Có
+	FK → Users
+	
+
+	
+
+Chỉ mục: INDEX AdminId; INDEX UserId, OccurredAtUtc.
+23. ModerationDecisions
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	AdminUserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	3
+	DecidedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	4
+	Decision
+	nvarchar(24)
+	Có
+	—
+	
+
+	5
+	Reason
+	nvarchar(2000)
+	Có
+	—
+	
+
+	6
+	SubmissionId
+	uniqueidentifier
+	Có
+	FK → ModerationSubmissions
+	
+
+	7
+	Version
+	int
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX SubmissionId, DecidedAt.
+24. ModerationSubmissions
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	AdminReviewStatus
+	nvarchar(24)
+	Có
+	—
+	
+
+	3
+	AiCheckedAt
+	datetimeoffset
+	—
+	—
+	
+
+	4
+	AiCheckedScope
+	nvarchar(2000)
+	—
+	—
+	
+
+	5
+	AiEvidence
+	nvarchar(2000)
+	—
+	—
+	
+
+	6
+	AiFlagReason
+	nvarchar(2000)
+	—
+	—
+	
+
+	7
+	AiFlagStatus
+	nvarchar(16)
+	Có
+	—
+	
+
+	8
+	AiFlagType
+	nvarchar(100)
+	—
+	—
+	
+
+	9
+	AiPriority
+	nvarchar(20)
+	—
+	—
+	
+
+	10
+	AiSummary
+	nvarchar(2000)
+	—
+	—
+	
+
+	11
+	AiUncheckedScope
+	nvarchar(2000)
+	—
+	—
+	
+
+	12
+	ContentId
+	uniqueidentifier
+	Có
+	—
+	
+
+	13
+	ContentType
+	nvarchar(16)
+	Có
+	—
+	
+
+	14
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	15
+	IsCurrentPublished
+	bit
+	Có
+	—
+	
+
+	16
+	MediaReference
+	nvarchar(2000)
+	—
+	—
+	
+
+	17
+	OwnerUserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	18
+	RowVersion
+	rowversion
+	Có
+	—
+	Kiểm soát đồng thời
+	19
+	SubmittedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	20
+	SystemRejectionReason
+	nvarchar(2000)
+	—
+	—
+	
+
+	21
+	TextContent
+	nvarchar(max)
+	Có
+	—
+	
+
+	22
+	Title
+	nvarchar(200)
+	Có
+	—
+	
+
+	23
+	UpdatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	24
+	Version
+	int
+	Có
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE ContentId; INDEX AdminReviewStatus, SubmittedAt; UNIQUE ContentId, Version; INDEX OwnerUserId, SubmittedAt.
+25. PantryItems
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	CustomName
+	nvarchar(120)
+	—
+	—
+	
+
+	4
+	IngredientId
+	uniqueidentifier
+	—
+	FK → Ingredients
+	
+
+	5
+	Quantity
+	decimal(12,3)
+	—
+	—
+	
+
+	6
+	Unit
+	nvarchar(40)
+	—
+	—
+	
+
+	7
+	UpdatedAt
+	datetimeoffset
+	—
+	—
+	
+
+	8
+	UserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX IngredientId; UNIQUE UserId, CustomName; UNIQUE UserId, IngredientId.
+26. PasswordResetTokens
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	TokenHash
+	nvarchar(64)
+	Có
+	PK
+	
+
+	2
+	ConsumedAtUtc
+	datetimeoffset
+	—
+	—
+	
+
+	3
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	4
+	ExpiresAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	5
+	UserId
+	nvarchar(450)
+	Có
+	FK → Users
+	
+
+	
+
+Chỉ mục: INDEX ExpiresAtUtc; INDEX UserId, CreatedAtUtc.
+27. Recipes
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CaloriesPerServing
+	decimal(12,3)
+	—
+	—
+	
+
+	3
+	CarbohydrateGramPerServing
+	decimal(12,3)
+	—
+	—
+	
+
+	4
+	CategoryId
+	uniqueidentifier
+	Có
+	FK → Categories
+	
+
+	5
+	CookTimeMinutes
+	int
+	Có
+	—
+	
+
+	6
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	7
+	DeclaredDietaryType
+	int
+	—
+	—
+	
+
+	8
+	Description
+	nvarchar(2000)
+	—
+	—
+	
+
+	9
+	FatGramPerServing
+	decimal(12,3)
+	—
+	—
+	
+
+	10
+	ImageUrl
+	nvarchar(2048)
+	—
+	—
+	
+
+	11
+	Instructions
+	nvarchar(max)
+	Có
+	—
+	
+
+	12
+	IsActive
+	bit
+	Có
+	—
+	
+
+	13
+	Name
+	nvarchar(120)
+	Có
+	—
+	
+
+	14
+	PrepTimeMinutes
+	int
+	Có
+	—
+	
+
+	15
+	ProteinGramPerServing
+	decimal(12,3)
+	—
+	—
+	
+
+	16
+	Servings
+	int
+	Có
+	—
+	
+
+	17
+	UpdatedAt
+	datetimeoffset
+	—
+	—
+	
+
+	
+
+Chỉ mục: INDEX CategoryId; UNIQUE Name.
+28. RecipeIngredients
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	RecipeId
+	uniqueidentifier
+	Có
+	PK, FK → Recipes
+	
+
+	2
+	IngredientId
+	uniqueidentifier
+	Có
+	PK, FK → Ingredients
+	
+
+	3
+	Note
+	nvarchar(500)
+	—
+	—
+	
+
+	4
+	Quantity
+	decimal(12,3)
+	Có
+	—
+	
+
+	5
+	Unit
+	nvarchar(40)
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX IngredientId.
+29. Restaurants
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	Address
+	nvarchar(300)
+	Có
+	—
+	
+
+	3
+	ContactPhone
+	nvarchar(40)
+	—
+	—
+	
+
+	4
+	CreatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	5
+	DataUpdatedAt
+	datetimeoffset
+	Có
+	—
+	
+
+	6
+	Description
+	nvarchar(2000)
+	—
+	—
+	
+
+	7
+	District
+	nvarchar(120)
+	—
+	—
+	
+
+	8
+	ImageUrl
+	nvarchar(2048)
+	—
+	—
+	
+
+	9
+	IsActive
+	bit
+	Có
+	—
+	
+
+	10
+	Latitude
+	decimal(9,6)
+	—
+	—
+	
+
+	11
+	Longitude
+	decimal(9,6)
+	—
+	—
+	
+
+	12
+	Name
+	nvarchar(120)
+	Có
+	—
+	
+
+	13
+	OpeningHours
+	nvarchar(1000)
+	—
+	—
+	
+
+	14
+	PriceFromVnd
+	int
+	—
+	—
+	
+
+	15
+	PriceToVnd
+	int
+	—
+	—
+	
+
+	16
+	Source
+	nvarchar(500)
+	—
+	—
+	
+
+	17
+	UpdatedAt
+	datetimeoffset
+	—
+	—
+	
+
+	18
+	WebsiteUrl
+	nvarchar(2048)
+	—
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE Name.
+30. RestaurantAmenities
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	Name
+	nvarchar(120)
+	Có
+	—
+	
+
+	3
+	RestaurantId
+	uniqueidentifier
+	Có
+	FK → Restaurants
+	
+
+	
+
+Chỉ mục: UNIQUE RestaurantId, Name.
+31. RestaurantDietaryTypes
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	RestaurantId
+	uniqueidentifier
+	Có
+	PK, FK → Restaurants
+	
+
+	2
+	DietaryType
+	int
+	Có
+	PK
+	
+
+	
+
+32. RestaurantFeaturedDishes
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	DisplayOrder
+	int
+	Có
+	—
+	
+
+	3
+	ImageUrl
+	nvarchar(2048)
+	Có
+	—
+	
+
+	4
+	Name
+	nvarchar(120)
+	Có
+	—
+	
+
+	5
+	RestaurantId
+	uniqueidentifier
+	Có
+	FK → Restaurants
+	
+
+	
+
+Chỉ mục: UNIQUE RestaurantId, DisplayOrder; UNIQUE RestaurantId, Name.
+33. RevokedAccessTokens
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	TokenId
+	nvarchar(32)
+	Có
+	PK
+	
+
+	2
+	ExpiresAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX ExpiresAtUtc.
+34. Users
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	nvarchar(450)
+	Có
+	PK
+	
+
+	2
+	ActiveSessionId
+	nvarchar(32)
+	—
+	—
+	
+
+	3
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	4
+	Email
+	nvarchar(254)
+	Có
+	—
+	
+
+	5
+	FullName
+	nvarchar(150)
+	Có
+	—
+	
+
+	6
+	IsLocked
+	bit
+	Có
+	—
+	
+
+	7
+	LockReason
+	nvarchar(1000)
+	—
+	—
+	
+
+	8
+	LockedAtUtc
+	datetimeoffset
+	—
+	—
+	
+
+	9
+	NormalizedEmail
+	nvarchar(254)
+	Có
+	—
+	
+
+	10
+	PasswordHash
+	nvarchar(1000)
+	Có
+	—
+	
+
+	11
+	PhoneNumber
+	nvarchar(30)
+	—
+	—
+	
+
+	12
+	RefreshTokenHash
+	nvarchar(64)
+	—
+	—
+	
+
+	13
+	Role
+	nvarchar(16)
+	Có
+	—
+	
+
+	14
+	SessionExpiresAtUtc
+	datetimeoffset
+	—
+	—
+	
+
+	15
+	TokenVersion
+	int
+	Có
+	—
+	
+
+	16
+	UpdatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	
+
+Chỉ mục: UNIQUE ActiveSessionId; UNIQUE NormalizedEmail; INDEX CreatedAtUtc, Id.
+35. UserAllergies
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	Name
+	nvarchar(150)
+	Có
+	—
+	
+
+	4
+	NormalizedName
+	nvarchar(150)
+	Có
+	—
+	
+
+	5
+	UserId
+	nvarchar(450)
+	Có
+	FK → UserProfiles
+	
+
+	
+
+Chỉ mục: UNIQUE UserId, NormalizedName.
+36. UserAvoidedFoods
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	Name
+	nvarchar(150)
+	Có
+	—
+	
+
+	4
+	NormalizedName
+	nvarchar(150)
+	Có
+	—
+	
+
+	5
+	UserId
+	nvarchar(450)
+	Có
+	FK → UserProfiles
+	
+
+	
+
+Chỉ mục: UNIQUE UserId, NormalizedName.
+37. UserProfiles
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	UserId
+	nvarchar(450)
+	Có
+	PK, FK → Users
+	
+
+	2
+	ActivityLevel
+	nvarchar(20)
+	—
+	—
+	
+
+	3
+	BirthDate
+	date
+	—
+	—
+	
+
+	4
+	Diet
+	nvarchar(16)
+	—
+	—
+	
+
+	5
+	HeightCm
+	decimal(5,2)
+	—
+	—
+	
+
+	6
+	RestaurantArea
+	nvarchar(200)
+	—
+	—
+	
+
+	7
+	SexForEnergyEstimate
+	nvarchar(16)
+	—
+	—
+	
+
+	8
+	UpdatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	9
+	WeightGoal
+	nvarchar(16)
+	—
+	—
+	
+
+	10
+	WeightKg
+	decimal(6,2)
+	—
+	—
+	
+
+	
+
+38. Videos
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	Id
+	uniqueidentifier
+	Có
+	PK
+	
+
+	2
+	CategoryId
+	uniqueidentifier
+	—
+	—
+	
+
+	3
+	CreatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	4
+	Description
+	nvarchar(max)
+	Có
+	—
+	
+
+	5
+	MediaKey
+	nvarchar(200)
+	—
+	—
+	
+
+	6
+	OwnerUserId
+	nvarchar(450)
+	Có
+	—
+	
+
+	7
+	PublishedCategoryId
+	uniqueidentifier
+	—
+	—
+	
+
+	8
+	PublishedSubmissionId
+	uniqueidentifier
+	—
+	—
+	
+
+	9
+	PublishedThumbnailKey
+	nvarchar(200)
+	—
+	—
+	
+
+	10
+	ThumbnailKey
+	nvarchar(200)
+	—
+	—
+	
+
+	11
+	Title
+	nvarchar(200)
+	Có
+	—
+	
+
+	12
+	UpdatedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	13
+	UploadStatus
+	nvarchar(24)
+	Có
+	—
+	
+
+	14
+	ViewCount
+	bigint
+	Có
+	—
+	
+
+	
+
+Chỉ mục: INDEX PublishedSubmissionId; INDEX OwnerUserId, CreatedAtUtc.
+39. VideoMediaMetadata
+#
+	Tên cột
+	Kiểu SQL
+	NN
+	PK/FK
+	Ghi chú
+	1
+	MediaKey
+	nvarchar(200)
+	Có
+	PK
+	
+
+	2
+	CheckedAtUtc
+	datetimeoffset
+	Có
+	—
+	
+
+	3
+	DurationSeconds
+	float
+	—
+	—
+	
+
+	4
+	HasAudio
+	bit
+	—
+	—
+	
+
+	
+
+Page |
