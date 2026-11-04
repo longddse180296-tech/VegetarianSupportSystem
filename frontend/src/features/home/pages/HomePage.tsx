@@ -1,4 +1,5 @@
 // Chức năng: trang chủ và thông tin giới thiệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   ArrowRight,
@@ -416,7 +417,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               >
                 {/* Image & Tag */}
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
-                  {recipe.imageUrl ? <img
+                  {recipe.imageUrl ? <ContentImage
                     src={recipe.imageUrl}
                     alt={recipe.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
@@ -518,7 +519,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               >
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
                   {vid.imageUrl ? (
-                    <img
+                    <ContentImage
                       src={vid.imageUrl}
                       alt={vid.title}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
@@ -635,7 +636,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                     {res.imageUrl ? (
-                      <img
+                      <ContentImage
                         src={res.imageUrl}
                         alt={res.title}
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
@@ -738,7 +739,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
             >
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                 {art.imageUrl ? (
-                  <img
+                  <ContentImage
                     src={art.imageUrl}
                     alt={art.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"

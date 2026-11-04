@@ -7,6 +7,7 @@ import { VideoFileMetadata } from '../components/VideoFileMetadata'
 import { formatVideoDuration } from '../utils/videoMetadata'
 import {
   createVideo,
+  deleteVideo,
   getPrivateMediaUrl,
   listVideoCategories,
   listVideos,
@@ -249,7 +250,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
           <div className="space-y-4">
             {visible.map((video) => {
               const status = statusOf(video)
-              const editable = status.key !== 'pending'
+              const editable = status.key !== 'pending' && video.adminReviewStatus !== 'Removed'
               // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return <article key={video.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm:flex-row">
                 <VideoThumbnail video={video} />
@@ -265,10 +266,23 @@ export default function MyVideosPage({ onNavigate }: Props) {
                   <p className="mt-1 line-clamp-2 text-sm text-slate-600">{video.description}</p>
                   {video.adminReason && <p className="mt-2 rounded-lg bg-orange-50 p-2 text-sm text-orange-800">Phản hồi Admin: {video.adminReason}</p>}
                   <div className="mt-4 flex flex-wrap gap-2">
+                    {video.adminReviewStatus !== 'Removed' && <Button size="sm" variant="ghost" disabled={saving}
+                      className="text-rose-600 hover:bg-rose-50" onClick={async () => {
+                        if (!window.confirm('Xóa video này? Video sẽ ngừng hiển thị công khai và không thể khôi phục trên giao diện.')) return
+                        setSaving(true)
+                        setError(null)
+                        setNotice(null)
+                        try {
+                          await deleteVideo(video.id)
+                          setRefresh((value) => value + 1)
+                          setNotice('Đã xóa video. Nội dung đã gửi duyệt được giữ trong lịch sử với trạng thái Đã gỡ.')
+                        } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể xóa video.') }
+                        finally { setSaving(false) }
+                      }}>Xóa video</Button>}
                     {status.key === 'published' && <Button size="sm" variant="outline" onClick={() => onNavigate?.(`/videos/${video.id}`)}>Xem video</Button>}
-                    {editable && <Button size="sm" variant="outline" onClick={() => startEdit(video)}>Chỉnh sửa / tải tệp</Button>}
+                    {editable && <Button size="sm" variant="outline" disabled={saving} onClick={() => startEdit(video)}>Chỉnh sửa / tải tệp</Button>}
                     {editable && video.uploadStatus === 'Ready' && status.key !== 'published' &&
-                      <Button size="sm" variant="primary" onClick={() => void sendDraft(video)}>Gửi Admin duyệt</Button>}
+                      <Button size="sm" variant="primary" disabled={saving} onClick={() => void sendDraft(video)}>Gửi Admin duyệt</Button>}
                   </div>
                 </div>
               </article>

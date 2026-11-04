@@ -102,6 +102,18 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
     public async Task<ModerationSubmission?> SubmitAsync(Guid id, string userId,
         ModerationService moderationService, CancellationToken ct)
     {
+        ModerationSubmission? result = null;
+        // Giữ khóa đọc đến khi gửi xong để không tạo submission mới sau thao tác xóa ở phiên khác.
+        await moderation.ExecuteInTransactionAsync(async token =>
+        {
+            result = await SubmitWithinTransactionAsync(id, userId, moderationService, token);
+        }, ct);
+        return result;
+    }
+
+    private async Task<ModerationSubmission?> SubmitWithinTransactionAsync(Guid id, string userId,
+        ModerationService moderationService, CancellationToken ct)
+    {
         var video = await GetOwnedAsync(id, userId, ct);
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (video is null) return null;
@@ -208,6 +220,8 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
     private async Task EnsureEditable(Video video, CancellationToken ct)
     {
         var latest = await moderation.GetLatestForContentAsync(video.Id, ct);
+        if (latest?.AdminReviewStatus == AdminReviewStatus.Removed)
+            throw new InvalidOperationException("Video đã bị xóa hoặc gỡ, không thể chỉnh sửa hay gửi duyệt lại.");
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (latest?.AdminReviewStatus is AdminReviewStatus.Submitted or AdminReviewStatus.PendingAdminReview)
             throw new InvalidOperationException("Video đang được kiểm duyệt. Vui lòng chờ kết quả trước khi chỉnh sửa.");

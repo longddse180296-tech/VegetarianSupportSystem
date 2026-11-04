@@ -123,26 +123,12 @@ function VideoCommentLike({
   )
 }
 
-const CURATED_THUMBNAILS = [
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
-]
-
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanPrefix); thuộc video, bản nháp và nội dung công khai.
 function cleanPrefix(text?: string | null): string {
   if (!text) return ''
   return text.replace(/^\[Chế độ:[^\]]+\]\s*/i, '').replace(/^\[Mẫu\]\s*/i, '').trim()
 }
 
-// Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getFallbackThumbnail); thuộc video, bản nháp và nội dung công khai.
-function getFallbackThumbnail(id: string): string {
-  const hash = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  return CURATED_THUMBNAILS[hash % CURATED_THUMBNAILS.length]
-}
 
 // Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (formatDate); thuộc video, bản nháp và nội dung công khai.
 function formatDate(dateStr?: string | null): string {
@@ -446,7 +432,7 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
             <video
               key={video.id}
               src={video.mediaUrl ?? undefined}
-              poster={video.thumbnailUrl ?? getFallbackThumbnail(video.id)}
+              poster={video.thumbnailUrl?.trim() || undefined}
               controls
               preload="metadata"
               className="h-full w-full object-contain"

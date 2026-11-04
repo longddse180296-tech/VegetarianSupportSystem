@@ -1,4 +1,5 @@
 // Chức năng: tra cứu và quản lý nhà hàng. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import React from 'react'
 import { ArrowRight, Clock, MapPin } from 'lucide-react'
 import type { Restaurant, RestaurantDietType } from '../types/restaurant.types'
@@ -34,8 +35,6 @@ function dietPillClass(d: string): string {
   return DIET_TAG_CLASS[d] ?? 'bg-[#F8FAF8] text-[#4B5563] border-[#E5E7EB]'
 }
 
-const FALLBACK_RESTAURANT_IMG = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
-
 // Thành phần RestaurantCard nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc tra cứu và quản lý nhà hàng.
 export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   restaurant,
@@ -48,10 +47,6 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   isSelected = false,
   showDistance = false,
 }) => {
-  // Lưu dữ liệu và trạng thái thao tác của tra cứu và quản lý nhà hàng trong vòng đời màn hình.
-  const [imgError, setImgError] = React.useState(false)
-  const displayImage = imgError || !restaurant.imageUrl ? FALLBACK_RESTAURANT_IMG : restaurant.imageUrl
-
   // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleCTAClick); thuộc tra cứu và quản lý nhà hàng.
   const handleCTAClick = (e?: React.MouseEvent) => {
     e?.stopPropagation()
@@ -96,11 +91,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
             className="relative block overflow-hidden rounded-[16px] w-[130px] sm:w-[165px] h-[135px] sm:h-[145px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             aria-label={`Mở chi tiết nhà hàng ${cleanName}`}
           >
-            <img
-              src={displayImage}
+            <ContentImage
+              src={restaurant.imageUrl}
               alt={cleanName}
               loading="lazy"
-              onError={() => setImgError(true)}
               className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
           </div>
@@ -212,11 +206,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   return (
     <article className="group flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/80 shadow-xs hover:shadow-md">
       <div className="relative overflow-hidden rounded-[14px] aspect-[4/3] bg-slate-900">
-        <img
-          src={displayImage}
+        <ContentImage
+          src={restaurant.imageUrl}
           alt={cleanName}
           loading="lazy"
-          onError={() => setImgError(true)}
           className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
         />
       </div>

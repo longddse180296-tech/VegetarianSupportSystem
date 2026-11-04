@@ -1,6 +1,8 @@
 // Chức năng: bài viết và phiên bản gửi duyệt. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using System.Security.Claims;
 using Application.Features.Articles;
+using Application.Features.Moderation;
+using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -53,10 +55,10 @@ public sealed class ArticlesController(ArticleService service) : ControllerBase
     // Delete: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
     [Authorize(Roles = "User,Admin")]
     [HttpDelete("/api/me/articles/{id:guid}")]
-    public Task<IActionResult> Delete(Guid id, CancellationToken ct) =>
+    public Task<IActionResult> Delete(Guid id, [FromServices] OwnerContentDeletionService deletion, CancellationToken ct) =>
         WithOwnerResult(async owner =>
         {
-            await service.DeleteAsync(id, owner, ct);
+            await deletion.DeleteAsync(ModeratedContentType.Article, id, owner, ct);
             return NoContent();
         });
 

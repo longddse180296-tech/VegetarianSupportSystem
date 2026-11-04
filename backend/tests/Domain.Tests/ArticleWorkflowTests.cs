@@ -28,7 +28,7 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
-    public async Task OtherAuthorCannotReadUpdateOrDelete()
+    public async Task OtherAuthorCannotReadOrUpdate()
     {
         var article = new Article("owner", "First", "Original", "Health", null, DateTimeOffset.UtcNow);
         var service = new ArticleService(new SingleArticleRepository(article), new ModerationService(new EmptyModerationRepository(), new EmptyVideoPublication()));
@@ -38,13 +38,11 @@ public sealed class ArticleWorkflowTests
             () => service.GetMineAsync(article.Id, "other", CancellationToken.None))).Error);
         Assert.Equal(ArticleError.NotFound, (await Assert.ThrowsAsync<ArticleException>(
             () => service.UpdateAsync(article.Id, "other", request, CancellationToken.None))).Error);
-        Assert.Equal(ArticleError.NotFound, (await Assert.ThrowsAsync<ArticleException>(
-            () => service.DeleteAsync(article.Id, "other", CancellationToken.None))).Error);
         Assert.Equal("First", article.DraftTitle);
     }
 
     [Fact]
-    public async Task PendingSubmissionCannotBeEditedOrDeleted()
+    public async Task PendingSubmissionCannotBeEdited()
     {
         var now = DateTimeOffset.UtcNow;
         var article = new Article("owner", "First", "Original", "Health", null, now);
@@ -54,8 +52,6 @@ public sealed class ArticleWorkflowTests
 
         Assert.Equal(ArticleError.Conflict, (await Assert.ThrowsAsync<ArticleException>(
             () => service.UpdateAsync(article.Id, "owner", new("Changed", "Text", "Health", null), CancellationToken.None))).Error);
-        Assert.Equal(ArticleError.Conflict, (await Assert.ThrowsAsync<ArticleException>(
-            () => service.DeleteAsync(article.Id, "owner", CancellationToken.None))).Error);
     }
 
     [Fact]

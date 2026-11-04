@@ -1,4 +1,5 @@
 // Chức năng: tủ bếp và nguyên liệu sẵn có. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import {
   AlertTriangle,
@@ -1151,14 +1152,10 @@ function MatchCard({
         onKeyDown={onKey(onViewRecipe)}
         className="relative block w-full cursor-pointer overflow-hidden bg-slate-100"
       >
-        <img
+        <ContentImage
           src={m.cover}
           alt={m.title}
           loading="lazy"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src =
-              'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
-          }}
           className="h-[175px] w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {/* Top badges */}

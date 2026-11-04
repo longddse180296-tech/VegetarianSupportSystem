@@ -1,4 +1,5 @@
 // Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
@@ -635,13 +636,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                   className="group flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xs transition hover:-translate-y-0.5 hover:border-emerald-500/40"
                 >
                   <div className="h-[160px] w-full overflow-hidden bg-slate-100">
-                    <img
+                    <ContentImage
                       src={art.imageUrl}
                       alt={art.title}
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80'
-                      }}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                     />
                   </div>
@@ -689,12 +686,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                     className="group flex flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xs transition hover:-translate-y-0.5 hover:border-emerald-500/40"
                   >
                     <div className="relative flex h-[160px] w-full items-center justify-center overflow-hidden bg-slate-900">
-                      <img
+                      <ContentImage
                         src={vid.imageUrl}
                         alt={vid.title}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                        }}
                         className="h-full w-full object-cover opacity-75 transition duration-300 group-hover:opacity-90"
                       />
                       <button
@@ -754,13 +748,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                   className="flex items-center justify-between gap-4 rounded-[18px] border border-slate-200 bg-white p-4 shadow-xs transition hover:border-emerald-500/40"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <img
+                    <ContentImage
                       src={rest.imageUrl}
                       alt={rest.name}
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80'
-                      }}
                       className="h-16 w-16 rounded-[14px] object-cover shrink-0"
                     />
                     <div className="min-w-0">

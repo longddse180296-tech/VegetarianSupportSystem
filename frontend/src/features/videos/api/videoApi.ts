@@ -57,10 +57,8 @@ function mapBackendVideo(d: BackendVideoDetails): Video {
     category: 'cooking-tutorial',
     dietType: d.dietType || inferVideoDietType(d.title, d.description) || undefined,
     videoUrl: d.mediaUrl || `/api/videos/${d.id}/media`,
-    thumbnailUrl:
-      d.thumbnailUrl ||
-      `/api/videos/${d.id}/thumbnail` ||
-      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+    // Thiếu ảnh bìa phải giữ rỗng để giao diện hiện đúng trạng thái thiếu ảnh.
+    thumbnailUrl: d.thumbnailUrl?.trim() || '',
     duration: formatVideoDuration(d.durationSeconds),
     durationSeconds: d.durationSeconds ?? 0,
     hasAudio: d.hasAudio,
