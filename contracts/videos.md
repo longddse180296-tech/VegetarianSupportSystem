@@ -25,6 +25,7 @@ JSON dùng camelCase; enum moderation là tên string. Các endpoint ghi cần J
 | GET | `/api/me/videos?page=1&pageSize=20`, `/api/me/videos/{id}` | Danh sách/chi tiết của owner. Người khác nhận 404. |
 | POST | `/api/me/videos` | Tạo nháp `{title,description,categoryId?}`. |
 | PUT | `/api/me/videos/{id}` | Sửa metadata nháp. |
+| DELETE | `/api/me/videos/{id}` | Xóa video của chính chủ ở mọi trạng thái, trả 204; xem quy tắc xóa bên dưới. |
 | POST | `/api/me/videos/{id}/media` | `multipart/form-data`, field `file`, MP4/WEBM tối đa 200 MB. |
 | POST | `/api/me/videos/{id}/thumbnail` | `multipart/form-data`, field `file`, JPG/PNG/WEBP tối đa 10 MB. |
 | POST | `/api/me/videos/{id}/submit` | Tạo submission cho đúng video/owner/phiên bản; vào hàng đợi Admin ngay, không gọi AI. |
@@ -34,3 +35,14 @@ JSON dùng camelCase; enum moderation là tên string. Các endpoint ghi cần J
 Với video, `aiFlagStatus=NotSubmitted`, các trường kết quả AI là `null`, `adminReviewStatus=PendingAdminReview` ngay sau submit. Admin xem trực tiếp media và dùng `POST /api/admin/moderation/submissions/{submissionId}/decisions` để `Approve`, `RequestRevision` hoặc `Reject`, có lý do. Video chưa duyệt không xuất hiện ở API công khai; owner/Admin vẫn xem được media riêng tư. Các video đã gửi theo luồng cũ được chuyển sang hàng đợi Admin bằng migration `VideoAdminOnlyModeration`. Bài viết vẫn giữ luồng AI riêng.
 
 Lỗi: 400 dữ liệu/tệp sai, 401 thiếu token, 403 sai role, 404 không thuộc owner/chưa công khai, 409 đang chờ duyệt hoặc trạng thái không cho phép, 503 storage không khả dụng. Ảnh/video riêng tư không đọc được chỉ bằng media URL. Bản Published cũ vẫn được phục vụ khi bản sửa đang chờ duyệt.
+
+
+## Chủ sở hữu xóa nội dung (04/11/2026)
+
+- DELETE yêu cầu JWT User/Admin và chính chủ nội dung; Admin không dùng endpoint này để xóa nội dung của người khác. Guest trả 401; ID không tồn tại hoặc không thuộc chủ sở hữu trả 404.
+- Nháp chưa từng gửi duyệt được xóa vật lý. Nội dung đã gửi được xóa mềm: toàn bộ phiên bản chuyển Removed, IsCurrentPublished=false; video xóa con trỏ xuất bản. Không phân biệt đang AI kiểm tra, chờ Admin, đã xuất bản, cần sửa hay bị từ chối.
+- Thao tác trả 204, lặp lại trên nội dung đã gửi đã gỡ vẫn trả 204. Xóa nháp lần hai trả 404 vì nháp không còn tồn tại. Xung đột cập nhật trả 409.
+- Xóa toàn bộ favorite trỏ đến ID bài viết/video thật trong cùng giao dịch. Giữ bản ghi nội dung, snapshot, media riêng tư, bình luận và quyết định kiểm duyệt để đối chiếu; không tạo quyết định Admin giả cho hành động User.
+- Nội dung đã gửi vẫn nằm trong lịch sử của chủ sở hữu với trạng thái Đã gỡ; không thể sửa/gửi duyệt lại. Public detail, media, nội dung liên quan, ghim nổi bật và tương tác không còn truy cập nội dung đã gỡ. Owner/Admin vẫn xem được dữ liệu lịch sử theo quyền riêng tư hiện có.
+- Loại bản đã gỡ khỏi worker AI; kết quả AI đến muộn và quyết định Admin đến muộn không được khôi phục nội dung. Giao dịch xóa/gửi duyệt giữ khóa phạm vi phiên bản để tránh phát sinh phiên bản mới sau khi xóa.
+- Không đổi schema SQL hoặc thêm role. Quy tắc mới thay giới hạn chỉ xóa nháp chưa gửi trước đây.

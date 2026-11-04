@@ -545,9 +545,8 @@ export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMat
         id: s.recipeId,
         title: s.recipeName,
         subtitle: `${s.totalTimeMinutes} phút · ${s.servings} khẩu phần`,
-        cover:
-          s.imageUrl ||
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+        // Gợi ý chỉ dùng ảnh thật của công thức; không tự bổ sung ảnh ngoài dữ liệu.
+        cover: s.imageUrl?.trim() || '',
         timeMin: s.totalTimeMinutes,
         kcal: s.caloriesPerServing === null ? null : Math.round(s.caloriesPerServing),
         tag: 'Gợi ý từ tủ bếp',

@@ -53,6 +53,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
         await dbContext.ModerationSubmissions.AsNoTracking()
             .Where(x => x.ContentType == ModeratedContentType.Article &&
                 x.AiFlagStatus == AiFlagStatus.Checking &&
+                x.AdminReviewStatus == AdminReviewStatus.Submitted &&
                 !dbContext.ModerationSubmissions.Any(newer =>
                     newer.ContentId == x.ContentId && newer.Version > x.Version))
             .OrderBy(x => x.SubmittedAt).Select(x => x.Id).Take(count)
@@ -124,8 +125,13 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        await operation(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+        try
+        {
+            await operation(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (SqlException ex) when (ex.Number == 1205)
+        { throw new ModerationException(ModerationError.Conflict, "Nội dung đang thay đổi ở phiên khác. Vui lòng tải lại và thử lại."); }
     }
 }

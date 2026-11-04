@@ -92,9 +92,8 @@ function mapDietType(dt: string | number): Exclude<RestaurantDietType, 'all'> {
 
 // Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapSummaryToRestaurant); thuộc tra cứu và quản lý nhà hàng.
 function mapSummaryToRestaurant(item: BackendRestaurantSummary): Restaurant {
-  const fallbackImg =
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
-  const img = item.imageUrl || fallbackImg
+  // Chỉ giữ URL từ API; ảnh thiếu được thể hiện bằng trạng thái giao diện.
+  const img = item.imageUrl?.trim() || ''
   const dist = item.distanceKm == null ? null : Number(item.distanceKm)
   const dietTypes = (item.dietaryTypes || []).map(mapDietType)
 
@@ -140,9 +139,8 @@ function mapSummaryToRestaurant(item: BackendRestaurantSummary): Restaurant {
 
 // Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (mapDetailToRestaurant); thuộc tra cứu và quản lý nhà hàng.
 function mapDetailToRestaurant(item: BackendRestaurantResponse): Restaurant {
-  const fallbackImg =
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
-  const img = item.imageUrl || fallbackImg
+  // Chỉ giữ URL từ API; ảnh thiếu được thể hiện bằng trạng thái giao diện.
+  const img = item.imageUrl?.trim() || ''
   const dist = item.distanceKm == null ? null : Number(item.distanceKm)
   const dietTypes = (item.dietaryTypes || []).map(mapDietType)
 

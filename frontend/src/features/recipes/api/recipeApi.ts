@@ -26,6 +26,7 @@ export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlog
         title: string
         description?: string
         imageUrl?: string
+        coverImageUrl?: string | null
         authorName?: string
       }>
     }>('/api/articles?pageSize=3', { requiresAuth: false })
@@ -34,9 +35,8 @@ export async function getRelatedArticles(_recipeId: string): Promise<RelatedBlog
         id: a.id,
         title: a.title,
         excerpt: a.description || 'Bài viết chia sẻ kinh nghiệm dinh dưỡng và lối sống ăn chay an lành.',
-        imageUrl:
-          a.imageUrl ||
-          'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600&q=80',
+        // API bài viết trả coverImageUrl; giữ rỗng khi chưa có ảnh thay vì dùng ảnh món ăn khác.
+        imageUrl: a.coverImageUrl?.trim() || a.imageUrl?.trim() || '',
         author: a.authorName || 'Chưa có tên tác giả',
         readTime: '',
         publishedAt: '',
@@ -66,9 +66,7 @@ export async function getRelatedVideos(_recipeId: string): Promise<RelatedVideoC
       return res.items.slice(0, 3).map((v) => ({
         id: v.id,
         title: v.title,
-        imageUrl:
-          v.thumbnailUrl ||
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+        imageUrl: v.thumbnailUrl?.trim() || '',
         duration: formatVideoDuration(v.durationSeconds) || (v.metadataStatus === 'Processing' ? 'Đang xử lý' : ''),
         channel: v.authorName || 'Chưa có tên tác giả',
       }))
@@ -96,9 +94,7 @@ export async function getRelatedRestaurants(_recipeId: string): Promise<RelatedR
         id: r.id,
         name: r.name,
         address: r.address,
-        imageUrl:
-          r.imageUrl ||
-          'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80',
+        imageUrl: r.imageUrl?.trim() || '',
         distanceKm: typeof r.distanceKm === 'number' && Number.isFinite(r.distanceKm) ? r.distanceKm : null,
       }))
     }

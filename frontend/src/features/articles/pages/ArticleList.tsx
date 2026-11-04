@@ -1,4 +1,5 @@
 // Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import { PageHeading, Badge, Button, Input, EmptyState, SkeletonCard } from '../../../shared/components'
 import { useState, useEffect, useMemo } from 'react'
 import { ArrowRight, BookOpen, Calendar, Leaf, Plus, RotateCcw, Search, Sparkles } from 'lucide-react'
@@ -313,7 +314,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
                 {/* Left: Aspect 16/10 Image */}
                 <div className="relative aspect-[16/10] w-full lg:w-[420px] shrink-0 overflow-hidden rounded-[18px] bg-slate-100 shadow-xs">
                   {featured.imageUrl ? (
-                    <img
+                    <ContentImage
                       src={featured.imageUrl}
                       alt={featured.title}
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
@@ -413,7 +414,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
               >
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                   {item.coverImageUrl ? (
-                    <img
+                    <ContentImage
                       src={item.coverImageUrl}
                       alt={item.title}
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"

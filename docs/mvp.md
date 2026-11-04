@@ -85,6 +85,7 @@ Quyền phải kiểm tra ở phía hệ thống, không chỉ ẩn nút trên g
 
 - Tìm kiếm, lọc danh mục/thời lượng, xem chi tiết và video liên quan; thích, lưu, chia sẻ bằng liên kết.
 - User tải video, nhập tiêu đề/mô tả/danh mục/ảnh đại diện, lưu nháp, xem trước và gửi duyệt.
+- Cập nhật theo yêu cầu nhóm 04/11/2026: User xóa bài viết/video của mình ở mọi trạng thái. Nháp chưa gửi được xóa vật lý; nội dung đã gửi chuyển toàn bộ phiên bản sang Removed, ngừng công khai và giữ lịch sử kiểm duyệt. Không cho sửa/gửi lại nội dung đã gỡ.
 - Thể hiện xử lý tệp, lỗi tải lên, chờ Admin, yêu cầu sửa, bị từ chối, đã xuất bản và đã gỡ.
 - Xem số lượt xem và tương tác thực tế; không cần trang phân tích nâng cao riêng cho MVP.
 - Không có theo dõi kênh hoặc tóm tắt video thành công thức trong MVP. Trích lời nói phục vụ kiểm duyệt là xử lý nội bộ, không phải tính năng tóm tắt video cho User.

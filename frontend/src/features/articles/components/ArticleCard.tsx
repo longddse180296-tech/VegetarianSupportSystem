@@ -1,4 +1,5 @@
 // Chức năng: bài viết và phiên bản gửi duyệt. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
+import { ContentImage } from '../../../shared/components/ContentImage'
 import React from 'react'
 import type { ArticleSummary } from '../types/article.types'
 
@@ -18,7 +19,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onSelect }) =
     >
       {/* Thumbnail */}
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-gray-100">
-        <img
+        <ContentImage
           src={article.thumbnailUrl}
           alt={article.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

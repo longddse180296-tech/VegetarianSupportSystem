@@ -1,5 +1,6 @@
 // Chức năng: video, bản nháp và nội dung công khai. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
-import React, { useState } from 'react'
+import { ContentImage } from '../../../shared/components/ContentImage'
+import React from 'react'
 import { Play, PlayCircle } from 'lucide-react'
 import { Button, StatusBadge } from '../../../shared/components'
 import type { Video, VideoModerationStatus } from '../types/video.types'
@@ -18,16 +19,6 @@ export interface VideoCardProps {
   onNavigate?: (path: string) => void
   isLarge?: boolean
 }
-
-// Curated high-resolution culinary photography for default vegetarian video covers
-const CURATED_THUMBNAILS = [
-  'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80', // Vibrant green salad bowl
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80', // Tofu Buddha bowl
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80', // Colorful veggie plate
-  'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=800&q=80', // Vegan stir fry
-  'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80', // Fragrant plant-based soup
-  'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80', // Fresh roasted vegetables
-]
 
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (cleanPrefix); thuộc video, bản nháp và nội dung công khai.
 function cleanPrefix(text?: string | null): string {
@@ -89,9 +80,6 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   onNavigate,
   isLarge = false,
 }) => {
-  // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
-  const [imgError, setImgError] = useState(false)
-
   // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleOpen); thuộc video, bản nháp và nội dung công khai.
   const handleOpen = () => {
     if (onPlay && 'videoUrl' in video && video.videoUrl) {
@@ -113,10 +101,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     }
   }
 
-  // Chọn ảnh minh họa ổn định khi video chưa có ảnh bìa; không tạo số liệu tương tác.
-  const hash = (video.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const defaultThumbnail = CURATED_THUMBNAILS[hash % CURATED_THUMBNAILS.length]
-  const thumbnailSrc = !imgError && video.thumbnailUrl?.trim() ? video.thumbnailUrl : defaultThumbnail
+  // Ảnh bìa chỉ lấy từ dữ liệu video; component chung xử lý trường hợp thiếu hoặc tải lỗi.
 
   // Duration
   let durationDisplay = customDuration || ''
@@ -176,11 +161,10 @@ export const VideoCard: React.FC<VideoCardProps> = ({
       >
         {/* Thumbnail container */}
         <div className="relative aspect-video w-full overflow-hidden rounded-t-[19px] bg-slate-900">
-          <img
-            src={thumbnailSrc}
+          <ContentImage
+            src={video.thumbnailUrl}
             alt={title}
             loading="lazy"
-            onError={() => setImgError(true)}
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           />
           {/* Subtle gradient overlay */}

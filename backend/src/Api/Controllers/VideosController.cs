@@ -166,6 +166,20 @@ public sealed class VideosController(VideoService videos, ModerationService mode
         }
     }
 
+    // Chỉ chủ sở hữu được xóa; nội dung đã gửi được giữ lịch sử và ngừng công khai.
+    [HttpDelete("me/videos/{id:guid}")]
+    [Authorize(Roles = "User,Admin")]
+    public async Task<IActionResult> Delete(Guid id, [FromServices] OwnerContentDeletionService deletion, CancellationToken ct)
+    {
+        if (UserId is null) return Unauthorized();
+        try
+        {
+            await deletion.DeleteAsync(Domain.Enums.ModeratedContentType.Video, id, UserId, ct);
+            return NoContent();
+        }
+        catch (ModerationException ex) { return ModerationHttpError.From(ex); }
+    }
+
     // Submit: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     [HttpPost("me/videos/{id:guid}/submit")]
     [Authorize(Roles = "User,Admin")]

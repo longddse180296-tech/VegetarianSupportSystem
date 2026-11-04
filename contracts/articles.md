@@ -22,7 +22,7 @@ JSON dùng camelCase, enum trả tên chuỗi. `id` là UUID. API public không 
 | GET | `/api/me/articles/{id}` | Bản nháp hiện tại, lịch sử phiên bản, trạng thái AI/Admin, phản hồi Admin, bản đang công khai. |
 | POST | `/api/me/articles` | Tạo nháp, trả 201 và `Location` trỏ tới chi tiết của tôi. |
 | PUT | `/api/me/articles/{id}` | Sửa nháp của chính mình khi không đang AI/Admin xử lý. |
-| DELETE | `/api/me/articles/{id}` | Xóa nháp chưa từng gửi, trả 204. |
+| DELETE | `/api/me/articles/{id}` | Xóa bài viết của chính chủ ở mọi trạng thái, trả 204; xem quy tắc xóa bên dưới. |
 | POST | `/api/me/articles/{id}/submit` | Gửi bản nháp vào Moderation; tạo snapshot phiên bản, trả chi tiết của tôi. |
 
 `page` dương, `pageSize` 1–100. Danh sách trả `{ items, totalCount, page, pageSize }`. `search` và `category` tối đa 120 ký tự. Danh mục bài viết thuộc riêng bài viết; `Category` của Core Data chỉ dùng cho Recipe và không được tái sử dụng ở đây. Query `category` khớp bất kỳ danh mục nào của bài viết.
@@ -35,8 +35,19 @@ Public list item: `{ id, title, category, categories, dietaryTypes, dietaryType,
 
 Chi tiết của tôi: `{ id, title, content, category, categories, dietaryTypes, dietaryType, coverImageUrl, createdAt, updatedAt, status, publishedVersion, versions }`. Mỗi `versions` có `{ version, submissionId, aiStatus, adminStatus, aiSummary, adminFeedback, submittedAt }`; `adminFeedback` là lý do quyết định mới nhất của Admin trên phiên bản đó. `publishedVersion` null khi chưa có bản đang công khai. `status` là trạng thái Admin của phiên bản gần nhất hoặc `Draft` trước lần gửi đầu tiên. AI và Admin là hai trạng thái độc lập.
 
-Gửi duyệt dùng `ModerationService.SubmitAsync` với `contentType=Article`. Sau gửi, AI `Checking`, Admin `Submitted`. Khi AI trả `Passed`, `Flagged`, `Partial` hoặc `Failed`, bản gửi vào hàng đợi Admin; với `Failed`, Admin phải xem trực tiếp toàn bộ nội dung vì AI chưa có kết luận. BE3 xử lý AI và quyết định qua `/api/moderation/submissions` và `/api/admin/moderation/submissions`; không có endpoint xuất bản trực tiếp ở Articles. Khi Admin duyệt, phiên bản được công khai; khi yêu cầu sửa/từ chối, tác giả có thể sửa và gửi lại; khi sửa bản đã xuất bản, bản cũ vẫn công khai đến lúc bản mới được duyệt. Bản đang chờ xử lý không được sửa/gửi lại; bản đã gỡ không được sửa/gửi lại. Chỉ xóa được nháp chưa gửi.
+Gửi duyệt dùng `ModerationService.SubmitAsync` với `contentType=Article`. Sau gửi, AI `Checking`, Admin `Submitted`. Khi AI trả `Passed`, `Flagged`, `Partial` hoặc `Failed`, bản gửi vào hàng đợi Admin; với `Failed`, Admin phải xem trực tiếp toàn bộ nội dung vì AI chưa có kết luận. BE3 xử lý AI và quyết định qua `/api/moderation/submissions` và `/api/admin/moderation/submissions`; không có endpoint xuất bản trực tiếp ở Articles. Khi Admin duyệt, phiên bản được công khai; khi yêu cầu sửa/từ chối, tác giả có thể sửa và gửi lại; khi sửa bản đã xuất bản, bản cũ vẫn công khai đến lúc bản mới được duyệt. Bản đang chờ xử lý không được sửa/gửi lại; bản đã gỡ không được sửa/gửi lại. Chủ sở hữu có thể xóa ở mọi trạng thái theo quy tắc bên dưới.
 
 `Article.id` là ID bài viết dùng trên FE; `ModerationSubmission.contentId` là ID chuỗi kiểm duyệt và được lưu riêng trong Article sau lần gửi đầu tiên. `versions[].submissionId` là ID để mở kết quả/nhật ký kiểm duyệt. BE3 cần dùng đúng submission/version khi xử lý AI và quyết định; không lấy bản nháp hiện tại làm dữ liệu quyết định.
 
 Lỗi: 400 dữ liệu/phân trang không hợp lệ, 401 chưa xác thực, 403 role không phù hợp, 404 không tồn tại hoặc không thuộc chủ, 409 trạng thái hoặc phiên bản xung đột. Lỗi nghiệp vụ trả `ProblemDetails` với `detail` cho FE hiển thị.
+
+
+## Chủ sở hữu xóa nội dung (04/11/2026)
+
+- DELETE yêu cầu JWT User/Admin và chính chủ nội dung; Admin không dùng endpoint này để xóa nội dung của người khác. Guest trả 401; ID không tồn tại hoặc không thuộc chủ sở hữu trả 404.
+- Nháp chưa từng gửi duyệt được xóa vật lý. Nội dung đã gửi được xóa mềm: toàn bộ phiên bản chuyển Removed, IsCurrentPublished=false; video xóa con trỏ xuất bản. Không phân biệt đang AI kiểm tra, chờ Admin, đã xuất bản, cần sửa hay bị từ chối.
+- Thao tác trả 204, lặp lại trên nội dung đã gửi đã gỡ vẫn trả 204. Xóa nháp lần hai trả 404 vì nháp không còn tồn tại. Xung đột cập nhật trả 409.
+- Xóa toàn bộ favorite trỏ đến ID bài viết/video thật trong cùng giao dịch. Giữ bản ghi nội dung, snapshot, media riêng tư, bình luận và quyết định kiểm duyệt để đối chiếu; không tạo quyết định Admin giả cho hành động User.
+- Nội dung đã gửi vẫn nằm trong lịch sử của chủ sở hữu với trạng thái Đã gỡ; không thể sửa/gửi duyệt lại. Public detail, media, nội dung liên quan, ghim nổi bật và tương tác không còn truy cập nội dung đã gỡ. Owner/Admin vẫn xem được dữ liệu lịch sử theo quyền riêng tư hiện có.
+- Loại bản đã gỡ khỏi worker AI; kết quả AI đến muộn và quyết định Admin đến muộn không được khôi phục nội dung. Giao dịch xóa/gửi duyệt giữ khóa phạm vi phiên bản để tránh phát sinh phiên bản mới sau khi xóa.
+- Không đổi schema SQL hoặc thêm role. Quy tắc mới thay giới hạn chỉ xóa nháp chưa gửi trước đây.
