@@ -1,9 +1,9 @@
 // Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
-import { PageHeading, Badge, Button, Input, EmptyState, SkeletonCard } from '../../../shared/components'
+import { PageHeading, Badge, Button, Input, EmptyState, SkeletonCard, Pagination } from '../../../shared/components'
 import { useState, useEffect, useMemo } from 'react'
 import { ArrowRight, BookOpen, Calendar, Leaf, Plus, RotateCcw, Search, Sparkles } from 'lucide-react'
-import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
+import { Feedback } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
 import { getPublicFeaturedContent, type FeaturedContentItem } from '../../../shared/api/featuredContentApi'
 import { primaryClass } from '../../admin/utils/apiUi'
@@ -94,6 +94,18 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
     }
     return items
   }, [items, showFeatured, featuredIds])
+
+  const totalCount = result.data?.totalCount ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / 9))
+
+  // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (handlePageChange); thuộc bài viết và phiên bản gửi duyệt.
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage)
+    const el = document.getElementById('articles-list-section')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
@@ -383,7 +395,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
       {/* =========================================================================
        * 2. SECTION: TẤT CẢ BÀI VIẾT (LƯỚI 3 CỘT)
        * ========================================================================= */}
-      <section className="space-y-4 pt-2">
+      <section id="articles-list-section" className="space-y-4 pt-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
@@ -474,15 +486,12 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
           )
         )}
 
-        {result.data && result.data.totalCount > 9 && (
-          <div className="pt-6 flex justify-center">
-            <Pager
-              page={page}
-              pageSize={9}
-              total={result.data?.totalCount || 0}
-              onChange={setPage}
-            />
-          </div>
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         )}
       </section>
     </div>

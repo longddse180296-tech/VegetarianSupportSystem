@@ -633,25 +633,10 @@ export const MealPlanDetailPage = ({
 
           {/* Thanh công cụ hành động */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Tạm thời ẩn nút Tạo lại toàn bộ theo yêu cầu */}
             <button
               disabled={busy}
               className={actionButtonClass}
-              onClick={() =>
-                void act(async () => {
-                  setPlan(await mealPlanApi.regenerate(plan.id))
-                  setNotice('Đã tạo lại và lưu toàn bộ 21 bữa mới.')
-                })
-              }
-            >
-              <RefreshCw
-                size={15}
-                className={busy ? 'animate-spin text-[#2E7D32]' : 'text-slate-600'}
-              />
-              Tạo lại toàn bộ
-            </button>
-            <button
-              disabled={busy}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-xs font-bold text-[#2E7D32] hover:bg-emerald-100/80 shadow-xs transition-all disabled:opacity-50"
               onClick={() =>
                 void act(async () => {
                   const items = await mealPlanApi.shoppingList(plan.id)
@@ -661,7 +646,7 @@ export const MealPlanDetailPage = ({
                 })
               }
             >
-              <ShoppingCart size={15} />
+              <ShoppingCart size={15} className="text-slate-600" />
               Danh sách đi chợ
             </button>
             <button
@@ -1002,8 +987,7 @@ export const MealPlanDetailPage = ({
             </div>
 
             <p className="text-xs text-slate-500 leading-relaxed">
-              Số lượng cần mua đã tự động đối soát và trừ đi nguyên liệu bạn có sẵn
-              trong Tủ bếp. Đánh dấu đã mua áp dụng cho nguyên liệu của cả tuần và được lưu ngay vào hệ thống.
+              Danh sách nguyên liệu cần chuẩn bị cho thực đơn. Đánh dấu đã mua áp dụng cho nguyên liệu của cả tuần và được lưu ngay vào hệ thống.
             </p>
 
             {shoppingDay !== null && (
@@ -1048,8 +1032,7 @@ export const MealPlanDetailPage = ({
                       {item.ingredientName}
                     </span>
                     <small className="block text-slate-500 text-xs">
-                      Cần: {item.requiredQuantity} {item.unit} · Có trong tủ:{' '}
-                      {item.pantryQuantity} {item.unit}
+                      Cần: {item.requiredQuantity} {item.unit}
                     </small>
                   </div>
                   <strong
