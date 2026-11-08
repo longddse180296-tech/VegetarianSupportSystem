@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
 import { Select } from '../../../shared/components/Select'
-import { Button, EmptyState } from '../../../shared/components'
-import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
+import { Button, EmptyState, Pagination } from '../../../shared/components'
+import { Feedback } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
 import { errorMessage, formatDate } from '../../admin/utils/apiUi'
 import {
@@ -227,12 +227,13 @@ export const MyArticlesPage = ({
           )
         )}
 
-        <Pager
-          page={page}
-          pageSize={6}
-          total={result.data?.totalCount || 0}
-          onChange={setPage}
-        />
+        {Math.ceil((result.data?.totalCount || 0) / 6) > 1 && (
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil((result.data?.totalCount || 0) / 6)}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </UserProfileShell>
   )
