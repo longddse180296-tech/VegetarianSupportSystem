@@ -1,3 +1,4 @@
+// BE2-02 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (danh mục: tên, mô tả và trạng thái sử dụng).
 // Chức năng: danh mục nội dung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Api.Authorization;
 using Application.Features.Categories;

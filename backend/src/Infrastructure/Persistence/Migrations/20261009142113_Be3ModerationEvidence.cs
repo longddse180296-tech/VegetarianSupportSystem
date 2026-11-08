@@ -1,3 +1,4 @@
+// BE2-07 | Migration dùng chung chứa dữ liệu bằng chứng cho luồng gắn cờ bài viết BE2-10.
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
 // Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 ﻿using Microsoft.EntityFrameworkCore.Migrations;

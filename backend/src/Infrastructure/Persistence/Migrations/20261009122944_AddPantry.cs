@@ -1,3 +1,4 @@
+// BE2-07 | Tạo bảng tủ bếp gắn với tài khoản và nguyên liệu.
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
 // Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 ﻿using System;

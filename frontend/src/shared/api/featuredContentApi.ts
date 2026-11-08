@@ -1,3 +1,4 @@
+// BE2-06 | Kết nối trang chủ và màn hình Admin với API nội dung nổi bật.
 // Chức năng: giao diện và thành phần dùng chung. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from './apiClient'
 

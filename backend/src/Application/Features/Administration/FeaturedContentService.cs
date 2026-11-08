@@ -1,3 +1,4 @@
+// BE2-06 | Lấy danh sách nội dung nổi bật và xử lý yêu cầu ghim hoặc bỏ ghim của Admin.
 // Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Domain.Enums;

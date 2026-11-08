@@ -1,3 +1,4 @@
+// BE2-02/03/04/05 | Áp dụng chính sách xác thực Admin cho API quản lý danh mục, nguyên liệu, công thức và nhà hàng.
 // Chức năng: kiểm tra quyền truy cập. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;

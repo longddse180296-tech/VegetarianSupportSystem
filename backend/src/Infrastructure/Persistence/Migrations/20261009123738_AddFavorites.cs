@@ -1,3 +1,4 @@
+// BE2-07 | Tạo bảng lưu mục yêu thích theo tài khoản.
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
 // Chức năng: danh sách nội dung yêu thích. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 ﻿using System;

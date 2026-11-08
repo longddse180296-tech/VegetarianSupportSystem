@@ -1,3 +1,4 @@
+// BE2-06 | Đồng bộ thao tác lưu công thức với API và ghi nguồn lưu từ Recipes hoặc Pantry.
 // Chức năng: lưu công thức từ trang Công thức/Tủ bếp vào cùng mục đã lưu của tài khoản hiện tại.
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../auth'

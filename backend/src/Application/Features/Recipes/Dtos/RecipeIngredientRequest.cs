@@ -1,3 +1,4 @@
+// BE2-01/04 | Dữ liệu đầu vào từ API (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
 // Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;

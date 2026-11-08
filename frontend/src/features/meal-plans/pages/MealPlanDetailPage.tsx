@@ -1,3 +1,4 @@
+// BE2-09 | Hiển thị lịch theo ngày và điều phối thao tác đổi món, đi chợ, tải PDF.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import {

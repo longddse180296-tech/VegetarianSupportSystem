@@ -1,3 +1,4 @@
+// BE2-03 | Màn hình quản lý thông tin nguyên liệu, bằng chứng chế độ ăn và dinh dưỡng.
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState } from 'react'
 import { Pencil, Plus, Lock, Unlock, Leaf, Flame, Eye } from 'lucide-react'

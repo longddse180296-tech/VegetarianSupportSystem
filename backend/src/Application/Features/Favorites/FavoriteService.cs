@@ -1,3 +1,4 @@
+// BE2-06 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (yêu thích: công thức, video và nhà hàng theo tài khoản).
 // Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Application.Common.Exceptions;
 using Domain.Entities;

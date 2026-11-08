@@ -1,3 +1,4 @@
+// BE2-06 | Triển khai truy vấn và lưu dữ liệu EF Core cho nội dung được Admin ghim lên trang chủ.
 // Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using System.Data;
 using Application.Common.Exceptions;

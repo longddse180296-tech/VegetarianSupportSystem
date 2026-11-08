@@ -1,3 +1,4 @@
+// BE2-10 | Đọc ảnh bìa để đưa vào yêu cầu Gemini khi ảnh có thể kiểm tra.
 // Đọc ảnh đại diện đã upload để kiểm duyệt; không tải URL tùy ý hoặc đọc đường dẫn do người dùng cung cấp.
 using Application.Abstractions.AI;
 using Application.Features.Media;

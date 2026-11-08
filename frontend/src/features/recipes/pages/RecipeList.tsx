@@ -1,3 +1,4 @@
+// BE2-01/06 | Hiển thị danh sách công thức từ API public, bộ lọc và thao tác lưu món.
 // Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, ChefHat, Sparkles, UtensilsCrossed } from 'lucide-react'

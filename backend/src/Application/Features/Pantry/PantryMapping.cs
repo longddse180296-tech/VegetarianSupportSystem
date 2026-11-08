@@ -1,3 +1,4 @@
+// BE2-08 | Chuyển dữ liệu nghiệp vụ sang dạng API trả về (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
 // Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Entities;
 using Domain.Enums;

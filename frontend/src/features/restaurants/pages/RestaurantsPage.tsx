@@ -1,3 +1,4 @@
+// BE2-05 | Hiển thị kết quả tìm nhà hàng, bộ lọc vị trí và chế độ ăn.
 // Chức năng: tra cứu và quản lý nhà hàng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useRef, useState } from 'react'
 import {

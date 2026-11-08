@@ -1,3 +1,4 @@
+// BE2-01/06 | Hiển thị chi tiết công thức, định lượng, dinh dưỡng và trạng thái đã lưu.
 // Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import React, { useEffect, useMemo, useState } from 'react'

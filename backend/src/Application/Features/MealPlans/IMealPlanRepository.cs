@@ -1,3 +1,4 @@
+// BE2-09 | Hợp đồng đọc và ghi dữ liệu mà service sử dụng (thực đơn tuần, dinh dưỡng, danh sách mua và PDF).
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Entities;
 

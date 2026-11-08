@@ -1,3 +1,4 @@
+// BE2-08 | Client của API tủ bếp, đồng thời chứa quy tắc từ khóa để giao diện đề xuất nguyên liệu thay thế.
 // Chức năng: tủ bếp và nguyên liệu sẵn có. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type {
@@ -191,6 +192,7 @@ export function evaluateIngredientForDiet(
 }
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getSubstitutionForIngredient); thuộc tủ bếp và nguyên liệu sẵn có.
+// BE2-08 | Gợi ý thay thế hiển thị trên tủ bếp tra từ khóa trong tên nguyên liệu và trả lựa chọn viết sẵn.
 export function getSubstitutionForIngredient(
   name: string,
   _diet?: CoreDietType,

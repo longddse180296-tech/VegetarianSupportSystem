@@ -1,3 +1,4 @@
+// BE2-06 | Triển khai truy vấn và lưu dữ liệu EF Core cho mục yêu thích và chủ sở hữu.
 // Chức năng: danh sách nội dung yêu thích. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Common.Exceptions;
 using Application.Features.Favorites;

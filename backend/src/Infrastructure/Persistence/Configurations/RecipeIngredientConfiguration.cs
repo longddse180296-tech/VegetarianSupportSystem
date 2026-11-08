@@ -1,3 +1,4 @@
+// BE2-04/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu liên kết công thức với nguyên liệu, số lượng và đơn vị.
 // Chức năng: công thức và định lượng nguyên liệu. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;

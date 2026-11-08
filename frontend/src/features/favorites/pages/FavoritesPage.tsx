@@ -1,3 +1,4 @@
+// BE2-06 | Hiển thị và quản lý mục đã lưu của tài khoản hiện tại.
 // Chức năng: danh sách nội dung yêu thích. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState } from 'react'
 import {

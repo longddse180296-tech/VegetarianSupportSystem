@@ -1,3 +1,4 @@
+// BE2-02 | Hộp thoại nhập dữ liệu để tạo hoặc sửa danh mục.
 // Chức năng: danh mục nội dung. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useId, useState } from 'react'
 import { Check, LoaderCircle } from 'lucide-react'

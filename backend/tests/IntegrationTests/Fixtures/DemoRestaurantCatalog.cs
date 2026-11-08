@@ -1,3 +1,4 @@
+// BE2-05/07 | Dữ liệu nhà hàng mẫu để kiểm tra vị trí, chế độ ăn và trạng thái.
 using Domain.Entities;
 using Domain.Enums;
 

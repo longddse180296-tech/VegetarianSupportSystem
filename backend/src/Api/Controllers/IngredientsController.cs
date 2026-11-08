@@ -1,3 +1,4 @@
+// BE2-03 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Api.Authorization;
 using Application.Features.Ingredients;

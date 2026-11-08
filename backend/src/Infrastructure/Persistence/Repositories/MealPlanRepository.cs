@@ -1,3 +1,4 @@
+// BE2-09 | Triển khai truy vấn và lưu dữ liệu EF Core cho lịch tuần và bản chụp món, nguyên liệu, số lượng mua.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Features.MealPlans;
 using Domain.Entities;

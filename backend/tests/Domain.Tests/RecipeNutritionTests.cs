@@ -1,3 +1,4 @@
+// BE2-04 | Kiểm tra tỷ lệ định lượng và kết quả dinh dưỡng theo khẩu phần.
 using System.ComponentModel.DataAnnotations;
 using Application.Features.Recipes;
 using Domain.Entities;

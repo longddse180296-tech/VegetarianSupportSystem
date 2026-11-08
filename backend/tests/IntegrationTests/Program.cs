@@ -261,6 +261,7 @@ try
     }
 
     DietaryChecks.Run(Check);
+    // BE2-07 | Dựng schema cũ để kiểm tra bản ghi cũ vẫn đúng nghĩa sau khi áp dụng migration mới.
     await db.GetService<IMigrator>().MigrateAsync("20261002044444_InitialCoreData");
     var legacyId = Guid.NewGuid();
     var legacyCalories = new SqlParameter("@legacyCalories", System.Data.SqlDbType.Decimal)

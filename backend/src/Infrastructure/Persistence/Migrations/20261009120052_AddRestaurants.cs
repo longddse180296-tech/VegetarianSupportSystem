@@ -1,3 +1,4 @@
+// BE2-07 | Tạo bảng lưu nhà hàng và dữ liệu vị trí.
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
 // Chức năng: tra cứu và quản lý nhà hàng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 ﻿using System;

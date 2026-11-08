@@ -110,6 +110,7 @@ public sealed class ModerationSubmission
     }
 
     // RecordAiResult: Ghi kết quả AI độc lập với quyết định xuất bản của Admin.
+    // BE2-10 | Lưu trạng thái và bằng chứng AI rồi chuyển bản gửi sang chờ Admin duyệt.
     public void RecordAiResult(
         AiFlagStatus status,
         string summary,

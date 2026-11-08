@@ -1,3 +1,4 @@
+// BE2-05/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu địa chỉ, tọa độ, chế độ ăn công bố và trạng thái nhà hàng.
 // Chức năng: tra cứu và quản lý nhà hàng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;

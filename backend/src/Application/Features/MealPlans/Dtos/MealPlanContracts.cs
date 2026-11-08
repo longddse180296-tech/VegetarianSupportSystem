@@ -1,3 +1,4 @@
+// BE2-09 | Kiểu dữ liệu cho tạo lịch, đổi món, danh sách mua và tổng dinh dưỡng (thực đơn tuần, dinh dưỡng, danh sách mua và PDF).
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Domain.Enums;

@@ -1,3 +1,4 @@
+// BE2-07 | Bổ sung số lần đổi món của một bữa.
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 ﻿using Microsoft.EntityFrameworkCore.Migrations;

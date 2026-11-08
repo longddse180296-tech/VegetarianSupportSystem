@@ -1,3 +1,4 @@
+// BE2-05 | Kiểm tra bộ lọc nhà hàng theo tọa độ và khoảng cách.
 // Xác minh sắp xếp gần nhất ở server trước phân trang; thiếu tọa độ không bị hiểu là cách 0 km.
 using Application.Features.Restaurants;
 using Domain.Entities;

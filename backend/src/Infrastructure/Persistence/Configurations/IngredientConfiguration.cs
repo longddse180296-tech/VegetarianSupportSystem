@@ -1,3 +1,4 @@
+// BE2-03/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu nguồn gốc, dị nguyên và mốc dinh dưỡng của nguyên liệu.
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;

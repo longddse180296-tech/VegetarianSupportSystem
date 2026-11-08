@@ -1,3 +1,4 @@
+// BE2-02 | Tham số lọc, phân trang hoặc giới hạn kết quả (danh mục: tên, mô tả và trạng thái sử dụng).
 // Chức năng: danh mục nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 

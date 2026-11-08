@@ -1,3 +1,4 @@
+// BE2-06 | Mô hình nghiệp vụ lưu mục yêu thích và chủ sở hữu.
 // Chức năng: danh sách nội dung yêu thích. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 

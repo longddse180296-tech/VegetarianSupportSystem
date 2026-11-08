@@ -1,3 +1,4 @@
+// BE2-05 | Form nhập địa chỉ, tọa độ, món nổi bật và chế độ ăn của nhà hàng.
 // Chức năng: tra cứu và quản lý nhà hàng. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useState } from 'react'
 import {

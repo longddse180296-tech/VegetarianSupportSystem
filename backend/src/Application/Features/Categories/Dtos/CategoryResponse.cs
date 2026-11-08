@@ -1,3 +1,4 @@
+// BE2-02 | Dữ liệu trả về cho giao diện (danh mục: tên, mô tả và trạng thái sử dụng).
 // Chức năng: danh mục nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 namespace Application.Features.Categories;
 

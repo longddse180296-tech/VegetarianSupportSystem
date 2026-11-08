@@ -1,3 +1,4 @@
+// BE2-07 | Dữ liệu danh mục, nguyên liệu và công thức dùng để kiểm tra các luồng BE2.
 using Domain.Entities;
 using Domain.Enums;
 

@@ -1,3 +1,4 @@
+// BE2-09 | Gọi API thực đơn cho tạo, tạo lại, đổi món, đi chợ và xuất PDF.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient, ApiError, getStoredToken } from '../../../shared/api/apiClient'
 import type { PlanDiet, PlanPage, PlanShoppingItem, ReplacementRecipe, SavedPlan, SavedPlanMeal, SavedPlanSummary } from '../types/mealPlanBackend.types'

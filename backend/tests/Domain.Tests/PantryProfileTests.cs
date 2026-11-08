@@ -1,3 +1,4 @@
+// BE2-08 | Kiểm tra đối chiếu tủ bếp và công thức với chế độ ăn, dị ứng và thực phẩm cần tránh.
 // Tủ bếp đối chiếu chế độ ăn/dị ứng mà không yêu cầu BMI hoặc dữ liệu cơ thể.
 using Application.Features.Pantry;
 using Domain.Entities;

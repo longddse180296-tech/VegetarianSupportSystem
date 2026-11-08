@@ -1,3 +1,4 @@
+// BE2-09 | Kiểm tra cách tổng hợp và phân bổ lượng nguyên liệu cần mua theo thực đơn.
 using System.ComponentModel.DataAnnotations;
 using Application.Features.MealPlans;
 using Domain.Entities;

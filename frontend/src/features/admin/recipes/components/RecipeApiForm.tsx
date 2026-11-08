@@ -1,3 +1,4 @@
+// BE2-04 | Form tạo/sửa gửi thông tin công thức và URL ảnh. Dinh dưỡng xem trước lấy qua SignalR.
 // Chức năng: công thức và định lượng nguyên liệu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useEffect, useState } from 'react'
 import { BookOpen, Check, ChefHat, Leaf, LoaderCircle, Plus, BarChart3, Trash2 } from 'lucide-react'

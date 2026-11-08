@@ -1,3 +1,4 @@
+// BE2-09 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (thực đơn tuần, dinh dưỡng, danh sách mua và PDF).
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -19,6 +20,7 @@ public sealed class MealPlanService(IMealPlanRepository repository)
         if (string.IsNullOrWhiteSpace(request.Name) || request.WeekStartDate == default) throw new ValidationException("Vui lòng nhập tên thực đơn và chọn ngày bắt đầu.");
         var profile = await repository.GetProfileAsync(userId, ct) ?? throw new ConflictException("Vui lòng lưu chế độ ăn trong hồ sơ trước khi tạo thực đơn.");
         if (profile.Diet is null) throw new ConflictException("Vui lòng lưu chế độ ăn trong hồ sơ trước khi tạo thực đơn.");
+        // BE2-09 | Lưu điều kiện hồ sơ cùng thực đơn. Tạo lịch hiện lấy món theo tên và quay vòng nếu thiếu 21 món.
         var snapshot = ProfileSnapshot.From(profile);
         var recipes = (await repository.GetActiveRecipesAsync(ct)).Where(r => IsUsable(r, snapshot)).OrderBy(r => r.Name).ToArray();
         if (recipes.Length == 0) throw new ConflictException("Chưa có công thức phù hợp với chế độ ăn, dị ứng và thực phẩm cần tránh trong hồ sơ. Bạn có thể kiểm tra lại thông tin đã khai báo hoặc thử khi kho công thức được bổ sung.");
@@ -61,6 +63,7 @@ public sealed class MealPlanService(IMealPlanRepository repository)
     public async Task<MealPlanResponse> RegenerateAsync(string userId, Guid id, CancellationToken ct)
     {
         var plan = await FindAsync(userId, id, ct);
+        // BE2-09 | Tạo lại bằng hồ sơ đã lưu cùng lịch, sau đó tính lại danh sách mua.
         var snapshot = ReadSnapshot(plan);
         var recipes = (await repository.GetActiveRecipesAsync(ct)).Where(recipe => IsUsable(recipe, snapshot)).OrderBy(recipe => recipe.Name).ToArray();
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
@@ -162,6 +165,7 @@ public sealed class MealPlanService(IMealPlanRepository repository)
         }
     }
     // RebuildShoppingAsync: Tổng hợp nguyên liệu của thực đơn và trừ lượng tủ bếp có thể đối chiếu.
+    // BE2-09 | Cộng lượng cần theo nguyên liệu và đơn vị, trừ lượng có trong tủ, giữ số cần mua tối thiểu bằng 0.
     private async Task RebuildShoppingAsync(MealPlan plan,string user,CancellationToken ct) { plan.ShoppingItems.Clear(); var pantry=(await repository.GetPantryAsync(user,ct)).Where(x=>x.IngredientId.HasValue&&x.Quantity.HasValue).GroupBy(x=>new{x.IngredientId,x.Unit}).ToDictionary(x=>x.Key,x=>x.Sum(y=>y.Quantity!.Value)); foreach(var g in plan.Meals.SelectMany(x=>x.Ingredients).GroupBy(x=>new{x.IngredientId,x.IngredientName,x.Unit})) { pantry.TryGetValue(new { IngredientId=(Guid?)g.Key.IngredientId, Unit=(string?)g.Key.Unit },out var have); var need=g.Sum(x=>x.Quantity); plan.ShoppingItems.Add(new MealPlanShoppingItem{IngredientId=g.Key.IngredientId,IngredientName=g.Key.IngredientName,Unit=g.Key.Unit,RequiredQuantity=need,PantryQuantity=have,QuantityToBuy=Math.Max(0,need-have)}); } }
     // Snapshot: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static MealPlanMeal Snapshot(Recipe r,int day,MealSlot slot,int servings,int swapCount = 0)=>new(){DayNumber=day,Slot=slot,RecipeId=r.Id,RecipeName=r.Name,ImageUrl=r.ImageUrl,Servings=servings,SwapCount=swapCount,TotalTimeMinutes=r.PrepTimeMinutes+r.CookTimeMinutes,CaloriesPerServing=r.CaloriesPerServing,ProteinGramPerServing=r.ProteinGramPerServing,CarbohydrateGramPerServing=r.CarbohydrateGramPerServing,FatGramPerServing=r.FatGramPerServing,Ingredients=r.RecipeIngredients.Select(x=>new MealPlanMealIngredient{IngredientId=x.IngredientId,IngredientName=x.Ingredient!.Name,Quantity=x.Quantity*servings,Unit=x.Unit}).ToList()};

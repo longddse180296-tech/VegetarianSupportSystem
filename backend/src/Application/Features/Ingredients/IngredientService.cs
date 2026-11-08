@@ -1,3 +1,4 @@
+// BE2-03 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Exceptions;

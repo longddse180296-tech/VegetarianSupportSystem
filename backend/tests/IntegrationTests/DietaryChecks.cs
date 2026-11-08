@@ -1,3 +1,4 @@
+// BE2-03/07 | Đối chiếu kết quả phân loại bốn chế độ ăn với nguồn gốc và bằng chứng nguyên liệu.
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Rules;

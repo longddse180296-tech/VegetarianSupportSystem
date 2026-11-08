@@ -1,3 +1,4 @@
+// BE2-02 | Triển khai truy vấn và lưu dữ liệu EF Core cho danh mục và trạng thái còn sử dụng.
 // Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Common.Exceptions;
 using Application.Features.Categories;

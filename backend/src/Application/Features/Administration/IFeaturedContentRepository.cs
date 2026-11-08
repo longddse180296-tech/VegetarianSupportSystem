@@ -1,3 +1,4 @@
+// BE2-06 | Hợp đồng lấy nội dung nổi bật và lưu trạng thái ghim.
 // Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Enums;
 

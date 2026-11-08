@@ -1,3 +1,4 @@
+// BE2-01/04/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu thông tin món, số khẩu phần và dinh dưỡng mỗi khẩu phần.
 // Chức năng: công thức và định lượng nguyên liệu. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;

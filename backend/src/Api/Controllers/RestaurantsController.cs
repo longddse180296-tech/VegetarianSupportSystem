@@ -1,3 +1,4 @@
+// BE2-05 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (nhà hàng: danh mục public và quản trị, vị trí và chế độ ăn).
 // Chức năng: tra cứu và quản lý nhà hàng. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Api.Authorization;
 using Application.Features.Restaurants;

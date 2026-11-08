@@ -1,3 +1,4 @@
+// BE2-05 | Dữ liệu trả về cho giao diện (nhà hàng: danh mục public và quản trị, vị trí và chế độ ăn).
 // Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Enums;
 

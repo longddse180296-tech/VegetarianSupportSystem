@@ -1,3 +1,4 @@
+// BE2-08 | Giao diện CRUD tủ bếp, cảnh báo hồ sơ, gợi ý món nấu và nguyên liệu thay thế.
 // Chức năng: tủ bếp và nguyên liệu sẵn có. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'

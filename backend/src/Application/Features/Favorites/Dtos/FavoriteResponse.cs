@@ -1,3 +1,4 @@
+// BE2-06 | Dữ liệu trả về cho giao diện (yêu thích: công thức, video và nhà hàng theo tài khoản).
 // Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Domain.Enums;
 

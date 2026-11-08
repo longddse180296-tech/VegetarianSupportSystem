@@ -1,3 +1,4 @@
+// BE2-03 | Mô hình nghiệp vụ lưu nguồn gốc, dị nguyên và mốc dinh dưỡng của nguyên liệu.
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 

@@ -1,3 +1,4 @@
+// BE2-01/04 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
 // Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Application.Common.Exceptions;
 using Application.Common.Validation;

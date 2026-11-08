@@ -1,3 +1,4 @@
+// BE2-03 | Kết quả danh sách và thông tin phân trang (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 namespace Application.Features.Ingredients;
 

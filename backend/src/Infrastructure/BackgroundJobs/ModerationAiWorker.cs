@@ -1,3 +1,4 @@
+// BE2-10 | Worker xử lý bản gửi duyệt mới nhất đang chờ AI và lưu kết quả kiểm tra cho Admin.
 // Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Abstractions.AI;
 using Application.Features.Moderation;

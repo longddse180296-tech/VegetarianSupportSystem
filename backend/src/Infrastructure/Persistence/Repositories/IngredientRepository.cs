@@ -1,3 +1,4 @@
+// BE2-03 | Triển khai truy vấn và lưu dữ liệu EF Core cho nguồn gốc, dị nguyên và mốc dinh dưỡng của nguyên liệu.
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using Application.Common.Exceptions;
 using Application.Features.Ingredients;

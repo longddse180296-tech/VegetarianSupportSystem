@@ -1,3 +1,4 @@
+// BE2-05 | Gọi API tìm nhà hàng theo bộ lọc và các thao tác quản lý nhà hàng.
 // Chức năng: tra cứu và quản lý nhà hàng. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type {

@@ -1,3 +1,4 @@
+// BE2-04 | Màn hình quản trị danh sách công thức và các thao tác thêm, sửa, ngừng sử dụng.
 // Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import { Plus, Pencil, Lock, Unlock, Eye, BookOpen } from 'lucide-react'

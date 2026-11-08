@@ -1,3 +1,4 @@
+// BE2-01/04 | Gửi bộ lọc công thức public và dữ liệu tạo hoặc sửa công thức qua API.
 // Chức năng: công thức và định lượng nguyên liệu. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type { SelectOption } from '../../../shared/components'

@@ -166,6 +166,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
     // Called by a trusted backend AI worker after it has performed a real check.
     // It is intentionally not exposed as an HTTP endpoint.
     // RecordAiResultAsync: Ghi kết quả AI độc lập với quyết định xuất bản của Admin.
+    // BE2-10 | Ghi cờ, lý do và phạm vi kiểm tra AI độc lập với quyết định duyệt của Admin.
     public async Task<ModerationSubmission> RecordAiResultAsync(
         Guid submissionId,
         ModerationAiResult result,

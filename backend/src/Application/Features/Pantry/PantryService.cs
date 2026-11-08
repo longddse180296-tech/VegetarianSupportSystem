@@ -1,3 +1,4 @@
+// BE2-08 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
 // Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Application.Common.Exceptions;
 using Domain.Entities;
@@ -58,6 +59,7 @@ public sealed class PantryService(IPantryRepository repository)
     {
         PantryValidation.Validate(query);
         var profile = await repository.GetProfileAsync(userId, ct);
+        // BE2-08 | Điểm khớp đếm loại nguyên liệu theo ID. Số lượng trong tủ không tham gia xếp hạng.
         var pantryIds = (await repository.ListAsync(userId, ct)).Where(item => item.IngredientId.HasValue)
             .Select(item => item.IngredientId!.Value).ToHashSet();
         var recipes = await repository.GetActiveRecipesAsync(ct);
@@ -77,6 +79,7 @@ public sealed class PantryService(IPantryRepository repository)
             return [];
 
         var profile = await repository.GetProfileAsync(userId, ct);
+        // BE2-08 | Ứng viên thay thế từ catalog phải cùng đơn vị mặc định và qua điều kiện hồ sơ.
         var candidates = await repository.GetActiveIngredientsWithUnitAsync(item.Ingredient.DefaultUnit, ct);
         return candidates.Where(candidate => candidate.Id != item.IngredientId &&
                 PantryMapping.IsUsableForProfile(candidate, profile))

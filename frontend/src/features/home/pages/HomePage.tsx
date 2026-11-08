@@ -1,3 +1,4 @@
+// BE2-06 | Trang chủ đọc công thức, nhà hàng, video và nội dung nổi bật qua API public.
 // Chức năng: trang chủ và thông tin giới thiệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useState, type FormEvent } from 'react'

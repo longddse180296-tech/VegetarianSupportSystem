@@ -1,3 +1,4 @@
+// BE2-05 | Màn hình quản trị nhà hàng và trạng thái hoạt động.
 // Chức năng: tra cứu và quản lý nhà hàng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import { Eye, Pencil, Plus, Lock, Unlock, MapPin } from 'lucide-react'

@@ -1,3 +1,4 @@
+// BE2-04/07 | Kiểm tra quyền kết nối SignalR và tính lại dinh dưỡng trên cùng kết nối.
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.WebSockets;

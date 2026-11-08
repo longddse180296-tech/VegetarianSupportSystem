@@ -1,3 +1,4 @@
+// BE2-10 | Định nghĩa cấu trúc kết quả kiểm duyệt, gồm phạm vi kiểm tra và lý do gắn cờ.
 // Ràng buộc đầu ra Gemini cho kiểm tra bài viết; tránh status/tên trường hoặc kiểu dữ liệu tự suy diễn.
 using System.Text.Json;
 

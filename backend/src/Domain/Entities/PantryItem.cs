@@ -1,3 +1,4 @@
+// BE2-08 | Mô hình nghiệp vụ lưu nguyên liệu trong tủ của từng tài khoản.
 // Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 namespace Domain.Entities;
 

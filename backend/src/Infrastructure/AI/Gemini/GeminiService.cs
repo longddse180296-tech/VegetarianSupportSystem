@@ -208,6 +208,7 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
     }
 
     // CheckContentAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // BE2-10 | Kiểm tra văn bản và ảnh bìa. Ghi nhận kiểm tra một phần nếu chỉ xử lý được văn bản.
     public async Task<GeminiModerationResponse> CheckContentAsync(
         GeminiModerationRequest request,
         CancellationToken cancellationToken = default)

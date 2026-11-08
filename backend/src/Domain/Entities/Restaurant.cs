@@ -1,3 +1,4 @@
+// BE2-05 | Mô hình nghiệp vụ lưu địa chỉ, tọa độ, chế độ ăn công bố và trạng thái nhà hàng.
 // Chức năng: tra cứu và quản lý nhà hàng. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 

@@ -1,3 +1,4 @@
+// BE2-09 | Mô hình nghiệp vụ lưu lịch tuần và bản chụp món, nguyên liệu, số lượng mua.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
 using Domain.Enums;
 

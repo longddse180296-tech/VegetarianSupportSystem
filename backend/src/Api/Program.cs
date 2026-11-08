@@ -244,6 +244,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+// BE2-04 | Đăng ký endpoint SignalR tính trước dinh dưỡng cho form công thức.
 app.MapHub<RecipeNutritionHub>("/api/hubs/recipe-nutrition", options => options.CloseOnAuthenticationExpiration = true);
 
 app.Run();

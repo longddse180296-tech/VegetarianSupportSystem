@@ -64,6 +64,7 @@ public sealed class ArticlesController(ArticleService service) : ControllerBase
 
     // Submit: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     [Authorize(Roles = "User,Admin")]
+    // BE2-10 | Điểm vào luồng gửi duyệt bản nháp bài viết thuộc tài khoản hiện tại.
     [HttpPost("/api/me/articles/{id:guid}/submit")]
     public Task<IActionResult> Submit(Guid id, CancellationToken ct) =>
         WithOwner(owner => service.SubmitAsync(id, owner, ct));

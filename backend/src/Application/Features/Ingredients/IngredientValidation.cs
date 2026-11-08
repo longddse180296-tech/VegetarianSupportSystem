@@ -1,3 +1,4 @@
+// BE2-03 | Kiểm tra dữ liệu đầu vào theo quy tắc nghiệp vụ (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
 using Application.Common.Validation;
 using System.ComponentModel.DataAnnotations;

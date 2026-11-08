@@ -156,6 +156,7 @@ public sealed class AdminModerationController(
     }
 
     // GetQueue: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
+    // BE2-10 (dùng chung) | Admin xem hàng chờ duyệt, trong đó có kết quả kiểm tra AI của bài viết.
     [HttpGet("queue")]
     public async Task<IActionResult> GetQueue(
         [FromQuery] ModeratedContentType? contentType,

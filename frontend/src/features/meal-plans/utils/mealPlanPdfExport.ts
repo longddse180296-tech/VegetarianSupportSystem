@@ -1,3 +1,4 @@
+// BE2-09 | Xử lý thao tác tải hoặc xuất PDF thực đơn trên giao diện.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 import {
   addPlanDays,

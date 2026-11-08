@@ -1,3 +1,4 @@
+// BE2-05/06 | Hiển thị chi tiết nhà hàng public và hỗ trợ lưu yêu thích.
 // Chức năng: tra cứu và quản lý nhà hàng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useState } from 'react'

@@ -1,3 +1,4 @@
+// BE2-10 | Kiểm tra luồng gửi bài và nhận kết quả kiểm duyệt với Gemini live.
 // Chỉ chạy khi được yêu cầu: gửi bài tổng hợp qua HTTP và Gemini thật trên database kiểm thử riêng.
 using System.Net;
 using System.Net.Http.Json;

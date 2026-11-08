@@ -1,3 +1,4 @@
+// BE2-09 | Render thực đơn đã lưu thành PDF để người dùng tải xuống.
 // Chức năng: xuất tài liệu thực đơn. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
 using System.Globalization;
 using System.Text;

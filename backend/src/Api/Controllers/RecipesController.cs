@@ -1,3 +1,4 @@
+// BE2-01/04 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
 // Chức năng: công thức và định lượng nguyên liệu. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Api.Authorization;
 using Application.Features.Recipes;
