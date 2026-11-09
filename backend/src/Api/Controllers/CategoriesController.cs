@@ -2,6 +2,7 @@
 // Chức năng: danh mục nội dung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
 using Api.Authorization;
 using Application.Features.Categories;
+using Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
@@ -16,14 +17,14 @@ public sealed class CategoriesController(CategoryService service) : CoreDataCont
     // List: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("/api/categories")]
     [ProducesResponseType<CategoryPage>(StatusCodes.Status200OK)]
-    public Task<IActionResult> List([FromQuery] CategoryListQuery query, CancellationToken ct) =>
-        Execute(async () => Ok(await service.ListAsync(query, false, ct)));
+    public Task<IActionResult> List([FromQuery] CategoryListQuery query, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
+        Execute(async () => Ok(await service.ListAsync(query, false, ct, kind)));
 
     // Get: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("/api/categories/{id:guid}")]
     [ProducesResponseType<CategoryResponse>(StatusCodes.Status200OK)]
-    public Task<IActionResult> Get(Guid id, CancellationToken ct) =>
-        Execute(async () => Ok(await service.GetAsync(id, false, ct)));
+    public Task<IActionResult> Get(Guid id, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
+        Execute(async () => Ok(await service.GetAsync(id, false, ct, kind)));
 
     // AdminList: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [CoreDataAdmin]
@@ -31,8 +32,8 @@ public sealed class CategoriesController(CategoryService service) : CoreDataCont
     [ProducesResponseType<CategoryPage>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public Task<IActionResult> AdminList([FromQuery] CategoryListQuery query, CancellationToken ct) =>
-        Execute(async () => Ok(await service.ListAsync(query, true, ct)));
+    public Task<IActionResult> AdminList([FromQuery] CategoryListQuery query, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
+        Execute(async () => Ok(await service.ListAsync(query, true, ct, kind)));
 
     // AdminGet: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [CoreDataAdmin]
@@ -40,8 +41,8 @@ public sealed class CategoriesController(CategoryService service) : CoreDataCont
     [ProducesResponseType<CategoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public Task<IActionResult> AdminGet(Guid id, CancellationToken ct) =>
-        Execute(async () => Ok(await service.GetAsync(id, true, ct)));
+    public Task<IActionResult> AdminGet(Guid id, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
+        Execute(async () => Ok(await service.GetAsync(id, true, ct, kind)));
 
     // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [CoreDataAdmin]
@@ -49,11 +50,11 @@ public sealed class CategoriesController(CategoryService service) : CoreDataCont
     [ProducesResponseType<CategoryResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public Task<IActionResult> Create(CategoryRequest request, CancellationToken ct) =>
+    public Task<IActionResult> Create(CategoryRequest request, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
         Execute(async () =>
         {
-            var result = await service.CreateAsync(request, ct);
-            return CreatedAtAction(nameof(AdminGet), new { id = result.Id }, result);
+            var result = await service.CreateAsync(request, ct, kind);
+            return CreatedAtAction(nameof(AdminGet), new { id = result.Id, kind }, result);
         });
 
     // Update: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
@@ -62,8 +63,8 @@ public sealed class CategoriesController(CategoryService service) : CoreDataCont
     [ProducesResponseType<CategoryResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public Task<IActionResult> Update(Guid id, CategoryRequest request, CancellationToken ct) =>
-        Execute(async () => Ok(await service.UpdateAsync(id, request, ct)));
+    public Task<IActionResult> Update(Guid id, CategoryRequest request, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
+        Execute(async () => Ok(await service.UpdateAsync(id, request, ct, kind)));
 
     // Deactivate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [CoreDataAdmin]
@@ -71,10 +72,20 @@ public sealed class CategoriesController(CategoryService service) : CoreDataCont
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public Task<IActionResult> Deactivate(Guid id, CancellationToken ct) =>
+    public Task<IActionResult> Deactivate(Guid id, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
         Execute(async () =>
         {
-            await service.DeactivateAsync(id, ct);
+            await service.DeactivateAsync(id, ct, kind);
+            return NoContent();
+        });
+
+    [CoreDataAdmin]
+    [HttpPatch("/api/admin/categories/{id:guid}/activate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public Task<IActionResult> Activate(Guid id, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
+        Execute(async () =>
+        {
+            await service.SetActiveAsync(id, true, ct, kind);
             return NoContent();
         });
 }

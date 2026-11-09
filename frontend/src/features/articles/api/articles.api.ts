@@ -87,16 +87,6 @@ export interface Reaction {
   count: number
   reactedByMe: boolean
 }
-export const articleCategories = [
-  'Dinh dưỡng',
-  'Sức khỏe',
-  'Ẩm thực',
-  'Lối sống',
-  'Mẹo vặt',
-  'Thể thao',
-  'Kiến thức',
-  'Kinh nghiệm',
-]
 export const articleApi = {
   get: (id: string) =>
     apiClient.get<PublicArticleDetail>(

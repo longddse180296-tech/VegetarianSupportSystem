@@ -46,10 +46,10 @@ import { AiReview } from '../../admin/moderation/components/ModerationWorkspace'
 import { formatSystemReviewMessage } from '../../admin/moderation/utils/moderationMessages'
 import {
   articleApi,
-  articleCategories,
   type ArticleInput,
   type MyArticleRecord,
 } from '../api/articles.api'
+import { useArticleCategories } from '../hooks/useArticleCategories'
 import { RichContentRenderer } from '../components/RichContentRenderer'
 import {
   BACKEND_DIETARY_TYPE_LABELS,
@@ -167,7 +167,7 @@ export const ArticleEditorPage = ({
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const [customCategory, setCustomCategory] = useState('')
+  const articleCategories = useArticleCategories()
 
   // Chỉ theo dõi phiên bản mới nhất đang kiểm tra; không xóa form hay gọi lại Gemini khi đọc trạng thái.
   const latestVersion = Math.max(0, ...(record.data?.versions.map(version => version.version) || []))
@@ -205,12 +205,6 @@ export const ArticleEditorPage = ({
       coverImageUrl,
       dietaryType: dietaryType ?? dietaryTypes?.[0] ?? null,
     })
-    const savedCustomCategory = (categories || [category]).find(
-      (item) => item && !articleCategories.includes(item),
-    )
-    if (savedCustomCategory) {
-      setCustomCategory(savedCustomCategory)
-    }
   }
 
   const state = record.data?.status || 'Draft'
@@ -264,19 +258,6 @@ export const ArticleEditorPage = ({
         ? previous.categories.filter((item) => item !== category)
         : [...previous.categories, category],
     }))
-  }
-
-  // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (addCustomCategory); thuộc bài viết và phiên bản gửi duyệt.
-  const addCustomCategory = () => {
-    const category = customCategory.trim()
-    if (!category) return
-    setForm((previous) => ({
-      ...previous,
-      categories: previous.categories.includes(category)
-        ? previous.categories
-        : [...previous.categories, category],
-    }))
-    setCustomCategory('')
   }
 
   // Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (uploadCoverImage); thuộc bài viết và phiên bản gửi duyệt.
@@ -528,10 +509,15 @@ export const ArticleEditorPage = ({
                   )}
                 </div>
                 <p className="text-xs text-slate-500">
-                  Có thể chọn nhiều danh mục có sẵn hoặc thêm danh mục riêng:
+                  Có thể chọn nhiều danh mục đang được sử dụng.
                 </p>
+                {articleCategories.loading && <p className="text-xs text-slate-500">Đang tải danh mục...</p>}
+                {articleCategories.error && <p role="alert" className="text-xs text-rose-700">{articleCategories.error}</p>}
+                {!articleCategories.loading && !articleCategories.error && articleCategories.names.length === 0 && (
+                  <p className="text-xs text-slate-500">Chưa có danh mục bài viết đang sử dụng.</p>
+                )}
                 <div className="flex flex-wrap gap-2">
-                  {articleCategories.map((cat) => {
+                  {[...new Set([...articleCategories.names, ...form.categories])].map((cat) => {
                     const isSelected = form.categories.includes(cat)
                     // Hiển thị giao diện bài viết và phiên bản gửi duyệt từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
                     return (
@@ -551,25 +537,6 @@ export const ArticleEditorPage = ({
                       </button>
                     )
                   })}
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <input
-                    type="text"
-                    maxLength={120}
-                    placeholder="Nhập danh mục tùy biến..."
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addCustomCategory()
-                      }
-                    }}
-                    className="min-w-0 flex-1 text-sm rounded-xl border border-slate-200 px-3.5 py-2 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none"
-                  />
-                  <Button type="button" variant="outline" size="sm" onClick={addCustomCategory}>
-                    Thêm
-                  </Button>
                 </div>
               </div>
 

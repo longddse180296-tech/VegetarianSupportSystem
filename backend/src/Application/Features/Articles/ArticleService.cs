@@ -15,7 +15,9 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         if (string.IsNullOrWhiteSpace(ownerId) || ownerId.Length > 450)
             throw new ArticleException(ArticleError.Validation, "Vui lòng đăng nhập để quản lý bài viết của bạn.");
         Validate(request);
-        var article = new Article(ownerId, request.Title.Trim(), request.Content.Trim(), Categories(request),
+        var categories = Categories(request);
+        await EnsureCategoriesAvailableAsync(categories, ct);
+        var article = new Article(ownerId, request.Title.Trim(), request.Content.Trim(), categories,
             request.CoverImageUrl?.Trim(), DietaryTypes(request), DateTimeOffset.UtcNow);
         await repository.AddAsync(article, ct);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
@@ -29,11 +31,20 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         Validate(request);
         var article = await GetOwnedAsync(id, ownerId, ct);
         EnsureEditable(article);
-        article.SetDraft(request.Title.Trim(), request.Content.Trim(), Categories(request),
+        var categories = Categories(request);
+        var added = categories.Except(Categories(article.Categories), StringComparer.OrdinalIgnoreCase).ToArray();
+        await EnsureCategoriesAvailableAsync(added, ct);
+        article.SetDraft(request.Title.Trim(), request.Content.Trim(), categories,
             request.CoverImageUrl?.Trim(), DietaryTypes(request), DateTimeOffset.UtcNow);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveAsync(ct);
         return ToMine(article);
+    }
+
+    private async Task EnsureCategoriesAvailableAsync(IReadOnlyCollection<string> categories, CancellationToken ct)
+    {
+        if (categories.Count > 0 && await repository.HasInactiveCategoryAsync(categories, ct))
+            throw new ArticleException(ArticleError.Validation, "Vui lòng chọn danh mục bài viết đang được sử dụng.");
     }
 
     // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.

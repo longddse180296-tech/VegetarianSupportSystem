@@ -11,6 +11,9 @@ namespace Infrastructure.Persistence.Repositories;
 // ArticleRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
 {
+    public Task<bool> HasInactiveCategoryAsync(IReadOnlyCollection<string> names, CancellationToken ct) =>
+        db.Categories.AnyAsync(category => category.Kind == CategoryKind.Article && !category.IsActive && names.Contains(category.Name), ct);
+
     // Chỉ đối chiếu bản đã duyệt đang công khai; bỏ qua chính bài đang sửa, bài chờ duyệt và các trạng thái khác.
     public async Task<bool> HasDuplicatePublishedTitleAsync(Guid excludingArticleId, string title, CancellationToken ct)
     {

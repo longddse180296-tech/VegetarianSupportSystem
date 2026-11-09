@@ -4,14 +4,15 @@ import { useId, useState } from 'react'
 import { Check, LoaderCircle } from 'lucide-react'
 import { Modal } from '../../../../shared/components/Modal'
 import { fieldClass, primaryClass, secondaryClass } from '../../utils/apiUi'
-import type { AdminCategoryItem, CategoryFormData } from '../types/adminCategories.types'
+import { categoryKindLabels, type AdminCategoryItem, type CategoryFormData, type CategoryKind } from '../types/adminCategories.types'
 
 // Cấu trúc CategoryModalProps quy định dữ liệu trao đổi trong danh mục nội dung.
 interface CategoryModalProps {
   isOpen: boolean
   onClose: () => void
   categoryToEdit?: AdminCategoryItem | null
-  onSubmit: (data: CategoryFormData) => Promise<void>
+  currentKind: CategoryKind
+  onSubmit: (data: CategoryFormData, kind: CategoryKind) => Promise<void>
 }
 
 // Thành phần CategoryModal nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc danh mục nội dung.
@@ -19,12 +20,14 @@ export const CategoryModal = ({
   isOpen,
   onClose,
   categoryToEdit,
+  currentKind,
   onSubmit,
 }: CategoryModalProps) => {
   const formId = useId()
   // Lưu dữ liệu và trạng thái thao tác của danh mục nội dung trong vòng đời màn hình.
   const [name, setName] = useState(categoryToEdit?.name || '')
   const [description, setDescription] = useState(categoryToEdit?.description || '')
+  const [kind, setKind] = useState<CategoryKind | ''>(categoryToEdit ? currentKind : '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // Hiển thị giao diện danh mục nội dung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
@@ -33,7 +36,7 @@ export const CategoryModal = ({
       isOpen={isOpen}
       onClose={() => { if (!busy) onClose() }}
       title={categoryToEdit ? 'Chỉnh sửa danh mục' : 'Thêm danh mục'}
-      description="Phân nhóm công thức để dễ tìm kiếm và quản lý."
+      description="Mỗi danh mục thuộc một loại nội dung."
       footer={
         <>
           <button
@@ -47,7 +50,7 @@ export const CategoryModal = ({
           <button
             type="submit"
             form={formId}
-            disabled={busy || !name.trim()}
+            disabled={busy || !name.trim() || !kind}
             className={`${primaryClass} inline-flex items-center justify-center gap-2`}
           >
             {busy ? (
@@ -66,11 +69,11 @@ export const CategoryModal = ({
         aria-busy={busy}
         onSubmit={async event => {
           event.preventDefault()
-          if (busy || !name.trim()) return
+          if (busy || !name.trim() || !kind) return
           setBusy(true)
           setError(null)
           try {
-            await onSubmit({ name, description })
+            await onSubmit({ name, description }, kind)
             onClose()
           } catch (err) {
             setError(err instanceof Error ? err.message : 'Không thể lưu danh mục.')
@@ -79,6 +82,16 @@ export const CategoryModal = ({
           }
         }}
       >
+        <label className="block text-sm font-semibold text-slate-700">
+          Loại danh mục <span className="text-rose-500" aria-hidden="true">*</span>
+          <select required value={kind} disabled={busy || !!categoryToEdit}
+            onChange={event => setKind(event.target.value as CategoryKind | '')} className={fieldClass}>
+            <option value="">Chọn loại danh mục</option>
+            {Object.entries(categoryKindLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
         <label className="block text-sm font-semibold text-slate-700">
           Tên danh mục <span className="text-rose-500" aria-hidden="true">*</span>
           <input
@@ -105,7 +118,7 @@ export const CategoryModal = ({
               value={description}
               onChange={event => setDescription(event.target.value)}
               disabled={busy}
-              placeholder="Mô tả ngắn về nhóm công thức này..."
+              placeholder="Mô tả ngắn về danh mục..."
               className={`${fieldClass} resize-y font-normal`}
             />
           </label>

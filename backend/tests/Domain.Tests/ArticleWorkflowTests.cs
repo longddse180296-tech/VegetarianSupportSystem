@@ -99,6 +99,9 @@ public sealed class ArticleWorkflowTests
 
     private sealed class SingleArticleRepository(Article article, string? ownerName = null) : IArticleRepository
     {
+        public Task<bool> HasInactiveCategoryAsync(IReadOnlyCollection<string> names, CancellationToken ct) =>
+            Task.FromResult(false);
+
         public Task<bool> HasDuplicatePublishedTitleAsync(Guid excludingArticleId, string title, CancellationToken ct) => Task.FromResult(false);
         public Task<Article?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult<Article?>(article.Id == id ? article : null);
         public Task<ArticlePage<Article>> ListMineAsync(string ownerId, MyArticleListQuery query, CancellationToken ct) => throw new NotImplementedException();

@@ -63,6 +63,40 @@ internal static class CoreDataApiChecks
         Check((await client.PutAsJsonAsync("/api/admin/categories/" + Guid.NewGuid(), new CategoryRequest { Name = "Missing" })).StatusCode == HttpStatusCode.NotFound, "update missing category 404");
         Check((await client.PostAsJsonAsync("/api/admin/categories", new CategoryRequest { Name = "main" })).StatusCode == HttpStatusCode.Conflict, "case-insensitive duplicate 409");
         Check((await client.PostAsJsonAsync("/api/admin/categories", new CategoryRequest { Name = "  " })).StatusCode == HttpStatusCode.BadRequest, "blank name 400");
+        const string articleScope = "?kind=Article";
+        var articleCategoryResult = await client.PostAsJsonAsync("/api/admin/categories" + articleScope,
+            new CategoryRequest { Name = "Main" });
+        Check(articleCategoryResult.StatusCode == HttpStatusCode.Created &&
+            (await client.GetAsync(articleCategoryResult.Headers.Location)).IsSuccessStatusCode,
+            "article category allows the same name as a recipe category and returns a scoped Location");
+        var articleCategory = (await articleCategoryResult.Content.ReadFromJsonAsync<CategoryResponse>())!;
+        var articleCategoryPath = "/api/categories/" + articleCategory.Id;
+        var adminArticleCategoryPath = "/api/admin/categories/" + articleCategory.Id;
+        Check((await client.GetAsync(articleCategoryPath)).StatusCode == HttpStatusCode.NotFound &&
+            (await client.GetFromJsonAsync<CategoryPage>("/api/categories" + articleScope))!.Items.Any(item => item.Id == articleCategory.Id),
+            "article categories appear only in their own public scope");
+        Check((await client.PatchAsync(adminArticleCategoryPath + "/deactivate" + articleScope, null)).StatusCode == HttpStatusCode.NoContent &&
+            (await client.GetAsync(articleCategoryPath + articleScope)).StatusCode == HttpStatusCode.NotFound,
+            "deactivated article category is removed from public choices");
+        Check((await client.PatchAsync(adminArticleCategoryPath + "/activate" + articleScope, null)).StatusCode == HttpStatusCode.NoContent &&
+            (await client.GetAsync(articleCategoryPath + articleScope)).IsSuccessStatusCode,
+            "reactivated article category becomes available again");
+        const string videoScope = "?kind=Video";
+        var videoCategoryResult = await client.PostAsJsonAsync("/api/admin/categories" + videoScope,
+            new CategoryRequest { Name = "Main" });
+        Check(videoCategoryResult.StatusCode == HttpStatusCode.Created, "video has a separate category scope");
+        var videoCategory = (await videoCategoryResult.Content.ReadFromJsonAsync<CategoryResponse>())!;
+        var videoChoices = (await client.GetFromJsonAsync<CategoryPage>("/api/categories" + videoScope))!.Items;
+        Check(videoChoices.Any(item => item.Id == videoCategory.Id) &&
+            videoChoices.All(item => item.Id != category.Id && item.Id != articleCategory.Id),
+            "video picker excludes recipe and article categories even when names match");
+        Check((await client.PatchAsync($"/api/admin/categories/{category.Id}/deactivate", null)).StatusCode == HttpStatusCode.NoContent &&
+            (await client.GetAsync($"/api/categories/{category.Id}")).StatusCode == HttpStatusCode.NotFound &&
+            (await client.GetAsync($"/api/categories/{videoCategory.Id}{videoScope}")).IsSuccessStatusCode &&
+            (await client.GetAsync(articleCategoryPath + articleScope)).IsSuccessStatusCode,
+            "locking a recipe category leaves the same-name video and article categories active");
+        Check((await client.PatchAsync($"/api/admin/categories/{category.Id}/activate", null)).StatusCode == HttpStatusCode.NoContent,
+            "recipe category can be reactivated independently");
         var tofuResult = await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest
         {
             Name = "Tofu", Aliases = "bean curd", Origin = IngredientOrigin.Plant, DefaultUnit = "g",
@@ -82,9 +116,9 @@ internal static class CoreDataApiChecks
         })).IsSuccessStatusCode, "update ingredient nutrition");
         Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Invalid origin", Origin = (IngredientOrigin)99 })).StatusCode == HttpStatusCode.BadRequest, "invalid origin 400");
         Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Negative calories", DefaultUnit = "g", Calories = -1, ProteinGram = 0, CarbohydrateGram = 0, FatGram = 0 })).StatusCode == HttpStatusCode.BadRequest, "negative nutrition 400");
-        RecipeRequest Recipe(string name, params RecipeIngredientRequest[] rows) => new()
+        RecipeRequest RecipeInCategory(Guid categoryId, string name, RecipeIngredientRequest[] rows) => new()
         {
-            CategoryId = category.Id,
+            CategoryId = categoryId,
             Name = name,
             Description = "Đậu hũ và cơm dùng kèm rau xanh.",
             Servings = 2,
@@ -96,7 +130,10 @@ internal static class CoreDataApiChecks
             Ingredients = rows,
             CaloriesPerServing = 123.456m
         };
+        RecipeRequest Recipe(string name, params RecipeIngredientRequest[] rows) => RecipeInCategory(category.Id, name, rows);
         RecipeIngredientRequest Row(Guid id, decimal quantity = 100) => new() { IngredientId = id, Quantity = quantity, Unit = "g" };
+        Check((await client.PostAsJsonAsync("/api/admin/recipes", RecipeInCategory(videoCategory.Id, "Invalid category", [Row(tofu.Id)])))
+            .StatusCode == HttpStatusCode.BadRequest, "recipe cannot use a video category");
         foreach (var resource in new[] { "categories", "ingredients", "recipes" })
         {
             object payload = resource switch

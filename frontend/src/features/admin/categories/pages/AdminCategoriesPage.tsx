@@ -6,10 +6,33 @@ import { SharedDataTable, type ColumnDef } from '../../../../shared/components/S
 import { Modal } from '../../../../shared/components/Modal'
 import { CategoryModal } from '../components/CategoryModal'
 import { adminCategoriesApi } from '../api/adminCategoriesApi'
-import type { AdminCategoryItem } from '../types/adminCategories.types'
+import { categoryKindLabels, type AdminCategoryItem, type CategoryKind } from '../types/adminCategories.types'
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AdminCategoriesPage); thuộc danh mục nội dung.
 export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string) => void }) => {
+  const [kind, setKind] = useState<CategoryKind>('Recipe')
+  const [notice, setNotice] = useState<string | null>(null)
+
+  return <AdminLayout activeMenu="categories" pageTitle="Quản lý danh mục" pageSubtitle="Tạo, chỉnh sửa và quản lý trạng thái danh mục." onNavigate={onNavigate}>
+    <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Loại danh mục">
+      {(Object.keys(categoryKindLabels) as CategoryKind[]).map(value => (
+        <button key={value} type="button" aria-pressed={kind === value}
+          onClick={() => { setKind(value); setNotice(null) }}
+          className={`fe1-btn ${kind === value ? 'fe1-btn-primary' : 'fe1-btn-outline'}`}>
+          {categoryKindLabels[value]}
+        </button>
+      ))}
+    </div>
+    {notice && <p role="status" className="mb-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
+    <CategoryTable key={kind} kind={kind} onKindChange={setKind} onNotice={setNotice} />
+  </AdminLayout>
+}
+
+const CategoryTable = ({ kind, onKindChange, onNotice }: {
+  kind: CategoryKind
+  onKindChange: (kind: CategoryKind) => void
+  onNotice: (notice: string) => void
+}) => {
   // Lưu dữ liệu và trạng thái thao tác của danh mục nội dung trong vòng đời màn hình.
   const [items, setItems] = useState<AdminCategoryItem[]>([])
   const [total, setTotal] = useState(0)
@@ -17,7 +40,6 @@ export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
   const [editing, setEditing] = useState<AdminCategoryItem | null | undefined>(undefined)
   const [statusTarget, setStatusTarget] = useState<AdminCategoryItem | null>(null)
@@ -27,13 +49,13 @@ export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string
     const controller = new AbortController()
     const timer = setTimeout(() => {
       setLoading(true); setError(null)
-      adminCategoriesApi.list(page, search, controller.signal)
+      adminCategoriesApi(kind).list(page, search, controller.signal)
         .then(result => { if (!controller.signal.aborted) { setItems(result.items); setTotal(result.totalCount) } })
         .catch(err => { if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Không thể tải danh mục.') })
         .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     }, 200)
     return () => { clearTimeout(timer); controller.abort() }
-  }, [page, search, refresh])
+  }, [page, search, refresh, kind])
   const columns: ColumnDef<AdminCategoryItem>[] = [
     { key: 'name', header: 'Tên danh mục', render: item => <span className="font-bold">{item.name}</span> },
     { key: 'description', header: 'Mô tả', render: item => item.description || '—' },
@@ -91,19 +113,19 @@ export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string
     },
   ]
   // Hiển thị giao diện danh mục nội dung từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
-  return <AdminLayout activeMenu="categories" pageTitle="Quản lý danh mục công thức" pageSubtitle="Tạo, chỉnh sửa và ngừng sử dụng danh mục theo dữ liệu thực tế." onNavigate={onNavigate}>
-    <div className="space-y-5">
-      {notice && <p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
+  return <div className="space-y-5">
       <div className="admin-filter-bar flex flex-wrap items-center gap-4">
         <div className="flex shrink-0 items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sky-700"><Layers aria-hidden="true" className="h-4 w-4" /><span className="text-sm font-semibold">{total} danh mục</span></div>
         <input type="search" aria-label="Tìm danh mục" maxLength={120} placeholder="Tìm theo tên danh mục..." value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} className="admin-field min-w-0 flex-1 basis-60" />
         <button type="button" onClick={() => setEditing(null)} className="fe1-btn fe1-btn-primary inline-flex min-h-11 items-center justify-center gap-2"><Plus aria-hidden="true" className="h-4 w-4" />Thêm danh mục</button>
       </div>
       <SharedDataTable columns={columns} data={items} keyExtractor={item => item.id} isLoading={loading} error={error} onRetry={() => setRefresh(value => value + 1)} currentPage={page} totalPages={Math.max(1, Math.ceil(total / 10))} totalItems={total} pageSize={10} onPageChange={setPage} emptyMessage="Chưa có danh mục phù hợp." />
-      {editing !== undefined && <CategoryModal key={editing?.id || 'create'} isOpen onClose={() => setEditing(undefined)} categoryToEdit={editing} onSubmit={async data => {
-        if (editing) await adminCategoriesApi.update(editing.id, data)
-        else await adminCategoriesApi.create(data)
-        setNotice('Đã lưu danh mục.'); setRefresh(value => value + 1)
+      {editing !== undefined && <CategoryModal key={editing?.id || 'create'} isOpen onClose={() => setEditing(undefined)} categoryToEdit={editing} currentKind={kind} onSubmit={async (data, selectedKind) => {
+        if (editing) await adminCategoriesApi(kind).update(editing.id, data)
+        else await adminCategoriesApi(selectedKind).create(data)
+        onNotice('Đã lưu danh mục.')
+        if (selectedKind === kind) setRefresh(value => value + 1)
+        else onKindChange(selectedKind)
       }} />}
       <Modal
         isOpen={!!statusTarget}
@@ -112,9 +134,9 @@ export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string
       >
         <p className="text-sm mb-4 text-slate-600">
           {statusTarget?.isActive ? (
-            <>Ngừng sử dụng <strong className="font-bold text-slate-900">“{statusTarget?.name}”</strong>? Công thức đã liên kết vẫn được giữ.</>
+            <>Ngừng sử dụng <strong className="font-bold text-slate-900">“{statusTarget?.name}”</strong>? Nội dung đã gắn danh mục vẫn được giữ.</>
           ) : (
-            <>Mở khóa và kích hoạt lại danh mục <strong className="font-bold text-slate-900">“{statusTarget?.name}”</strong> để sử dụng cho công thức?</>
+            <>Mở khóa và kích hoạt lại danh mục <strong className="font-bold text-slate-900">“{statusTarget?.name}”</strong>?</>
           )}
         </p>
         {error && <p role="alert" className="text-xs font-semibold text-rose-700 bg-rose-50 p-2.5 rounded-lg border border-rose-200 mb-3">{error}</p>}
@@ -138,13 +160,13 @@ export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string
               if (!statusTarget || busy) return
               setBusy(true); setError(null)
               try {
-                if (statusTarget.isActive) {
-                  await adminCategoriesApi.deactivate(statusTarget.id)
-                  setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: false } : it))
-                  setNotice(`Đã ngừng sử dụng danh mục “${statusTarget.name}”.`)
+                const active = !statusTarget.isActive
+                await adminCategoriesApi(kind).setActive(statusTarget.id, active)
+                setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: active } : it))
+                if (!active) {
+                  onNotice(`Đã ngừng sử dụng danh mục “${statusTarget.name}”.`)
                 } else {
-                  setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: true } : it))
-                  setNotice(`Đã mở khóa và kích hoạt lại danh mục “${statusTarget.name}”.`)
+                  onNotice(`Đã mở khóa và kích hoạt lại danh mục “${statusTarget.name}”.`)
                 }
                 setStatusTarget(null)
               } catch (err) {
@@ -159,6 +181,5 @@ export const AdminCategoriesPage = ({ onNavigate }: { onNavigate?: (path: string
         </div>
       </Modal>
     </div>
-  </AdminLayout>
 }
 export default AdminCategoriesPage

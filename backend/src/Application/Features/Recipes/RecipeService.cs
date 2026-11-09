@@ -88,7 +88,7 @@ public sealed class RecipeService(
         }
 
         var category = await categories.GetAsync(request.CategoryId, ct);
-        if (category is null || (!category.IsActive && entity.CategoryId != category.Id))
+        if (category is null || category.Kind != CategoryKind.Recipe || (!category.IsActive && entity.CategoryId != category.Id))
         {
             RecipeValidation.Fail(nameof(request.CategoryId), "Vui lòng chọn danh mục đang được sử dụng.");
         }

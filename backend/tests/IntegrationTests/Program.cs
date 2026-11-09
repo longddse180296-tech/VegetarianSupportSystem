@@ -308,7 +308,8 @@ try
     await db.GetService<IMigrator>().MigrateAsync("0");
     Check(!(await db.Database.GetAppliedMigrationsAsync()).Any(), "migration rollback");
     await db.Database.MigrateAsync();
-    Check(await db.Categories.CountAsync() == 0, "migration reapply without automatic sample data");
+    Check(!await db.Categories.AnyAsync(category => category.Kind != Domain.Enums.CategoryKind.Article),
+        "migration reapply without automatic sample recipe/video categories");
     Console.WriteLine($"ALL {checks} CHECKS PASSED");
 }
 finally

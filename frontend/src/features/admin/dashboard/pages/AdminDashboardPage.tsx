@@ -10,7 +10,7 @@ import { FeaturedContent } from '../components/FeaturedContent'
 import type { DashboardResponse } from '../api/dashboardApi'
 
 const catalogCards = [
-  { key: 'categories', label: 'Danh mục công thức', icon: LayoutGrid },
+  { key: 'categories', label: 'Danh mục', icon: LayoutGrid },
   { key: 'ingredients', label: 'Nguyên liệu', icon: Apple },
   { key: 'recipes', label: 'Công thức', icon: BookOpen },
   { key: 'restaurants', label: 'Nhà hàng', icon: MapPin },

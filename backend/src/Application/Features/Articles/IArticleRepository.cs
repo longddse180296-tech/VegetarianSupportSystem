@@ -8,6 +8,7 @@ namespace Application.Features.Articles;
 public interface IArticleRepository
 {
     Task<bool> HasDuplicatePublishedTitleAsync(Guid excludingArticleId, string title, CancellationToken ct);
+    Task<bool> HasInactiveCategoryAsync(IReadOnlyCollection<string> names, CancellationToken ct);
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<Article?> GetAsync(Guid id, CancellationToken ct);
     // ListMineAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

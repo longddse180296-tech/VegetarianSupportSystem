@@ -15,7 +15,7 @@ public sealed class VideoRepository(AppDbContext db) : IVideoRepository, IVideoP
 
     // CategoryExistsAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public Task<bool> CategoryExistsAsync(Guid id, CancellationToken cancellationToken) =>
-        db.Categories.AnyAsync(x => x.Id == id && x.IsActive, cancellationToken);
+        db.Categories.AnyAsync(x => x.Id == id && x.IsActive && x.Kind == CategoryKind.Video, cancellationToken);
 
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<(IReadOnlyList<Video> Items, int Total)> ListAsync(string? owner,

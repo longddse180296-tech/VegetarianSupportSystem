@@ -3,6 +3,7 @@
 using Application.Common.Exceptions;
 using Application.Features.Categories;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,9 +13,9 @@ namespace Infrastructure.Persistence.Repositories;
 public sealed class CategoryRepository(AppDbContext db) : ICategoryRepository
 {
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
-    public async Task<(IReadOnlyList<Category> Items, int TotalCount)> ListAsync(CategoryListQuery request, bool includeInactive, CancellationToken ct)
+    public async Task<(IReadOnlyList<Category> Items, int TotalCount)> ListAsync(CategoryListQuery request, bool includeInactive, CategoryKind kind, CancellationToken ct)
     {
-        var query = db.Categories.AsNoTracking();
+        var query = db.Categories.AsNoTracking().Where(x => x.Kind == kind);
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!includeInactive)
         {
@@ -42,8 +43,8 @@ public sealed class CategoryRepository(AppDbContext db) : ICategoryRepository
         db.Categories.SingleOrDefaultAsync(x => x.Id == id, ct);
 
     // NameExistsAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    public Task<bool> NameExistsAsync(string name, Guid? exceptId, CancellationToken ct) =>
-        db.Categories.AnyAsync(x => x.Name == name && x.Id != exceptId, ct);
+    public Task<bool> NameExistsAsync(string name, Guid? exceptId, CategoryKind kind, CancellationToken ct) =>
+        db.Categories.AnyAsync(x => x.Kind == kind && x.Name == name && x.Id != exceptId, ct);
 
     // Add: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void Add(Category entity) => db.Categories.Add(entity);

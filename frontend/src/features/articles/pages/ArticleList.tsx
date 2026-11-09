@@ -4,11 +4,11 @@ import { PageHeading, Badge, Button, Input, EmptyState, SkeletonCard } from '../
 import { useState, useEffect, useMemo } from 'react'
 import { ArrowRight, BookOpen, Calendar, Leaf, Plus, RotateCcw, Search, Sparkles } from 'lucide-react'
 import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
+import { useArticleCategories } from '../hooks/useArticleCategories'
 import { useApiData } from '../../admin/hooks/useApiData'
 import { getPublicFeaturedContent, type FeaturedContentItem } from '../../../shared/api/featuredContentApi'
 import { primaryClass } from '../../admin/utils/apiUi'
 import {
-  articleCategories,
   type ContentPage,
   type PublicArticleSummary,
 } from '../api/articles.api'
@@ -48,6 +48,7 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
   // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [searchInput, setSearchInput] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
+  const { names: articleCategories } = useArticleCategories()
   const [category, setCategory] = useState('')
   const [dietaryType, setDietaryType] = useState<BackendDietaryType | ''>('')
   const [page, setPage] = useState(1)
