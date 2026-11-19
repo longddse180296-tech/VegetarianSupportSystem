@@ -9,6 +9,8 @@ namespace Infrastructure.Persistence.Repositories;
 // FoodScanRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class FoodScanRepository(AppDbContext db) : IFoodScanRepository
 {
+    public async Task<bool> DeleteOwnedAsync(Guid id, string userId, CancellationToken ct) =>
+        await db.FoodScanRecords.Where(x => x.Id == id && x.OwnerUserId == userId).ExecuteDeleteAsync(ct) > 0;
     // GetProfileAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<ScanProfileSnapshot> GetProfileAsync(string userId, CancellationToken ct)
     {

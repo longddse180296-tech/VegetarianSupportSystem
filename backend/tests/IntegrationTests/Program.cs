@@ -284,6 +284,13 @@ try
     Check(!(await db.Database.GetPendingMigrationsAsync()).Any(), "all migrations applied");
     await app.StartAsync();
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+    if (args.Contains("--history-delete-only", StringComparer.Ordinal))
+    {
+        await HistoryDeletionChecks.RunAsync(client, db, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} HISTORY DELETION CHECKS PASSED");
+        return;
+    }
     if (args.Contains("--revision-access-only", StringComparer.Ordinal))
     {
         await RevisionAccessChecks.RunAsync(client, db, app.Services, Check);

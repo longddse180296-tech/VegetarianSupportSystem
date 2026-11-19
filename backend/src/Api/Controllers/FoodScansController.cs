@@ -140,6 +140,13 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
         catch (ArgumentException ex) { return BadRequest(new ProblemDetails { Detail = ex.Message }); }
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        if (UserId is null) return Unauthorized();
+        return await scanningService.DeleteOwnedAsync(id, UserId, ct) ? NoContent() : NotFound();
+    }
+
     // Get: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<SavedFoodScan>> Get(Guid id, CancellationToken cancellationToken)

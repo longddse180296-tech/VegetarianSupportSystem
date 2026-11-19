@@ -6,6 +6,7 @@ namespace Application.Features.AiChat;
 // IAiChatRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IAiChatRepository
 {
+    Task<bool> DeleteConversationAsync(Guid conversationId, string userId, CancellationToken cancellationToken);
     // CreateConversationAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     Task<AiChatConversation> CreateConversationAsync(
         string userId,

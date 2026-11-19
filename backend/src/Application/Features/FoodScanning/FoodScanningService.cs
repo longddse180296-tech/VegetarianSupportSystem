@@ -74,6 +74,9 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             evidence);
     }
 
+    public Task<bool> DeleteOwnedAsync(Guid id, string userId, CancellationToken ct) =>
+        repository.DeleteOwnedAsync(id, userId, ct);
+
     // GetOwnedAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<SavedFoodScan?> GetOwnedAsync(Guid id, string userId, CancellationToken ct)
     {

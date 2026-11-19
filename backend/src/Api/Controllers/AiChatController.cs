@@ -17,6 +17,13 @@ public sealed class AiChatController(
 {
     private const int MaxPromptLength = 4000;
     private const string GuestSessionKey = "AiChat.GuestState.v1";
+    [HttpDelete("conversations/{conversationId:guid}")]
+    public async Task<IActionResult> DeleteConversation(Guid conversationId, CancellationToken ct)
+    {
+        var userId = CurrentUserId();
+        if (userId is null) return Unauthorized();
+        return await chatService.DeleteConversationAsync(conversationId, userId, ct) ? NoContent() : NotFound();
+    }
 
     // CreateConversation: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPost("conversations")]

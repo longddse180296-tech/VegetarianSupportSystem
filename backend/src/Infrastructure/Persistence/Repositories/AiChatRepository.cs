@@ -9,6 +9,10 @@ namespace Infrastructure.Persistence.Repositories;
 // AiChatRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class AiChatRepository(AppDbContext dbContext) : IAiChatRepository
 {
+    // Giới hạn theo chủ sở hữu; FK cascade xóa cả tin nhắn của hội thoại.
+    public async Task<bool> DeleteConversationAsync(Guid conversationId, string userId, CancellationToken ct) =>
+        await dbContext.Set<AiChatConversation>().Where(x => x.Id == conversationId && x.UserId == userId)
+            .ExecuteDeleteAsync(ct) > 0;
     // CreateConversationAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task<AiChatConversation> CreateConversationAsync(
         string userId,

@@ -11,6 +11,8 @@ public sealed class AiChatService(
     IAiChatContextRepository contextRepository)
 {
     private const int HistoryLimit = 20;
+    public Task<bool> DeleteConversationAsync(Guid conversationId, string userId, CancellationToken ct) =>
+        repository.DeleteConversationAsync(conversationId, userId, ct);
 
     // CreateConversationAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public async Task<AiChatConversationDto> CreateConversationAsync(

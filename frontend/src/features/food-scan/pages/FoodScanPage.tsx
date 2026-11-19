@@ -9,6 +9,7 @@ import {
   evaluateScan,
   getScanDetail,
   getScanHistory,
+  deleteScanHistory,
   type SavedFoodScan,
   type ScanAnalysis,
 } from '../api/foodScanApi'
@@ -109,6 +110,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [historyPage, setHistoryPage] = useState(0)
   const [historyTotalCount, setHistoryTotalCount] = useState(0)
+  const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null)
   const [historyRetryPage, setHistoryRetryPage] = useState(1)
   const historyLoadingRef = useRef(false)
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null)
@@ -272,6 +274,21 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
       historyLoadingRef.current = false
       setHistoryState('done')
     }
+  }
+
+  const handleDeleteHistory = async (id: string) => {
+    if (deletingHistoryId || historyState === 'loading') return
+    if (!window.confirm('Xóa kết quả quét này khỏi lịch sử?')) return
+    setDeletingHistoryId(id)
+    setHistoryError(null)
+    try {
+      await deleteScanHistory(id)
+      if (selectedScanId === id) setSelectedScanId(null)
+      if (result?.id === id) { setResult(null); setTab('scanner') }
+      await handleLoadHistory(1)
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : 'Không thể xóa lịch sử quét. Vui lòng thử lại.')
+    } finally { setDeletingHistoryId(null) }
   }
 
   // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelectHistory); thuộc phân tích ảnh món ăn và nhãn thành phần.
@@ -485,6 +502,8 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
                       onRetry={() => void handleLoadHistory(historyRetryPage)}
                       onLoadMore={() => void handleLoadHistory(historyPage + 1)}
                       onSelect={(id) => void handleSelectHistory(id)}
+                      onDelete={(id) => void handleDeleteHistory(id)}
+                      deletingId={deletingHistoryId}
                     />
 
                     {/* Hộp cảnh báo màu vàng chuẩn AGENTS.md */}

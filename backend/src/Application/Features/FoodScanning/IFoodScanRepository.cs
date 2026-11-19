@@ -14,6 +14,7 @@ public sealed record ScanIngredientEvidence(Guid IngredientId, string Name, Ingr
 // IFoodScanRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IFoodScanRepository
 {
+    Task<bool> DeleteOwnedAsync(Guid id, string userId, CancellationToken ct);
     // GetProfileAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<ScanProfileSnapshot> GetProfileAsync(string userId, CancellationToken ct);
     // FindIngredientEvidenceAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
