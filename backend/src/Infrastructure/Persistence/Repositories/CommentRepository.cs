@@ -1,4 +1,4 @@
-// Chức năng: bình luận và tương tác cộng đồng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi bình luận và phản hồi trên bài viết hoặc video bằng EF Core.
 using Application.Features.Comments;
 using Domain.Entities;
 using Domain.Enums;

@@ -1,3 +1,4 @@
+// Kiểm thử luồng kiểm tra tiêu đề trùng trước khi công khai bài viết.
 // Kiểm tra HTTP/SQL/worker cho tiền kiểm tiêu đề trên database riêng; provider đếm lượt chỉ phục vụ kiểm thử.
 using System.Net.Http.Json;
 using System.Text.Json;

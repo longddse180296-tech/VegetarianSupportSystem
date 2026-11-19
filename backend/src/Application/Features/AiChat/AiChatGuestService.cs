@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Giới hạn số câu hỏi của khách và giữ lịch sử ngắn trong trạng thái phiên.
 using Domain.Enums;
 
 namespace Application.Features.AiChat;
@@ -58,7 +58,7 @@ public sealed class AiChatGuestService(IAiChatAnswerService answerService)
             QuestionLimit - normalized.SuccessfulQuestions);
     }
 
-    // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Kiểm tra lượt khách còn lại, gọi AI và cập nhật lịch sử phiên khi nhận được câu trả lời.
     public async Task<AiChatGuestSubmission> SubmitAsync(
         AiChatGuestState? state,
         string content,

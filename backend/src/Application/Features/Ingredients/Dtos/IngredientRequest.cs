@@ -1,8 +1,7 @@
 // BE2-03 | Dữ liệu đầu vào từ API (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Nhận dữ liệu từ frontend để thực hiện thao tác với nguyên liệu, nguồn gốc, đơn vị và dinh dưỡng.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
-using Domain.Enums;
 
 namespace Application.Features.Ingredients;
 
@@ -13,15 +12,12 @@ public sealed class IngredientRequest
     public string Name { get; init; } = string.Empty;
     [StringLength(1000)]
     public string? Aliases { get; init; }
-    [EnumDataType(typeof(IngredientOrigin))]
-    public IngredientOrigin Origin { get; init; }
 
     public bool ContainsEgg { get; init; }
 
     public bool ContainsMilk { get; init; }
 
     public bool ContainsHoney { get; init; }
-    public bool? ContainsOtherAnimalProducts { get; init; }
     [StringLength(1000)]
     public string? Allergens { get; init; }
     [Required(ErrorMessage = "Vui lòng chọn đơn vị."), RegularExpression("^(g|kg|ml|đơn vị)$", ErrorMessage = "Chọn đơn vị g, kg, ml hoặc Số lượng.")]

@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quản lý các lần gửi duyệt, ghi kết quả AI và áp dụng quyết định của Admin đối với bài viết hoặc video.
 using Domain.Entities;
 using Domain.Enums;
 using Application.Features.Favorites;
@@ -28,7 +28,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         await repository.SaveChangesAsync(ct);
         return submission;
     }
-    // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Tạo một lần gửi duyệt có số phiên bản. Áp dụng luồng kiểm tra phù hợp với bài viết hoặc video.
     public async Task<ModerationSubmission> SubmitAsync(
         string ownerUserId,
         SubmitModerationCommand command,
@@ -137,7 +137,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             cancellationToken);
     }
 
-    // RetryAiAsync: Thử lại thao tác khi trạng thái hiện tại cho phép.
+    // Đưa bài viết đủ điều kiện trở lại bước kiểm tra sau khi AI gặp lỗi.
     public async Task<ModerationSubmission> RetryAiAsync(
         Guid submissionId,
         string ownerUserId,
@@ -167,6 +167,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
     // It is intentionally not exposed as an HTTP endpoint.
     // RecordAiResultAsync: Ghi kết quả AI độc lập với quyết định xuất bản của Admin.
     // BE2-10 | Ghi cờ, lý do và phạm vi kiểm tra AI độc lập với quyết định duyệt của Admin.
+    // Ghi kết quả kiểm tra tự động và đưa hồ sơ sang trạng thái tiếp theo theo quy tắc duyệt.
     public async Task<ModerationSubmission> RecordAiResultAsync(
         Guid submissionId,
         ModerationAiResult result,
@@ -239,7 +240,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             cancellationToken);
     }
 
-    // DecideAsync: Áp dụng quyết định Admin lên đúng phiên bản và ghi lại lịch sử xử lý.
+    // Ghi quyết định của Admin và đồng bộ bản đang công khai hoặc việc gỡ nội dung.
     public async Task<ModerationSubmission> DecideAsync(
         Guid submissionId,
         ModerationDecisionType decision,

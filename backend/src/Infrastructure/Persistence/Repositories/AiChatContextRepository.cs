@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc hồ sơ người dùng để bổ sung ngữ cảnh liên quan vào lời nhắc AI Chat.
 using Application.Features.AiChat;
 using Application.Features.Profiles;
 using Microsoft.EntityFrameworkCore;

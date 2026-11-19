@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Chạy các thuộc tính kiểm tra dữ liệu của DTO và trả lỗi nghiệp vụ khi request không hợp lệ.
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.Common.Validation;

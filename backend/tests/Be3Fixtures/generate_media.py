@@ -1,3 +1,4 @@
+# Tạo ảnh và video mẫu trong .local để thử luồng tải tệp của backend.
 """Create local, disposable BE3 upload fixtures under the ignored .local directory."""
 
 from pathlib import Path

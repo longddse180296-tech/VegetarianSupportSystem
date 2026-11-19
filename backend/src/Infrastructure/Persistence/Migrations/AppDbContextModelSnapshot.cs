@@ -620,9 +620,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<bool>("ContainsMilk")
                         .HasColumnType("bit");
 
-                    b.Property<bool?>("ContainsOtherAnimalProducts")
-                        .HasColumnType("bit");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -657,9 +654,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(40)")
                         .HasDefaultValue("g");
 
-                    b.Property<int>("Origin")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("ProteinGram")
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)")
@@ -688,8 +682,6 @@ namespace Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_Ingredients_NutritionBasisQuantity", "[NutritionBasisQuantity] > 0");
 
                             t.HasCheckConstraint("CK_Ingredients_NutritionBasisUnit", "[NutritionBasisUnit] IN (N'g', N'kg', N'ml', N'đơn vị')");
-
-                            t.HasCheckConstraint("CK_Ingredients_Origin", "[Origin] IN (0, 1, 2)");
 
                             t.HasCheckConstraint("CK_Ingredients_ProteinGramPer100Gram", "[ProteinGramPer100Gram] IS NULL OR [ProteinGramPer100Gram] >= 0");
                         });
@@ -838,6 +830,9 @@ namespace Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DailyShoppingJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("IngredientId")
                         .HasColumnType("uniqueidentifier");
@@ -1382,6 +1377,10 @@ namespace Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");

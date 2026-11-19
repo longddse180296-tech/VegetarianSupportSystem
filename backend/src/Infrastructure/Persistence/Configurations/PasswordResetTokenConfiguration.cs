@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Ánh xạ token đặt lại mật khẩu, hạn dùng và trạng thái sử dụng sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

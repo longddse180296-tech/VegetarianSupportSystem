@@ -1,5 +1,5 @@
 // BE2-07 | Ghi nguồn lưu công thức từ trang Recipes hoặc Pantry.
-// Chức năng: nguồn lưu công thức. EF Core sinh lịch sử/cấu trúc database; bản lưu cũ giữ nguồn null.
+// Bổ sung nguồn lưu yêu thích để giao diện phân nhóm các mục đã lưu.
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable

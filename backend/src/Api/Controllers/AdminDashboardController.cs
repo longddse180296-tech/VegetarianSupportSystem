@@ -1,4 +1,4 @@
-// Chức năng: thống kê và góp ý gửi đến Admin. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Trả thống kê dashboard cho tài khoản có quyền Admin.
 using Api.Authorization;
 using Application.Features.Administration;
 using Microsoft.AspNetCore.Authorization;

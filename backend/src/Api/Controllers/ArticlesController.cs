@@ -1,4 +1,4 @@
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp API đọc bài công khai và API của tác giả để tạo bản nháp, sửa, gửi duyệt hoặc xóa bài.
 using System.Security.Claims;
 using Application.Features.Articles;
 using Application.Features.Moderation;

@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp cách phát token dành cho môi trường phát triển.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;

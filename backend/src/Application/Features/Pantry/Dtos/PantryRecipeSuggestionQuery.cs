@@ -1,5 +1,5 @@
 // BE2-08 | Tham số lọc, phân trang hoặc giới hạn kết quả (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Nhận tham số lọc và phân trang cho công thức gợi ý từ tủ bếp.
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.Features.Pantry;

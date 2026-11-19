@@ -1,5 +1,5 @@
 // BE2-06/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu nội dung được Admin ghim lên trang chủ.
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Ánh xạ nội dung được Admin ghim nổi bật sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

@@ -1,3 +1,4 @@
+// Tạo danh mục, công thức và nguyên liệu mẫu phục vụ kiểm thử dữ liệu cơ bản.
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -20,13 +21,11 @@ public static class CoreDataSeeder
         };
         var ingredients = new[]
         {
-            Ingredient(101, "Đậu hũ", IngredientOrigin.Plant, allergens: "Đậu nành"),
-            Ingredient(102, "Gạo", IngredientOrigin.Plant),
-            Ingredient(103, "Trứng", IngredientOrigin.Animal, egg: true, allergens: "Trứng"),
-            Ingredient(104, "Sữa", IngredientOrigin.Animal, milk: true, allergens: "Sữa"),
-            Ingredient(105, "Mật ong", IngredientOrigin.Animal, honey: true),
-            Ingredient(106, "Gia vị chưa xác minh", IngredientOrigin.Unknown),
-            Ingredient(107, "Nước mắm cá", IngredientOrigin.Animal, otherAnimal: true, allergens: "Cá")
+            Ingredient(101, "Đậu hũ", allergens: "Đậu nành"),
+            Ingredient(102, "Gạo"),
+            Ingredient(103, "Trứng", egg: true, allergens: "Trứng"),
+            Ingredient(104, "Sữa", milk: true, allergens: "Sữa"),
+            Ingredient(105, "Mật ong", honey: true),
         };
         var recipes = new[]
         {
@@ -35,7 +34,6 @@ public static class CoreDataSeeder
             Recipe(203, 2, "Cháo sữa", 25, 250, (102, 50), (104, 100)),
             Recipe(204, 2, "Trứng sữa hấp", 15, 200, (103, 50), (104, 100)),
             Recipe(205, 3, "Sữa mật ong", 5, 150, (104, 100), (105, 10)),
-            Recipe(206, 1, "Đậu hũ với gia vị chưa rõ", 10, null, (101, 100), (106, 5))
         };
 
         foreach (var category in categories)
@@ -66,17 +64,15 @@ public static class CoreDataSeeder
     }
 
     private static Ingredient Ingredient(
-        int id, string name, IngredientOrigin origin,
+        int id, string name,
         bool egg = false, bool milk = false, bool honey = false,
-        bool otherAnimal = false, string? allergens = null) => new()
+        string? allergens = null) => new()
         {
             Id = Id(id),
             Name = $"[Mẫu] {name}",
-            Origin = origin,
             ContainsEgg = egg,
             ContainsMilk = milk,
             ContainsHoney = honey,
-            ContainsOtherAnimalProducts = origin == IngredientOrigin.Unknown ? null : otherAnimal,
             Allergens = allergens,
             DefaultUnit = "g",
             Source = "Dữ liệu mẫu kiểm thử; chưa dùng làm nguồn dinh dưỡng thực tế."

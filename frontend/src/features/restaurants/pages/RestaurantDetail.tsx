@@ -413,36 +413,48 @@ export default function RestaurantDetail({
 
         {/* ===== MÓN ĂN NỔI BẬT CỦA NHÀ HÀNG ===== */}
         {restaurant.featuredDishes && restaurant.featuredDishes.length > 0 && (
-          <section className="rounded-[20px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
-            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-[#2E7D32]">
-                  <Sparkles size={16} />
+          <section aria-labelledby="featured-dishes-heading" className="overflow-hidden rounded-[24px] border border-emerald-100 bg-gradient-to-br from-emerald-50/80 via-white to-white p-4 sm:p-6 lg:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#2E7D32] shadow-xs ring-1 ring-emerald-100">
+                  <Sparkles size={21} aria-hidden="true" />
                 </span>
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Món ăn nổi bật tại quán
-                </h2>
+                <div>
+                  <h2 id="featured-dishes-heading" className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+                    Món ăn nổi bật
+                  </h2>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-500">Khám phá những món ăn tại {restaurant.name}.</p>
+                </div>
               </div>
+              <span className="mt-1 shrink-0 rounded-full border border-emerald-100 bg-white px-3 py-1 text-xs font-semibold text-emerald-800">
+                {restaurant.featuredDishes.length} món
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {restaurant.featuredDishes.map((item) => (
+            <div className={`grid grid-cols-1 gap-5 sm:grid-cols-2 ${restaurant.featuredDishes.length > 2 ? 'lg:grid-cols-3' : ''}`}>
+              {restaurant.featuredDishes.map((item, index) => (
                 <article
                   key={item.id}
-                  className="group relative flex flex-col overflow-hidden rounded-[16px] border border-slate-200/90 bg-white p-3.5 shadow-2xs transition-all hover:border-emerald-400/80 hover:shadow-md"
+                  className="overflow-hidden rounded-[20px] bg-white shadow-sm ring-1 ring-slate-900/5"
                 >
-                  <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[12px] bg-slate-900 mb-3">
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-slate-100">
                     <ContentImage
                       src={item.imageUrl}
                       alt={item.name}
                       loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full object-cover"
                     />
                   </div>
 
-                  <h4 className="line-clamp-2 text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                    {item.name}
-                  </h4>
+                  <div className="flex items-start gap-3 p-4 sm:p-5">
+                    <span aria-hidden="true" className="mt-0.5 text-xs font-semibold tabular-nums text-emerald-600">{String(index + 1).padStart(2, '0')}</span>
+                    <div className="min-w-0">
+                      <h3 className="break-words text-base font-semibold leading-snug text-slate-900">{item.name}</h3>
+                      {item.description?.trim() && (
+                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-slate-500">{item.description}</p>
+                      )}
+                    </div>
+                  </div>
                 </article>
               ))}
             </div>

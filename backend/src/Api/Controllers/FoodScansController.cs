@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nhận ảnh nhãn hoặc món ăn, dữ liệu thành phần đã xác nhận và yêu cầu xem lịch sử quét.
 using Application.Features.FoodScanning;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;

@@ -1,4 +1,4 @@
-// Chức năng: video, bản nháp và nội dung công khai. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Định nghĩa thao tác ghi, mở và xóa tệp video hoặc thumbnail trong kho riêng.
 namespace Application.Features.Videos;
 
 // Keys are opaque server-generated names; callers never supply a path.

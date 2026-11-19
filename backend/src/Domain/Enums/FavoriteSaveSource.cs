@@ -1,4 +1,4 @@
-// Chức năng: mục đã lưu. Ghi nhận màn hình phát sinh thao tác lưu công thức để hiển thị trong Profile.
+// Khai báo nguồn thao tác lưu yêu thích.
 namespace Domain.Enums;
 
 public enum FavoriteSaveSource

@@ -1,4 +1,4 @@
-// Chức năng: báo cáo nội dung cần xem xét. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu báo cáo vi phạm nội dung và trạng thái xử lý.
 using Domain.Enums;
 
 namespace Domain.Entities;

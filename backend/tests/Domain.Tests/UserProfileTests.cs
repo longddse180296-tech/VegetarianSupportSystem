@@ -1,3 +1,4 @@
+// Kiểm thử quy tắc dữ liệu cá nhân và lựa chọn ăn uống.
 using Domain.Entities;
 using Domain.Enums;
 

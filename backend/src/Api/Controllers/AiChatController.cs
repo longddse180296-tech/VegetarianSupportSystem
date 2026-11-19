@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Tiếp nhận request HTTP và trả dữ liệu về hội thoại hỗ trợ ăn chay.
 using System.Security.Claims;
 using System.Text.Json;
 using Application.Features.AiChat;
@@ -142,7 +142,7 @@ public sealed class AiChatController(
         return Ok(guestChatService.GetSessionInfo(ReadGuestState()));
     }
 
-    // SubmitGuestMessage: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Xử lý câu hỏi chưa đăng nhập và trả số lượt còn lại. Chỉ ghi phiên khi AI trả lời thành công.
     [HttpPost("guest/messages")]
     [AllowAnonymous]
     public async Task<ActionResult<GuestChatResponse>> SubmitGuestMessage(

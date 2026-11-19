@@ -1,3 +1,4 @@
+// Kiểm thử quy trình lưu video yêu thích và các điều kiện video công khai.
 // BE2-06/07 | Kiểm tra hành vi lưu video yêu thích theo trạng thái hiển thị.
 // Kiểm tra ảnh/thời lượng video đã lưu lấy từ phiên bản công khai, không dùng bản nháp đang sửa.
 using System.Net.Http.Json;

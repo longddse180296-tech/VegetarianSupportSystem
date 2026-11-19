@@ -1,4 +1,4 @@
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất thống kê phục vụ dashboard Admin mà nghiệp vụ sử dụng.
 namespace Application.Features.Administration;
 
 // IDashboardRepository: định nghĩa hợp đồng xử lý giữa các tầng.

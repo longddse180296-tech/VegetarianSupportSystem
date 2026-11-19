@@ -1,3 +1,4 @@
+// Chạy ffprobe trên tệp video và đọc dữ liệu về thời lượng cùng các luồng âm thanh.
 // Đọc thời lượng và luồng âm thanh bằng FFprobe; chỉ phân tích tệp local đã được kiểm tra khóa.
 using System.ComponentModel;
 using System.Diagnostics;

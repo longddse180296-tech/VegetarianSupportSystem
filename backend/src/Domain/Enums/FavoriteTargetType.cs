@@ -1,4 +1,4 @@
-// Chức năng: danh sách nội dung yêu thích. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo các loại nội dung có thể lưu yêu thích.
 namespace Domain.Enums;
 
 // FavoriteTargetType: định nghĩa các giá trị trạng thái được phép.

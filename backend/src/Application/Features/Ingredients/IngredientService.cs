@@ -1,5 +1,5 @@
 // BE2-03 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quản lý nguyên liệu, đơn vị dinh dưỡng và trạng thái sử dụng của nguyên liệu.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Exceptions;
 using Application.Common.Validation;
@@ -93,11 +93,9 @@ public sealed class IngredientService(IIngredientRepository repository)
 
         entity.Name = request.Name.Trim();
         entity.Aliases = request.Aliases?.Trim();
-        entity.Origin = request.Origin;
         entity.ContainsEgg = request.ContainsEgg;
         entity.ContainsMilk = request.ContainsMilk;
         entity.ContainsHoney = request.ContainsHoney;
-        entity.ContainsOtherAnimalProducts = request.ContainsOtherAnimalProducts;
         entity.Allergens = request.Allergens?.Trim();
         entity.DefaultUnit = request.DefaultUnit?.Trim();
         entity.Calories = request.Calories;

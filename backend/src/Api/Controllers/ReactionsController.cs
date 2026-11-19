@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nhận yêu cầu đọc hoặc đổi lượt thích và đánh dấu hữu ích của người dùng.
 using Api.Authorization;
 using Application.Features.Comments;
 using Domain.Enums;

@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Định nghĩa thao tác ghi và mở ảnh công khai để nghiệp vụ không phụ thuộc thư mục lưu trữ.
 namespace Application.Features.Media;
 
 // Public image keys are opaque server-generated values, never client-provided file paths.

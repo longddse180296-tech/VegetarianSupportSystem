@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất hồ sơ kiểm duyệt bài viết và video mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.Moderation;

@@ -1,5 +1,5 @@
 // BE2-06 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (yêu thích: công thức, video và nhà hàng theo tài khoản).
-// Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Lưu hoặc bỏ lưu nội dung yêu thích của tài khoản, kèm nguồn lưu khi được hỗ trợ.
 using Application.Common.Exceptions;
 using Domain.Entities;
 
@@ -13,12 +13,13 @@ public sealed class FavoriteService(IFavoriteRepository repository)
     {
         FavoriteValidation.Validate(query);
         var favorites = await repository.ListAsync(userId, query.TargetType, ct);
+        var warnings = await repository.GetDietaryWarningsAsync(userId, favorites, ct);
         var visible = new List<FavoriteResponse>();
         foreach (var favorite in favorites)
         {
             var target = await repository.GetPublicTargetAsync(favorite.TargetType, favorite.TargetId, ct);
             if (target is not null)
-                visible.Add(ToResponse(favorite, target));
+                visible.Add(ToResponse(favorite, target) with { DietaryWarning = warnings.GetValueOrDefault(favorite.Id) });
         }
 
         var start = (long)(query.PageNumber - 1) * query.PageSize;

@@ -1,5 +1,5 @@
 // BE2-06 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (yêu thích: công thức, video và nhà hàng theo tài khoản).
-// Chức năng: danh sách nội dung yêu thích. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp API xem, lưu hoặc bỏ lưu nội dung yêu thích của tài khoản hiện tại.
 using Api.Authorization;
 using Application.Features.Favorites;
 using Microsoft.AspNetCore.Mvc;

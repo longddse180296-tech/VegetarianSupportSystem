@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Biểu diễn kết quả tương thích giữa nguyên liệu hoặc món ăn và một chế độ ăn.
 using Domain.Enums;
 
 namespace Domain.ValueObjects;

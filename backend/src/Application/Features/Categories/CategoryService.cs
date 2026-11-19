@@ -1,5 +1,5 @@
 // BE2-02 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (danh mục: tên, mô tả và trạng thái sử dụng).
-// Chức năng: danh mục nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Kiểm tra trùng tên trong từng loại danh mục và xử lý tạo, sửa, khóa, mở lại theo đúng loại.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Exceptions;
 using Application.Common.Validation;
@@ -11,7 +11,7 @@ namespace Application.Features.Categories;
 // CategoryService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class CategoryService(ICategoryRepository repository)
 {
-    // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
+    // Kiểm tra phân trang rồi lọc theo loại danh mục. Admin có thể xem cả mục ngừng sử dụng.
     public async Task<CategoryPage> ListAsync(CategoryListQuery query, bool includeInactive, CancellationToken ct, CategoryKind kind = CategoryKind.Recipe)
     {
         RequestValidation.Validate(query);
@@ -57,6 +57,7 @@ public sealed class CategoryService(ICategoryRepository repository)
     public Task DeactivateAsync(Guid id, CancellationToken ct, CategoryKind kind = CategoryKind.Recipe) =>
         SetActiveAsync(id, false, ct, kind);
 
+    // Đổi trạng thái của danh mục trong đúng nhóm Recipe, Video hoặc Article và ghi thời điểm cập nhật.
     public async Task SetActiveAsync(Guid id, bool active, CancellationToken ct, CategoryKind kind)
     {
         var entity = await FindAsync(id, kind, ct);
@@ -75,7 +76,7 @@ public sealed class CategoryService(ICategoryRepository repository)
     private async Task<Category> FindAsync(Guid id, CategoryKind kind, CancellationToken ct) =>
         await repository.GetAsync(id, ct) is { } entity && entity.Kind == kind ? entity : throw new KeyNotFoundException("Không tìm thấy danh mục hoặc danh mục không còn khả dụng.");
 
-    // ApplyAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Chuẩn hóa tên và mô tả. Kiểm tra trùng tên với cả danh mục đã ngừng sử dụng trong cùng nhóm.
     private async Task ApplyAsync(Category entity, CategoryRequest request, CancellationToken ct)
     {
         RequestValidation.Validate(request);

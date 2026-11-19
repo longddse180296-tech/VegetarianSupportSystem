@@ -20,6 +20,7 @@ export interface SavedPlanMeal {
   carbohydrateGramPerServing: number | null
   fatGramPerServing: number | null
   ingredientNames: string[]
+  availabilityWarning?: string | null
 }
 
 // Cấu trúc PlanShoppingItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
@@ -45,6 +46,9 @@ export interface SavedPlanSummary {
 
 // Cấu trúc SavedPlan quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface SavedPlan extends Omit<SavedPlanSummary, 'mealCount'> {
+  dailyNutritionTarget?: { calories: number; proteinGrams: number; carbohydrateGrams: number; fatGrams: number } | null
+  nutritionNotice?: string | null
+  nutritionAdjustmentMessage?: string | null
   profileDiet: PlanDiet
   meals: SavedPlanMeal[]
   shoppingItems: PlanShoppingItem[]

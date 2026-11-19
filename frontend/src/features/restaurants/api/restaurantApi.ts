@@ -55,7 +55,7 @@ interface BackendRestaurantResponse {
   updatedAt: string | null
   dietaryTypes: Array<string | number>
   amenities: string[]
-  featuredDishes: Array<{ id: string; name: string; imageUrl: string; displayOrder: number }>
+  featuredDishes: Array<{ id: string; name: string; description?: string | null; imageUrl: string; displayOrder: number }>
   distanceKm: number | null
 }
 
@@ -297,7 +297,7 @@ export async function getRestaurantMenu(id: string): Promise<RestaurantDish[]> {
       return res.featuredDishes.map((dish, idx) => ({
         id: dish.id || `dish_${idx}`,
         name: dish.name,
-        desc: 'Món chay nổi bật do nhà hàng cung cấp.',
+        desc: dish.description || '',
         priceVND: undefined,
         tag: 'Món nổi bật',
         tagColor: 'bg-[#1F7A3F] text-white',

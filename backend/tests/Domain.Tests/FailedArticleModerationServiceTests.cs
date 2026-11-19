@@ -1,3 +1,4 @@
+// Kiểm thử cách xử lý bài viết khi bước kiểm tra AI thất bại.
 using Application.Features.Moderation;
 using Application.Features.Videos;
 using Domain.Entities;

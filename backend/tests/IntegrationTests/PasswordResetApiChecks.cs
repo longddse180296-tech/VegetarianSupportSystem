@@ -1,3 +1,4 @@
+// Kiểm thử các endpoint yêu cầu và xác nhận đặt lại mật khẩu.
 using System.Net;
 using System.Net.Http.Json;
 using Application.Features.Auth;

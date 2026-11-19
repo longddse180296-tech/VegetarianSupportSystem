@@ -1,5 +1,5 @@
 // BE2-08 | Triển khai truy vấn và lưu dữ liệu EF Core cho nguyên liệu trong tủ của từng tài khoản.
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi nguyên liệu trong tủ bếp cá nhân bằng EF Core.
 using Application.Common.Exceptions;
 using Application.Features.Pantry;
 using Domain.Entities;

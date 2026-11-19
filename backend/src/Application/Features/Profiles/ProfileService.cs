@@ -1,4 +1,4 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Đọc và cập nhật hồ sơ, dị ứng, thực phẩm muốn tránh và mục tiêu dinh dưỡng.
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Rules;
@@ -24,7 +24,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
             estimate.AdultBmiCategory, estimate.EstimatedTdeeKcal,
             profile.Allergies.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
             profile.AvoidedFoods.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
-            profile.UpdatedAtUtc);
+            profile.UpdatedAtUtc, estimate.DailyNutritionTarget);
     }
 
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
@@ -107,7 +107,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
         var result = ProfileNutritionEstimator.Calculate(candidate,
             DateOnly.FromDateTime(now.UtcDateTime));
         return new ProfileEstimate(result.Bmi, result.AdultBmiCategory,
-            result.EstimatedTdeeKcal);
+            result.EstimatedTdeeKcal, result.DailyNutritionTarget);
     }
 
     // SetDietAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
@@ -213,6 +213,6 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
             profile.RestaurantArea,
             profile.Allergies.OrderBy(x => x.Name).Select(x => new ProfileItem(x.Id, x.Name)).ToArray(),
             profile.AvoidedFoods.OrderBy(x => x.Name).Select(x => new ProfileItem(x.Id, x.Name)).ToArray(),
-            profile.UpdatedAtUtc);
+            profile.UpdatedAtUtc, estimate.DailyNutritionTarget);
     }
 }

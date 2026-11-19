@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Tải hàng đợi và phiên bản kiểm duyệt, ghi quyết định và phối hợp cập nhật trạng thái công khai.
 using Application.Features.Moderation;
 using Domain.Entities;
 using Domain.Enums;

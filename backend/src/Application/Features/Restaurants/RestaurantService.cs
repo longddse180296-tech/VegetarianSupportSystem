@@ -1,5 +1,5 @@
 // BE2-05 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (nhà hàng: danh mục public và quản trị, vị trí và chế độ ăn).
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quản lý thông tin nhà hàng, chế độ ăn, tiện ích, món nổi bật và bộ lọc vị trí.
 using Application.Common.Exceptions;
 using Application.Features.Favorites;
 using Domain.Entities;
@@ -138,6 +138,7 @@ public sealed class RestaurantService(IRestaurantRepository repository, IFavorit
             {
                 RestaurantId = entity.Id,
                 Name = dish.Name.Trim(),
+                Description = string.IsNullOrWhiteSpace(dish.Description) ? null : dish.Description.Trim(),
                 ImageUrl = dish.ImageUrl.Trim(),
                 DisplayOrder = index
             });

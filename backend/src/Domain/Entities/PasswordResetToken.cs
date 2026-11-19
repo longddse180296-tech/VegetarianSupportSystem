@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu token đặt lại mật khẩu, hạn dùng và trạng thái sử dụng.
 namespace Domain.Entities;
 
 // PasswordResetToken: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

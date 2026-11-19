@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo mức tương thích, không tương thích hoặc chưa đủ dữ liệu.
 namespace Domain.Enums;
 
 // DietaryCompatibility: định nghĩa các giá trị trạng thái được phép.

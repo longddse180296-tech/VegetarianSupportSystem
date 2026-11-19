@@ -1,5 +1,5 @@
 // BE2-01/04 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Kiểm tra danh mục Công thức, nguyên liệu, chế độ ăn và tính dinh dưỡng trước khi lưu công thức.
 using Application.Common.Exceptions;
 using Application.Common.Validation;
 using Domain.Entities;
@@ -58,7 +58,7 @@ public sealed class RecipeService(
         return RecipeMapping.ToResponse(entity);
     }
 
-    // DeactivateAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Đánh dấu công thức ngừng sử dụng và ghi lại thời điểm cập nhật.
     public async Task DeactivateAsync(Guid id, CancellationToken ct)
     {
         var entity = await FindAsync(id, ct);
@@ -77,7 +77,7 @@ public sealed class RecipeService(
     private async Task<Recipe> FindAsync(Guid id, CancellationToken ct) =>
         await repository.GetAsync(id, ct) ?? throw new KeyNotFoundException("Không tìm thấy công thức hoặc công thức không còn khả dụng.");
 
-    // ApplyAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Kiểm tra thông tin, loại danh mục và nguyên liệu trước khi cập nhật công thức cùng các dòng định lượng.
     private async Task ApplyAsync(Recipe entity, RecipeRequest request, CancellationToken ct)
     {
         RecipeValidation.Validate(request);

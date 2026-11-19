@@ -1,5 +1,5 @@
 // BE2-06 | Hợp đồng lấy nội dung nổi bật và lưu trạng thái ghim.
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất nội dung được Admin ghim nổi bật mà nghiệp vụ sử dụng.
 using Domain.Enums;
 
 namespace Application.Features.Administration;

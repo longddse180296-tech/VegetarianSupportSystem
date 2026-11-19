@@ -1,6 +1,7 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Khai báo hợp đồng dữ liệu giữa các bước xử lý hồ sơ ăn uống và sức khỏe người dùng khai báo.
 using Domain.Entities;
 using Domain.Enums;
+using Domain.Rules;
 
 namespace Application.Features.Profiles;
 
@@ -36,7 +37,8 @@ public sealed record ProfileDetails(
     string? RestaurantArea,
     IReadOnlyList<ProfileItem> Allergies,
     IReadOnlyList<ProfileItem> AvoidedFoods,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    DailyNutritionTarget? DailyNutritionTarget = null);
 
 // UpdateProfile: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record UpdateProfile(
@@ -67,7 +69,8 @@ public sealed record UpdateBodyDetails(
 public sealed record ProfileEstimate(
     decimal? Bmi,
     AdultBmiCategory? AdultBmiCategory,
-    int? EstimatedTdeeKcal);
+    int? EstimatedTdeeKcal,
+    DailyNutritionTarget? DailyNutritionTarget = null);
 
 // ProfileConflictException: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class ProfileConflictException(string message) : Exception(message);

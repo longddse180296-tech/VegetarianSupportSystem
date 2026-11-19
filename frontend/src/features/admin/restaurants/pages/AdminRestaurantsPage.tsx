@@ -242,11 +242,19 @@ export const AdminRestaurantsPage = ({
             <p>
               Tọa độ: {viewing.latitude ?? '—'}, {viewing.longitude ?? '—'}
             </p>
-            <p>
-              Món ăn nổi bật:{' '}
-              {viewing.featuredDishes.map((item) => item.name).join(', ') ||
-                '—'}
-            </p>
+            <div>
+              <p className="font-semibold">Món ăn nổi bật:</p>
+              {viewing.featuredDishes.length ? (
+                <ul className="mt-2 space-y-3">
+                  {viewing.featuredDishes.map((item) => (
+                    <li key={item.name}>
+                      <p className="font-medium">{item.name}</p>
+                      {item.description && <p className="mt-1 whitespace-pre-line break-words text-slate-500">{item.description}</p>}
+                    </li>
+                  ))}
+                </ul>
+              ) : '—'}
+            </div>
           </div>
         )}
       </Modal>

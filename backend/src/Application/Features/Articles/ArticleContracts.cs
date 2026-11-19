@@ -1,4 +1,4 @@
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Khai báo hợp đồng dữ liệu giữa các bước xử lý bài viết, bản nháp và phiên bản gửi duyệt.
 using Domain.Enums;
 
 namespace Application.Features.Articles;

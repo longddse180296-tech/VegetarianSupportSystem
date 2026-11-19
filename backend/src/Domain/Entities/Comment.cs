@@ -1,4 +1,4 @@
-// Chức năng: bình luận và tương tác cộng đồng. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu bình luận và phản hồi trên bài viết hoặc video.
 using Domain.Enums;
 
 namespace Domain.Entities;

@@ -16,10 +16,8 @@ export type GenderType = 'male' | 'female' | ''
 export type ActivityLevel =
   | ''
   | 'sedentary' // Ít vận động (nhân viên văn phòng, ít tập thể dục)
-  | 'light' // Vận động nhẹ (tập 1-3 ngày/tuần)
   | 'moderate' // Vận động vừa phải (tập 3-5 ngày/tuần)
   | 'active' // Năng động (tập 6-7 ngày/tuần)
-  | 'very_active' // Rất năng động (vận động viên / lao động nặng)
 
 export interface BodyMetrics {
   age: number
@@ -30,6 +28,7 @@ export interface BodyMetrics {
   bmi: number
   bmiCategory: 'underweight' | 'normal' | 'overweight' | 'obese' | 'unknown'
   bmrKcal: number
+  targetCalories?: number
   tdeeKcal: number
   goal: GoalType
   dailyProteinGrams: number

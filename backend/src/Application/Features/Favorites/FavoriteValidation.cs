@@ -1,5 +1,5 @@
 // BE2-06 | Kiểm tra dữ liệu đầu vào theo quy tắc nghiệp vụ (yêu thích: công thức, video và nhà hàng theo tài khoản).
-// Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Kiểm tra dữ liệu đầu vào của nội dung do người dùng lưu vào yêu thích trước khi thực hiện nghiệp vụ.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 

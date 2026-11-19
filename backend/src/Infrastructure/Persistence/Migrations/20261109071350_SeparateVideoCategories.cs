@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿// Tách ba loại danh mục. Tạo mã riêng cho danh mục Video và cập nhật liên kết của video nháp lẫn video công khai.
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

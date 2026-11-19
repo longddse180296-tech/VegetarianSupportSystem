@@ -1,9 +1,10 @@
 // BE2-01/04 | Triển khai truy vấn và lưu dữ liệu EF Core cho thông tin món, số khẩu phần và dinh dưỡng mỗi khẩu phần.
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi công thức, số khẩu phần, nguyên liệu và hướng dẫn nấu bằng EF Core.
 using Domain.Rules;
 using Application.Common.Exceptions;
 using Application.Features.Recipes;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,16 +46,20 @@ public sealed class RecipeRepository(AppDbContext db) : IRecipeRepository
             query = query.Where(recipe => recipe.CaloriesPerServing.HasValue &&
                 recipe.CaloriesPerServing.Value <= request.MaxCaloriesPerServing.Value);
         }
+        if (request.CompatibleDeclaredDietaryType.HasValue)
+        {
+            var requestedDiet = request.CompatibleDeclaredDietaryType.Value;
+            query = query.Where(recipe => !recipe.DeclaredDietaryType.HasValue ||
+                recipe.DeclaredDietaryType == Domain.Enums.DietaryType.Vegan || recipe.DeclaredDietaryType == requestedDiet ||
+                requestedDiet == Domain.Enums.DietaryType.LactoOvoVegetarian);
+        }
         if (request.DietaryType.HasValue)
         {
             var incompatibleIds = db.Ingredients
                 .Where(DietaryRules.IncompatibleIngredient(request.DietaryType.Value)).Select(ingredient => ingredient.Id);
-            var unknownIds = db.Ingredients
-                .Where(DietaryRules.UnknownIngredient).Select(ingredient => ingredient.Id);
 
             query = query.Where(recipe => recipe.RecipeIngredients.Any() &&
-                !recipe.RecipeIngredients.Any(row => incompatibleIds.Contains(row.IngredientId) ||
-                    unknownIds.Contains(row.IngredientId)));
+                !recipe.RecipeIngredients.Any(row => incompatibleIds.Contains(row.IngredientId)));
         }
 
         var count = await query.CountAsync(ct);
@@ -63,13 +68,28 @@ public sealed class RecipeRepository(AppDbContext db) : IRecipeRepository
         {
             return (Array.Empty<Recipe>(), count);
         }
+        // Ưu tiên cảnh báo trên toàn bộ danh sách Admin trước khi sắp xếp phụ và phân trang.
+        var nonVeganIds = db.Ingredients.Where(DietaryRules.IncompatibleIngredient(DietaryType.Vegan)).Select(x => x.Id);
+        var nonLactoIds = db.Ingredients.Where(DietaryRules.IncompatibleIngredient(DietaryType.LactoVegetarian)).Select(x => x.Id);
+        var nonOvoIds = db.Ingredients.Where(DietaryRules.IncompatibleIngredient(DietaryType.OvoVegetarian)).Select(x => x.Id);
+        var nonLactoOvoIds = db.Ingredients.Where(DietaryRules.IncompatibleIngredient(DietaryType.LactoOvoVegetarian)).Select(x => x.Id);
+        var prioritized = query.OrderByDescending(recipe => includeInactive && recipe.DeclaredDietaryType.HasValue &&
+            (!recipe.RecipeIngredients.Any() ||
+             (recipe.DeclaredDietaryType == DietaryType.Vegan &&
+              recipe.RecipeIngredients.Any(row => nonVeganIds.Contains(row.IngredientId))) ||
+             (recipe.DeclaredDietaryType == DietaryType.LactoVegetarian &&
+              recipe.RecipeIngredients.Any(row => nonLactoIds.Contains(row.IngredientId))) ||
+             (recipe.DeclaredDietaryType == DietaryType.OvoVegetarian &&
+              recipe.RecipeIngredients.Any(row => nonOvoIds.Contains(row.IngredientId))) ||
+             (recipe.DeclaredDietaryType == DietaryType.LactoOvoVegetarian &&
+              recipe.RecipeIngredients.Any(row => nonLactoOvoIds.Contains(row.IngredientId)))));
         var ordered = request.CalorieSort switch
         {
-            "asc" => query.OrderBy(x => !x.CaloriesPerServing.HasValue)
+            "asc" => prioritized.ThenBy(x => !x.CaloriesPerServing.HasValue)
                 .ThenBy(x => x.CaloriesPerServing).ThenBy(x => x.Name).ThenBy(x => x.Id),
-            "desc" => query.OrderBy(x => !x.CaloriesPerServing.HasValue)
+            "desc" => prioritized.ThenBy(x => !x.CaloriesPerServing.HasValue)
                 .ThenByDescending(x => x.CaloriesPerServing).ThenBy(x => x.Name).ThenBy(x => x.Id),
-            _ => query.OrderBy(x => x.Name).ThenBy(x => x.Id)
+            _ => prioritized.ThenBy(x => x.Name).ThenBy(x => x.Id)
         };
         var items = await ordered
             .Skip((int)offset).Take(request.PageSize)

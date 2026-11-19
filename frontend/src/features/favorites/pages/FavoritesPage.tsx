@@ -315,6 +315,11 @@ export default function FavoritesPage({ onNavigate, initialType }: FavoritesPage
                         <Bookmark className="mt-1 shrink-0 fill-amber-400 text-amber-500" size={18} aria-label="Đã lưu" />
                       </div>
                       <p className="text-xs text-slate-500">{formatSavedDate(item.createdAt)}</p>
+                      {item.dietaryWarning && (
+                        <p role="status" className="rounded-lg bg-amber-50 p-2.5 text-sm font-medium text-amber-900">
+                          {item.dietaryWarning}
+                        </p>
+                      )}
                       <div className="mt-auto grid grid-cols-2 items-stretch gap-2 border-t border-slate-100 pt-3">
                         <button
                           type="button"

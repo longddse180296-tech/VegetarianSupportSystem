@@ -1,3 +1,4 @@
+// Kiểm thử các điều kiện token của phiên còn hợp lệ.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;

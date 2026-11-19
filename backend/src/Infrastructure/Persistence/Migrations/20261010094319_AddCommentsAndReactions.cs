@@ -1,5 +1,5 @@
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: bình luận và tương tác cộng đồng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Tạo bảng bình luận và lưu tương tác của tài khoản.
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

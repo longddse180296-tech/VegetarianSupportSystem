@@ -1,5 +1,5 @@
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: quản lý thành viên. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Thêm dữ liệu lịch sử thay đổi trạng thái thành viên.
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

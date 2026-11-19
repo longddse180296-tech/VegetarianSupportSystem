@@ -1,3 +1,4 @@
+// Kiểm thử quy tắc hồ sơ ảnh hưởng đến gợi ý tủ bếp.
 // BE2-08 | Kiểm tra đối chiếu tủ bếp và công thức với chế độ ăn, dị ứng và thực phẩm cần tránh.
 // Tủ bếp đối chiếu chế độ ăn/dị ứng mà không yêu cầu BMI hoặc dữ liệu cơ thể.
 using Application.Features.Pantry;
@@ -15,7 +16,7 @@ public sealed class PantryProfileTests
         var profile=UserProfile.Create("owner",DateTimeOffset.UtcNow);
         profile.SetDiet(VegetarianDiet.Vegan,DateTimeOffset.UtcNow);
         profile.AddAllergy("Đậu phộng",DateTimeOffset.UtcNow);
-        var ingredient=new Ingredient {Name=name,Aliases=aliases,Allergens=allergens,Origin=IngredientOrigin.Plant,ContainsOtherAnimalProducts=false};
+        var ingredient=new Ingredient {Name=name,Aliases=aliases,Allergens=allergens};
         var repo=new Repository(profile,ingredient);
         var service=new PantryService(repo);
         var item=Assert.Single(await service.ListAsync("owner",default));

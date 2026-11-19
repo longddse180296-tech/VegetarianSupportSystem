@@ -1,3 +1,4 @@
+// Kiểm thử quy tắc truy cập theo tài khoản và vai trò.
 using System.Security.Claims;
 using Api.Authorization;
 using Microsoft.AspNetCore.Authorization;

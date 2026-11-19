@@ -51,16 +51,18 @@ export const mealPlanApi = {
   remove: (id: string) => apiClient.delete<void>(`/api/meal-plans/${encodeURIComponent(id)}`),
   generate: (name: string, weekStartDate: string) => apiClient.post<SavedPlan>('/api/meal-plans/generate', { name, weekStartDate }),
   regenerate: (id: string) => apiClient.post<SavedPlan>(`/api/meal-plans/${id}/regenerate`),
-  applyToWeek: (id: string, weekStartDate: string) => apiClient.post<SavedPlan>(`/api/meal-plans/${id}/apply-to-week`, { weekStartDate }),
+  applyToWeek: (id: string, weekStartDate: string, name: string, acceptRecipeChanges = false) => apiClient.post<SavedPlan>(`/api/meal-plans/${id}/apply-to-week`, { weekStartDate, name, acceptRecipeChanges }),
   replace: (planId: string, meal: SavedPlanMeal, recipeId: string, servings: number) =>
     apiClient.put<SavedPlan>(`/api/meal-plans/${planId}/meals/${meal.dayNumber}/${meal.slot}`, { recipeId, servings }),
   shoppingList: (planId: string, day?: number, signal?: AbortSignal) => apiClient.get<PlanShoppingItem[]>(`/api/meal-plans/${planId}/shopping-list${day ? `?day=${day}` : ''}`, { signal }),
-  purchase: (planId: string, itemId: string, isPurchased: boolean) =>
-    apiClient.put<PlanShoppingItem[]>(`/api/meal-plans/${planId}/shopping-list/${itemId}/purchase`, { isPurchased }),
+  purchase: (planId: string, itemId: string, isPurchased: boolean, day: number | null = null) =>
+    apiClient.put<PlanShoppingItem[]>(`/api/meal-plans/${planId}/shopping-list/${itemId}/purchase`, { isPurchased, day }),
+  reconcile: (planId: string, itemId: string, pantryQuantity: number, day: number | null = null) =>
+    apiClient.put<PlanShoppingItem[]>(`/api/meal-plans/${planId}/shopping-list/${itemId}/purchase`, { pantryQuantity, day }),
   // The saved allergy/avoidance constraints are validated by the backend on replacement.
   recipes: (diet: PlanDiet, search = '', page = 1, signal?: AbortSignal) => {
     const dietaryType = { Vegan: 1, Lacto: 2, Ovo: 3, LactoOvo: 4 }[diet]
-    const query = new URLSearchParams({ dietaryType: String(dietaryType), search, pageNumber: String(page), pageSize: '12' })
+    const query = new URLSearchParams({ dietaryType: String(dietaryType), compatibleDeclaredDietaryType: String(dietaryType), search, pageNumber: String(page), pageSize: '12' })
     return apiClient.get<{ items: ReplacementRecipe[]; totalCount: number }>(`/api/recipes?${query}`, { requiresAuth: false, signal })
   },
   async pdf(id: string): Promise<void> {

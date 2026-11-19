@@ -4,8 +4,10 @@ import { apiClient } from '../../../../shared/api/apiClient'
 import type { AdminIngredientItem, IngredientInput } from '../types/adminIngredients.types'
 
 export const adminIngredientsApi = {
-  list: (pageNumber = 1, search = '', signal?: AbortSignal) => {
+  list: (pageNumber = 1, search = '', signal?: AbortSignal, filters: { status?: string; component?: string } = {}) => {
     const query = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: '10', search })
+    if (filters.status && filters.status !== 'all') query.set('isActive', String(filters.status === 'active'))
+    if (filters.component && filters.component !== 'all') query.set('component', filters.component)
     return apiClient.get<{ items: AdminIngredientItem[]; totalCount: number }>(`/api/admin/ingredients?${query}`, { signal })
   },
   create: (input: IngredientInput) => apiClient.post<AdminIngredientItem>('/api/admin/ingredients', input),

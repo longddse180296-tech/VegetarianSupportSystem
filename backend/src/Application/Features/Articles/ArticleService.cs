@@ -1,4 +1,4 @@
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Điều phối bản nháp của tác giả, tạo bản gửi duyệt và trả bản công khai. Kiểm tra danh mục và tiêu đề trùng khi cần.
 using Application.Features.Moderation;
 using Domain.Entities;
 using Domain.Enums;
@@ -8,7 +8,7 @@ namespace Application.Features.Articles;
 // ArticleService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class ArticleService(IArticleRepository repository, ModerationService moderation)
 {
-    // CreateAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
+    // Tạo bản nháp thuộc tài khoản hiện tại và kiểm tra trạng thái của các danh mục được chọn.
     public async Task<MyArticleDetail> CreateAsync(string ownerId, ArticleDraftRequest request, CancellationToken ct)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
@@ -25,7 +25,7 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         return ToMine(article);
     }
 
-    // UpdateAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
+    // Cập nhật bản nháp khi tác giả có quyền sửa. Kiểm tra nhãn mới thêm và giữ được nhãn cũ đã gắn.
     public async Task<MyArticleDetail> UpdateAsync(Guid id, string ownerId, ArticleDraftRequest request, CancellationToken ct)
     {
         Validate(request);
@@ -41,13 +41,14 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         return ToMine(article);
     }
 
+    // Chặn việc chọn mới danh mục bài viết đã ngừng sử dụng.
     private async Task EnsureCategoriesAvailableAsync(IReadOnlyCollection<string> categories, CancellationToken ct)
     {
         if (categories.Count > 0 && await repository.HasInactiveCategoryAsync(categories, ct))
             throw new ArticleException(ArticleError.Validation, "Vui lòng chọn danh mục bài viết đang được sử dụng.");
     }
 
-    // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Tạo hồ sơ duyệt và chụp lại bản nháp trong một giao dịch. Tiêu đề trùng bản công khai sẽ bị hệ thống từ chối.
     public async Task<MyArticleDetail> SubmitAsync(Guid id, string ownerId, CancellationToken ct)
     {
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.

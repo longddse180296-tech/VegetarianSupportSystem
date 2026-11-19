@@ -50,6 +50,9 @@ export interface RecipeMatch {
   missingList: string[]
   timeMin: number
   kcal: number | null
+  proteinG?: number | null
+  carbsG?: number | null
+  fatG?: number | null
   tag: string
 }
 

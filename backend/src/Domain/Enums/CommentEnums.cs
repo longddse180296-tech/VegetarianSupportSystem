@@ -1,4 +1,4 @@
-// Chức năng: bình luận và tương tác cộng đồng. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo loại nội dung đích, trạng thái bình luận và loại tương tác.
 namespace Domain.Enums;
 
 // CommentTargetType: định nghĩa các giá trị trạng thái được phép.

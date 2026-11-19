@@ -16,6 +16,7 @@ export interface FavoriteItem {
   durationSeconds?: number | null
   createdAt: string
   savedFrom?: FavoriteSaveSource | null
+  dietaryWarning?: string | null
 }
 
 // Cấu trúc FavoritePage quy định dữ liệu trao đổi trong danh sách nội dung yêu thích.

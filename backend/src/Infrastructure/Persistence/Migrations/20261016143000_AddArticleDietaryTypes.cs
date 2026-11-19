@@ -1,5 +1,5 @@
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Bổ sung dữ liệu chế độ ăn trên bản nháp và từng phiên bản bài viết.
 using System;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore.Infrastructure;

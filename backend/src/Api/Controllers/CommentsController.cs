@@ -1,4 +1,4 @@
-// Chức năng: bình luận và tương tác cộng đồng. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp API đọc bình luận công khai, trả lời và thao tác quản lý của tác giả hoặc Admin.
 using Api.Authorization;
 using Application.Features.Comments;
 using Domain.Enums;

@@ -1,4 +1,4 @@
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất góp ý từ người dùng mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.Administration;

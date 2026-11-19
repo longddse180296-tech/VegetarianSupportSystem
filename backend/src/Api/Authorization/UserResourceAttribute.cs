@@ -1,4 +1,4 @@
-// Chức năng: kiểm tra quyền truy cập. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Áp dụng quy tắc truy cập tài nguyên thuộc tài khoản đã xác thực.
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 

@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo trạng thái kiểm tra hoặc gắn cờ nội dung của AI.
 namespace Domain.Enums;
 
 // AiFlagStatus: định nghĩa các giá trị trạng thái được phép.

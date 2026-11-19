@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Ánh xạ lịch sử và kết quả quét thực phẩm sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

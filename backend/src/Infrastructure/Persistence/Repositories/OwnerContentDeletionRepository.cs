@@ -1,4 +1,4 @@
-// Chức năng: xóa nội dung của chính chủ, dừng xuất bản và giữ lịch sử kiểm duyệt trong cùng giao dịch.
+// Gỡ nội dung do chủ sở hữu yêu cầu, xử lý lượt yêu thích liên quan và giữ lịch sử duyệt khi nội dung từng được gửi.
 using System.Data;
 using Application.Features.Moderation;
 using Domain.Entities;
@@ -17,6 +17,7 @@ public sealed class OwnerContentDeletionRepository(AppDbContext db) : IOwnerCont
         { throw new ModerationException(ModerationError.Conflict, "Nội dung đang được xử lý ở phiên khác. Vui lòng tải lại và thử xóa lại."); }
     }
 
+    // Khóa phạm vi phiên bản trong lúc gỡ nội dung để tránh thao tác duyệt đồng thời khôi phục bản đã gỡ.
     private async Task<bool> DeleteWithinTransactionAsync(ModeratedContentType type, Guid id, string ownerId, CancellationToken ct)
     {
         // Serializable khóa phạm vi phiên bản, tránh submit/duyệt đồng thời làm sống lại nội dung đã xóa.

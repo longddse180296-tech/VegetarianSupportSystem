@@ -1,5 +1,5 @@
 // BE2-03 | Tham số lọc, phân trang hoặc giới hạn kết quả (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Nhận bộ lọc và phân trang cho danh sách nguyên liệu, nguồn gốc, đơn vị và dinh dưỡng.
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.Features.Ingredients;
@@ -13,4 +13,8 @@ public sealed class IngredientListQuery
     public int PageSize { get; init; } = 20;
     [StringLength(120)]
     public string? Search { get; init; }
+    public bool? IsActive { get; init; }
+
+    [RegularExpression("^(plant|egg|milk|egg-milk)$")]
+    public string? Component { get; init; }
 }

@@ -1,5 +1,5 @@
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Bổ sung trường số điện thoại liên hệ trên tài khoản.
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

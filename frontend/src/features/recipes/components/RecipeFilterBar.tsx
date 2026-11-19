@@ -190,7 +190,7 @@ export const RecipeFilterBar: React.FC<RecipeFilterBarProps> = ({
           <div>
             <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
               <Flame size={14} className="text-amber-500" />
-              Mức Calo (Kcal / Khẩu phần)
+              Mức Calo (Kcal / người)
             </label>
             <Select
               value={kcalTier}

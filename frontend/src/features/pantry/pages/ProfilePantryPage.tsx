@@ -4,6 +4,6 @@ import PantryPage from './PantryPage'
 
 export default function ProfilePantryPage({ onNavigate }: { onNavigate: (path: string) => void }) {
   return <UserProfileShell activeTab="pantry" onNavigate={onNavigate} breadcrumbs={[
-    { label: 'Trang chủ', path: '/' }, { label: 'Profile', path: '/profile' }, { label: 'Tủ bếp AI' },
+    { label: 'Trang chủ', path: '/' }, { label: 'Profile', path: '/profile' }, { label: 'Gợi ý Tủ bếp' },
   ]}><PantryPage onNavigate={onNavigate} isLoggedIn /></UserProfileShell>
 }

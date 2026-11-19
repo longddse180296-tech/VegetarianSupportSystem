@@ -1,4 +1,4 @@
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Ánh xạ bài viết, bản gửi duyệt, nhãn danh mục và chế độ ăn ở cả hai cấp dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

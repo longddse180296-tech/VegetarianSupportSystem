@@ -1,3 +1,4 @@
+// Kiểm thử thời lượng, audio và trạng thái kết quả kiểm tra tệp.
 // Kiểm thử metadata không đoán thời lượng, phân biệt không âm thanh và không đọc được tệp.
 using Application.Features.Videos;
 using Domain.Entities;

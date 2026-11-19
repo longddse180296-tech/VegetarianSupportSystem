@@ -1,4 +1,4 @@
-// Chức năng: video, bản nháp và nội dung công khai. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nhận yêu cầu tạo bản nháp, tải video hoặc ảnh bìa, gửi duyệt và xem video công khai.
 using System.Security.Claims;
 using Application.Features.Moderation;
 using Application.Features.Videos;

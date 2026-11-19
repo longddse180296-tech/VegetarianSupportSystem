@@ -1,5 +1,5 @@
 // BE2-08 | Chuyển dữ liệu nghiệp vụ sang dạng API trả về (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Chuyển dữ liệu về nguyên liệu trong tủ bếp cá nhân từ entity sang cấu trúc API trả về.
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Rules;
@@ -64,7 +64,10 @@ internal static class PantryMapping
             recipe.CaloriesPerServing,
             matchPercent,
             available,
-            missing);
+            missing,
+            recipe.ProteinGramPerServing,
+            recipe.CarbohydrateGramPerServing,
+            recipe.FatGramPerServing);
     }
 
     // ToSubstitutionCandidate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
@@ -92,6 +95,9 @@ internal static class PantryMapping
 
     // IsRecipeUsableForProfile: Đánh giá điều kiện nghiệp vụ để quyết định nhánh xử lý.
     public static bool IsRecipeUsableForProfile(Recipe recipe, UserProfile? profile) =>
+        (profile?.Diet is not { } diet || recipe.DeclaredDietaryType is not { } declared ||
+            DietaryRules.SupportsDiet(declared, ToDietaryType(diet))) &&
+        recipe.RecipeIngredients.Count > 0 &&
         recipe.RecipeIngredients.All(row => row.Ingredient is not null && IsUsableForProfile(row.Ingredient, profile));
 
     // ToDietaryType: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.

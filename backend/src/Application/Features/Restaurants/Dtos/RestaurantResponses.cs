@@ -1,5 +1,5 @@
 // BE2-05 | Dữ liệu trả về cho giao diện (nhà hàng: danh mục public và quản trị, vị trí và chế độ ăn).
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Khai báo các cấu trúc phản hồi API về nhà hàng chay, vị trí, khoảng giá và tiện ích.
 using Domain.Enums;
 
 namespace Application.Features.Restaurants;
@@ -22,7 +22,7 @@ public sealed record RestaurantSummary(
     decimal? Longitude = null);
 
 // RestaurantFeaturedDishResponse: định nghĩa dữ liệu trao đổi của tính năng.
-public sealed record RestaurantFeaturedDishResponse(Guid Id, string Name, string ImageUrl, int DisplayOrder);
+public sealed record RestaurantFeaturedDishResponse(Guid Id, string Name, string ImageUrl, int DisplayOrder, string? Description = null);
 
 // RestaurantResponse: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record RestaurantResponse(

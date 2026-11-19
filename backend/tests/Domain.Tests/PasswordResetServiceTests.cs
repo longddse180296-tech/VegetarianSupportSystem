@@ -1,3 +1,4 @@
+// Kiểm thử token, email và quy trình cập nhật mật khẩu.
 using System.Security.Cryptography;
 using System.Text;
 using Application.Features.Auth;

@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Tạo hội thoại theo tài khoản, lưu câu hỏi, lấy ngữ cảnh cần thiết và lưu câu trả lời Gemini khi có.
 using Domain.Entities;
 using Domain.Enums;
 
@@ -72,7 +72,7 @@ public sealed class AiChatService(
             result.TotalCount);
     }
 
-    // SubmitMessageAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Lưu tin nhắn, gom lịch sử và hồ sơ cần thiết, gọi bộ trả lời AI rồi ghi câu trả lời nếu có.
     public async Task<AiChatSubmissionDto?> SubmitMessageAsync(
         Guid conversationId,
         string userId,

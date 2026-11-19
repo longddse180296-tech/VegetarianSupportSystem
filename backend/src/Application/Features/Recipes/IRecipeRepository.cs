@@ -1,5 +1,5 @@
 // BE2-01/04 | Hợp đồng đọc và ghi dữ liệu mà service sử dụng (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất công thức, số khẩu phần, nguyên liệu và hướng dẫn nấu mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.Recipes;

@@ -1,5 +1,5 @@
 // BE2-05 | Hợp đồng đọc và ghi dữ liệu mà service sử dụng (nhà hàng: danh mục public và quản trị, vị trí và chế độ ăn).
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất nhà hàng chay, vị trí, khoảng giá và tiện ích mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.Restaurants;

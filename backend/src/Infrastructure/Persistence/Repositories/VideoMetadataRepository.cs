@@ -1,3 +1,4 @@
+// Đọc và cập nhật metadata của video trong database trong quá trình worker xử lý.
 // Metadata lấy từ đúng tệp; chỉ truy vấn khóa nội bộ, không dùng URL người dùng cung cấp.
 using Application.Features.Videos;
 using Domain.Entities;

@@ -72,7 +72,7 @@ export function RestaurantApiForm({
           amenities: restaurant.amenities,
           featuredDishes: Array.from({ length: 3 }, (_, index) => {
             const dish = restaurant.featuredDishes[index]
-            return dish ? { name: dish.name, imageUrl: dish.imageUrl } : { name: '', imageUrl: null }
+            return dish ? { name: dish.name, description: dish.description ?? '', imageUrl: dish.imageUrl } : { name: '', description: '', imageUrl: null }
           }),
         }
       : {
@@ -91,7 +91,7 @@ export function RestaurantApiForm({
           source: null,
           dietaryTypes: [],
           amenities: [],
-          featuredDishes: Array.from({ length: 3 }, () => ({ name: '', imageUrl: null })),
+          featuredDishes: Array.from({ length: 3 }, () => ({ name: '', description: '', imageUrl: null })),
         },
   )
 
@@ -426,6 +426,7 @@ export function RestaurantApiForm({
             amenities,
             featuredDishes: form.featuredDishes.map((dish) => ({
               name: dish.name.trim(),
+              description: dish.description?.trim() || null,
               imageUrl: dish.imageUrl,
             })),
           }
@@ -948,6 +949,23 @@ export function RestaurantApiForm({
                       </div>
                     )}
                   </div>
+                  <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
+                    Mô tả món ăn
+                    <textarea
+                      rows={3}
+                      maxLength={1000}
+                      className={`${inputClass('featuredDishes')} h-auto resize-y`}
+                      placeholder="Giới thiệu nguyên liệu, hương vị hoặc điểm đặc trưng của món..."
+                      value={dish.description ?? ''}
+                      onChange={(event) => {
+                        const featuredDishes = form.featuredDishes.map((currentDish, dishIndex) =>
+                          dishIndex === index ? { ...currentDish, description: event.target.value } : currentDish,
+                        )
+                        setForm({ ...form, featuredDishes })
+                      }}
+                    />
+                    <span className="mt-1 block text-right text-xs font-normal text-slate-400">{dish.description?.length ?? 0}/1000</span>
+                  </label>
                 </div>
               </div>
             ))}

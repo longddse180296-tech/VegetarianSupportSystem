@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿// Bổ sung lý do hệ thống tự từ chối bài viết để hiển thị trong lịch sử duyệt.
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 // Bổ sung nơi lưu lý do từ chối ở bước tiền kiểm tiêu đề, tách khỏi kết quả AI và quyết định Admin.

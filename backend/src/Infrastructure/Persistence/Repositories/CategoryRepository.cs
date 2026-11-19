@@ -1,5 +1,5 @@
 // BE2-02 | Triển khai truy vấn và lưu dữ liệu EF Core cho danh mục và trạng thái còn sử dụng.
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Lọc danh mục theo loại, trạng thái và từ khóa. Lưu thay đổi và chuyển lỗi trùng tên của SQL Server thành lỗi nghiệp vụ.
 using Application.Common.Exceptions;
 using Application.Features.Categories;
 using Domain.Entities;
@@ -12,7 +12,7 @@ namespace Infrastructure.Persistence.Repositories;
 // CategoryRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class CategoryRepository(AppDbContext db) : ICategoryRepository
 {
-    // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
+    // Lọc theo loại, trạng thái và từ khóa trước khi đếm và lấy đúng trang.
     public async Task<(IReadOnlyList<Category> Items, int TotalCount)> ListAsync(CategoryListQuery request, bool includeInactive, CategoryKind kind, CancellationToken ct)
     {
         var query = db.Categories.AsNoTracking().Where(x => x.Kind == kind);

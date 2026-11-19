@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { BodyMetrics } from '../types'
 import { ageOn, profileApi } from '../api/profileApi'
 import { AlertError, Input, Select } from '../../../shared/components'
+import { weightGoalWarning } from '../utils/weightGoalWarning'
 
 // Cấu trúc BodyMetricsCalculatorProps quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface BodyMetricsCalculatorProps {
@@ -29,6 +30,7 @@ export function BodyMetricsCalculator({ metrics, onChange, disabled = false }: B
   // Lưu dữ liệu và trạng thái thao tác của hồ sơ và nhu cầu dinh dưỡng cá nhân trong vòng đời màn hình.
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState(false)
+  const goalWarning = weightGoalWarning(metrics)
   const [latestBirthDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
@@ -42,7 +44,7 @@ export function BodyMetricsCalculator({ metrics, onChange, disabled = false }: B
   const update = (changes: Partial<BodyMetrics>) => {
     const updated: BodyMetrics = {
       ...metrics, ...changes,
-      bmi: 0, bmiCategory: 'unknown', tdeeKcal: 0,
+      bmi: 0, bmiCategory: 'unknown', tdeeKcal: 0, targetCalories: 0,
       bmrKcal: 0, dailyProteinGrams: 0, dailyCarbsGrams: 0, dailyFatGrams: 0,
     }
     if ('birthDate' in changes) updated.age = ageOn(updated.birthDate || null)
@@ -105,10 +107,8 @@ export function BodyMetricsCalculator({ metrics, onChange, disabled = false }: B
           options={[
             { value: '', label: 'Chưa khai báo' },
             { value: 'sedentary', label: 'Ít vận động' },
-            { value: 'light', label: 'Vận động nhẹ' },
             { value: 'moderate', label: 'Vận động vừa phải' },
             { value: 'active', label: 'Vận động nhiều' },
-            { value: 'very_active', label: 'Vận động rất nhiều' },
           ]}
         />
         <Select
@@ -128,6 +128,7 @@ export function BodyMetricsCalculator({ metrics, onChange, disabled = false }: B
         <div><dt className="text-sm text-text-muted">BMI</dt><dd className="mt-1 text-xl font-bold">{metrics.bmi || '—'}</dd><dd className="text-sm">{BMI_LABELS[metrics.bmiCategory]}</dd></div>
         <div><dt className="text-sm text-text-muted">Năng lượng ước tính (TDEE)</dt><dd className="mt-1 text-xl font-bold">{metrics.tdeeKcal > 0 ? metrics.tdeeKcal.toLocaleString('vi-VN') + ' kcal/ngày' : 'Chưa đủ dữ liệu'}</dd></div>
       </dl>
+      {goalWarning && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{goalWarning}</p>}
       <p className="text-xs text-text-muted">Xem trước không lưu hồ sơ. Các chỉ số phụ thuộc dữ liệu đã khai báo; phân loại BMI người lớn chỉ có khi đủ điều kiện.</p>
     </section>
   )

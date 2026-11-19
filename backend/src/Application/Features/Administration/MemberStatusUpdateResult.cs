@@ -1,4 +1,4 @@
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Trả kết quả cập nhật trạng thái tài khoản để API chọn phản hồi phù hợp.
 namespace Application.Features.Administration;
 
 // MemberStatusUpdateResult: định nghĩa các giá trị trạng thái được phép.

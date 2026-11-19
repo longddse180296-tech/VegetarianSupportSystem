@@ -1,5 +1,5 @@
 // BE2-09 | Hợp đồng xuất PDF từ dữ liệu thực đơn đã lưu (thực đơn tuần, dinh dưỡng, danh sách mua và PDF).
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Định nghĩa bộ kết xuất PDF thực đơn mà API gọi khi người dùng tải xuống.
 namespace Application.Features.MealPlans;
 
 // IMealPlanPdfRenderer: định nghĩa hợp đồng xử lý giữa các tầng.

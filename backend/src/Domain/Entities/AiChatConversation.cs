@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu cuộc hội thoại giữa người dùng và AI.
 namespace Domain.Entities;
 
 // AiChatConversation: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

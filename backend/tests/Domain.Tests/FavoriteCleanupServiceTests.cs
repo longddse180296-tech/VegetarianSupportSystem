@@ -1,3 +1,4 @@
+// Kiểm thử xử lý mục yêu thích khi nội dung đích thay đổi trạng thái.
 using Application.Features.Favorites;
 using Application.Features.Moderation;
 using Application.Features.Restaurants;
@@ -61,6 +62,8 @@ public sealed class FavoriteCleanupServiceTests
 
     private sealed class CapturingFavoriteRepository : IFavoriteRepository
     {
+        public Task<IReadOnlyDictionary<Guid, string>> GetDietaryWarningsAsync(string userId, IReadOnlyList<Favorite> favorites, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, string>>(new Dictionary<Guid, string>());
         public (FavoriteTargetType Type, Guid TargetId)? RemovedTarget { get; private set; }
 
         public void RemoveAllByTarget(FavoriteTargetType targetType, Guid targetId) =>

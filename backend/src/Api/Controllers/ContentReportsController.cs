@@ -1,4 +1,4 @@
-// Chức năng: báo cáo nội dung cần xem xét. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nhận báo cáo vi phạm, cho người dùng xem trạng thái và cho Admin xử lý báo cáo.
 using Api.Authorization;
 using Application.Features.Moderation;
 using Domain.Enums;

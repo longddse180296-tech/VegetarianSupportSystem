@@ -1,4 +1,4 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi hồ sơ ăn uống và mục tiêu dinh dưỡng bằng EF Core.
 using Application.Features.Profiles;
 using Domain.Entities;
 using Microsoft.Data.SqlClient;

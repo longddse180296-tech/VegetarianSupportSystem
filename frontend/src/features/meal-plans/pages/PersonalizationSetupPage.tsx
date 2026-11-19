@@ -11,7 +11,9 @@ import {
 } from 'lucide-react'
 import { profileApi } from '../../profile/api/profileApi'
 import type { UserProfile } from '../../profile/types'
-import { mealPlanApi, nextMonday } from '../api/mealPlanApi'
+import { localDate, mealPlanApi, nextMonday } from '../api/mealPlanApi'
+import { mealPlanStartError, nextAvailablePlanDate } from '../utils/planPeriod'
+import type { SavedPlanSummary } from '../types/mealPlanBackend.types'
 import { MealPlanSkeleton } from '../components/MealPlanSkeleton'
 import { Badge, Breadcrumb, PageHeading } from '../../../shared/components'
 import { DIETARY_TYPE_LABELS } from '../../../shared/constants'
@@ -32,15 +34,18 @@ export const PersonalizationSetupPage = ({
   const [weekStartDate, setWeekStartDate] = useState(nextMonday)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dateError, setDateError] = useState<string | null>(null)
+  const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([])
 
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     let active = true
-    profileApi
-      .getProfile()
-      .then((value) => {
+    Promise.all([profileApi.getProfile(), mealPlanApi.listAll()])
+      .then(([value, plans]) => {
         if (!active) return
         setProfile(value)
+        setSavedPlans(plans)
+        setWeekStartDate(nextAvailablePlanDate(plans, localDate()))
       })
       .catch((err) => {
         if (active)
@@ -60,17 +65,19 @@ export const PersonalizationSetupPage = ({
   const generate = async (event: React.FormEvent) => {
     event.preventDefault()
     if (busy || !profile?.dietaryType || !name.trim()) return
+    const startError = mealPlanStartError(weekStartDate, savedPlans, localDate())
+    if (startError) {
+      setDateError(startError)
+      return
+    }
+    setDateError(null)
     setBusy(true)
     setError(null)
     try {
       const plan = await mealPlanApi.generate(name.trim(), weekStartDate)
       onNavigate?.(`/meal-plans/${plan.id}`)
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Không thể tạo thực đơn. Vui lòng thử lại.',
-      )
+      setDateError(err instanceof Error ? err.message : 'Không thể tạo thực đơn. Vui lòng thử lại.')
     } finally {
       setBusy(false)
     }
@@ -270,11 +277,18 @@ export const PersonalizationSetupPage = ({
               <input
                 type="date"
                 required
+                min={localDate()}
+                aria-invalid={!!dateError}
+                aria-describedby={dateError ? 'plan-start-error' : undefined}
                 value={weekStartDate}
-                onChange={(event) => setWeekStartDate(event.target.value)}
+                onChange={(event) => {
+                  setWeekStartDate(event.target.value)
+                  setDateError(mealPlanStartError(event.target.value, savedPlans, localDate()))
+                }}
                 disabled={busy}
                 className="mt-2 w-full rounded-2xl border border-slate-200 p-3 text-sm font-normal text-slate-900 focus:outline-none focus:border-[#2E7D32] focus:ring-2 focus:ring-[#2E7D32]/20 transition-all"
               />
+              {dateError && <span id="plan-start-error" role="alert" className="mt-1 block text-xs font-medium text-rose-700">{dateError}</span>}
             </label>
           </div>
 

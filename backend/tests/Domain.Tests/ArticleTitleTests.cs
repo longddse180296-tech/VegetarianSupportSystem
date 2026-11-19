@@ -1,3 +1,4 @@
+// Kiểm thử chuẩn hóa tiêu đề trước khi kiểm tra trùng.
 // Kiểm tra tiền kiểm tiêu đề và việc tách từ chối tự động khỏi kết quả AI/quyết định Admin.
 using Domain.Entities;
 using Domain.Enums;

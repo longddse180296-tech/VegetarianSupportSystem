@@ -1,5 +1,5 @@
 // BE2-06 | Hợp đồng API cho truy vấn, hiển thị hoặc cập nhật nội dung nổi bật.
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Trả một trang nội dung được Admin ghim nổi bật kèm thông tin phân trang.
 namespace Application.Features.Administration;
 
 // FeaturedContentPage: định nghĩa dữ liệu trao đổi của tính năng.

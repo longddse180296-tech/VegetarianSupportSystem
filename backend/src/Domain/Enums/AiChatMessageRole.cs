@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo vai trò người gửi, dùng để phân biệt câu hỏi với câu trả lời.
 namespace Domain.Enums;
 
 // AiChatMessageRole: định nghĩa các giá trị trạng thái được phép.

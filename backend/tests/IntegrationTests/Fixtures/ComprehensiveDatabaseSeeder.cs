@@ -1,3 +1,4 @@
+// Dựng bộ dữ liệu đầy đủ cho kịch bản kiểm thử backend có sử dụng SQL Server.
 using System.Security.Cryptography;
 using Application.Features.Auth;
 using Domain.Entities;
@@ -159,11 +160,9 @@ public static class ComprehensiveDatabaseSeeder
             Id = Id("22222222", id),
             Name = name,
             Aliases = aliases,
-            Origin = IngredientOrigin.Plant,
             ContainsEgg = false,
             ContainsMilk = false,
             ContainsHoney = false,
-            ContainsOtherAnimalProducts = false,
             Calories = cal,
             ProteinGram = pro,
             CarbohydrateGram = carb,
@@ -178,11 +177,9 @@ public static class ComprehensiveDatabaseSeeder
             Id = Id("22222222", id),
             Name = name,
             Aliases = aliases,
-            Origin = IngredientOrigin.Animal,
             ContainsEgg = false,
             ContainsMilk = true,
             ContainsHoney = false,
-            ContainsOtherAnimalProducts = false,
             Calories = cal,
             ProteinGram = pro,
             CarbohydrateGram = carb,
@@ -197,11 +194,9 @@ public static class ComprehensiveDatabaseSeeder
             Id = Id("22222222", id),
             Name = name,
             Aliases = aliases,
-            Origin = IngredientOrigin.Animal,
             ContainsEgg = true,
             ContainsMilk = false,
             ContainsHoney = false,
-            ContainsOtherAnimalProducts = false,
             Calories = cal,
             ProteinGram = pro,
             CarbohydrateGram = carb,

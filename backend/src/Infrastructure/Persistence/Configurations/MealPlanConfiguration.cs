@@ -1,5 +1,5 @@
 // BE2-09/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu lịch tuần và bản chụp món, nguyên liệu, số lượng mua.
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Ánh xạ thực đơn theo ngày và bữa cùng danh sách mua sắm sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

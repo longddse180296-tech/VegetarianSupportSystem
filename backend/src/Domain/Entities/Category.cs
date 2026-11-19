@@ -1,5 +1,5 @@
 // BE2-02 | Mô hình nghiệp vụ lưu danh mục và trạng thái còn sử dụng.
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu tên, mô tả, loại và trạng thái của danh mục. Loại quyết định bộ chọn nào có thể sử dụng bản ghi.
 using Domain.Enums;
 
 namespace Domain.Entities;

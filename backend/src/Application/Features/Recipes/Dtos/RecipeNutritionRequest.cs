@@ -1,5 +1,5 @@
 // BE2-01/04 | Danh sách định lượng và số khẩu phần để tính dinh dưỡng (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Nhận định lượng nguyên liệu và số khẩu phần để tính thử dinh dưỡng.
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.Features.Recipes;

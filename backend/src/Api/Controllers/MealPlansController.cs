@@ -1,5 +1,5 @@
 // BE2-09 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (thực đơn tuần, dinh dưỡng, danh sách mua và PDF).
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp API tạo, xem, đổi món, lấy danh sách mua sắm và tải PDF thực đơn.
 using Api.Authorization;
 using Application.Features.MealPlans;
 using Domain.Enums;

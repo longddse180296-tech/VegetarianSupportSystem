@@ -1,3 +1,4 @@
+// Kiểm thử phân loại phù hợp theo bằng chứng về thành phần.
 using Domain.Enums;
 using Domain.Rules;
 

@@ -1,8 +1,11 @@
 // BE2-09 | Triển khai truy vấn và lưu dữ liệu EF Core cho lịch tuần và bản chụp món, nguyên liệu, số lượng mua.
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi thực đơn theo ngày và bữa cùng danh sách mua sắm bằng EF Core.
 using Application.Features.MealPlans;
+using Application.Common.Exceptions;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Infrastructure.Persistence.Repositories;
 
@@ -20,6 +23,14 @@ public sealed class MealPlanRepository(AppDbContext db) : IMealPlanRepository
     public async Task<IReadOnlyList<Recipe>> GetActiveRecipesAsync(CancellationToken ct) =>
         await RecipesWithIngredients().AsNoTracking().Where(recipe => recipe.IsActive)
             .OrderBy(recipe => recipe.Name).ToListAsync(ct);
+
+    public async Task<IReadOnlyDictionary<Guid, DateOnly>> GetRecipeUsageAsync(string userId, DateOnly beforeDate, CancellationToken ct) =>
+        await db.MealPlans.AsNoTracking()
+            .Where(plan => plan.UserId == userId && plan.WeekStartDate < beforeDate)
+            .SelectMany(plan => plan.Meals.Select(meal => new { meal.RecipeId, plan.WeekStartDate }))
+            .GroupBy(row => row.RecipeId)
+            .Select(group => new { RecipeId = group.Key, LastUsed = group.Max(row => row.WeekStartDate) })
+            .ToDictionaryAsync(row => row.RecipeId, row => row.LastUsed, ct);
 
     // GetRecipeImagesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<IReadOnlyDictionary<Guid, string?>> GetRecipeImagesAsync(
@@ -65,7 +76,29 @@ public sealed class MealPlanRepository(AppDbContext db) : IMealPlanRepository
             .SingleOrDefaultAsync(recipe => recipe.Id == id && recipe.IsActive, ct);
 
     // Add: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
-    public void Add(MealPlan plan) => db.MealPlans.Add(plan);
+    public async Task SaveNewAsync(MealPlan plan, CancellationToken ct)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        // Cùng một tài khoản chỉ có một yêu cầu tạo lịch được kiểm tra và lưu tại một thời điểm.
+        var resource = "MealPlanSchedule:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(plan.UserId)));
+        await db.Database.ExecuteSqlInterpolatedAsync($@"
+            DECLARE @result int;
+            EXEC @result = sp_getapplock @Resource={resource}, @LockMode='Exclusive',
+                @LockOwner='Transaction', @LockTimeout=10000;
+            IF @result < 0 THROW 51000, 'Cannot lock meal plan schedule. Please retry.', 1;", ct);
+        var earliest = plan.WeekStartDate.AddDays(-6);
+        var lastDay = plan.WeekStartDate.AddDays(6);
+        var overlapping = await db.MealPlans.AsNoTracking()
+            .Where(existing => existing.UserId == plan.UserId &&
+                existing.WeekStartDate >= earliest && existing.WeekStartDate <= lastDay)
+            .OrderBy(existing => existing.WeekStartDate)
+            .FirstOrDefaultAsync(ct);
+        if (overlapping is not null)
+            throw new ConflictException($"Bạn đã có thực đơn từ {overlapping.WeekStartDate:dd/MM/yyyy} đến {overlapping.WeekStartDate.AddDays(6):dd/MM/yyyy}. Vui lòng chọn 7 ngày không trùng với lịch đã lưu.");
+        db.MealPlans.Add(plan);
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+    }
 
     // Remove: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
     public void Remove(MealPlan plan) => db.MealPlans.Remove(plan);

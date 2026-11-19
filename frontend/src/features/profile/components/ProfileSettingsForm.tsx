@@ -1,5 +1,5 @@
 // Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Check,
   Egg,
@@ -16,6 +16,7 @@ import {
 import { BodyMetricsCalculator } from './BodyMetricsCalculator'
 import { AlertError, Button, Input } from '../../../shared/components'
 import type { UserProfile, DietaryType } from '../types'
+import { getDietarySuggestions } from '../api/dietarySuggestions'
 
 // Cấu trúc Props quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface Props {
@@ -58,26 +59,6 @@ const DIET_CARDS: {
   },
 ]
 
-const COMMON_ALLERGIES = [
-  'Đậu phộng',
-  'Gluten (Lúa mì)',
-  'Đậu nành',
-  'Hạt điều',
-  'Mè / Vừng',
-  'Nấm rơm',
-  'Sữa bò',
-  'Trứng gà',
-]
-
-const COMMON_AVOIDED = [
-  'Hành / Tỏi (Ngũ vị tân)',
-  'Ớt cay',
-  'Đồ ngọt nhiều đường',
-  'Bột ngọt / Mì chính',
-  'Mướp đắng',
-  'Măng chua',
-]
-
 // Thành phần ProfileSettingsForm nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export function ProfileSettingsForm({
   initialProfile,
@@ -87,6 +68,17 @@ export function ProfileSettingsForm({
 }: Props) {
   // Lưu dữ liệu và trạng thái thao tác của hồ sơ và nhu cầu dinh dưỡng cá nhân trong vòng đời màn hình.
   const [form, setForm] = useState(initialProfile)
+  const [suggestions, setSuggestions] = useState<{ allergies: string[]; avoided: string[] }>({ allergies: [], avoided: [] })
+  const [suggestionsStatus, setSuggestionsStatus] = useState('Đang tải gợi ý từ dữ liệu nguyên liệu...')
+  useEffect(() => {
+    const controller = new AbortController()
+    getDietarySuggestions(controller.signal).then(result => {
+      if (!controller.signal.aborted) { setSuggestions(result); setSuggestionsStatus('') }
+    }).catch(() => {
+      if (!controller.signal.aborted) setSuggestionsStatus('Chưa tải được gợi ý. Bạn vẫn có thể tự nhập tên dị ứng và thực phẩm cần tránh.')
+    })
+    return () => controller.abort()
+  }, [])
   const [allergyList, setAllergyList] = useState<string[]>(
     initialProfile.allergies || [],
   )
@@ -286,6 +278,7 @@ export function ProfileSettingsForm({
           </p>
         </div>
 
+        {suggestionsStatus && <p role="status" className="mb-3 text-sm text-slate-500">{suggestionsStatus}</p>}
         <fieldset disabled={disabled} className="grid lg:grid-cols-2 gap-6">
           {/* Cột 1: Dị ứng */}
           <div className="space-y-3">
@@ -359,7 +352,7 @@ export function ProfileSettingsForm({
                 Gợi ý nhanh:
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {COMMON_ALLERGIES.map((sug) => {
+                {suggestions.allergies.map((sug) => {
                   const added = allergyList.some(
                     (a) => a.toLowerCase() === sug.toLowerCase(),
                   )
@@ -456,7 +449,7 @@ export function ProfileSettingsForm({
                 Gợi ý nhanh:
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {COMMON_AVOIDED.map((sug) => {
+                {suggestions.avoided.map((sug) => {
                   const added = avoidedList.some(
                     (a) => a.toLowerCase() === sug.toLowerCase(),
                   )

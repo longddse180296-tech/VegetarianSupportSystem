@@ -1,5 +1,5 @@
 // BE2-02 | Chuyển dữ liệu nghiệp vụ sang dạng API trả về (danh mục: tên, mô tả và trạng thái sử dụng).
-// Chức năng: danh mục nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Chuyển dữ liệu về danh mục theo loại nội dung từ entity sang cấu trúc API trả về.
 using Domain.Entities;
 
 namespace Application.Features.Categories;

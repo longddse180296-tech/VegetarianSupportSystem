@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu tin nhắn theo cuộc hội thoại và vai trò người gửi.
 using Domain.Enums;
 
 namespace Domain.Entities;

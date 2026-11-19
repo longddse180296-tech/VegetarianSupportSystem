@@ -1,5 +1,5 @@
 // BE2-03 | Triển khai truy vấn và lưu dữ liệu EF Core cho nguồn gốc, dị nguyên và mốc dinh dưỡng của nguyên liệu.
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi nguyên liệu, nguồn gốc, đơn vị và dinh dưỡng bằng EF Core.
 using Application.Common.Exceptions;
 using Application.Features.Ingredients;
 using Domain.Entities;
@@ -25,6 +25,16 @@ public sealed class IngredientRepository(AppDbContext db) : IIngredientRepositor
             var search = request.Search.Trim();
             query = query.Where(x => x.Name.Contains(search) || (x.Aliases != null && x.Aliases.Contains(search)));
         }
+        if (request.IsActive.HasValue)
+            query = query.Where(x => x.IsActive == request.IsActive.Value);
+        query = request.Component switch
+        {
+            "plant" => query.Where(x => !x.ContainsEgg && !x.ContainsMilk && !x.ContainsHoney),
+            "egg" => query.Where(x => x.ContainsEgg),
+            "milk" => query.Where(x => x.ContainsMilk),
+            "egg-milk" => query.Where(x => x.ContainsEgg && x.ContainsMilk),
+            _ => query
+        };
 
         var count = await query.CountAsync(ct);
         var offset = ((long)request.PageNumber - 1) * request.PageSize;

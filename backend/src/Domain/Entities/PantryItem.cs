@@ -1,5 +1,5 @@
 // BE2-08 | Mô hình nghiệp vụ lưu nguyên liệu trong tủ của từng tài khoản.
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu nguyên liệu và định lượng trong tủ bếp cá nhân.
 namespace Domain.Entities;
 
 // PantryItem: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

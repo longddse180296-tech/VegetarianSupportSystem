@@ -1,3 +1,4 @@
+// Kiểm thử danh sách tài khoản và thao tác khóa hoặc mở khóa qua API.
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;

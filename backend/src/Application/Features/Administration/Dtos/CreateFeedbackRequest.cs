@@ -1,4 +1,4 @@
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Nhận thông tin người gửi, chủ đề và nội dung góp ý từ form liên hệ.
 namespace Application.Features.Administration;
 
 // CreateFeedbackRequest: định nghĩa dữ liệu trao đổi của tính năng.

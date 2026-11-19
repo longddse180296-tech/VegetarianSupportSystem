@@ -1,5 +1,5 @@
 // BE2-04 | Mô hình nghiệp vụ lưu liên kết công thức với nguyên liệu, số lượng và đơn vị.
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu nguyên liệu và định lượng của công thức.
 namespace Domain.Entities;
 
 // RecipeIngredient: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

@@ -1,5 +1,5 @@
 // BE2-09 | Mô hình nghiệp vụ lưu lịch tuần và bản chụp món, nguyên liệu, số lượng mua.
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu thực đơn theo ngày và bữa cùng danh sách mua sắm.
 using Domain.Enums;
 
 namespace Domain.Entities;
@@ -55,6 +55,8 @@ public sealed class MealPlanMealIngredient
 // MealPlanShoppingItem: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class MealPlanShoppingItem
 {
+    // Lưu đối soát và trạng thái mua riêng từng ngày. Null cho lịch cũ chỉ lưu tổng tuần.
+    public string? DailyShoppingJson { get; set; }
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid MealPlanId { get; set; }
     public MealPlan? MealPlan { get; set; }

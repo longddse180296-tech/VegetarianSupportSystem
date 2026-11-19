@@ -1,3 +1,4 @@
+# Nạp dữ liệu kiểm thử BE3 và ghi mã các bản ghi để dùng cho bước kiểm tra.
 """Seed isolated BE3 test records in the local VegetarianSupport database.
 
 Run the API and apply migrations first. This script deliberately never calls Gemini.

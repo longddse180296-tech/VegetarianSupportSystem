@@ -1,5 +1,5 @@
 // BE2-06 | Hợp đồng đọc và ghi dữ liệu mà service sử dụng (yêu thích: công thức, video và nhà hàng theo tài khoản).
-// Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất nội dung do người dùng lưu vào yêu thích mà nghiệp vụ sử dụng.
 using Domain.Entities;
 using Domain.Enums;
 
@@ -8,6 +8,7 @@ namespace Application.Features.Favorites;
 // IFavoriteRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IFavoriteRepository
 {
+    Task<IReadOnlyDictionary<Guid, string>> GetDietaryWarningsAsync(string userId, IReadOnlyList<Favorite> favorites, CancellationToken ct);
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<IReadOnlyList<Favorite>> ListAsync(string userId, FavoriteTargetType? targetType, CancellationToken ct);
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

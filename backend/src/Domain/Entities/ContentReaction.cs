@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu lượt thích video, bình luận hoặc đánh dấu bài viết hữu ích.
 using Domain.Enums;
 
 namespace Domain.Entities;

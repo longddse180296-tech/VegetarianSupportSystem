@@ -1,3 +1,4 @@
+// Kiểm thử thông tin hồ sơ dùng khi tạo ngữ cảnh AI Chat.
 using System.Text.Json;
 using Application.Features.AiChat;
 using Application.Features.Profiles;

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿// Tạo nhóm danh mục cho bài viết và đưa nhãn có sẵn vào danh sách Admin quản lý.
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

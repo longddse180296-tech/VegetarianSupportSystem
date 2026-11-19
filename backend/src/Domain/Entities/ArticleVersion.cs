@@ -1,4 +1,4 @@
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Chụp lại nội dung, danh mục, chế độ ăn và ảnh bìa tại lúc tác giả gửi duyệt.
 using Domain.Enums;
 
 namespace Domain.Entities;

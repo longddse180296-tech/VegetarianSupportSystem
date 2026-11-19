@@ -1,5 +1,5 @@
 // BE2-08 | Hợp đồng đọc và ghi dữ liệu mà service sử dụng (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất nguyên liệu trong tủ bếp cá nhân mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.Pantry;

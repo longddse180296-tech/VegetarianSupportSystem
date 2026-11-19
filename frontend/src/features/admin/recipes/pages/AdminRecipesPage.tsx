@@ -90,9 +90,9 @@ export const AdminRecipesPage = ({
         <button type="button"
           className="inline-flex min-h-11 items-center gap-2 rounded-md text-inherit uppercase tracking-wider hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
           title={`Đang xếp ${calorieSortLabel}. Bấm để xếp ${nextCalorieSortLabel}.`}
-          aria-label={`Kcal/khẩu phần: ${calorieSortLabel}. Sắp xếp ${nextCalorieSortLabel}`}
+          aria-label={`Kcal/người: ${calorieSortLabel}. Sắp xếp ${nextCalorieSortLabel}`}
           onClick={() => { setCalorieSort(nextCalorieSort); setPage(1) }}>
-          Kcal/khẩu phần
+          Kcal/người
           <span className="inline-flex flex-col text-[9px] leading-tight" aria-hidden="true">
             <span className={calorieSort === 'asc' ? 'text-emerald-700' : 'text-slate-300'}>▲</span>
             <span className={calorieSort === 'desc' ? 'text-emerald-700' : 'text-slate-300'}>▼</span>
@@ -259,14 +259,14 @@ export const AdminRecipesPage = ({
           <div className="space-y-4 text-sm">
             <p>{viewing.description}</p>
             <p>
-              {viewing.categoryName} · {viewing.servings} khẩu phần ·{' '}
+              {viewing.categoryName} · Dành cho 1 người ·{' '}
               {viewing.prepTimeMinutes + viewing.cookTimeMinutes} phút
             </p>
             <h4 className="font-bold">Nguyên liệu</h4>
             <ul className="space-y-2">
               {viewing.ingredients.map((item) => (
                 <li key={item.ingredientId}>
-                  {item.name}: {item.quantity} {item.unit}
+                  {item.name}: {Math.round(item.quantity / viewing.servings * 1000) / 1000} {item.unit}
                   {item.note && ` · ${item.note}`}
                 </li>
               ))}

@@ -1,4 +1,4 @@
-// Chức năng: bình luận và tương tác cộng đồng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Khai báo hợp đồng dữ liệu giữa các bước xử lý bình luận và phản hồi trên bài viết hoặc video.
 using Domain.Enums;
 
 namespace Application.Features.Comments;

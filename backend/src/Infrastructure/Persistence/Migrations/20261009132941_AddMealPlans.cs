@@ -1,6 +1,6 @@
 // BE2-07 | Tạo schema lưu thực đơn, các bữa và danh sách mua.
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Tạo thực đơn, từng bữa, nguyên liệu theo món và danh sách mua sắm.
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

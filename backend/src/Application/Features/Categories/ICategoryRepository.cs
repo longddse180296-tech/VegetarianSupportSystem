@@ -1,5 +1,5 @@
 // BE2-02 | Hợp đồng đọc và ghi dữ liệu mà service sử dụng (danh mục: tên, mô tả và trạng thái sử dụng).
-// Chức năng: danh mục nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất danh mục theo loại nội dung mà nghiệp vụ sử dụng.
 using Domain.Entities;
 using Domain.Enums;
 

@@ -21,6 +21,10 @@ export interface RecipeIngredientOption {
   name: string
   defaultUnit?: string | null
   nutritionBasisUnit?: string
+  containsEgg?: boolean
+  containsMilk?: boolean
+  containsHoney?: boolean
+  isActive?: boolean
 }
 
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (recipeQuantityUnit); thuộc công thức và định lượng nguyên liệu.

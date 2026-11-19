@@ -1,5 +1,5 @@
 // BE2-01/04 | Chuyển dữ liệu nghiệp vụ sang dạng API trả về (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Chuyển dữ liệu về công thức, số khẩu phần, nguyên liệu và hướng dẫn nấu từ entity sang cấu trúc API trả về.
 using Domain.Entities;
 using Domain.Rules;
 

@@ -1,3 +1,4 @@
+// Kiểm thử vòng đời và quyết định trên hồ sơ gửi duyệt.
 using Domain.Entities;
 using Domain.Enums;
 

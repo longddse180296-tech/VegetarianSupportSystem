@@ -1,4 +1,4 @@
-// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Gửi liên kết một lần, xác thực token và cập nhật mật khẩu thông qua repository.
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,7 +17,7 @@ public sealed class PasswordResetService(
 {
     public bool IsAvailable => emailSender.IsConfigured && IsValidResetPageUrl(options.ResetPageUrl);
 
-    // RequestAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Kiểm tra cấu hình, cấp token có hạn dùng cho tài khoản phù hợp và gửi liên kết đặt lại mật khẩu.
     public async Task RequestAsync(string? email, CancellationToken cancellationToken)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
@@ -49,7 +49,7 @@ public sealed class PasswordResetService(
         }
     }
 
-    // ResetAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Kiểm tra mật khẩu mới và token, sau đó giao repository cập nhật mật khẩu và trạng thái token.
     public async Task<bool> ResetAsync(string? token, string? newPassword,
         string? confirmPassword, CancellationToken cancellationToken)
     {

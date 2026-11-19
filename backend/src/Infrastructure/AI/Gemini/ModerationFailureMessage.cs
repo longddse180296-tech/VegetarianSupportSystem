@@ -1,3 +1,4 @@
+// Chuyển mã lỗi kỹ thuật của Gemini thành lý do kiểm duyệt dễ hiểu trên giao diện.
 // BE2-10 | Chuyển mã lỗi AI thành hướng dẫn để Admin biết khi nào cần kiểm tra thủ công.
 // Chuyển mã lỗi provider thành thông báo kiểm duyệt rõ nguyên nhân; không kết luận ảnh vi phạm từ lỗi dịch vụ.
 namespace Infrastructure.AI.Gemini;

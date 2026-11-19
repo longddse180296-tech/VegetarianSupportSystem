@@ -7,23 +7,15 @@ import { Modal } from '../../../../shared/components/Modal'
 import { CustomSelect } from '../../../../shared/components/CustomSelect'
 import { SharedDataTable, type ColumnDef } from '../../../../shared/components/SharedDataTable'
 import { adminIngredientsApi } from '../api/adminIngredientsApi'
-import type { AdminIngredientItem, IngredientInput, IngredientOrigin } from '../types/adminIngredients.types'
+import type { AdminIngredientItem, IngredientInput } from '../types/adminIngredients.types'
 import { ingredientUnits, normalizeIngredientUnit } from '../../utils/ingredientUnits'
-
-const originLabels: Record<IngredientOrigin, string> = {
-  Unknown: 'Chưa xác định',
-  Plant: 'Thực vật',
-  Animal: 'Động vật',
-}
 
 const emptyInput: IngredientInput = {
   name: '',
   aliases: null,
-  origin: 'Unknown',
   containsEgg: false,
   containsMilk: false,
   containsHoney: false,
-  containsOtherAnimalProducts: null,
   allergens: null,
   defaultUnit: null,
   calories: null,
@@ -57,6 +49,8 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [componentFilter, setComponentFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -80,7 +74,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
       setLoading(true)
       setError(null)
       adminIngredientsApi
-        .list(page, search, controller.signal)
+        .list(page, search, controller.signal, { status: statusFilter, component: componentFilter })
         .then(result => {
           if (!controller.signal.aborted) {
             setItems(result.items)
@@ -100,7 +94,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
       clearTimeout(timer)
       controller.abort()
     }
-  }, [page, search, refresh])
+  }, [page, search, statusFilter, componentFilter, refresh])
 
   // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (openForm); thuộc danh mục nguyên liệu và dữ liệu dinh dưỡng.
   const openForm = (item: AdminIngredientItem | null) => {
@@ -135,31 +129,12 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
       ),
     },
     {
-      key: 'origin',
-      header: 'Nguồn gốc',
-      render: item => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-            item.origin === 'Plant'
-              ? 'bg-emerald-50 text-emerald-700'
-              : item.origin === 'Animal'
-              ? 'bg-amber-50 text-amber-700'
-              : 'bg-slate-100 text-slate-600'
-          }`}
-        >
-          {originLabels[item.origin]}
-        </span>
-      ),
-    },
-    {
       key: 'evidence',
       header: 'Thành phần',
       render: item =>
         [
           item.containsEgg && 'Trứng',
           item.containsMilk && 'Sữa',
-          item.containsOtherAnimalProducts === true && 'Động vật khác',
-          item.containsOtherAnimalProducts === null && 'Động vật khác: chưa rõ',
         ]
           .filter(Boolean)
           .join(', ') || 'Thuần thực vật',
@@ -265,6 +240,30 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
               setPage(1)
             }}
             className="admin-field min-w-0 flex-1 basis-60"
+          />
+          <CustomSelect
+            label="Trạng thái"
+            value={statusFilter}
+            onChange={value => { setStatusFilter(value); setPage(1) }}
+            options={[
+              { value: 'all', label: 'Tất cả trạng thái' },
+              { value: 'active', label: 'Đang sử dụng' },
+              { value: 'inactive', label: 'Ngừng sử dụng' },
+            ]}
+            className="w-full sm:w-48"
+          />
+          <CustomSelect
+            label="Thành phần"
+            value={componentFilter}
+            onChange={value => { setComponentFilter(value); setPage(1) }}
+            options={[
+              { value: 'all', label: 'Tất cả thành phần' },
+              { value: 'plant', label: 'Thuần thực vật' },
+              { value: 'egg', label: 'Có trứng' },
+              { value: 'milk', label: 'Có sữa' },
+              { value: 'egg-milk', label: 'Có cả trứng và sữa' },
+            ]}
+            className="w-full sm:w-52"
           />
           <button
             type="button"
@@ -442,41 +441,12 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
 
               </div>
 
-              {/* Block 2: Nguồn gốc & Cờ thành phần */}
+              {/* Block 2: Cờ thành phần */}
               <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-4 space-y-3.5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                   <Leaf className="w-3.5 h-3.5 text-emerald-600" />
-                  Nguồn gốc & Thuộc tính phân loại
+                  Thuộc tính phân loại
                 </h4>
-
-                <div className="grid sm:grid-cols-2 gap-3.5">
-                  <CustomSelect
-                    label="Nguồn gốc nguyên liệu"
-                    value={form.origin}
-                    onChange={val => setForm({ ...form, origin: val as IngredientOrigin })}
-                    options={[
-                      { value: 'Plant', label: 'Thực vật', subLabel: 'Có nguồn gốc thực vật' },
-                      { value: 'Animal', label: 'Động vật', subLabel: 'Có nguồn gốc động vật' },
-                      { value: 'Unknown', label: 'Chưa xác định', subLabel: 'Cần xác minh thêm' },
-                    ]}
-                  />
-
-                  <CustomSelect
-                    label="Động vật khác (thịt, cá...)"
-                    value={form.containsOtherAnimalProducts === null ? 'unknown' : String(form.containsOtherAnimalProducts)}
-                    onChange={val =>
-                      setForm({
-                        ...form,
-                        containsOtherAnimalProducts: val === 'unknown' ? null : val === 'true',
-                      })
-                    }
-                    options={[
-                      { value: 'unknown', label: 'Chưa xác minh', subLabel: 'Chưa rõ thông tin' },
-                      { value: 'false', label: 'Đã xác minh không có', subLabel: 'Không chứa thịt, cá...' },
-                      { value: 'true', label: 'Có thành phần động vật', subLabel: 'Chứa thịt, cá hoặc dẫn xuất' },
-                    ]}
-                  />
-                </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">

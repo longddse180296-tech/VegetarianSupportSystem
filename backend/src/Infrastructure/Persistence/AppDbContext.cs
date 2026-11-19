@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Khai báo các tập bản ghi của EF Core và nạp cấu hình ánh xạ entity sang SQL Server.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 

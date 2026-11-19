@@ -1,3 +1,4 @@
+// Xử lý các video đang chờ đọc metadata để API có thể hiển thị thời lượng và thông tin audio.
 // Bổ sung metadata video cũ theo lô nhỏ; lỗi công cụ không làm dừng API hoặc mất video.
 using Application.Features.Videos;
 using Microsoft.Extensions.DependencyInjection;

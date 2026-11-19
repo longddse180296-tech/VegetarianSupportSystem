@@ -1,5 +1,5 @@
 // BE2-02 | Dữ liệu đầu vào từ API (danh mục: tên, mô tả và trạng thái sử dụng).
-// Chức năng: danh mục nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Nhận dữ liệu từ frontend để thực hiện thao tác với danh mục theo loại nội dung.
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.Features.Categories;

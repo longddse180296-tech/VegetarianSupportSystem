@@ -1,4 +1,4 @@
-// Chức năng: báo cáo nội dung cần xem xét. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi báo cáo vi phạm nội dung và trạng thái xử lý bằng EF Core.
 using Application.Features.Moderation;
 using Domain.Entities;
 using Domain.Enums;

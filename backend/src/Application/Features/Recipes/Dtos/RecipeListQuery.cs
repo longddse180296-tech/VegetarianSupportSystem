@@ -1,5 +1,5 @@
 // BE2-01/04 | Tham số lọc, phân trang hoặc giới hạn kết quả (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Nhận bộ lọc và phân trang cho danh sách công thức, số khẩu phần, nguyên liệu và hướng dẫn nấu.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 using Domain.Enums;
@@ -22,6 +22,9 @@ public sealed class RecipeListQuery
 
     [EnumDataType(typeof(DietaryType))]
     public DietaryType? DeclaredDietaryType { get; init; }
+
+    [EnumDataType(typeof(DietaryType))]
+    public DietaryType? CompatibleDeclaredDietaryType { get; init; }
 
     [Range(0, 10080)]
     public int? MaxCookTimeMinutes { get; init; }

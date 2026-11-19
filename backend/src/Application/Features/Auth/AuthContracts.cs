@@ -1,4 +1,4 @@
-// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Khai báo hợp đồng dữ liệu giữa các bước xử lý đăng nhập và phiên xác thực.
 using Domain.Entities;
 
 namespace Application.Features.Auth;

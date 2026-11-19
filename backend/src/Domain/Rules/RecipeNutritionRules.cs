@@ -1,5 +1,5 @@
 // BE2-04 | Tính tỷ lệ định lượng so với mốc dinh dưỡng. Chỉ quy đổi giữa các đơn vị có quan hệ xác định.
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Quy đổi định lượng theo đơn vị dinh dưỡng đã lưu và cộng chỉ số của các nguyên liệu.
 using Domain.Entities;
 
 namespace Domain.Rules;

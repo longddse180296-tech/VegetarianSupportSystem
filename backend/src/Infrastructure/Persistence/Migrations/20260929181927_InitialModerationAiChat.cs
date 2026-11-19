@@ -1,5 +1,5 @@
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Tạo schema đầu tiên cho hàng đợi kiểm duyệt và lịch sử AI Chat.
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

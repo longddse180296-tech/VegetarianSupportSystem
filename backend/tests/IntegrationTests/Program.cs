@@ -1,3 +1,4 @@
+// Khởi động API với xác thực kiểm thử và database riêng, áp dụng migration rồi chạy các kịch bản tích hợp.
 using Application;
 using Api.Controllers;
 using Api.Configuration;
@@ -274,16 +275,20 @@ try
         VALUES ({legacyId}, {"Legacy animal"}, {2}, {true}, {false}, {false}, {false}, {DateTimeOffset.UtcNow}, {legacyCalories}, {"ml"})");
     await db.Database.MigrateAsync();
     var legacy = await db.Ingredients.AsNoTracking().SingleAsync(x => x.Id == legacyId);
-    Check(legacy.ContainsOtherAnimalProducts is null, "upgrade preserves unverified legacy evidence");
+    Check(legacy.ContainsEgg, "upgrade preserves the legacy egg classification");
     Check(legacy.Calories == 12.345m && legacy.NutritionBasisQuantity == 100 && legacy.NutritionBasisUnit == "g" && legacy.DefaultUnit == "ml",
         "nutrition migration preserves old per-100g values independently of default unit");
     Check(Domain.Rules.DietaryRules.Classify([legacy]).Single(x =>
-        x.DietaryType == Domain.Enums.DietaryType.OvoVegetarian).Status == Domain.Enums.DietaryCompatibility.Unknown,
-        "legacy animal ingredient is not silently marked compatible");
+        x.DietaryType == Domain.Enums.DietaryType.LactoVegetarian).Status == Domain.Enums.DietaryCompatibility.Incompatible,
+        "legacy egg ingredient remains incompatible with Lacto");
     Check(!(await db.Database.GetPendingMigrationsAsync()).Any(), "all migrations applied");
     await app.StartAsync();
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
     await CoreDataApiChecks.RunAsync(client, db, Check);
+    await SinglePersonDietChecks.RunAsync(client, db, Check);
+    await NutritionTargetPlanChecks.RunAsync(client, db, Check);
+    await RecipeReviewOrderChecks.RunAsync(client, db, Check);
+    await SavedContentDietaryChecks.RunAsync(client, db, Check);
     await SeedFilterChecks.RunAsync(client, db, Check);
     await DemoSeedChecks.RunAsync(client, db, Check);
     await FavoriteSourceApiChecks.RunAsync(client, db, Check);

@@ -1,3 +1,4 @@
+// Kiểm thử cách quy đổi và tính giá trị theo khẩu phần.
 // BE2-04 | Kiểm tra tỷ lệ định lượng và kết quả dinh dưỡng theo khẩu phần.
 using System.ComponentModel.DataAnnotations;
 using Application.Features.Recipes;

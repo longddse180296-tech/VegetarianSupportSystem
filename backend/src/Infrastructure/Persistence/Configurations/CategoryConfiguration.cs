@@ -1,5 +1,5 @@
 // BE2-02/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu danh mục và trạng thái còn sử dụng.
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Ánh xạ bảng Categories và đặt ràng buộc duy nhất theo cặp loại và tên. Hai loại có thể dùng cùng một tên.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

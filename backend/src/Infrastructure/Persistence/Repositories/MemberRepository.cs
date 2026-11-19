@@ -1,4 +1,4 @@
-// Chức năng: quản lý thành viên. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi tài khoản thành viên trong màn hình quản trị bằng EF Core.
 using System.Data;
 using Application.Features.Administration;
 using Domain.Entities;

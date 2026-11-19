@@ -1,3 +1,4 @@
+// Ánh xạ thời lượng, audio và trạng thái đọc metadata của tệp video sang bảng SQL cùng các ràng buộc dữ liệu.
 // Ánh xạ metadata độc lập theo tệp để giữ đúng thông tin của các phiên bản video.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;

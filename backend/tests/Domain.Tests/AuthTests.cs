@@ -1,3 +1,4 @@
+// Kiểm thử luồng tài khoản và xác thực.
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;

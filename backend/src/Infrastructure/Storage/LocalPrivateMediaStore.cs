@@ -1,4 +1,4 @@
-// Chức năng: lưu trữ và kiểm tra tệp tải lên. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Lưu và mở video hoặc thumbnail theo mã tệp. Quyền truy cập được kiểm tra trước khi API phục vụ file.
 using Application.Features.Videos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;

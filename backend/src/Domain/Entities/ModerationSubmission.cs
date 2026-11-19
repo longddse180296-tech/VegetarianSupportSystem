@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Giữ trạng thái kiểm duyệt AI và Admin của một phiên bản nội dung.
 using Domain.Enums;
 
 namespace Domain.Entities;

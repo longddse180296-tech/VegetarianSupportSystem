@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Ràng buộc số chữ số thập phân cho các trường số trong request.
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.Common.Validation;

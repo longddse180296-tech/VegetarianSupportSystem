@@ -1,5 +1,5 @@
 // BE2-02 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (danh mục: tên, mô tả và trạng thái sử dụng).
-// Chức năng: danh mục nội dung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp danh sách danh mục đang hoạt động cho từng loại nội dung và API Admin để thêm, sửa, khóa hoặc mở lại.
 using Api.Authorization;
 using Application.Features.Categories;
 using Domain.Enums;
@@ -14,7 +14,7 @@ namespace Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
 public sealed class CategoriesController(CategoryService service) : CoreDataControllerBase
 {
-    // List: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
+    // Trả danh mục đang hoạt động của đúng loại cho các bộ chọn trên giao diện.
     [HttpGet("/api/categories")]
     [ProducesResponseType<CategoryPage>(StatusCodes.Status200OK)]
     public Task<IActionResult> List([FromQuery] CategoryListQuery query, CancellationToken ct, [FromQuery] CategoryKind kind = CategoryKind.Recipe) =>
@@ -79,6 +79,7 @@ public sealed class CategoriesController(CategoryService service) : CoreDataCont
             return NoContent();
         });
 
+    // Mở lại danh mục của loại được chọn và trả HTTP 204 khi cập nhật thành công.
     [CoreDataAdmin]
     [HttpPatch("/api/admin/categories/{id:guid}/activate")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

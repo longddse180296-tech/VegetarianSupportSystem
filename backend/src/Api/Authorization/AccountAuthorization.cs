@@ -1,4 +1,4 @@
-// Chức năng: kiểm tra quyền truy cập. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Quy định cách API nhận diện tài khoản và kiểm tra quyền với tài nguyên của người dùng.
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 

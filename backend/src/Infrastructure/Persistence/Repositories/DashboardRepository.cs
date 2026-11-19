@@ -1,4 +1,4 @@
-// Chức năng: thống kê và góp ý gửi đến Admin. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Tổng hợp số liệu thành viên, nội dung, danh mục và hàng đợi kiểm duyệt từ SQL Server cho dashboard Admin.
 using Application.Features.Administration;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +10,7 @@ public sealed class DashboardRepository(AppDbContext db) : IDashboardRepository
 {
     private const int RecentActivityLimit = 10;
 
-    // GetOverviewAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
+    // Gom số tài khoản, dữ liệu nội dung, lượt kiểm duyệt và hoạt động gần đây phục vụ dashboard.
     public async Task<DashboardOverview> GetOverviewAsync(CancellationToken cancellationToken)
     {
         var registered = await db.Users.AsNoTracking().CountAsync(cancellationToken);

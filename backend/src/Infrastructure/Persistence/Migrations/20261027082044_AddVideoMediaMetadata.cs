@@ -1,4 +1,4 @@
-// Chức năng: ánh xạ/lưu phiên bản lược đồ EF Core; tệp sinh tự động.
+// Tạo bảng thời lượng và thông tin audio đọc từ file video.
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

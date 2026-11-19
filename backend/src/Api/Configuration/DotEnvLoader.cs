@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nạp các cặp tên và giá trị từ file .env vào biến môi trường, ưu tiên giá trị đã được môi trường cấu hình.
 namespace Api.Configuration;
 
 // DotEnvLoader: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

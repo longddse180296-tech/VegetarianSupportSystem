@@ -1,4 +1,4 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp API xem hoặc cập nhật hồ sơ, thông tin ăn uống và các danh sách cần tránh.
 using System.Text.Json.Serialization;
 using Application.Features.Profiles;
 using Domain.Enums;

@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp lịch sử gửi duyệt cho tác giả và hàng đợi xử lý cho Admin.
 using System.Security.Claims;
 using Application.Features.Moderation;
 using Domain.Entities;

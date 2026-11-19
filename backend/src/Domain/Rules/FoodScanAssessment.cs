@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Đánh giá khả năng phù hợp với chế độ ăn từ các thành phần đã xác nhận và dữ liệu còn thiếu.
 using Domain.Enums;
 
 namespace Domain.Rules;

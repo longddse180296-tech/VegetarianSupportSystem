@@ -1,7 +1,8 @@
 // BE2-08 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quản lý nguyên liệu của người dùng và gợi ý công thức hoặc nguyên liệu thay thế.
 using Application.Common.Exceptions;
 using Domain.Entities;
+using Domain.Rules;
 
 namespace Application.Features.Pantry;
 
@@ -63,10 +64,16 @@ public sealed class PantryService(IPantryRepository repository)
         var pantryIds = (await repository.ListAsync(userId, ct)).Where(item => item.IngredientId.HasValue)
             .Select(item => item.IngredientId!.Value).ToHashSet();
         var recipes = await repository.GetActiveRecipesAsync(ct);
+        var target = profile is null ? null : ProfileNutritionEstimator.Calculate(profile,
+            DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime)).DailyNutritionTarget;
         return recipes.Where(recipe => PantryMapping.IsRecipeUsableForProfile(recipe, profile))
-            .Select(recipe => PantryMapping.ToRecipeSuggestion(recipe, pantryIds))
-            .OrderByDescending(item => item.MatchPercent).ThenBy(item => item.TotalTimeMinutes)
-            .ThenBy(item => item.RecipeName).Take(query.Limit).ToArray();
+            .Select(recipe => new { Suggestion = PantryMapping.ToRecipeSuggestion(recipe, pantryIds),
+                Distance = target is null ? null : MealNutritionSelector.MealDistance(recipe, target) })
+            .Where(item => item.Suggestion.AvailableIngredients.Count > 0)
+            .OrderByDescending(item => item.Suggestion.MatchPercent)
+            .ThenBy(item => item.Distance ?? decimal.MaxValue)
+            .ThenBy(item => item.Suggestion.TotalTimeMinutes).ThenBy(item => item.Suggestion.RecipeName)
+            .Take(query.Limit).Select(item => item.Suggestion).ToArray();
     }
 
     // GetSubstitutionCandidatesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

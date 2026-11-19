@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Dùng Gemini để gợi ý thành phần từ ảnh, sau đó đánh giá dữ liệu đã xác nhận và lưu lịch sử quét.
 using Application.Abstractions.AI;
 using Domain.Enums;
 using Domain.Rules;
@@ -10,7 +10,7 @@ namespace Application.Features.FoodScanning;
 // FoodScanningService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanRepository repository)
 {
-    // AnalyzeLabelAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Dùng Gemini đọc nhãn và trả thành phần gợi ý để người dùng xác nhận.
     public async Task<LabelImageScanResult> AnalyzeLabelAsync(byte[] imageBytes, string mimeType,
         CancellationToken cancellationToken)
     {
@@ -29,7 +29,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             ingredients);
     }
 
-    // EvaluateAndSaveAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Đánh giá thành phần đã xác nhận theo hồ sơ và lưu đầu vào, kết quả cùng liên kết lần quét trước.
     public async Task<SavedFoodScan> EvaluateAndSaveAsync(string userId, string sourceType,
         IReadOnlyList<ConfirmedIngredient> ingredients, bool ingredientsComplete,
         string? correctedLabelText, bool labelIncomplete, IReadOnlyList<string> unknownAnswers,
@@ -125,7 +125,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
                 StringComparison.OrdinalIgnoreCase) == true))
             .Select(allergy => $"Thành phần đã xác nhận hoặc dữ liệu nguyên liệu có thể chứa dị nguyên: {allergy}.")
             .Distinct().ToArray();
-    // AnalyzeDishAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Đọc dữ liệu nhận diện từ ảnh món và chuyển các phần chưa chắc chắn thành câu hỏi xác nhận.
     public async Task<DishImageScanResult> AnalyzeDishAsync(
         byte[] imageBytes,
         string mimeType,
@@ -155,7 +155,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             suggestedKinds);
     }
 
-    // Evaluate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Đánh giá tương thích với các chế độ ăn bằng quy tắc của Domain.
     public FoodScanEvaluation Evaluate(
         IReadOnlyList<ConfirmedIngredient> ingredients,
         bool ingredientsComplete)

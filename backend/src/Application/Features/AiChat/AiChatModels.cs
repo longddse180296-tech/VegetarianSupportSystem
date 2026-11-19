@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Khai báo DTO hội thoại, tin nhắn và trạng thái trả lời để API chat trao đổi với frontend.
 using Domain.Enums;
 
 namespace Application.Features.AiChat;

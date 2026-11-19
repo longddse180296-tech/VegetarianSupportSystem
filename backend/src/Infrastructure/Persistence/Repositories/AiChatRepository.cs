@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi hội thoại hỗ trợ ăn chay bằng EF Core.
 using Application.Features.AiChat;
 using Domain.Entities;
 using Domain.Enums;

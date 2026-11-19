@@ -1,3 +1,4 @@
+// Kiểm thử khả năng sử dụng token đặt lại mật khẩu và trạng thái phiên sau khi đổi mật khẩu.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Api.Authorization;

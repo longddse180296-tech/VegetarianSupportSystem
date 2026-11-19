@@ -1,3 +1,4 @@
+// Kiểm thử cách đọc kết quả và lỗi từ Gemini khi kiểm duyệt.
 // BE2-10 | Kiểm tra kết quả AI khi xử lý văn bản và ảnh của bản gửi duyệt.
 using System.Net;
 using System.Net.Http.Json;

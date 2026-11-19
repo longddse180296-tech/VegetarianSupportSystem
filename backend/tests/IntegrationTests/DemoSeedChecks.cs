@@ -1,3 +1,4 @@
+// Kiểm thử cách fixture demo được nạp và kiểm tra khi chạy nhiều lần.
 using System.Net;
 using System.Net.Http.Json;
 using Application.Features.Recipes;
@@ -21,7 +22,7 @@ internal static class DemoSeedChecks
         var ingredients = await db.Ingredients.Where(x => x.Name.StartsWith("[Demo]")).ToListAsync();
         var recipes = await db.Recipes.Where(x => x.Name.StartsWith("[Demo]"))
             .Include(x => x.RecipeIngredients).ThenInclude(x => x.Ingredient).ToListAsync();
-        check(categories.Count == 8 && ingredients.Count == 36 && recipes.Count == 32, "complete demo catalog saved");
+        check(categories.Count == 8 && ingredients.Count == 34 && recipes.Count == 30, "complete demo catalog saved");
         check(await db.Users.CountAsync() == usersBefore && await db.MealPlans.CountAsync() == plansBefore,
             "demo seed does not create accounts or meal plans");
         check(recipes.All(x => x.RecipeIngredients.Count > 0 && x.RecipeIngredients.All(row => row.Ingredient is not null)),
@@ -32,18 +33,14 @@ internal static class DemoSeedChecks
 
         client.DefaultRequestHeaders.Remove("Test-Role");
         var all = (await client.GetFromJsonAsync<RecipePage>("/api/recipes?search=%5BDemo%5D&pageSize=100"))!;
-        check(all.TotalCount == 31, "public demo recipes exclude inactive recipe");
+        check(all.TotalCount == 29, "public demo recipes exclude inactive recipe");
         var first = (await client.GetFromJsonAsync<RecipePage>("/api/recipes?search=%5BDemo%5D&pageSize=20"))!;
         var second = (await client.GetFromJsonAsync<RecipePage>("/api/recipes?search=%5BDemo%5D&pageSize=20&pageNumber=2"))!;
-        check(first.Items.Count == 20 && second.Items.Count == 11 &&
+        check(first.Items.Count == 20 && second.Items.Count == 9 &&
             !first.Items.Select(x => x.Id).Intersect(second.Items.Select(x => x.Id)).Any(), "demo supports two distinct recipe pages");
         var vegan = (await client.GetFromJsonAsync<RecipePage>("/api/recipes?search=%5BDemo%5D&dietaryType=1&pageSize=100"))!;
         check(vegan.TotalCount == 21 && vegan.Items.All(x => x.DietaryAssessments.Single(a =>
             a.DietaryType == DietaryType.Vegan).Status == DietaryCompatibility.Compatible), "21 demo recipes match Vegan filter");
-        check(all.Items.Single(x => x.Name.Contains("cần xác minh")).DietaryAssessments.All(x => x.Status == DietaryCompatibility.Unknown),
-            "unverified seasoning keeps unknown dietary status");
-        check(all.Items.Single(x => x.Name.Contains("nước mắm cá")).DietaryAssessments.All(x => x.Status == DietaryCompatibility.Incompatible),
-            "fish sauce example is incompatible with all vegetarian diets");
         var inactive = recipes.Single(x => !x.IsActive);
         check((await client.GetAsync("/api/recipes/" + inactive.Id)).StatusCode == HttpStatusCode.NotFound,
             "inactive demo recipe is hidden from public detail");

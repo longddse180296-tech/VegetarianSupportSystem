@@ -1,3 +1,4 @@
+// Kiểm thử quyền và ảnh hưởng khi tác giả xóa nội dung.
 // Kiểm tra rút nội dung ở mọi trạng thái, bảo toàn lịch sử và chặn AI/Admin khôi phục nội dung đã xóa.
 using Application.Features.Moderation;
 using Domain.Entities;

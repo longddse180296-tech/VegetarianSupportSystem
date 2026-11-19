@@ -1,3 +1,4 @@
+// Kiểm thử dữ liệu đầu vào và kết quả đánh giá quét thực phẩm.
 using Application.Abstractions.AI;
 using Application.Features.FoodScanning;
 using Domain.Entities;

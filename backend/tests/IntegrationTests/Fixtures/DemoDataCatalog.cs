@@ -1,3 +1,4 @@
+// Khai báo dữ liệu công thức, nguyên liệu và nội dung liên quan cho bộ fixture demo.
 // BE2-07 | Dữ liệu danh mục, nguyên liệu và công thức dùng để kiểm tra các luồng BE2.
 using Domain.Entities;
 using Domain.Enums;
@@ -57,13 +58,6 @@ internal static class DemoDataCatalog
         Animal(131, "Sữa bò", "milk;sữa tươi", 60, 3, 5, 3, milk: true, allergens: "Sữa;Milk"),
         Animal(132, "Phô mai không men dịch vị động vật", "cheese;phô mai chay", 280, 18, 3, 22, milk: true, allergens: "Sữa;Milk"),
         Animal(133, "Mật ong", "honey", 300, 0, 82, 0, honey: true),
-        new Ingredient
-        {
-            Id = Id(134), Name = "[Demo] Gia vị chưa rõ nguồn gốc", Aliases = "seasoning;hương liệu chưa xác minh",
-            Origin = IngredientOrigin.Unknown, ContainsOtherAnimalProducts = null,
-            DefaultUnit = "g", Source = SampleSource
-        },
-        Animal(135, "Nước mắm cá", "fish sauce;nước mắm từ cá", 35, 5, 4, 0, otherAnimal: true, allergens: "Cá;Fish"),
         InactiveFlour()
     ];
 
@@ -102,8 +96,6 @@ internal static class DemoDataCatalog
             Make(226, 7, "Bánh mì trứng sữa", 5, 10, "Đánh trứng với sữa rồi nhúng bánh mì. Áp chảo với dầu đến khi trứng chín hoàn toàn; chia hai phần.", (105, 160), (130, 100), (131, 100), (127, 5)),
             Make(227, 6, "Sinh tố chuối mật ong", 5, 0, "Xay chuối với sữa đậu nành và mật ong. Chia hai ly.", (120, 300), (126, 300), (133, 20)),
             Make(228, 7, "Salad phô mai cà chua", 10, 0, "Cắt phô mai không men dịch vị động vật thành miếng. Trộn với cà chua, xà lách và dầu, chia hai phần.", (132, 100), (114, 250), (116, 100), (127, 10)),
-            Make(229, 2, "Đậu hũ với gia vị cần xác minh", 10, 10, "Áp chảo đậu hũ và nấm. Đây là tình huống demo: cần xác minh nguồn gốc gia vị trước khi đánh giá chế độ ăn.", (101, 300), (109, 150), (134, 5)),
-            Make(230, 2, "Rau củ có nước mắm cá", 10, 10, "Xào bông cải và cà rốt với dầu, thêm nước mắm cá. Tình huống demo không phù hợp cả bốn chế độ ăn chay.", (112, 250), (110, 150), (135, 15), (127, 10)),
             InactiveRecipe(Make(231, 8, "Bánh bột mì đã ngừng", 10, 15, "Trộn bột với nước rồi áp chảo. Công thức ngừng sử dụng chỉ phục vụ demo quản trị và giữ tham chiếu cũ.", (136, 160), (127, 10), (128, 2))),
             Make(232, 6, "Sữa bò mật ong", 5, 5, "Hâm sữa, để bớt nóng rồi khuấy mật ong. Chia hai ly.", (131, 400), (133, 20))
         ];
@@ -115,25 +107,24 @@ internal static class DemoDataCatalog
     };
 
     private static Ingredient Plant(int id, string name, string aliases, decimal calories, decimal protein,
-        decimal carbs, decimal fat, string? allergens = null) => Ingredient(id, name, aliases, calories, protein, carbs, fat, IngredientOrigin.Plant, allergens);
+        decimal carbs, decimal fat, string? allergens = null) => Ingredient(id, name, aliases, calories, protein, carbs, fat, allergens);
 
     private static Ingredient Animal(int id, string name, string aliases, decimal calories, decimal protein,
         decimal carbs, decimal fat, bool egg = false, bool milk = false, bool honey = false,
-        bool otherAnimal = false, string? allergens = null)
+        string? allergens = null)
     {
-        var ingredient = Ingredient(id, name, aliases, calories, protein, carbs, fat, IngredientOrigin.Animal, allergens);
+        var ingredient = Ingredient(id, name, aliases, calories, protein, carbs, fat, allergens);
         ingredient.ContainsEgg = egg;
         ingredient.ContainsMilk = milk;
         ingredient.ContainsHoney = honey;
-        ingredient.ContainsOtherAnimalProducts = otherAnimal;
         return ingredient;
     }
 
     private static Ingredient Ingredient(int id, string name, string aliases, decimal calories, decimal protein,
-        decimal carbs, decimal fat, IngredientOrigin origin, string? allergens) => new()
+        decimal carbs, decimal fat, string? allergens) => new()
     {
-        Id = Id(id), Name = $"[Demo] {name}", Aliases = $"{name};{aliases}", Origin = origin,
-        ContainsOtherAnimalProducts = false, Allergens = allergens, DefaultUnit = "g",
+        Id = Id(id), Name = $"[Demo] {name}", Aliases = $"{name};{aliases}",
+        Allergens = allergens, DefaultUnit = "g",
         Calories = calories, ProteinGram = protein,
         CarbohydrateGram = carbs, FatGram = fat, Source = SampleSource
     };

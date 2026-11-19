@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu góp ý gửi qua form liên hệ.
 namespace Domain.Entities;
 
 // ContactFeedback: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
