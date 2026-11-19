@@ -175,16 +175,18 @@ public sealed class ModerationSubmission
     }
 
     // RetryAiCheck: Thử lại thao tác khi trạng thái hiện tại cho phép.
-    public void RetryAiCheck(DateTimeOffset retriedAt)
+    public void RetryAiCheck(DateTimeOffset retriedAt, bool allowCompleted = false)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (ContentType == ModeratedContentType.Video)
             throw new InvalidOperationException("Video không thuộc luồng kiểm tra tự động; Quản trị viên sẽ xem trực tiếp.");
 
-        if (AiFlagStatus != AiFlagStatus.Failed || AdminReviewStatus != AdminReviewStatus.Submitted)
+        if ((AiFlagStatus != AiFlagStatus.Failed && !(allowCompleted && AiFlagStatus is (AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial))) ||
+            (AdminReviewStatus != AdminReviewStatus.Submitted && !(allowCompleted && AdminReviewStatus == AdminReviewStatus.PendingAdminReview)))
             throw new InvalidOperationException("Hệ thống chưa thể kiểm tra lại bản này. Vui lòng xem trạng thái kiểm duyệt hiện tại.");
 
         AiFlagStatus = AiFlagStatus.Checking;
+        AdminReviewStatus = AdminReviewStatus.Submitted;
         AiSummary = null;
         AiFlagReason = null;
         AiFlagType = null;

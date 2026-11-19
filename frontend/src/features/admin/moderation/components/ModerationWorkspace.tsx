@@ -246,6 +246,30 @@ export function ModerationWorkspace({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // Theo dõi kết quả worker khi hộp chi tiết còn mở, dừng khi kiểm tra hoàn tất.
+  useEffect(() => {
+    if (!selected || selected.aiFlagStatus !== 'Checking') return
+    const id = selected.id
+    let active = true
+    let timer: ReturnType<typeof setTimeout>
+    const poll = async () => {
+      try {
+        const updated = await adminModerationApi.get(id)
+        if (!active) return
+        setSelected(current => current?.id === id ? updated : current)
+        if (updated.aiFlagStatus !== 'Checking') {
+          result.reload()
+          return
+        }
+      } catch (reason) {
+        if (!active) return
+        setError(errorMessage(reason))
+      }
+      timer = setTimeout(poll, 3000)
+    }
+    timer = setTimeout(poll, 3000)
+    return () => { active = false; clearTimeout(timer) }
+  }, [selected?.id, selected?.aiFlagStatus])
   // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     if (!notice) return
@@ -477,13 +501,13 @@ export function ModerationWorkspace({
             {selected.contentType === 'Article' && (
               <div className="space-y-2">
                 <AiReview submission={selected} />
-                <button type="button" disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 font-semibold text-emerald-800 disabled:opacity-50"
+                <button type="button" disabled={busy || selected.aiFlagStatus === 'Checking' || !['Submitted', 'PendingAdminReview'].includes(selected.adminReviewStatus)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 font-semibold text-emerald-800 disabled:opacity-50"
                   onClick={async () => {
                     setBusy(true)
                     setError(null)
                     try {
-                      // Chỉ đọc lại đúng phiên bản đang xem, giữ lựa chọn và lý do Admin đã nhập.
-                      setSelected(await adminModerationApi.get(selected.id))
+                      // Gửi yêu cầu kiểm tra mới; worker đọc lại văn bản và ảnh của phiên bản này.
+                      setSelected(await adminModerationApi.retryAi(selected.id))
                       result.reload()
                     } catch (reason) {
                       setError(errorMessage(reason))
@@ -492,7 +516,7 @@ export function ModerationWorkspace({
                     }
                   }}>
                   <RefreshCw size={14} aria-hidden="true" />
-                  {busy ? 'Đang cập nhật...' : 'Cập nhật kết quả hệ thống'}
+                  {selected.aiFlagStatus === 'Checking' ? 'Đang kiểm tra lại...' : busy ? 'Đang gửi yêu cầu...' : 'Cập nhật kết quả hệ thống'}
                 </button>
                 <Feedback error={error} />
               </div>

@@ -137,11 +137,17 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             cancellationToken);
     }
 
+    // Admin yêu cầu worker kiểm tra lại đúng phiên bản mới nhất, chưa có quyết định duyệt.
+    public async Task<ModerationSubmission> RetryAiForAdminAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var submission = await GetForAdminAsync(id, cancellationToken);
+        return await RetryAiAsync(id, submission.OwnerUserId, cancellationToken, allowCompleted: true);
+    }
     // Đưa bài viết đủ điều kiện trở lại bước kiểm tra sau khi AI gặp lỗi.
     public async Task<ModerationSubmission> RetryAiAsync(
         Guid submissionId,
         string ownerUserId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool allowCompleted = false)
     {
         var submission = await GetOwnedAsync(submissionId, ownerUserId, cancellationToken);
         var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
@@ -151,7 +157,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
 
         try
         {
-            submission.RetryAiCheck(DateTimeOffset.UtcNow);
+            submission.RetryAiCheck(DateTimeOffset.UtcNow, allowCompleted);
         }
         catch (InvalidOperationException ex)
         {

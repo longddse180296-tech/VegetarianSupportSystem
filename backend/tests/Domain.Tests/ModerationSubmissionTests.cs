@@ -6,6 +6,26 @@ namespace Domain.Tests;
 
 public sealed class ModerationSubmissionTests
 {
+    [Theory]
+    [InlineData(AiFlagStatus.Failed)]
+    [InlineData(AiFlagStatus.Passed)]
+    public void AdminCanQueueAnotherCheckBeforeMakingDecision(AiFlagStatus status)
+    {
+        var submission = NewSubmission();
+        submission.RecordAiResult(status, "Previous result", status == AiFlagStatus.Failed ? null : "Text", null, DateTimeOffset.UtcNow);
+        submission.RetryAiCheck(DateTimeOffset.UtcNow, allowCompleted: true);
+        Assert.Equal(AiFlagStatus.Checking, submission.AiFlagStatus);
+        Assert.Equal(AdminReviewStatus.Submitted, submission.AdminReviewStatus);
+        Assert.Null(submission.AiSummary);
+        Assert.Null(submission.AiCheckedAt);
+        Assert.Throws<InvalidOperationException>(() => submission.RetryAiCheck(DateTimeOffset.UtcNow, allowCompleted: true));
+        submission.RecordAiResult(AiFlagStatus.Passed, "Fresh result", "Text and cover", null, DateTimeOffset.UtcNow);
+        Assert.Equal("Fresh result", submission.AiSummary);
+        Assert.Equal(AdminReviewStatus.PendingAdminReview, submission.AdminReviewStatus);
+        submission.Decide(ModerationDecisionType.Approve, "admin", "Reviewed", DateTimeOffset.UtcNow);
+        Assert.Throws<InvalidOperationException>(() => submission.RetryAiCheck(DateTimeOffset.UtcNow, allowCompleted: true));
+    }
+
     [Fact]
     public void VideoGoesDirectlyToAdminWithoutAiAndCanBeApproved()
     {

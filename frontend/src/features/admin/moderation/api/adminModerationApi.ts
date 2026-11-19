@@ -79,6 +79,8 @@ export interface Submission {
   }>
 }
 export const adminModerationApi = {
+  retryAi: (id: string) =>
+    apiClient.post<Submission>(`/api/admin/moderation/submissions/${id}/retry-ai`, {}),
   get: (id: string) =>
     apiClient.get<Submission>(`/api/admin/moderation/submissions/${id}`),
   decide: (id: string, decision: Decision, reason: string) =>

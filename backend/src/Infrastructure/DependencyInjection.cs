@@ -77,7 +77,7 @@ public static class DependencyInjection
         services.AddScoped<IFoodScanRepository, FoodScanRepository>();
         services.AddHostedService<ModerationAiWorker>();
         services.AddHttpClient<IGeminiService, GeminiService>(client =>
-            client.Timeout = TimeSpan.FromSeconds(45));
+            client.Timeout = TimeSpan.FromMinutes(3));
         services.AddScoped<IAiChatAnswerService, GeminiAiChatAnswerService>();
 
         services.AddScoped<ICategoryRepository, CategoryRepository>();

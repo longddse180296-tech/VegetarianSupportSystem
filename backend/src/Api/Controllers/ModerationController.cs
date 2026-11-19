@@ -211,6 +211,20 @@ public sealed class AdminModerationController(
         }
     }
 
+    // Đưa yêu cầu kiểm tra lại vào hàng đợi; worker gọi Gemini với văn bản và ảnh đã lưu.
+    [HttpPost("{id:guid}/retry-ai")]
+    public async Task<IActionResult> RetryAi(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await moderationService.RetryAiForAdminAsync(id, cancellationToken);
+            return await GetById(id, cancellationToken);
+        }
+        catch (ModerationException ex)
+        {
+            return ModerationHttpError.From(ex);
+        }
+    }
     // Decide: Áp dụng quyết định Admin lên đúng phiên bản và ghi lại lịch sử xử lý.
     [HttpPost("{id:guid}/decisions")]
     public async Task<IActionResult> Decide(

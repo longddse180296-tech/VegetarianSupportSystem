@@ -9,6 +9,22 @@ namespace Domain.Tests;
 public sealed class FailedArticleModerationServiceTests
 {
     [Fact]
+    public async Task AdminRetryPersistsCheckingStateAndWaitsForWorkerResult()
+    {
+        var submission = FailedArticle();
+        var repository = new SingleSubmissionRepository(submission);
+        var service = new ModerationService(repository, new UnusedVideoPublication());
+        var result = await service.RetryAiForAdminAsync(submission.Id, CancellationToken.None);
+        Assert.True(repository.Saved);
+        Assert.Equal(AiFlagStatus.Checking, result.AiFlagStatus);
+        Assert.Equal(AdminReviewStatus.Submitted, result.AdminReviewStatus);
+        Assert.Null(result.AiCheckedAt);
+        Assert.Null(result.AiSummary);
+        await Assert.ThrowsAsync<ModerationException>(() =>
+            service.RetryAiForAdminAsync(submission.Id, CancellationToken.None));
+    }
+
+    [Fact]
     public async Task AdminCanApproveFailedArticleAfterManualReview()
     {
         var submission = FailedArticle();

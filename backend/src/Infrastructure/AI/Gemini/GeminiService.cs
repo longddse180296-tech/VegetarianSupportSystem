@@ -337,6 +337,11 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         JsonElement? responseSchema = null,
         string? apiKeyOverride = null)
     {
+        // Kiểm duyệt có schema được chờ tối đa 3 phút, gồm cả các lần thử lại.
+        // Chat và nhận diện ảnh giữ giới hạn 45 giây.
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(responseSchema is not null ? TimeSpan.FromMinutes(3) : TimeSpan.FromSeconds(45));
+        var operationToken = timeout.Token;
         var generationConfig = jsonResponse
             ? new Dictionary<string, object>
             {
@@ -388,13 +393,13 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
                 message.Headers.TryAddWithoutValidation("x-goog-api-key", apiKeyOverride ?? apiKey);
                 message.Content = JsonContent.Create(payload);
 
-                using var response = await httpClient.SendAsync(message, cancellationToken);
+                using var response = await httpClient.SendAsync(message, operationToken);
                 if (attempt < 2 && response.StatusCode is
                     (HttpStatusCode.ServiceUnavailable or HttpStatusCode.BadGateway or HttpStatusCode.GatewayTimeout))
                 {
                     var delay = TimeSpan.FromMilliseconds(
                         (1 << attempt) * 1000 + Random.Shared.Next(0, 500));
-                    await Task.Delay(delay, cancellationToken);
+                    await Task.Delay(delay, operationToken);
                     continue;
                 }
 
@@ -402,8 +407,8 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
                     return GenerateResult.Unavailable($"ProviderHttp{(int)response.StatusCode}");
 
                 using var document = await JsonDocument.ParseAsync(
-                    await response.Content.ReadAsStreamAsync(cancellationToken),
-                    cancellationToken: cancellationToken);
+                    await response.Content.ReadAsStreamAsync(operationToken),
+                    cancellationToken: operationToken);
                 // Bộ lọc provider chặn đầu vào/đầu ra không phải một lần kiểm tra đạt; không giảm cấu hình an toàn.
                 if (document.RootElement.TryGetProperty("promptFeedback", out var feedback)
                     && !string.IsNullOrWhiteSpace(ReadString(feedback, "blockReason")))
