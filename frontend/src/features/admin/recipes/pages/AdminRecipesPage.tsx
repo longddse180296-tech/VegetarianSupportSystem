@@ -337,6 +337,8 @@ export const AdminRecipesPage = ({
                   )
                   setNotice(`Đã ngừng sử dụng công thức “${statusTarget.name}”.`)
                 } else {
+                  // Chỉ đổi trạng thái trên màn hình sau khi backend đã lưu thành công.
+                  await recipeApi.activate(statusTarget.id)
                   result.setData((prev) =>
                     prev
                       ? {

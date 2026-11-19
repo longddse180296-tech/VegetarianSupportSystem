@@ -65,6 +65,19 @@ public sealed class RecipesController(RecipeService service) : CoreDataControlle
     public Task<IActionResult> Update(Guid id, RecipeRequest request, CancellationToken ct) =>
         Execute(async () => Ok(await service.UpdateAsync(id, request, ct)));
 
+    // BE2-04 | Mở lại công thức đã ngừng sử dụng và lưu trạng thái thật xuống database.
+    [CoreDataAdmin]
+    [HttpPost("/api/admin/recipes/{id:guid}/activate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public Task<IActionResult> Activate(Guid id, CancellationToken ct) =>
+        Execute(async () =>
+        {
+            await service.ActivateAsync(id, ct);
+            return NoContent();
+        });
+
     // Deactivate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [CoreDataAdmin]
     [HttpPost("/api/admin/recipes/{id:guid}/deactivate")]

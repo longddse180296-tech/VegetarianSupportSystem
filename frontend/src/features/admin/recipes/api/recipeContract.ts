@@ -63,6 +63,8 @@ export const recipeApi = {
     apiClient.post<RecipeDetail>('/api/admin/recipes', input),
   update: (id: string, input: RecipeInput) =>
     apiClient.put<RecipeDetail>(`/api/admin/recipes/${id}`, input),
+  activate: (id: string) =>
+    apiClient.post<void>(`/api/admin/recipes/${id}/activate`),
   deactivate: (id: string) =>
     apiClient.post<void>(`/api/admin/recipes/${id}/deactivate`),
 }

@@ -58,6 +58,16 @@ public sealed class RecipeService(
         return RecipeMapping.ToResponse(entity);
     }
 
+    // BE2-04 | Kích hoạt lại giữ nguyên nội dung, ảnh và định lượng; gọi lặp khi đang hoạt động vẫn thành công.
+    public async Task ActivateAsync(Guid id, CancellationToken ct)
+    {
+        var entity = await FindAsync(id, ct);
+        if (entity.IsActive) return;
+        entity.IsActive = true;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await repository.SaveAsync(ct);
+    }
+
     // Đánh dấu công thức ngừng sử dụng và ghi lại thời điểm cập nhật.
     public async Task DeactivateAsync(Guid id, CancellationToken ct)
     {
