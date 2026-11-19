@@ -21,7 +21,7 @@ internal static class DotEnvLoader
             if (separator <= 0) continue;
 
             var name = line[..separator].Trim();
-            if (name.Length == 0 || Environment.GetEnvironmentVariable(name) is not null) continue;
+            if (name.Length == 0) continue;
 
             var value = line[(separator + 1)..].Trim();
             if (value.Length >= 2 &&
