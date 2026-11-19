@@ -13,7 +13,7 @@ namespace Api.Controllers;
 public sealed class ContentReportsController(ContentReportService service) : ControllerBase
 {
     // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpPost("/api/content-reports")]
     [EnableRateLimiting("content-reports")]
     [RequestSizeLimit(16 * 1024)]
@@ -24,7 +24,7 @@ public sealed class ContentReportsController(ContentReportService service) : Con
     });
 
     // GetMyReportStatus: Kiểm tra người dùng hiện tại đã gửi báo cáo cho nội dung này chưa.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpGet("/api/content-reports/status")]
     public Task<IActionResult> GetMyReportStatus([FromQuery] ModeratedContentType targetType,
         [FromQuery] Guid targetId, CancellationToken ct) => Execute(async () =>

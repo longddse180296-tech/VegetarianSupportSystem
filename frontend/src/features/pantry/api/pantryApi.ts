@@ -317,6 +317,10 @@ interface BackendPantryItem {
 
 // Cấu trúc BackendPantryRecipeSuggestion quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 interface BackendPantryRecipeSuggestion {
+  isCompatible?: boolean
+  incompatibilityReason?: string | null
+  nutritionWarning?: string | null
+  lastEatenOn?: string | null
   proteinGramPerServing?: number | null
   carbohydrateGramPerServing?: number | null
   fatGramPerServing?: number | null
@@ -535,13 +539,17 @@ export async function updatePantryItem(
 }
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipeMatches); thuộc tủ bếp và nguyên liệu sẵn có.
-export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMatch[]> {
-  const url = '/api/pantry/recipe-suggestions'
+export async function getRecipeMatches(_pantry: PantryItem[], includeAll = false): Promise<RecipeMatch[]> {
+  const url = `/api/pantry/recipe-suggestions?limit=50&includeAll=${includeAll}`
   try {
     const suggestions = await apiClient.get<BackendPantryRecipeSuggestion[]>(url)
     if (suggestions && Array.isArray(suggestions) && suggestions.length > 0) {
       return suggestions.filter(s => s.availableIngredients.length > 0).map((s) => ({
         id: s.recipeId,
+        isCompatible: s.isCompatible,
+        incompatibilityReason: s.incompatibilityReason,
+        nutritionWarning: s.nutritionWarning,
+        lastEatenOn: s.lastEatenOn,
         title: s.recipeName,
         subtitle: `${s.totalTimeMinutes} phút · Dành cho 1 người`,
         // Gợi ý chỉ dùng ảnh thật của công thức; không tự bổ sung ảnh ngoài dữ liệu.

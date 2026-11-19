@@ -40,6 +40,10 @@ export interface PantryItem {
 
 // Cấu trúc RecipeMatch quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 export interface RecipeMatch {
+  isCompatible?: boolean
+  incompatibilityReason?: string | null
+  nutritionWarning?: string | null
+  lastEatenOn?: string | null
   id: string
   title: string
   cover: string

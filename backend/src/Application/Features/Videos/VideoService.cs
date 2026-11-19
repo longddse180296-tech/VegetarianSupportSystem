@@ -39,6 +39,7 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         if (video is null) return null;
         await EnsureEditable(video, ct);
         await CheckCategory(categoryId, ct);
+        await WithdrawPendingAsync(video, ct);
         video.Edit(title, description, categoryId);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveAsync(ct);
@@ -53,6 +54,7 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (video is null) return null;
         await EnsureEditable(video, ct);
+        await WithdrawPendingAsync(video, ct);
         if (thumbnail) video.SetThumbnail(key);
         else
         {
@@ -120,6 +122,8 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         await EnsureEditable(video, ct);
         if (video.UploadStatus != "Ready" || video.MediaKey is null)
             throw new InvalidOperationException("Vui lòng tải video hợp lệ lên trước khi gửi duyệt.");
+        if (string.IsNullOrWhiteSpace(video.ThumbnailKey))
+            throw new InvalidOperationException("Vui lòng tải ảnh bìa video lên trước khi gửi duyệt.");
         if (await moderation.GetLatestForContentAsync(id, ct) is null)
             return await moderationService.SubmitFirstVideoAsync(id, userId, video.Title,
                 video.Description, video.MediaKey, ct);
@@ -220,12 +224,11 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
     private async Task EnsureEditable(Video video, CancellationToken ct)
     {
         var latest = await moderation.GetLatestForContentAsync(video.Id, ct);
-        if (latest?.AdminReviewStatus == AdminReviewStatus.Removed)
-            throw new InvalidOperationException("Video đã bị xóa hoặc gỡ, không thể chỉnh sửa hay gửi duyệt lại.");
-        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
-        if (latest?.AdminReviewStatus is AdminReviewStatus.Submitted or AdminReviewStatus.PendingAdminReview)
-            throw new InvalidOperationException("Video đang được kiểm duyệt. Vui lòng chờ kết quả trước khi chỉnh sửa.");
+        if (latest?.AdminReviewStatus is AdminReviewStatus.Rejected or AdminReviewStatus.RevisionRequested or AdminReviewStatus.Removed)
+            throw new InvalidOperationException("Video đã bị từ chối hoặc gỡ, chỉ được xem và không thể chỉnh sửa, lưu nháp hay gửi lại.");
     }
+    private async Task WithdrawPendingAsync(Video video, CancellationToken ct) =>
+        (await moderation.GetLatestForContentAsync(video.Id, ct))?.WithdrawPendingForEdit(DateTimeOffset.UtcNow);
     // Dựng dữ liệu trả về từ bản công khai hoặc bản nháp theo ngữ cảnh, kèm thông tin tệp và tác giả.
     private async Task<VideoDetails> MapAsync(Video video, bool publicView, CancellationToken ct,
         ModerationSubmission? published = null, IReadOnlyDictionary<string, string>? authorNames = null)

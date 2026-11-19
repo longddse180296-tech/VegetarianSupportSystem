@@ -9,7 +9,7 @@ namespace Api.Controllers;
 
 // AiChatController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
-[Authorize(Roles = "User,Admin")]
+[Authorize(Roles = "User")]
 [Route("api/ai-chat")]
 public sealed class AiChatController(
     AiChatService chatService,

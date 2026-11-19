@@ -13,6 +13,7 @@ namespace Infrastructure.Persistence.Repositories;
 // RecipeRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class RecipeRepository(AppDbContext db) : IRecipeRepository
 {
+    public Task<int> CountRequiringReviewAsync(CancellationToken ct) => db.Recipes.CountAsync(RecipeReviewRules.RequiresReview, ct);
     // BE2-01/04 | Dùng chung cho danh sách public và Admin; trả các món của trang hiện tại và tổng số món khớp bộ lọc.
     public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> ListAsync(RecipeListQuery request, bool includeInactive, CancellationToken ct)
     {
@@ -89,27 +90,14 @@ public sealed class RecipeRepository(AppDbContext db) : IRecipeRepository
         {
             return (Array.Empty<Recipe>(), count);
         }
-        // BE2-04 | Tạo các truy vấn ID nguyên liệu không phù hợp với từng chế độ ăn để xác định món cần kiểm tra lại.
-        var nonVeganIds = db.Ingredients.Where(DietaryRules.IncompatibleIngredient(DietaryType.Vegan)).Select(x => x.Id);
-        var nonLactoIds = db.Ingredients.Where(DietaryRules.IncompatibleIngredient(DietaryType.LactoVegetarian)).Select(x => x.Id);
-        var nonOvoIds = db.Ingredients.Where(DietaryRules.IncompatibleIngredient(DietaryType.OvoVegetarian)).Select(x => x.Id);
-        var nonLactoOvoIds = db.Ingredients.Where(DietaryRules.IncompatibleIngredient(DietaryType.LactoOvoVegetarian)).Select(x => x.Id);
-        // Với Admin, đưa món đã khai báo chế độ ăn nhưng thiếu nguyên liệu hoặc chứa nguyên liệu không phù hợp lên đầu.
-        // Sắp xếp trước Skip/Take nên ưu tiên trên toàn bộ kết quả, không chỉ trong một trang.
-        // Public truyền includeInactive=false nên không áp dụng ưu tiên cảnh báo này.
-        var prioritized = query.OrderByDescending(recipe => includeInactive && recipe.DeclaredDietaryType.HasValue &&
-            (!recipe.RecipeIngredients.Any() ||
-             (recipe.DeclaredDietaryType == DietaryType.Vegan &&
-              recipe.RecipeIngredients.Any(row => nonVeganIds.Contains(row.IngredientId))) ||
-             (recipe.DeclaredDietaryType == DietaryType.LactoVegetarian &&
-              recipe.RecipeIngredients.Any(row => nonLactoIds.Contains(row.IngredientId))) ||
-             (recipe.DeclaredDietaryType == DietaryType.OvoVegetarian &&
-              recipe.RecipeIngredients.Any(row => nonOvoIds.Contains(row.IngredientId))) ||
-             (recipe.DeclaredDietaryType == DietaryType.LactoOvoVegetarian &&
-              recipe.RecipeIngredients.Any(row => nonLactoOvoIds.Contains(row.IngredientId)))));
+        // Ưu tiên cùng tập công thức được đếm ở menu, trước khi phân trang.
+        var prioritized = includeInactive ? query.OrderByDescending(RecipeReviewRules.RequiresReview) : query.OrderBy(recipe => false);
         // Sắp xếp phụ sau mức ưu tiên: asc tăng dần calo, desc giảm dần, mặc định theo tên.
         // Món thiếu calo nằm cuối trong cùng mức ưu tiên; tên rồi ID giúp thứ tự ổn định khi phân trang.
-        var ordered = request.CalorieSort switch
+        var ordered = request.RankByPopularity
+            ? query.OrderByDescending(recipe => db.Favorites.Count(favorite => favorite.TargetType == FavoriteTargetType.Recipe && favorite.TargetId == recipe.Id))
+                .ThenBy(recipe => recipe.Name).ThenBy(recipe => recipe.Id)
+            : request.CalorieSort switch
         {
             "asc" => prioritized.ThenBy(x => !x.CaloriesPerServing.HasValue)
                 .ThenBy(x => x.CaloriesPerServing).ThenBy(x => x.Name).ThenBy(x => x.Id),

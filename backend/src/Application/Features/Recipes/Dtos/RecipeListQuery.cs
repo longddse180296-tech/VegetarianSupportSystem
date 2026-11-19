@@ -9,6 +9,7 @@ namespace Application.Features.Recipes;
 // RecipeListQuery: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class RecipeListQuery
 {
+    public bool RankByPopularity { get; init; }
     [Range(1, int.MaxValue)]
     public int PageNumber { get; init; } = 1;
     [Range(1, 100)]

@@ -3,11 +3,12 @@
 using Application.Common.Exceptions;
 using Domain.Entities;
 using Domain.Rules;
+using Application.Features.MealPlans;
 
 namespace Application.Features.Pantry;
 
 // PantryService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
-public sealed class PantryService(IPantryRepository repository)
+public sealed class PantryService(IPantryRepository repository, IMealPlanRepository? mealPlans = null)
 {
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<IReadOnlyList<PantryItemResponse>> ListAsync(string userId, CancellationToken ct)
@@ -66,14 +67,31 @@ public sealed class PantryService(IPantryRepository repository)
         var recipes = await repository.GetActiveRecipesAsync(ct);
         var target = profile is null ? null : ProfileNutritionEstimator.Calculate(profile,
             DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime)).DailyNutritionTarget;
-        return recipes.Where(recipe => PantryMapping.IsRecipeUsableForProfile(recipe, profile))
-            .Select(recipe => new { Suggestion = PantryMapping.ToRecipeSuggestion(recipe, pantryIds),
-                Distance = target is null ? null : MealNutritionSelector.MealDistance(recipe, target) })
+        var eaten = mealPlans is null ? new Dictionary<Guid, DateOnly>() : await mealPlans.GetRecentCheckInsAsync(userId,
+            DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime).AddDays(-21), ct);
+        return recipes.Select(recipe =>
+            {
+                var compatible = PantryMapping.IsRecipeUsableForProfile(recipe, profile);
+                var incompatibleNames = recipe.RecipeIngredients.Where(x => x.Ingredient is not null && !PantryMapping.IsUsableForProfile(x.Ingredient, profile))
+                    .Select(x => x.Ingredient!.Name).ToArray();
+                var nutritionWarning = target is not null && (!MealNutritionSelector.HasNutrition(recipe) ||
+                    !MealNutritionSelector.IsNearTarget((recipe.CaloriesPerServing ?? 0) * 3, (recipe.ProteinGramPerServing ?? 0) * 3,
+                        (recipe.CarbohydrateGramPerServing ?? 0) * 3, (recipe.FatGramPerServing ?? 0) * 3, target))
+                    ? "Dinh dưỡng món chưa gần mức tham chiếu cho một bữa. Bạn vẫn có thể chọn và cân đối các bữa còn lại." : null;
+                return new { Suggestion = PantryMapping.ToRecipeSuggestion(recipe, pantryIds) with
+                    { IsCompatible = compatible, IncompatibilityReason = compatible ? null : incompatibleNames.Length > 0
+                        ? "Nguyên liệu chưa phù hợp hồ sơ: " + string.Join(", ", incompatibleNames) + "." : "Chế độ ăn của món chưa phù hợp hồ sơ.",
+                      NutritionWarning = nutritionWarning, LastEatenOn = eaten.TryGetValue(recipe.Id, out var date) ? date : null },
+                    Distance = target is null ? null : MealNutritionSelector.MealDistance(recipe, target) };
+            })
+            .Where(item => query.IncludeAll || item.Suggestion.IsCompatible)
             .Where(item => item.Suggestion.AvailableIngredients.Count > 0)
-            .OrderByDescending(item => item.Suggestion.MatchPercent)
+            .OrderByDescending(item => item.Suggestion.IsCompatible)
+            .ThenBy(item => item.Suggestion.LastEatenOn.HasValue)
+            .ThenByDescending(item => item.Suggestion.MatchPercent)
             .ThenBy(item => item.Distance ?? decimal.MaxValue)
             .ThenBy(item => item.Suggestion.TotalTimeMinutes).ThenBy(item => item.Suggestion.RecipeName)
-            .Take(query.Limit).Select(item => item.Suggestion).ToArray();
+            .Take(query.IncludeAll ? int.MaxValue : query.Limit).Select(item => item.Suggestion).ToArray();
     }
 
     // GetSubstitutionCandidatesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

@@ -224,8 +224,8 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
             {notice}
           </p>
         )}
-        <div className="admin-filter-bar flex flex-wrap items-center gap-4">
-          <span className="flex shrink-0 items-center gap-2 rounded-lg bg-lime-50 px-3 py-2 text-sm font-semibold text-lime-700">
+        <div className="admin-filter-bar grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[auto_minmax(180px,1fr)_190px_210px_auto]">
+          <span className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-lime-50 px-3 py-2 text-sm font-semibold text-lime-700">
             <Leaf aria-hidden="true" className="h-4 w-4" />
             {total} nguyên liệu
           </span>
@@ -239,7 +239,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
               setSearch(event.target.value)
               setPage(1)
             }}
-            className="admin-field min-w-0 flex-1 basis-60"
+            className="admin-field min-w-0 sm:col-span-2 xl:col-span-1"
           />
           <CustomSelect
             label="Trạng thái"
@@ -250,7 +250,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
               { value: 'active', label: 'Đang sử dụng' },
               { value: 'inactive', label: 'Ngừng sử dụng' },
             ]}
-            className="w-full sm:w-48"
+            className="w-full"
           />
           <CustomSelect
             label="Thành phần"
@@ -263,12 +263,12 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
               { value: 'milk', label: 'Có sữa' },
               { value: 'egg-milk', label: 'Có cả trứng và sữa' },
             ]}
-            className="w-full sm:w-52"
+            className="w-full"
           />
           <button
             type="button"
             onClick={() => openForm(null)}
-            className="fe1-btn fe1-btn-primary inline-flex min-h-11 items-center justify-center gap-2 font-bold px-4 rounded-xl"
+            className="fe1-btn fe1-btn-primary inline-flex h-11 min-h-11 items-center justify-center gap-2 whitespace-nowrap font-bold px-4 rounded-xl"
           >
             <Plus aria-hidden="true" className="h-4 w-4" />
             Thêm nguyên liệu
@@ -377,7 +377,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                 else await adminIngredientsApi.create(input)
                 setEditing(undefined)
                 setNotice(editing ? 'Đã cập nhật nguyên liệu thành công.' : 'Đã thêm nguyên liệu mới thành công.')
-                setRefresh(value => value + 1)
+                window.dispatchEvent(new Event('recipe-catalog-updated')); setRefresh(value => value + 1)
               } catch (err) {
                 setFormError(err instanceof Error ? err.message : 'Không thể lưu nguyên liệu.')
               } finally {
@@ -602,11 +602,13 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                   try {
                     if (statusTarget.isActive) {
                       await adminIngredientsApi.deactivate(statusTarget.id)
+                      window.dispatchEvent(new Event('recipe-catalog-updated'))
                       setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: false } : it))
                       setNotice(`Đã ngừng sử dụng nguyên liệu “${statusTarget.name}”.`)
                     } else {
                       // Chỉ báo mở khóa sau khi backend đã lưu thành công; lỗi giữ nguyên trạng thái cũ.
                       await adminIngredientsApi.activate(statusTarget.id)
+                      window.dispatchEvent(new Event('recipe-catalog-updated'))
                       setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: true } : it))
                       setNotice(`Đã mở khóa và kích hoạt lại nguyên liệu “${statusTarget.name}”.`)
                     }

@@ -7,6 +7,8 @@ namespace Application.Features.Administration;
 // IFeaturedContentRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IFeaturedContentRepository
 {
+    Task<FeaturedContentPage> ListPopularAsync(FeaturedContentType type, int page, int pageSize, CancellationToken ct) =>
+        ListAsync(type, null, false, page, pageSize, ct);
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<FeaturedContentPage> ListAsync(FeaturedContentType contentType, string? search,
         bool pinnedOnly, int page, int pageSize, CancellationToken ct);

@@ -124,6 +124,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
   const [profileLoading, setProfileLoading] = useState(true)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [matches, setMatches] = useState<RecipeMatch[]>([])
+  const [showAllMatches, setShowAllMatches] = useState(false)
   const [isLoadingItems, setIsLoadingItems] = useState(true)
   const [pantryError, setPantryError] = useState<string | null>(null)
   const [pendingItem, setPendingItem] = useState<string | null>(null)
@@ -329,7 +330,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     void (async () => {
       setIsLoadingMatches(true)
       try {
-        const data = await getRecipeMatches(items)
+        const data = await getRecipeMatches(items, showAllMatches)
         if (!cancelled) setMatches(data)
       } catch (error) {
         if (!cancelled) {
@@ -343,7 +344,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
     return () => {
       cancelled = true
     }
-  }, [items])
+  }, [items, showAllMatches])
 
   const itemsWithDiet = items
 
@@ -747,7 +748,7 @@ export default function PantryPage({ onNavigate, isLoggedIn }: PantryPageProps) 
                         </p>
                       </div>
                     </div>
-                    <Button variant="outline" leftIcon={<Bookmark size={15} />} onClick={() => onNavigate?.('/favorites?type=Recipe')}>Công thức đã lưu</Button>
+                    <div className="flex flex-wrap items-center gap-3"><button type="button" onClick={() => setShowAllMatches(value => !value)} className="text-sm font-semibold text-emerald-700 underline underline-offset-4">{showAllMatches ? 'Chỉ xem món phù hợp' : 'Xem tất cả món khớp'}</button><Button variant="outline" leftIcon={<Bookmark size={15} />} onClick={() => onNavigate?.('/favorites?type=Recipe')}>Công thức đã lưu</Button></div>
                   </div>
                 </div>
 
@@ -949,7 +950,6 @@ function MatchCard({
         fn()
       }
     }
-  const veganOk = m.matchPercent >= 60
   const allIngredientsAvailable = m.totalIngredients > 0 && m.matchedIngredients.length === m.totalIngredients
 
   // Hiển thị giao diện tủ bếp và nguyên liệu sẵn có từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
@@ -960,8 +960,8 @@ function MatchCard({
       <div
         role="button"
         tabIndex={0}
-        onClick={onViewRecipe}
-        onKeyDown={onKey(onViewRecipe)}
+        onClick={() => { if (m.isCompatible !== false) onViewRecipe() }}
+        onKeyDown={onKey(() => { if (m.isCompatible !== false) onViewRecipe() })}
         className="relative block w-full cursor-pointer overflow-hidden bg-slate-100"
       >
         <ContentImage
@@ -974,12 +974,12 @@ function MatchCard({
         <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
           <span
             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-xs backdrop-blur-md ${
-              veganOk
+              m.isCompatible !== false
                 ? 'bg-emerald-700/90 text-white'
                 : 'bg-amber-100/90 text-amber-900 border border-amber-200'
             }`}
           >
-            Theo hồ sơ {currentDiet || 'đã khai báo'}
+            {m.isCompatible === false ? 'Chưa phù hợp hồ sơ' : `Theo hồ sơ ${currentDiet || 'đã khai báo'}`}
           </span>
         </div>
         <div className="absolute bottom-3 left-3 flex items-center gap-2">
@@ -1027,6 +1027,8 @@ function MatchCard({
           <NutriBox label="Béo" value={m.fatG == null ? '—' : String(m.fatG)} unit="g" tone="rose" />
         </div>
 
+        {m.isCompatible === false ? <p className="text-xs leading-5 text-rose-700">{m.incompatibilityReason}</p> : m.nutritionWarning ? <p className="text-xs leading-5 text-amber-800">{m.nutritionWarning}</p> : <p className="text-xs text-emerald-700">Phù hợp với hồ sơ của bạn</p>}
+        {m.lastEatenOn && <p className="text-xs text-slate-500">Đã ăn ngày {new Date(m.lastEatenOn + 'T12:00:00').toLocaleDateString('vi-VN')}</p>}
         {/* MATCH % PROGRESS BAR */}
         <div className="mt-1 flex items-center gap-3">
           <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
@@ -1049,6 +1051,7 @@ function MatchCard({
             fullWidth
             rightIcon={<ArrowRight size={14} />}
             onClick={onViewRecipe}
+            disabled={m.isCompatible === false}
             className="!h-9.5 !rounded-xl !bg-[#2E7D32] hover:!bg-[#1B5E20] font-semibold text-[13px]"
           >
             Xem công thức

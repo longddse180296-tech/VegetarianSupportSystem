@@ -48,3 +48,9 @@ export async function getPublicFeaturedContent(contentType: FeaturedContentType,
 export function setFeaturedPin(contentType: FeaturedContentType, id: string, isPinned: boolean) {
   return apiClient.put<void>(`/api/admin/featured-content/${contentType}/${encodeURIComponent(id)}`, { isPinned })
 }
+
+// Trang chủ lấy top sau khi BE xếp hạng toàn bộ nội dung công khai.
+export async function getPopularFeaturedContent(contentType: FeaturedContentType, signal?: AbortSignal) {
+  const query = new URLSearchParams({ contentType, page: '1', pageSize: '3', rankByPopularity: 'true' })
+  return (await apiClient.get<FeaturedContentPage>(`/api/featured-content?${query}`, {requiresAuth: false, signal})).items
+}

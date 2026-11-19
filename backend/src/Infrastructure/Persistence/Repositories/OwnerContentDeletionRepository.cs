@@ -34,6 +34,8 @@ public sealed class OwnerContentDeletionRepository(AppDbContext db) : IOwnerCont
         var versions = await db.ModerationSubmissions.Where(x => x.ContentId == contentId && x.ContentType == type)
             .ToListAsync(ct);
         var now = DateTimeOffset.UtcNow;
+        if (versions.OrderByDescending(version => version.Version).FirstOrDefault()?.AdminReviewStatus is AdminReviewStatus.Rejected or AdminReviewStatus.RevisionRequested)
+            throw new ModerationException(ModerationError.Conflict, "Nội dung đã bị từ chối, chỉ được xem và không thể xóa hoặc thay đổi.");
         foreach (var version in versions) version.RemoveByOwner(ownerId, now);
         if (video is not null) video.RemovePublication();
 

@@ -10,7 +10,7 @@ namespace Api.Controllers;
 
 // ModerationController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
-[Authorize(Roles = "User,Admin")]
+[Authorize(Roles = "User")]
 [Route("api/moderation/submissions")]
 public sealed class ModerationController(ModerationService moderationService) : ControllerBase
 {
@@ -267,7 +267,7 @@ public sealed record SubmitModerationRequest(
 // MakeModerationDecisionRequest: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record MakeModerationDecisionRequest(
     ModerationDecisionType Decision,
-    string Reason);
+    string? Reason = null);
 
 // ModerationDecisionResponse: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record ModerationDecisionResponse(

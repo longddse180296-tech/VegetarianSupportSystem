@@ -38,6 +38,14 @@ export function mealNutrition(value: number | null, servings: number): string {
 }
 
 export const mealPlanApi = {
+  exportData: (id: string, day?: number) => apiClient.get<SavedPlan>(`/api/meal-plans/${id}/export${day ? `?day=${day}` : ''}`),
+  review: (id: string) => apiClient.post<SavedPlan>(`/api/meal-plans/${id}/review`, {}),
+  checkIn: (id: string, meal: SavedPlanMeal) => apiClient.post<SavedPlan>(`/api/meal-plans/${id}/meals/${meal.dayNumber}/${meal.slot}/check-in`, {}),
+  undoCheckIn: (id: string, meal: SavedPlanMeal) => apiClient.delete<SavedPlan>(`/api/meal-plans/${id}/meals/${meal.dayNumber}/${meal.slot}/check-in`),
+  choices: (id: string, meal: SavedPlanMeal, search = '', page = 1, includeAll = false, signal?: AbortSignal) => {
+    const query = new URLSearchParams({ search, page: String(page), pageSize: '12', includeAll: String(includeAll) })
+    return apiClient.get<{items: ReplacementRecipe[]; totalCount: number}>(`/api/meal-plans/${id}/meals/${meal.dayNumber}/${meal.slot}/choices?${query}`, {signal})
+  },
   list: (page = 1, signal?: AbortSignal) => apiClient.get<PlanPage>(`/api/meal-plans?page=${page}&pageSize=100`, { signal }),
   async listAll(signal?: AbortSignal): Promise<SavedPlanSummary[]> {
     const items: SavedPlanSummary[] = []

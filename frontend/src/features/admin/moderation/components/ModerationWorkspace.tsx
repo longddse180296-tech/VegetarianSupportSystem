@@ -21,7 +21,6 @@ import { formatVideoDuration } from '../../../videos/utils/videoMetadata'
 import { AdminFrame, Feedback } from '../../components/ApiWorkspace'
 import { useApiData } from '../../hooks/useApiData'
 import {
-  fieldClass,
   primaryClass,
   errorMessage,
   formatDate,
@@ -39,10 +38,10 @@ import {
 
 const adminStatusStyles: Record<AdminStatus, string> = {
   Draft: 'border-slate-200 bg-slate-50 text-slate-600',
-  Submitted: 'border-sky-200 bg-sky-50 text-sky-700',
+  Submitted: 'border-amber-200 bg-amber-50 text-amber-800',
   PendingAdminReview: 'border-amber-200 bg-amber-50 text-amber-800',
   Published: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  RevisionRequested: 'border-orange-200 bg-orange-50 text-orange-800',
+  RevisionRequested: 'border-red-200 bg-red-50 text-red-700',
   Rejected: 'border-rose-200 bg-rose-50 text-rose-700',
   Removed: 'border-slate-200 bg-slate-100 text-slate-600',
 }
@@ -106,7 +105,7 @@ export function AiReview({ submission }: { submission: Submission }) {
       ).map(
         ([key, label]) =>
           submission[key] && (
-            <p key={key} className="whitespace-pre-wrap">
+            <p key={key} className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] leading-relaxed">
               <strong>{label}:</strong> {key === 'aiFlagType' ? ({ Spam: 'Nội dung rác', Abuse: 'Nội dung không phù hợp', Advertising: 'Quảng cáo', HealthClaim: 'Tuyên bố sức khỏe cần kiểm chứng', OffTopic: 'Không liên quan', InappropriateImage: 'Ảnh đại diện cần xem xét' }[submission[key]] || submission[key]) : key === 'aiPriority' ? ({ Low: 'Thấp', Medium: 'Trung bình', High: 'Cao' }[submission[key]] || submission[key]) : key === 'aiEvidence' ? submission[key] : formatSystemReviewMessage(submission[key])}
             </p>
           ),
@@ -231,8 +230,8 @@ export function ModerationWorkspace({
   const requestedSubmissionId = new URLSearchParams(window.location.hash.split('?')[1] || '').get('submissionId')
   // Lưu dữ liệu và trạng thái thao tác của kiểm duyệt nội dung và kết quả kiểm tra AI trong vòng đời màn hình.
   const [page, setPage] = useState(1)
-  const [status, setStatus] = useState<'' | 'PendingAdminReview' | 'Rejected'>(
-    '',
+  const [status, setStatus] = useState<'' | 'PendingAdminReview' | 'Published' | 'Rejected'>(
+    'PendingAdminReview',
   )
   const query = new URLSearchParams({ page: String(page), pageSize: '10' })
   query.set('contentType', contentType)
@@ -242,7 +241,6 @@ export function ModerationWorkspace({
   )
   const [selected, setSelected] = useState<Submission | null>(null)
   const [decision, setDecision] = useState<Decision | ''>('')
-  const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -291,7 +289,6 @@ export function ModerationWorkspace({
       }
       setSelected(submission)
       setDecision('')
-      setReason('')
     }).catch(reason => { if (active) setError(errorMessage(reason)) })
     return () => { active = false }
   }, [requestedSubmissionId, contentType])
@@ -303,7 +300,6 @@ export function ModerationWorkspace({
     try {
       setSelected(await adminModerationApi.get(id))
       setDecision('')
-      setReason('')
     } catch (reason) {
       setError(errorMessage(reason))
     } finally {
@@ -432,8 +428,9 @@ export function ModerationWorkspace({
             }}
             options={[
               { value: '', label: 'Tất cả' },
-              { value: 'PendingAdminReview', label: 'Chờ Quản trị viên duyệt' },
-              { value: 'Rejected', label: 'Đã từ chối' },
+              { value: 'PendingAdminReview', label: 'Đang đợi duyệt' },
+              { value: 'Published', label: 'Đã được chấp nhận' },
+              { value: 'Rejected', label: 'Đã bị từ chối' },
             ]}
           />
         </div>
@@ -455,8 +452,10 @@ export function ModerationWorkspace({
         title={
           status === 'PendingAdminReview'
             ? 'Nội dung chờ duyệt'
-            : status === 'Rejected'
-              ? 'Nội dung đã từ chối'
+            : status === 'Published'
+              ? 'Nội dung đã được chấp nhận'
+              : status === 'Rejected'
+              ? 'Nội dung đã bị từ chối'
               : 'Tất cả nội dung'
         }
         totalCountBadge={
@@ -541,7 +540,6 @@ export function ModerationWorkspace({
                   <p className="break-all">
                     Quản trị viên: {item.adminUserId} · {formatDate(item.decidedAt)}
                   </p>
-                  <p className="whitespace-pre-wrap">{item.reason}</p>
                 </div>
               ))
             ) : (
@@ -554,19 +552,18 @@ export function ModerationWorkspace({
                 className="space-y-3 border-t pt-4"
                 onSubmit={async (event) => {
                   event.preventDefault()
-                  if (!decision || !reason.trim() || busy) return
+                  if (!decision || busy) return
                   setBusy(true)
                   setError(null)
                   try {
                     await adminModerationApi.decide(
                       selected.id,
                       decision,
-                      reason.trim(),
                     )
                     setSelected(null)
                     setNotice('Đã lưu quyết định kiểm duyệt.')
+                    window.dispatchEvent(new Event('admin-inbox-updated'))
                     setDecision('')
-                    setReason('')
                     result.reload()
                   } catch (reason) {
                     setError(errorMessage(reason))
@@ -591,27 +588,17 @@ export function ModerationWorkspace({
                     { value: '', label: 'Chọn quyết định' },
                     ...(selected.adminReviewStatus === 'Published'
                       ? ['Remove']
-                      : ['Approve', 'RequestRevision', 'Reject']
+                      : ['Approve', 'Reject']
                     ).map((value) => ({
                       value,
                       label: decisionLabels[value as Decision],
                     })),
                   ]}
                 />
-                <label className="block">
-                  Lý do
-                  <textarea
-                    required
-                    maxLength={2000}
-                    disabled={busy}
-                    className={fieldClass}
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                </label>
+
                 <Feedback error={error} />
                 <button
-                  disabled={busy || !decision || !reason.trim()}
+                  disabled={busy || !decision}
                   className={primaryClass}
                 >
                   {busy ? 'Đang lưu...' : 'Lưu quyết định'}

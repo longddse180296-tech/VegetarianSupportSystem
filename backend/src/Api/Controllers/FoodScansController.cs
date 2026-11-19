@@ -9,7 +9,7 @@ namespace Api.Controllers;
 
 // FoodScansController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
-[Authorize(Roles = "User,Admin")]
+[Authorize(Roles = "User")]
 [Route("api/food-scans")]
 public sealed class FoodScansController(FoodScanningService scanningService) : ControllerBase
 {

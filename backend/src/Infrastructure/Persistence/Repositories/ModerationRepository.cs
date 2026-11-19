@@ -56,7 +56,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
                 x.AdminReviewStatus == AdminReviewStatus.Submitted &&
                 !dbContext.ModerationSubmissions.Any(newer =>
                     newer.ContentId == x.ContentId && newer.Version > x.Version))
-            .OrderBy(x => x.SubmittedAt).Select(x => x.Id).Take(count)
+            .OrderBy(x => x.SubmittedAt).ThenBy(x => x.Id).Select(x => x.Id).Take(count)
             .ToArrayAsync(cancellationToken);
 
     // SearchAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
@@ -79,9 +79,10 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
             query = query.Where(x => x.IsCurrentPublished);
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderByDescending(x => x.SubmittedAt)
-            .ThenByDescending(x => x.Id)
+        var ordered = search.AdminStatus is AdminReviewStatus.Submitted or AdminReviewStatus.PendingAdminReview
+            ? query.OrderBy(x => x.SubmittedAt).ThenBy(x => x.Id)
+            : query.OrderByDescending(x => x.SubmittedAt).ThenByDescending(x => x.Id);
+        var items = await ordered
             .Skip((search.Page - 1) * search.PageSize)
             .Take(search.PageSize)
             .Include(x => x.Decisions)

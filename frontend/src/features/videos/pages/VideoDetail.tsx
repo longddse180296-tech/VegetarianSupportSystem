@@ -11,6 +11,7 @@ import {
   Reply,
   RotateCcw,
   ThumbsUp,
+  Trash2,
   Video as VideoIcon,
 } from 'lucide-react'
 import { Badge, Button, EmptyState, PageHeading, SkeletonLoader, Textarea } from '../../../shared/components'
@@ -22,6 +23,7 @@ import {
   type VideoDetails,
 } from '../api/backendVideos'
 import { getSavedVideo, toggleCommentLike, toggleVideoLike, toggleVideoSave } from '../api/videoApi'
+import { useAuth } from '../../auth'
 import ReportContentButton from '../../reports/components/ReportContentButton'
 import { formatVideoDuration } from '../utils/videoMetadata'
 
@@ -150,6 +152,8 @@ export default function VideoDetail(props: Props) {
 
 // Thành phần VideoDetailContent nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc video, bản nháp và nội dung công khai.
 function VideoDetailContent({ videoId, onNavigate }: Props) {
+  const { user } = useAuth()
+  const [removingComment, setRemovingComment] = useState<string | null>(null)
   // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [video, setVideo] = useState<VideoDetails | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
@@ -357,6 +361,21 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
   const isVideoAvailable = Boolean(video.mediaUrl) && !hasVideoError
   const authorName = video.authorName || 'Người đăng'
 
+  const removeComment = async (comment: Comment) => {
+    if (removingComment || !videoId || user?.id !== comment.authorId || !requireLogin()) return
+    if (!window.confirm('Gỡ bình luận này?')) return
+    setRemovingComment(comment.id)
+    setActionError(null)
+    try {
+      await apiClient.delete<void>(`/api/comments/${encodeURIComponent(comment.id)}`)
+      setComments(await loadComments(videoId))
+      if (replyTo === comment.id) { setReplyTo(null); setDraft('') }
+      setNotice('Đã gỡ bình luận.')
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Không thể gỡ bình luận. Vui lòng thử lại.')
+    } finally { setRemovingComment(null) }
+  }
+
   // Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (renderComment); thuộc video, bản nháp và nội dung công khai.
   const renderComment = (comment: Comment, isReply = false) => (
     <div key={comment.id} className={`border-t border-slate-100 pt-4 ${isReply ? 'ml-6' : ''}`}>
@@ -374,6 +393,11 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
           requireLogin={requireLogin}
           onError={(msg) => setActionError(msg)}
         />
+        {user?.id === comment.authorId && comment.body !== null && <button type="button"
+          disabled={!!removingComment} onClick={() => void removeComment(comment)}
+          className="inline-flex items-center gap-1 font-medium text-rose-600 hover:text-rose-800 disabled:opacity-50">
+          <Trash2 size={13} />{removingComment === comment.id ? 'Đang gỡ...' : 'Gỡ'}
+        </button>}
         {!isReply && comment.body !== null && (
           <button
             type="button"

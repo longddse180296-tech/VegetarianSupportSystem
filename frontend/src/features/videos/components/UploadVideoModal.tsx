@@ -1,6 +1,6 @@
 // Chức năng: video, bản nháp và nội dung công khai. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useState } from 'react'
-import { Info, Upload } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import {
   Button,
   Input,
@@ -52,6 +52,7 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
     else if (form.title.trim().length < 6) next.title = 'Tiêu đề tối thiểu 6 ký tự'
     if (!form.videoUrl.trim()) next.videoUrl = 'Vui lòng nhập URL video (Youtube, Drive...)'
     if (!form.category) next.category = 'Vui lòng chọn danh mục video'
+    if (!form.thumbnailUrl.trim()) next.thumbnailUrl = 'Vui lòng tải ảnh bìa video'
     if (form.duration !== '' && Number.isNaN(Number(form.duration)))
       next.duration = 'Thời lượng phải là số (giây)'
     setErrors(next)
@@ -104,7 +105,7 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
           Upload video chia sẻ cộng đồng
         </span>
       }
-      description="Video của bạn sẽ được AI quét tự động cấm nhạy cảm (gắn cờ với lý do), sau đó Admin xem xét & phê duyệt cuối cùng trước khi xuất bản."
+      description="Video sẽ được công khai sau khi được duyệt."
       footer={
         <>
           <Button
@@ -153,7 +154,7 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="legacy-video-thumbnail" className="mb-1 block text-[12px] font-bold text-[#1f2937]">
-            Ảnh thumbnail <span className="font-normal text-[#6b7280]">(tùy chọn)</span>
+            Ảnh bìa <span className="text-red-500">*</span>
           </label>
           <input
             id="legacy-video-thumbnail"
@@ -228,32 +229,12 @@ export const UploadVideoModal: React.FC<UploadVideoModalProps> = ({
             onChange={(e) => updateField('description', e.target.value)}
           />
           <p className="mt-1 text-[11px] text-[#6b7280]">
-            Lưu ý: nội dung rõ ràng, có cấu trúc bước-bước sẽ giúp AI kiểm tra & Admin duyệt nhanh
+            Lưu ý: trình bày rõ các bước để người xem dễ theo dõi
             hơn 1.5-2x.
           </p>
         </div>
       </div>
 
-      <div className="mt-5 rounded-[12px] border border-sky-200 bg-sky-50/80 p-3 text-[11px] leading-5 text-sky-800">
-        <div className="flex items-start gap-2">
-          <Info size={14} className="mt-0.5 flex-shrink-0 text-sky-600" />
-          <div>
-            <strong>Luồng kiểm duyệt 2 bước (Tách biệt AI & Admin):</strong>
-            <ol className="mt-1 list-inside list-decimal space-y-0.5 pl-1">
-              <li>
-                <span className="font-bold">🤖 AI chỉ GẮN CỜ</span> (phát hiện từ khóa nhạy cảm, cảnh
-                báo nội dung không phù hợp chủ đề thuần thực vật) và ghi rõ lý do —{' '}
-                <span className="font-bold">KHÔNG tự động từ chối</span>.
-              </li>
-              <li>
-                <span className="font-bold">👮 Admin là người quyết định cuối cùng</span>: phê duyệt
-                → <code>published</code>, hoặc từ chối có ghi rõ lý do →{' '}
-                <code>rejected</code>.
-              </li>
-            </ol>
-          </div>
-        </div>
-      </div>
     </Modal>
   )
 }

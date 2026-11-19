@@ -12,6 +12,50 @@ namespace Infrastructure.Persistence.Repositories;
 // FeaturedContentRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class FeaturedContentRepository(AppDbContext db) : IFeaturedContentRepository
 {
+    // Xếp hạng toàn bộ nội dung đủ điều kiện trước phân trang. Ghim thủ công dùng luồng quản trị riêng.
+    public async Task<FeaturedContentPage> ListPopularAsync(FeaturedContentType type, int page, int pageSize, CancellationToken ct)
+    {
+        var candidates = type switch
+        {
+            FeaturedContentType.Restaurant => PublicRestaurants(db.Restaurants.AsNoTracking()).Select(item =>
+                new PopularCandidate { Id = item.Id, DefaultId = item.Id, Name = item.Name, Date = DateTimeOffset.MinValue }),
+            FeaturedContentType.Video => PublicVideos(db.Videos.AsNoTracking(), db.ModerationSubmissions.AsNoTracking()).Select(item =>
+                new PopularCandidate { Id = item.Video.Id, DefaultId = item.Video.Id, Name = "", Date = item.Video.CreatedAtUtc }),
+            FeaturedContentType.Article => PublicArticles(db.ArticleVersions.AsNoTracking()).Select(item =>
+                new PopularCandidate { Id = item.ArticleId, DefaultId = item.Id, Name = "", Date = item.SubmittedAt }),
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+        var favoriteType = type switch { FeaturedContentType.Restaurant => FavoriteTargetType.Restaurant,
+            FeaturedContentType.Video => FavoriteTargetType.Video, _ => FavoriteTargetType.Article };
+        var commentType = type == FeaturedContentType.Video ? CommentTargetType.Video : CommentTargetType.Article;
+        var scores = candidates.Select(item => new
+        {
+            Item = item,
+            Favorites = db.Favorites.Count(row => row.TargetType == favoriteType && row.TargetId == item.Id),
+            Comments = type == FeaturedContentType.Restaurant ? 0 : db.Comments.Count(row => row.TargetType == commentType && row.TargetId == item.Id && row.Status == CommentStatus.Visible),
+            Views = type == FeaturedContentType.Video ? db.Videos.Where(row => row.Id == item.Id).Select(row => row.ViewCount).FirstOrDefault() : 0
+        });
+        var total = await candidates.CountAsync(ct);
+        var ids = await scores.OrderByDescending(row => row.Favorites).ThenByDescending(row => row.Comments)
+            .ThenByDescending(row => row.Views).ThenBy(row => row.Item.Name).ThenByDescending(row => row.Item.Date)
+            .ThenBy(row => row.Item.DefaultId).Skip((page - 1) * pageSize).Take(pageSize).Select(row => row.Item.Id).ToArrayAsync(ct);
+        var items = type switch
+        {
+            FeaturedContentType.Restaurant => await RestaurantItems(ids, [], ct),
+            FeaturedContentType.Video => await VideoItems(ids, [], ct),
+            _ => await ArticleItems(ids, [], ct)
+        };
+        var byId = items.ToDictionary(item => item.Id);
+        return new(ids.Where(byId.ContainsKey).Select(id => byId[id]).ToArray(), total, page, pageSize);
+    }
+
+    private sealed class PopularCandidate
+    {
+        public Guid Id { get; init; }
+        public Guid DefaultId { get; init; }
+        public string Name { get; init; } = "";
+        public DateTimeOffset Date { get; init; }
+    }
     // PublicRestaurants: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     internal static IQueryable<Restaurant> PublicRestaurants(IQueryable<Restaurant> restaurants) =>
         restaurants.Where(x => x.IsActive);

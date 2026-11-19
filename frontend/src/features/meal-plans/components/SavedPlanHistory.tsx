@@ -4,6 +4,7 @@ import { addPlanDays, formatPlanDate } from '../api/mealPlanApi'
 import type { SavedPlanSummary } from '../types/mealPlanBackend.types'
 
 interface Props {
+  compact?: boolean
   plans: SavedPlanSummary[]
   selectedId?: string
   disabled: boolean
@@ -11,11 +12,11 @@ interface Props {
   onDelete: (plan: SavedPlanSummary) => void
 }
 
-export function SavedPlanHistory({ plans, selectedId, disabled, onSelect, onDelete }: Props) {
+export function SavedPlanHistory({ compact = false, plans, selectedId, disabled, onSelect, onDelete }: Props) {
   const [menuId, setMenuId] = useState<string | null>(null)
   const sorted = [...plans].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 10)
   return (
-    <section aria-label="Lịch sử thực đơn" className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
+    <section aria-label="Lịch sử thực đơn" className={compact ? 'mt-4 border-t border-slate-100 pt-4' : 'rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs'}>
       <div className="mb-3 flex items-center justify-between gap-2 text-[15px] font-bold text-slate-800">
         <h2 className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-[#2E7D32]"><History size={15} /></span>
@@ -24,7 +25,7 @@ export function SavedPlanHistory({ plans, selectedId, disabled, onSelect, onDele
         <span className="shrink-0 text-[11px] font-semibold text-slate-400">{sorted.length} thực đơn</span>
       </div>
       {!sorted.length && <p className="py-4 text-center text-xs text-slate-400">Chưa có thực đơn đã lưu.</p>}
-      <div className="max-h-[36rem] space-y-2 overflow-y-auto">
+      <div className={compact ? 'grid max-h-48 gap-2 overflow-y-auto sm:grid-cols-2' : 'max-h-[36rem] space-y-2 overflow-y-auto'}>
         {sorted.map((plan) => (
           <div key={plan.id} className={`group relative flex flex-wrap items-center rounded-xl border transition-colors ${selectedId === plan.id ? 'border-emerald-300 bg-emerald-50' : 'border-transparent hover:border-emerald-200 hover:bg-slate-50'}`}>
             <button type="button" disabled={disabled} onClick={() => onSelect(plan.id)}

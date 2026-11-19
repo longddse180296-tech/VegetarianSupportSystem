@@ -15,4 +15,8 @@ public sealed record PantryRecipeSuggestionResponse(
     IReadOnlyList<PantryRecipeIngredientStatus> MissingIngredients,
     decimal? ProteinGramPerServing = null,
     decimal? CarbohydrateGramPerServing = null,
-    decimal? FatGramPerServing = null);
+    decimal? FatGramPerServing = null,
+    bool IsCompatible = true,
+    string? IncompatibilityReason = null,
+    string? NutritionWarning = null,
+    DateOnly? LastEatenOn = null);

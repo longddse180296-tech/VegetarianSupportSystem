@@ -525,11 +525,11 @@ export async function getRecipes(
 }
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipeDetail); thuộc công thức và định lượng nguyên liệu.
-export async function getRecipeDetail(id: string): Promise<Recipe | null> {
-  const url = `/api/recipes/${id}`
+export async function getRecipeDetail(id: string, planId?: string): Promise<Recipe | null> {
+  const url = planId ? `/api/meal-plans/${encodeURIComponent(planId)}/recipes/${encodeURIComponent(id)}` : `/api/recipes/${id}`
   try {
     const detail = await apiClient.get<BackendRecipeResponse>(url, {
-      requiresAuth: false,
+      requiresAuth: !!planId,
     })
     if (detail && detail.id) {
       return mapDetailToRecipe(detail)

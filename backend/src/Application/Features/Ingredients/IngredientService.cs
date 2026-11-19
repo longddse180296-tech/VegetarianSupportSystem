@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using Application.Common.Exceptions;
 using Application.Common.Validation;
 using Domain.Entities;
+using Application.Features.Recipes;
 
 namespace Application.Features.Ingredients;
 
@@ -45,8 +46,28 @@ public sealed class IngredientService(IIngredientRepository repository)
     public async Task<IngredientResponse> UpdateAsync(Guid id, IngredientRequest request, CancellationToken ct)
     {
         var entity = await FindAsync(id, ct);
+        var before = (entity.Calories, entity.ProteinGram, entity.CarbohydrateGram, entity.FatGram, entity.NutritionBasisQuantity, entity.NutritionBasisUnit, entity.DefaultUnit);
         await ApplyAsync(entity, request, ct);
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+        var after = (entity.Calories, entity.ProteinGram, entity.CarbohydrateGram, entity.FatGram, entity.NutritionBasisQuantity, entity.NutritionBasisUnit, entity.DefaultUnit);
+        if (before != after)
+        {
+            foreach (var recipe in await repository.GetDependentRecipesAsync(id, ct))
+            {
+                // Không tự đổi loại ăn chay Admin đã công bố. Chỉ cập nhật 4 chỉ số theo định lượng hiện tại.
+                var nutrition = RecipeNutritionService.Calculate(new RecipeNutritionRequest
+                {
+                    Servings = recipe.Servings,
+                    Ingredients = recipe.RecipeIngredients.Select(row => new RecipeIngredientRequest
+                        { IngredientId = row.IngredientId, Quantity = row.Quantity, Unit = row.Unit }).ToArray()
+                }, recipe.RecipeIngredients.Select(row => row.Ingredient!).ToArray());
+                recipe.CaloriesPerServing = nutrition.CaloriesPerServing;
+                recipe.ProteinGramPerServing = nutrition.ProteinGramPerServing;
+                recipe.CarbohydrateGramPerServing = nutrition.CarbohydrateGramPerServing;
+                recipe.FatGramPerServing = nutrition.FatGramPerServing;
+                recipe.UpdatedAt = entity.UpdatedAt;
+            }
+        }
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveAsync(ct);
         return IngredientMapping.ToResponse(entity);

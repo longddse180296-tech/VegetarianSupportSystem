@@ -6,6 +6,7 @@ export type PlanDiet = 'Vegan' | 'Lacto' | 'Ovo' | 'LactoOvo'
 
 // Cấu trúc SavedPlanMeal quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface SavedPlanMeal {
+  declaredDietaryType?: 'Vegan' | 'LactoVegetarian' | 'OvoVegetarian' | 'LactoOvoVegetarian' | null
   id: string
   dayNumber: number
   slot: BackendMealSlot
@@ -21,6 +22,7 @@ export interface SavedPlanMeal {
   fatGramPerServing: number | null
   ingredientNames: string[]
   availabilityWarning?: string | null
+  checkedInAt?: string | null
 }
 
 // Cấu trúc PlanShoppingItem quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
@@ -46,6 +48,9 @@ export interface SavedPlanSummary {
 
 // Cấu trúc SavedPlan quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface SavedPlan extends Omit<SavedPlanSummary, 'mealCount'> {
+  requiresReview?: boolean
+  reviewMessage?: string | null
+  currentDailyNutritionTarget?: SavedPlan['dailyNutritionTarget']
   dailyNutritionTarget?: { calories: number; proteinGrams: number; carbohydrateGrams: number; fatGrams: number } | null
   nutritionNotice?: string | null
   nutritionAdjustmentMessage?: string | null
@@ -66,6 +71,10 @@ export interface PlanPage {
 
 // Cấu trúc ReplacementRecipe quy định dữ liệu trao đổi trong thực đơn bảy ngày và danh sách đi chợ.
 export interface ReplacementRecipe {
+  isCompatible?: boolean
+  incompatibilityReason?: string | null
+  nutritionWarning?: string | null
+  lastEatenOn?: string | null
   id: string
   name: string
   imageUrl?: string | null

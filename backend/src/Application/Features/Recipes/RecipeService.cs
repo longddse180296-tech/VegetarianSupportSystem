@@ -16,6 +16,7 @@ public sealed class RecipeService(
     ICategoryRepository categories,
     IIngredientRepository ingredients)
 {
+    public Task<int> CountRequiringReviewAsync(CancellationToken ct) => repository.CountRequiringReviewAsync(ct);
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<RecipePage> ListAsync(RecipeListQuery query, bool includeInactive, CancellationToken ct)
     {
@@ -110,6 +111,19 @@ public sealed class RecipeService(
             RecipeValidation.Fail(nameof(request.Ingredients), "Một số nguyên liệu không tồn tại hoặc đã ngừng sử dụng. Vui lòng chọn lại.");
         }
         var declaredDietaryType = request.DeclaredDietaryType!.Value;
+        var inferredDiet = DietaryRules.InferRecipeDiet(selected);
+        if (declaredDietaryType != inferredDiet)
+        {
+            var expected = inferredDiet switch
+            {
+                DietaryType.Vegan => "Thuần chay",
+                DietaryType.OvoVegetarian => "Chay có trứng",
+                DietaryType.LactoVegetarian => "Chay có sữa",
+                DietaryType.LactoOvoVegetarian => "Chay có trứng và sữa",
+                _ => "Chưa xác định"
+            };
+            RecipeValidation.Fail(nameof(request.DeclaredDietaryType), $"Nguyên liệu hiện tại thuộc loại {expected}. Vui lòng chọn đúng loại ăn chay của công thức.");
+        }
         var assessment = DietaryRules.Classify(selected).Single(item => item.DietaryType == declaredDietaryType);
         if (assessment.Status != DietaryCompatibility.Compatible)
         {

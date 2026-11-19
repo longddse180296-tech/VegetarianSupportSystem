@@ -189,6 +189,20 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+// Chỉ log mã băm rút gọn trong môi trường phát triển để đối chiếu cấu hình, tuyệt đối không ghi API key.
+if (app.Environment.IsDevelopment())
+{
+    static string KeyFingerprint(string? value) => string.IsNullOrWhiteSpace(value) ? "missing"
+        : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim())))[..12];
+    app.Logger.LogInformation(
+        "AI configuration loaded: ChatModel={ChatModel}; ImageModel={ImageModel}; KeySha256={KeySha256}; ModerationModel={ModerationModel}; ModerationKeySha256={ModerationKeySha256}",
+        app.Configuration["Gemini:Model"] ?? "gemini-2.5-flash",
+        app.Configuration["Gemini:ImageModel"] ?? "gemini-2.5-flash",
+        KeyFingerprint(app.Configuration["Gemini:ApiKey"]),
+        app.Configuration["Gemini:ModerationModel"] ?? "default",
+        KeyFingerprint(app.Configuration["Gemini:ModerationApiKey"] ?? app.Configuration["Gemini:ApiKey"]));
+}
+
 if (args.Contains("--seed-core-data", StringComparer.Ordinal) ||
     args.Contains("--seed-demo-data", StringComparer.Ordinal))
 {

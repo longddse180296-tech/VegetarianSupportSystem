@@ -7,6 +7,7 @@ namespace Application.Features.Pantry;
 // PantryRecipeSuggestionQuery: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class PantryRecipeSuggestionQuery
 {
+    public bool IncludeAll { get; init; }
     [Range(1, 50)]
     public int Limit { get; init; } = 20;
 }

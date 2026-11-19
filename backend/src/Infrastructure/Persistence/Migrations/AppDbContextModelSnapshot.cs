@@ -687,6 +687,38 @@ namespace Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Domain.Entities.MealCheckIn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CheckedInAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateOnly>("EatenOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("MealId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RecipeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "MealId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "EatenOn", "RecipeId");
+
+                    b.ToTable("MealCheckIns");
+                });
+
             modelBuilder.Entity("Domain.Entities.MealPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -741,6 +773,9 @@ namespace Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)");
 
+                    b.Property<DateTimeOffset?>("CheckedInAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<int>("DayNumber")
                         .HasColumnType("int");
 
@@ -765,6 +800,12 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("Servings")
                         .HasColumnType("int");

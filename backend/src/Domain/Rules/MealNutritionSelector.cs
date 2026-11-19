@@ -5,6 +5,12 @@ namespace Domain.Rules;
 // Chọn 3 món một người/ngày gần mục tiêu nhất trong kho công thức đã lọc an toàn.
 public static class MealNutritionSelector
 {
+    // Ngưỡng đối chiếu của ứng dụng, dùng chung cho thực đơn và gợi ý thay món.
+    public static bool IsNearTarget(decimal calories, decimal protein, decimal carbs, decimal fat, DailyNutritionTarget target) =>
+        Math.Abs(calories - target.Calories) <= target.Calories * 0.15m &&
+        Math.Abs(protein - target.ProteinGrams) <= target.ProteinGrams * 0.25m &&
+        Math.Abs(carbs - target.CarbohydrateGrams) <= target.CarbohydrateGrams * 0.25m &&
+        Math.Abs(fat - target.FatGrams) <= target.FatGrams * 0.25m;
     public static decimal? MealDistance(Recipe recipe, DailyNutritionTarget target) => HasNutrition(recipe)
         ? Score(recipe.CaloriesPerServing!.Value * 3, recipe.ProteinGramPerServing!.Value * 3,
             recipe.CarbohydrateGramPerServing!.Value * 3, recipe.FatGramPerServing!.Value * 3, target)
@@ -37,7 +43,7 @@ public static class MealNutritionSelector
     public static bool HasNutrition(Recipe r) => r.CaloriesPerServing is > 0 && r.ProteinGramPerServing is >= 0 &&
         r.CarbohydrateGramPerServing is >= 0 && r.FatGramPerServing is >= 0;
 
-    private static decimal Score(decimal calories, decimal protein, decimal carbs, decimal fat, DailyNutritionTarget target) =>
+    public static decimal Score(decimal calories, decimal protein, decimal carbs, decimal fat, DailyNutritionTarget target) =>
         Math.Abs(calories - target.Calories) / Math.Max(1, target.Calories) +
         0.3m * Math.Abs(protein - target.ProteinGrams) / Math.Max(1, target.ProteinGrams) +
         0.2m * Math.Abs(carbs - target.CarbohydrateGrams) / Math.Max(1, target.CarbohydrateGrams) +

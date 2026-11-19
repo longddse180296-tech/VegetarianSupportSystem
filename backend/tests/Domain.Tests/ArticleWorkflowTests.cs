@@ -43,7 +43,7 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
-    public async Task PendingSubmissionCannotBeEdited()
+    public async Task PendingSubmissionCanBeEditedAndLeavesTheOldQueue()
     {
         var now = DateTimeOffset.UtcNow;
         var article = new Article("owner", "First", "Original", "Health", null, now);
@@ -51,8 +51,11 @@ public sealed class ArticleWorkflowTests
             ModeratedContentType.Article, "owner", "First", "Original", null, now), now);
         var service = new ArticleService(new SingleArticleRepository(article), new ModerationService(new EmptyModerationRepository(), new EmptyVideoPublication()));
 
-        Assert.Equal(ArticleError.Conflict, (await Assert.ThrowsAsync<ArticleException>(
-            () => service.UpdateAsync(article.Id, "owner", new("Changed", "Text", "Health", null), CancellationToken.None))).Error);
+        var result = await service.UpdateAsync(article.Id, "owner", new("Changed", "Text", "Health", null), CancellationToken.None);
+        Assert.Equal("Changed", result.Title);
+        Assert.Equal(AdminReviewStatus.Draft, Assert.Single(article.Versions).Submission.AdminReviewStatus);
+        Assert.Equal("Original", Assert.Single(article.Versions).Content);
+
     }
 
     [Fact]

@@ -15,6 +15,8 @@ public sealed class FeaturedContentService(IFeaturedContentRepository repository
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (query.Page > int.MaxValue / query.PageSize)
             throw new ValidationException("Số trang vượt giới hạn.");
+        if (query.RankByPopularity)
+            return repository.ListPopularAsync(ParseContentType(query.ContentType), query.Page, query.PageSize, ct);
         return repository.ListAsync(ParseContentType(query.ContentType),
             pinnedOnly ? null : query.Search?.Trim(), pinnedOnly, query.Page, query.PageSize, ct);
     }

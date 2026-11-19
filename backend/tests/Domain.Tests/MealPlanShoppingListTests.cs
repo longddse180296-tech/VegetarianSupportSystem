@@ -70,11 +70,11 @@ public sealed class MealPlanShoppingListTests
         var replacement = RecipeFor("Replacement", new Ingredient {  });
         var plan = new MealPlan
         {
-            UserId = "user", ProfileDiet = VegetarianDiet.Vegan,
+            UserId = "user", ProfileDiet = VegetarianDiet.Vegan, WeekStartDate = new DateOnly(2026, 11, 23),
             Meals = [new MealPlanMeal { DayNumber = 1, Slot = MealSlot.Breakfast,
                 RecipeId = original.Id, RecipeName = original.Name, Servings = 1 }]
         };
-        var service = new MealPlanService(new MemoryMealPlans(plan) { Profile = profile, Catalog = [original, replacement] });
+        var service = new MealPlanService(new MemoryMealPlans(plan) { Profile = profile, Catalog = [original, replacement] }, new FixedClock());
         Assert.Null(Assert.Single((await service.GetAsync("user", plan.Id, default)).Meals).AvailabilityWarning);
         ingredient.ContainsEgg = true;
         Assert.Null(Assert.Single((await service.GetAsync("user", plan.Id, default)).Meals).AvailabilityWarning);
@@ -305,6 +305,36 @@ public sealed class MealPlanShoppingListTests
         Assert.Null(await repository.GetAsync(plan.Id, "owner", default));
     }
 
+    [Fact]
+    public async Task ExportsExcludePastAndCompletedMealsAndRestoreAfterUndo()
+    {
+        var ingredientId = Guid.NewGuid();
+        var item = new MealPlanShoppingItem { IngredientId = ingredientId, IngredientName = "Đậu hũ", Unit = "g", RequiredQuantity = 100, PantryQuantity = 15, QuantityToBuy = 85 };
+        var past = Meal(1, ingredientId, 10);
+        var completed = Meal(2, ingredientId, 20); completed.CheckedInAt = DateTimeOffset.UtcNow;
+        var pending = Meal(2, ingredientId, 30); pending.Slot = MealSlot.Lunch; pending.CaloriesPerServing = 300;
+        var future = Meal(3, ingredientId, 40); future.CaloriesPerServing = 400;
+        var plan = new MealPlan { UserId = "user", ProfileDiet = VegetarianDiet.Vegan, WeekStartDate = new DateOnly(2026, 11, 19),
+            Meals = [past, completed, pending, future], ShoppingItems = [item] };
+        var service = new MealPlanService(new MemoryMealPlans(plan), new FixedClock());
+        Assert.Empty(await service.GetShoppingListAsync("user", plan.Id, 1, default));
+        var week = Assert.Single(await service.GetShoppingListAsync("user", plan.Id, null, default));
+        Assert.Equal((70m, 0m, 70m), (week.RequiredQuantity, week.PantryQuantity, week.QuantityToBuy));
+        var export = await service.GetExportAsync("user", plan.Id, null, default);
+        Assert.Equal(new[] { pending.Id, future.Id }, export.Meals.Select(x => x.Id));
+        Assert.Equal(700m, export.Nutrition.Calories);
+        Assert.Single((await service.GetExportAsync("user", plan.Id, 2, default)).Meals);
+        await Assert.ThrowsAsync<ValidationException>(() => service.GetExportAsync("user", plan.Id, 1, default));
+        await service.UpdatePurchaseAsync("user", plan.Id, item.Id, new ShoppingPurchaseRequest { PantryQuantity = 35 }, default);
+        Assert.Equal(35m, Assert.Single(await service.GetShoppingListAsync("user", plan.Id, null, default)).QuantityToBuy);
+        completed.CheckedInAt = null;
+        Assert.Equal(90m, Assert.Single(await service.GetShoppingListAsync("user", plan.Id, null, default)).RequiredQuantity);
+        Assert.Equal(3, (await service.GetExportAsync("user", plan.Id, null, default)).Meals.Count);
+        past.CheckedInAt = null; plan.WeekStartDate = new DateOnly(2026, 10, 1);
+        Assert.Empty(await service.GetShoppingListAsync("user", plan.Id, null, default));
+        await Assert.ThrowsAsync<ValidationException>(() => service.GetExportAsync("user", plan.Id, null, default));
+    }
+
     private static MealPlanMeal Meal(int day, Guid ingredientId, decimal quantity) => new()
     {
         DayNumber = day,
@@ -321,7 +351,12 @@ public sealed class MealPlanShoppingListTests
         private readonly Dictionary<Guid, DateOnly> usage = new();
         public bool Deleted { get; private set; }
         public Task<MealPlan?> GetAsync(Guid id, string userId, CancellationToken ct) =>
-            Task.FromResult<MealPlan?>(!Deleted && id == plan.Id && userId == plan.UserId ? plan : null);
+            Task.FromResult<MealPlan?>(!Deleted && id == plan.Id && userId == plan.UserId ? WithDate(plan) : null);
+        private static MealPlan WithDate(MealPlan value)
+        {
+            if (value.WeekStartDate == default) value.WeekStartDate = DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime);
+            return value;
+        }
         public Task<UserProfile?> GetProfileAsync(string userId, CancellationToken ct) => Task.FromResult(Profile);
         public Task<IReadOnlyList<Recipe>> GetActiveRecipesAsync(CancellationToken ct) => Task.FromResult(Catalog);
         public Task<IReadOnlyDictionary<Guid, DateOnly>> GetRecipeUsageAsync(string userId, DateOnly beforeDate, CancellationToken ct) =>

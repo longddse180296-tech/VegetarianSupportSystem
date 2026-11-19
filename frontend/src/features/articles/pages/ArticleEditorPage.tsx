@@ -2,7 +2,6 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   ArrowLeft,
-  Calendar,
   Check,
   CheckCircle2,
   Clock,
@@ -17,7 +16,6 @@ import {
   List,
   ListOrdered,
   Quote,
-  RotateCcw,
   Save,
   Send,
   Sparkles,
@@ -25,25 +23,16 @@ import {
   AlertCircle,
   Bold,
   Italic,
-  MessageSquare,
-  ShieldCheck,
   Upload,
 } from 'lucide-react'
 import { PublicLayout } from '../../../app/layouts/PublicLayout'
 import { useAuth } from '../../auth'
 import { Feedback } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
-import { errorMessage, formatDate } from '../../admin/utils/apiUi'
+import { errorMessage } from '../../admin/utils/apiUi'
 import { Modal } from '../../../shared/components/Modal'
-import {
-  adminStatusLabels,
-  aiStatusLabels,
-  type Submission,
-  type AdminStatus,
-  type AiStatus,
-} from '../../admin/moderation/api/adminModerationApi'
-import { AiReview } from '../../admin/moderation/components/ModerationWorkspace'
-import { formatSystemReviewMessage } from '../../admin/moderation/utils/moderationMessages'
+import { articleReviewStatus } from '../utils/articleReviewStatus'
+
 import {
   articleApi,
   type ArticleInput,
@@ -93,41 +82,8 @@ const dietaryIcons: Record<BackendDietaryType, string> = {
 }
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getStatusBadgeStyle); thuộc bài viết và phiên bản gửi duyệt.
-function getStatusBadgeStyle(status: AdminStatus) {
-  switch (status) {
-    case 'Published':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    case 'PendingAdminReview':
-    case 'Submitted':
-      return 'bg-amber-50 text-amber-700 border-amber-200'
-    case 'RevisionRequested':
-      return 'bg-orange-50 text-orange-700 border-orange-200'
-    case 'Rejected':
-    case 'Removed':
-      return 'bg-rose-50 text-rose-700 border-rose-200'
-    case 'Draft':
-    default:
-      return 'bg-slate-100 text-slate-700 border-slate-200'
-  }
-}
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getAiStatusBadgeStyle); thuộc bài viết và phiên bản gửi duyệt.
-function getAiStatusBadgeStyle(status: AiStatus) {
-  switch (status) {
-    case 'Passed':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    case 'Flagged':
-    case 'Partial':
-      return 'bg-red-50 text-red-800 border-red-300'
-    case 'Checking':
-      return 'bg-amber-50 text-amber-700 border-amber-200'
-    case 'Failed':
-      return 'bg-red-50 text-red-700 border-red-200'
-    case 'NotSubmitted':
-    default:
-      return 'bg-slate-100 text-slate-600 border-slate-200'
-  }
-}
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (ArticleEditorPage); thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleEditorPage = ({
@@ -162,7 +118,6 @@ export const ArticleEditorPage = ({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [review, setReview] = useState<Submission | null>(null)
   const [loadedRecord, setLoadedRecord] = useState<MyArticleRecord | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [imageError, setImageError] = useState(false)
@@ -211,7 +166,7 @@ export const ArticleEditorPage = ({
   const editable =
     !record.loading &&
     !record.error &&
-    !['Submitted', 'PendingAdminReview', 'Removed'].includes(state)
+    !['Rejected', 'RevisionRequested', 'Removed'].includes(state)
 
   const wordCount = form.content.trim()
     ? form.content.trim().split(/\s+/).length
@@ -301,7 +256,7 @@ export const ArticleEditorPage = ({
           setShowSuccessModal(false)
         } else setShowSuccessModal(true)
       } else {
-        setNotice('Đã lưu bản nháp bài viết thành công.')
+        setNotice(['Submitted', 'PendingAdminReview'].includes(state) ? 'Đã lưu chỉnh sửa và dừng lượt duyệt cũ. Hãy gửi lại để xếp vào cuối hàng đợi.' : 'Đã lưu bản nháp bài viết thành công.')
       }
     } catch (reason) {
       setError(
@@ -348,12 +303,10 @@ export const ArticleEditorPage = ({
           actions={
             <div className="flex flex-wrap items-center gap-2.5">
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusBadgeStyle(
-                  state,
-                )}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${articleReviewStatus(state).className}`}
               >
                 <span className="w-2 h-2 rounded-full bg-current" />
-                {adminStatusLabels[state]}
+                {articleReviewStatus(state).label}
               </span>
               {record.data?.publishedVersion && (
                 <Button
@@ -420,20 +373,14 @@ export const ArticleEditorPage = ({
         {record.data && (
           <div
             className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm ${
-              state === 'Published'
-                ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
-                : state === 'Submitted' || state === 'PendingAdminReview'
-                ? 'bg-amber-50/70 border-amber-200 text-amber-900'
-                : state === 'RevisionRequested'
-                ? 'bg-orange-50/70 border-orange-200 text-orange-900'
-                : 'bg-slate-50 border-slate-200 text-slate-700'
+              articleReviewStatus(state).className
             }`}
           >
             <div className="flex items-start gap-3">
               <Info size={18} className="mt-0.5 shrink-0" />
               <div className="space-y-0.5">
                 <p className="font-bold">
-                  Trạng thái hiện tại: {adminStatusLabels[state]}
+                  Trạng thái hiện tại: {articleReviewStatus(state).label}
                 </p>
                 {record.data.publishedVersion && (
                   <p className="text-xs opacity-90">
@@ -442,7 +389,7 @@ export const ArticleEditorPage = ({
                 )}
                 {!editable && (
                   <p className="text-xs font-semibold opacity-90">
-                    Bài viết đang trong hàng đợi kiểm duyệt hoặc đã bị gỡ. Bạn chỉ có thể xem nội dung hiện tại.
+                    Bài viết đã bị từ chối hoặc gỡ. Bạn chỉ có thể xem, không thể chỉnh sửa, lưu nháp hay gửi lại.
                   </p>
                 )}
               </div>
@@ -826,7 +773,7 @@ export const ArticleEditorPage = ({
                     </span>
                   </div>
                   <span className="text-[11px] text-slate-400">
-                    Hệ thống kiểm tra tiêu đề, nội dung và ảnh đại diện trước khi Quản trị viên xét duyệt.
+                    Bài viết sẽ được công khai sau khi được chấp nhận.
                   </span>
                 </div>
               </div>
@@ -942,123 +889,6 @@ export const ArticleEditorPage = ({
           </div>
         </form>
 
-        {/* CARD 4: PHIÊN BẢN & PHẢN HỒI KIỂM DUYỆT */}
-        {!!record.data?.versions?.length && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <ShieldCheck size={20} className="text-emerald-600" />
-                  <span>Lịch sử phiên bản &amp; Đánh giá kiểm duyệt</span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Theo dõi kết quả kiểm tra của Hệ thống và phản hồi từ Quản trị viên.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={record.reload}
-                leftIcon={<RotateCcw size={14} />}
-                className="!rounded-xl text-xs"
-              >
-                Làm mới
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {record.data.versions.map((ver) => (
-                <div
-                  key={ver.submissionId}
-                  className="rounded-2xl border border-slate-200 p-5 space-y-3 bg-slate-50/50 hover:bg-slate-50 transition"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-extrabold">
-                        Phiên bản {ver.version}
-                      </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Calendar size={12} />
-                        {formatDate(ver.submittedAt)}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getAiStatusBadgeStyle(
-                          ver.aiStatus,
-                        )}`}
-                      >
-                        Hệ thống: {aiStatusLabels[ver.aiStatus]}
-                      </span>
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusBadgeStyle(
-                          ver.adminStatus,
-                        )}`}
-                      >
-                        {ver.systemRejectionReason ? 'Hệ thống' : 'Quản trị viên'}: {adminStatusLabels[ver.adminStatus]}
-                      </span>
-                    </div>
-                  </div>
-
-                  {ver.systemRejectionReason && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-900 space-y-1">
-                    <p className="font-bold">Hệ thống từ chối: tiêu đề trùng</p>
-                    <p>{ver.systemRejectionReason}</p>
-                    <p>Hệ thống chưa kiểm tra nội dung và ảnh của phiên bản này. Bạn có thể đổi tiêu đề rồi gửi lại.</p>
-                  </div>}
-                  {ver.aiSummary && (
-                    <div role={['Flagged', 'Partial', 'Failed'].includes(ver.aiStatus) ? 'alert' : undefined} className={`text-xs p-3 rounded-xl border space-y-1 ${['Flagged', 'Partial', 'Failed'].includes(ver.aiStatus) ? 'text-red-900 bg-red-50 border-red-300' : 'text-slate-700 bg-white border-slate-200/60'}`}>
-                      <span className="font-bold block">{['Flagged', 'Partial', 'Failed'].includes(ver.aiStatus) ? 'Cảnh báo từ Hệ thống:' : 'Tóm tắt kiểm tra của Hệ thống:'}</span>
-                      <p className="leading-relaxed">{formatSystemReviewMessage(ver.aiSummary)}</p>
-                    </div>
-                  )}
-
-                  {ver.adminFeedback && (
-                    <div className="text-xs text-amber-900 bg-amber-50/80 p-3.5 rounded-xl border border-amber-200 space-y-1">
-                      <span className="font-bold block flex items-center gap-1.5">
-                        <MessageSquare size={14} className="text-amber-700" />
-                        Phản hồi từ Quản trị viên:
-                      </span>
-                      <p className="leading-relaxed">{ver.adminFeedback}</p>
-                    </div>
-                  )}
-
-                  <div>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={async () => {
-                        setBusy(true)
-                        setError(null)
-                        try {
-                          setReview(await articleApi.review(ver.submissionId))
-                        } catch (reason) {
-                          setError(errorMessage(reason))
-                        } finally {
-                          setBusy(false)
-                        }
-                      }}
-                      className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline decoration-emerald-500/40 hover:decoration-emerald-700 transition"
-                    >
-                      Xem chi tiết kiểm tra của Hệ thống →
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: KẾT QUẢ AI REVIEW */}
-        <Modal
-          isOpen={!!review}
-          onClose={() => setReview(null)}
-          title={`Kết quả thẩm định phiên bản ${review?.version}`}
-          maxWidth="xl"
-        >
-          {review && <AiReview submission={review} />}
-        </Modal>
-
         {/* MODAL: SUBMISSION SUCCESS */}
         <Modal
           isOpen={showSuccessModal}
@@ -1074,7 +904,7 @@ export const ArticleEditorPage = ({
                 Bài viết đã được gửi duyệt thành công!
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                Hệ thống đang kiểm tra văn bản và ảnh đại diện đã tải lên. Bài viết chỉ được công khai sau khi Quản trị viên duyệt.
+                Bài viết đã vào hàng đợi theo thời điểm gửi này và sẽ được công khai sau khi được chấp nhận.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">

@@ -7,6 +7,9 @@ namespace Application.Features.Ingredients;
 // IIngredientRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IIngredientRepository
 {
+    Task<IReadOnlyList<Recipe>> GetDependentRecipesAsync(Guid ingredientId, CancellationToken ct);
+    Task<IReadOnlyList<Ingredient>> GetRestrictionCatalogAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Ingredient>>([]);
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<(IReadOnlyList<Ingredient> Items, int TotalCount)> ListAsync(IngredientListQuery query, bool includeInactive, CancellationToken ct);
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

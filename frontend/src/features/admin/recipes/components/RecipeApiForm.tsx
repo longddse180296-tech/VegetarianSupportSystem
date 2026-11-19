@@ -113,6 +113,12 @@ export function RecipeApiForm({
   const [error, setError] = useState<string | null>(null)
   const [loadingUnits, setLoadingUnits] = useState(!!recipe)
   const [ingredientInfo, setIngredientInfo] = useState<Record<string, RecipeIngredientOption>>({})
+  const selectedIngredients = form.ingredients.map(row => ingredientInfo[row.ingredientId]).filter(Boolean)
+  const hasEgg = selectedIngredients.some(item => item.containsEgg)
+  const hasMilk = selectedIngredients.some(item => item.containsMilk)
+  const inferredDiet = selectedIngredients.length === form.ingredients.length && selectedIngredients.length > 0
+    ? (hasEgg && hasMilk ? 'LactoOvoVegetarian' : hasEgg ? 'OvoVegetarian' : hasMilk ? 'LactoVegetarian' : 'Vegan') : null
+
   const ingredientSection = useRef<HTMLElement>(null)
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
@@ -319,9 +325,10 @@ export function RecipeApiForm({
               >
                 <option value="">Chọn một chế độ ăn</option>
                 {Object.entries(dietLabels).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                  <option key={value} value={value} disabled={!!inferredDiet && value !== inferredDiet}>{label}</option>
                 ))}
               </select>
+              {inferredDiet && <span className="mt-1 block text-xs text-emerald-700">Theo nguyên liệu: {dietLabels[inferredDiet]}. Chọn đúng loại này để lưu.</span>}
             </label>
             <div className="space-y-2.5">
               <label htmlFor="recipe-image-file" className="text-sm font-semibold text-slate-700">

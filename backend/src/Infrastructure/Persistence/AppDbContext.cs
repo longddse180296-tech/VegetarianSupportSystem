@@ -40,6 +40,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<FeaturedContent> FeaturedContent => Set<FeaturedContent>();
     public DbSet<MealPlan> MealPlans => Set<MealPlan>();
     public DbSet<MealPlanMeal> MealPlanMeals => Set<MealPlanMeal>();
+    public DbSet<MealCheckIn> MealCheckIns => Set<MealCheckIn>();
     public DbSet<MealPlanMealIngredient> MealPlanMealIngredients => Set<MealPlanMealIngredient>();
     public DbSet<MealPlanShoppingItem> MealPlanShoppingItems => Set<MealPlanShoppingItem>();
 

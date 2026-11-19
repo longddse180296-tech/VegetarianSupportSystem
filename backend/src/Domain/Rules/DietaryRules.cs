@@ -10,6 +10,16 @@ namespace Domain.Rules;
 // DietaryRules: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public static class DietaryRules
 {
+    // Nhãn duy nhất của món theo thành phần, khác với danh sách các chế độ người dùng có thể ăn món đó.
+    public static DietaryType? InferRecipeDiet(IEnumerable<Ingredient> ingredients)
+    {
+        var items = ingredients.ToArray();
+        if (items.Length == 0) return null;
+        var egg = items.Any(x => x.ContainsEgg);
+        var milk = items.Any(x => x.ContainsMilk);
+        return egg && milk ? DietaryType.LactoOvoVegetarian : egg ? DietaryType.OvoVegetarian
+            : milk ? DietaryType.LactoVegetarian : DietaryType.Vegan;
+    }
     // Món thuần chay phù hợp các chế độ chay rộng hơn. Chay trứng và chay sữa là hai nhóm độc lập.
     public static bool SupportsDiet(DietaryType declared, DietaryType requested) =>
         declared == DietaryType.Vegan || declared == requested || requested == DietaryType.LactoOvoVegetarian;

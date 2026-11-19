@@ -22,7 +22,7 @@ internal static class RecipeReviewOrderChecks
             Servings = 1,
             Instructions = "Fixture",
             DeclaredDietaryType = DietaryType.Vegan,
-            CaloriesPerServing = index + 1,
+            CaloriesPerServing = index + 1, ProteinGramPerServing = 10, CarbohydrateGramPerServing = 20, FatGramPerServing = 5,
             RecipeIngredients =
             [
                 new RecipeIngredient { Ingredient = index >= 10 ? changed : plant, Quantity = 100, Unit = "g" }
@@ -93,6 +93,30 @@ internal static class RecipeReviewOrderChecks
             "activation of an active recipe is idempotent");
         check((await client.PostAsync($"/api/admin/recipes/{Guid.NewGuid()}/activate", null)).StatusCode == HttpStatusCode.NotFound,
             "activation of a missing recipe returns 404");
+
+        // Loại công thức là duy nhất theo trứng/sữa; tương thích hồ sơ được xét riêng.
+        changed.ContainsEgg = true; changed.Calories = 100; changed.ProteinGram = 10; changed.CarbohydrateGram = 10; changed.FatGram = 2; changed.DefaultUnit = "g"; await db.SaveChangesAsync();
+        var editUrl = $"/api/admin/recipes/{recipes[10].Id}";
+        object Payload(DietaryType diet, string? image) => new { categoryId = category.Id, name = recipes[10].Name,
+            servings = 1, instructions = "Cook", prepTimeMinutes = 1, cookTimeMinutes = 1, imageUrl = image,
+            declaredDietaryType = diet, ingredients = new[] { new { ingredientId = changed.Id, quantity = 100, unit = "g" } } };
+        check((await client.PutAsJsonAsync(editUrl, Payload(DietaryType.LactoOvoVegetarian, "https://example.com/test.jpg"))).StatusCode == HttpStatusCode.BadRequest,
+            "egg-only recipe cannot declare the broader egg-and-milk type");
+        check((await client.PutAsJsonAsync(editUrl, Payload(DietaryType.LactoVegetarian, "https://example.com/test.jpg"))).StatusCode == HttpStatusCode.BadRequest,
+            "egg-only recipe cannot declare milk-only type");
+        var image = "/api/public-images/0123456789abcdef0123456789abcdef.webp";
+        check((await client.PutAsJsonAsync(editUrl, Payload(DietaryType.OvoVegetarian, image))).IsSuccessStatusCode,
+            "exact egg classification accepts a stored local image URL on update");
+        var detail = (await client.GetFromJsonAsync<RecipeResponse>(editUrl))!;
+        check(detail.DeclaredDietaryType == DietaryType.OvoVegetarian && detail.InferredDietaryType == DietaryType.OvoVegetarian && detail.ImageUrl == image,
+            "saved recipe exposes one declared classification and preserves its local image URL");
+        foreach (var invalid in new[] { "/api/public-images/../secret.png", "E:\\photo.jpg", "javascript:alert(1)", "//example.com/image.jpg" })
+            check((await client.PutAsJsonAsync(editUrl, Payload(DietaryType.OvoVegetarian, invalid))).StatusCode == HttpStatusCode.BadRequest,
+                "recipe image validation rejects arbitrary local paths and unsafe URLs");
+        changed.ContainsMilk = true; await db.SaveChangesAsync();
+        check((await client.PutAsJsonAsync(editUrl, Payload(DietaryType.OvoVegetarian, image))).StatusCode == HttpStatusCode.BadRequest &&
+            (await client.PutAsJsonAsync(editUrl, Payload(DietaryType.LactoOvoVegetarian, image))).IsSuccessStatusCode,
+            "egg-and-milk ingredients require exactly the mixed classification");
 
         db.Recipes.RemoveRange(recipes);
         await db.SaveChangesAsync();

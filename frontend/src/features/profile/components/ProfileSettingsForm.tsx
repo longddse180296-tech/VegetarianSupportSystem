@@ -5,7 +5,6 @@ import {
   Egg,
   Leaf,
   Milk,
-  Plus,
   ShieldAlert,
   Sparkles,
   UtensilsCrossed,
@@ -17,6 +16,7 @@ import { BodyMetricsCalculator } from './BodyMetricsCalculator'
 import { AlertError, Button, Input } from '../../../shared/components'
 import type { UserProfile, DietaryType } from '../types'
 import { getDietarySuggestions } from '../api/dietarySuggestions'
+import { CatalogNameInput } from './CatalogNameInput'
 
 // Cấu trúc Props quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 interface Props {
@@ -68,7 +68,7 @@ export function ProfileSettingsForm({
 }: Props) {
   // Lưu dữ liệu và trạng thái thao tác của hồ sơ và nhu cầu dinh dưỡng cá nhân trong vòng đời màn hình.
   const [form, setForm] = useState(initialProfile)
-  const [suggestions, setSuggestions] = useState<{ allergies: string[]; avoided: string[] }>({ allergies: [], avoided: [] })
+  const [suggestions, setSuggestions] = useState<Awaited<ReturnType<typeof getDietarySuggestions>>>({ allergies: [], avoided: [], ingredientNames: [] })
   const [suggestionsStatus, setSuggestionsStatus] = useState('Đang tải gợi ý từ dữ liệu nguyên liệu...')
   useEffect(() => {
     const controller = new AbortController()
@@ -319,32 +319,9 @@ export function ProfileSettingsForm({
               )}
             </div>
 
-            {/* Ô nhập thêm dị ứng */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                disabled={disabled}
-                placeholder="Nhập tên dị ứng..."
-                value={newAllergy}
-                onChange={(e) => setNewAllergy(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addAllergy()
-                  }
-                }}
-                className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#2E7D32] focus:ring-1 focus:ring-[#2E7D32]"
-              />
-              <button
-                type="button"
-                disabled={disabled || !newAllergy.trim()}
-                onClick={() => addAllergy()}
-                className="px-3 py-2 rounded-xl bg-slate-800 text-white hover:bg-[#2E7D32] text-xs font-semibold inline-flex items-center gap-1 transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                <Plus size={14} />
-                <span>Thêm</span>
-              </button>
-            </div>
+            <CatalogNameInput value={newAllergy} onChange={setNewAllergy} onAdd={addAllergy}
+              names={suggestions.ingredientNames} selected={allergyList} disabled={disabled}
+              placeholder="Nhập tên dị ứng..." />
 
             {/* Gợi ý phổ biến */}
             <div className="pt-1">
@@ -416,32 +393,9 @@ export function ProfileSettingsForm({
               )}
             </div>
 
-            {/* Ô nhập thêm thực phẩm tránh */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                disabled={disabled}
-                placeholder="Nhập thực phẩm cần tránh..."
-                value={newAvoided}
-                onChange={(e) => setNewAvoided(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addAvoided()
-                  }
-                }}
-                className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#2E7D32] focus:ring-1 focus:ring-[#2E7D32]"
-              />
-              <button
-                type="button"
-                disabled={disabled || !newAvoided.trim()}
-                onClick={() => addAvoided()}
-                className="px-3 py-2 rounded-xl bg-slate-800 text-white hover:bg-[#2E7D32] text-xs font-semibold inline-flex items-center gap-1 transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                <Plus size={14} />
-                <span>Thêm</span>
-              </button>
-            </div>
+            <CatalogNameInput value={newAvoided} onChange={setNewAvoided} onAdd={addAvoided}
+              names={suggestions.ingredientNames} selected={avoidedList} disabled={disabled}
+              placeholder="Nhập thực phẩm cần tránh..." />
 
             {/* Gợi ý phổ biến */}
             <div className="pt-1">

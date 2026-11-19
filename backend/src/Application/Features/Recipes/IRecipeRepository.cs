@@ -7,6 +7,7 @@ namespace Application.Features.Recipes;
 // IRecipeRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IRecipeRepository
 {
+    Task<int> CountRequiringReviewAsync(CancellationToken ct);
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<(IReadOnlyList<Recipe> Items, int TotalCount)> ListAsync(RecipeListQuery query, bool includeInactive, CancellationToken ct);
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

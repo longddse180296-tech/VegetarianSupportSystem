@@ -13,6 +13,10 @@ namespace Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
 public sealed class RecipesController(RecipeService service) : CoreDataControllerBase
 {
+    [CoreDataAdmin]
+    [HttpGet("/api/admin/recipes/review-count")]
+    public Task<IActionResult> ReviewCount(CancellationToken ct) =>
+        Execute(async () => Ok(new { count = await service.CountRequiringReviewAsync(ct) }));
     // List: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("/api/recipes")]
     [ProducesResponseType<RecipePage>(StatusCodes.Status200OK)]

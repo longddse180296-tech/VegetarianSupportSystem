@@ -6,6 +6,10 @@ namespace Application.Features.MealPlans;
 // IMealPlanRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IMealPlanRepository
 {
+    Task<IReadOnlyDictionary<Guid, DateOnly>> GetRecentCheckInsAsync(string userId, DateOnly fromDate, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyDictionary<Guid, DateOnly>>(new Dictionary<Guid, DateOnly>());
+    void AddCheckIn(MealCheckIn checkIn) => throw new NotSupportedException();
+    Task RemoveCheckInAsync(string userId, Guid mealId, CancellationToken ct) => throw new NotSupportedException();
     // GetProfileAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<UserProfile?> GetProfileAsync(string userId, CancellationToken ct);
     // GetActiveRecipesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

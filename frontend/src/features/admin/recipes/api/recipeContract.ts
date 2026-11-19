@@ -32,6 +32,8 @@ export interface RecipeInput {
 }
 // Cấu trúc RecipeSummary quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeSummary {
+  requiresReview?: boolean
+  inferredDietaryType?: DietaryType | null
   id: string
   name: string
   categoryId: string

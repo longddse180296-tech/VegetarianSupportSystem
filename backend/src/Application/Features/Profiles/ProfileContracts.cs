@@ -15,7 +15,7 @@ public interface IUserProfileRepository
 }
 
 // ProfileItem: định nghĩa dữ liệu trao đổi của tính năng.
-public sealed record ProfileItem(Guid Id, string Name);
+public sealed record ProfileItem(Guid Id, string Name, bool? IsKnownInCatalog = null);
 
 // ProfileDetails: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record ProfileDetails(

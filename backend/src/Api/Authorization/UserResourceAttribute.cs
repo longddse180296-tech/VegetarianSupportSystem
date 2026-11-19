@@ -14,7 +14,7 @@ public sealed class UserResourceAttribute : Attribute, IAuthorizationFilter
         var user = context.HttpContext.User;
         var authenticated = user.Identity?.IsAuthenticated == true &&
             !string.IsNullOrWhiteSpace(user.FindFirst("sub")?.Value);
-        int? status = !authenticated ? 401 : !user.IsInRole("User") && !user.IsInRole("Admin") ? 403 : null;
+        int? status = !authenticated ? 401 : !user.IsInRole("User") ? 403 : null;
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (status is null)
             return;

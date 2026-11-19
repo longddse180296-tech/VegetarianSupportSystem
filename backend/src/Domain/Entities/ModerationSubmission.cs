@@ -6,6 +6,13 @@ namespace Domain.Entities;
 // ModerationSubmission: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class ModerationSubmission
 {
+    // Bản đã được tác giả sửa không còn là ứng viên duyệt. Gửi lại tạo phiên bản mới ở cuối hàng đợi.
+    public void WithdrawPendingForEdit(DateTimeOffset now)
+    {
+        if (AdminReviewStatus is not (AdminReviewStatus.Submitted or AdminReviewStatus.PendingAdminReview)) return;
+        AdminReviewStatus = AdminReviewStatus.Draft;
+        UpdatedAtUtc = now;
+    }
     private ModerationSubmission() { }
 
     private ModerationSubmission(

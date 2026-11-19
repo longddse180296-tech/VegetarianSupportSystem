@@ -16,9 +16,21 @@ export async function getDietarySuggestions(signal?: AbortSignal) {
     if (!response.items.length || ingredients.length >= response.totalCount) break
   }
   const unique = (values: string[]) => Array.from(new Map(values.map(value => [value.toLocaleLowerCase('vi'), value])).values())
-    .sort((a, b) => a.localeCompare(b, 'vi')).slice(0, 8)
+    .sort((a, b) => a.localeCompare(b, 'vi'))
+  const ingredientNames = unique(ingredients.map(item => item.name.trim()).filter(Boolean))
   return {
-    allergies: unique(ingredients.flatMap(item => (item.allergens || '').split(/[,;|]/).map(value => value.trim()).filter(Boolean))),
-    avoided: unique(ingredients.map(item => item.name.trim()).filter(Boolean)),
+    ingredientNames,
+    allergies: unique(ingredients.flatMap(item => (item.allergens || '').split(/[,;|]/).map(value => value.trim()).filter(Boolean))).slice(0, 8),
+    avoided: ingredientNames.slice(0, 8),
   }
+}
+
+// Chỉ tìm chuỗi trong tên nguyên liệu; không suy luận hay tìm theo món/thuộc tính khác.
+export function searchIngredientNames(names: string[], search: string, selected: string[] = []): string[] {
+  const normalize = (value: string) => value.trim().toLocaleLowerCase('vi').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/\s+/g, ' ')
+  const query = normalize(search)
+  if (!query) return []
+  const excluded = new Set(selected.map(normalize))
+  return names.filter(name => normalize(name).includes(query) && !excluded.has(normalize(name)))
 }

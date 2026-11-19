@@ -148,6 +148,10 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
   const handleSave = async (submitNow: boolean) => {
     if (busy) return
     const trimmedTitle = title.trim()
+    if (!thumbnailFile) {
+      setError('Vui lòng chọn ảnh bìa video.')
+      return
+    }
     if (!trimmedTitle) {
       setError('Vui lòng nhập tiêu đề video.')
       return
@@ -396,9 +400,9 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
             {/* Thumbnail */}
             <div className="space-y-2">
               <label className="block text-sm font-bold text-slate-800">
-                Ảnh bìa thumbnail{' '}
+                Ảnh bìa <span className="text-red-500">*</span>{' '}
                 <span className="text-xs font-normal text-slate-500">
-                  (Tùy chọn: JPG, PNG, WEBP, tối đa 10 MB)
+                  (JPG, PNG, WEBP, tối đa 10 MB)
                 </span>
               </label>
 
@@ -429,7 +433,7 @@ export default function VideoCreatePage({ fromSource = 'videos', onNavigate }: P
                       Bấm để chọn ảnh bìa
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Tùy chọn (để trống sẽ sử dụng ảnh mặc định)
+                      Bắt buộc chọn ảnh JPG, PNG hoặc WEBP
                     </p>
                   </>
                 )}

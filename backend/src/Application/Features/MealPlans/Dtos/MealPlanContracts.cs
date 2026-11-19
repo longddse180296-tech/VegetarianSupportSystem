@@ -23,14 +23,26 @@ public sealed class MealPlanCopyToWeekRequest { public DateOnly WeekStartDate { 
 // MealPlanListQuery: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class MealPlanListQuery { [Range(1, int.MaxValue)] public int Page { get; init; } = 1; [Range(1, 100)] public int PageSize { get; init; } = 20; }
 // MealPlanMealResponse: định nghĩa dữ liệu trao đổi của tính năng.
-public sealed record MealPlanMealResponse(Guid Id, int DayNumber, MealSlot Slot, Guid RecipeId, string RecipeName, int Servings, int SwapCount, int TotalTimeMinutes, decimal? CaloriesPerServing, decimal? ProteinGramPerServing, decimal? CarbohydrateGramPerServing, decimal? FatGramPerServing, string? ImageUrl = null, IReadOnlyList<string>? IngredientNames = null, string? AvailabilityWarning = null);
+public sealed record MealPlanMealResponse(Guid Id, int DayNumber, MealSlot Slot, Guid RecipeId, string RecipeName, int Servings, int SwapCount, int TotalTimeMinutes, decimal? CaloriesPerServing, decimal? ProteinGramPerServing, decimal? CarbohydrateGramPerServing, decimal? FatGramPerServing, string? ImageUrl = null, IReadOnlyList<string>? IngredientNames = null, string? AvailabilityWarning = null, DateTimeOffset? CheckedInAt = null, DietaryType? DeclaredDietaryType = null);
 // ShoppingItemResponse: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record ShoppingItemResponse(Guid Id, Guid IngredientId, string IngredientName, decimal RequiredQuantity, decimal PantryQuantity, decimal QuantityToBuy, string Unit, bool IsPurchased);
 // MealPlanNutritionSummary: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record MealPlanNutritionSummary(decimal Calories, decimal ProteinGrams, decimal CarbohydrateGrams, decimal FatGrams);
 // MealPlanResponse: định nghĩa dữ liệu trao đổi của tính năng.
-public sealed record MealPlanResponse(Guid Id, string Name, DateOnly WeekStartDate, VegetarianDiet ProfileDiet, IReadOnlyList<MealPlanMealResponse> Meals, IReadOnlyList<ShoppingItemResponse> ShoppingItems, MealPlanNutritionSummary Nutrition, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt, DailyNutritionTarget? DailyNutritionTarget = null, string? NutritionNotice = null, string? NutritionAdjustmentMessage = null);
+public sealed record MealPlanResponse(Guid Id, string Name, DateOnly WeekStartDate, VegetarianDiet ProfileDiet, IReadOnlyList<MealPlanMealResponse> Meals, IReadOnlyList<ShoppingItemResponse> ShoppingItems, MealPlanNutritionSummary Nutrition, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt, DailyNutritionTarget? DailyNutritionTarget = null, string? NutritionNotice = null, string? NutritionAdjustmentMessage = null, bool RequiresReview = false, string? ReviewMessage = null, DailyNutritionTarget? CurrentDailyNutritionTarget = null);
 // MealPlanSummary: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record MealPlanSummary(Guid Id, string Name, DateOnly WeekStartDate, int MealCount, DateTimeOffset CreatedAt);
 // MealPlanPage: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record MealPlanPage(IReadOnlyList<MealPlanSummary> Items, int Page, int PageSize, int TotalCount);
+
+public sealed class MealChoiceQuery
+{
+    [StringLength(120)] public string? Search { get; init; }
+    public bool IncludeAll { get; init; }
+    [Range(1, int.MaxValue)] public int Page { get; init; } = 1;
+    [Range(1, 100)] public int PageSize { get; init; } = 12;
+}
+public sealed record MealChoiceResponse(Guid Id, string Name, string? ImageUrl, decimal? CaloriesPerServing,
+    decimal? ProteinGramPerServing, decimal? CarbohydrateGramPerServing, decimal? FatGramPerServing,
+    bool IsCompatible, string? IncompatibilityReason, string? NutritionWarning, DateOnly? LastEatenOn);
+public sealed record MealChoicePage(IReadOnlyList<MealChoiceResponse> Items, int TotalCount, int Page, int PageSize, DailyNutritionTarget? DailyNutritionTarget);

@@ -1,6 +1,6 @@
 // BE2-09 | Hiển thị lịch theo ngày và điều phối thao tác đổi món, đi chợ, tải PDF.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Calendar,
   Check,
@@ -39,8 +39,8 @@ import { SavedPlanHistory } from '../components/SavedPlanHistory'
 import { currentMealPlan, mealPlanStartError, nextAvailablePlanDate } from '../utils/planPeriod'
 import { shoppingQuantityError } from '../utils/shoppingQuantity'
 import { Badge, Breadcrumb, PageHeading } from '../../../shared/components'
-import { profileApi } from '../../profile/api/profileApi'
-import type { UserProfile } from '../../profile/types'
+
+
 import {
   exportMealPlanPdf,
   exportShoppingListPdf,
@@ -84,105 +84,28 @@ const actionButtonClass =
   'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs hover:border-slate-300 transition-all disabled:opacity-50 disabled:pointer-events-none'
 
 // Tính hoặc tổng hợp chỉ số từ dữ liệu đầu vào của tính năng (nutritionChange); thuộc thực đơn bảy ngày và danh sách đi chợ.
-function nutritionChange(next: number | null, current: number | null, servings: number, unit: string) {
-  if (next === null || current === null) return 'Chưa đủ dữ liệu'
-  const difference = (next - current) * servings
-  const formatted = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Math.abs(difference))
-  return `${difference > 0 ? '+' : difference < 0 ? '−' : '±'}${formatted}${unit}`
-}
-
-// Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (ingredientChanges); thuộc thực đơn bảy ngày và danh sách đi chợ.
-function ingredientChanges(current: string[], candidate: string[]) {
-  const currentKeys = new Set(current.map((item) => item.trim().toLocaleLowerCase('vi-VN')))
-  const candidateKeys = new Set(candidate.map((item) => item.trim().toLocaleLowerCase('vi-VN')))
-  return {
-    added: candidate.filter((item) => !currentKeys.has(item.trim().toLocaleLowerCase('vi-VN'))),
-    removed: current.filter((item) => !candidateKeys.has(item.trim().toLocaleLowerCase('vi-VN'))),
-  }
-}
-
-// Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (recipeGoalScore); thuộc thực đơn bảy ngày và danh sách đi chợ.
-function recipeGoalScore(recipe: ReplacementRecipe, targetCalories: number, goal: UserProfile['metrics']['goal']) {
-  if (recipe.caloriesPerServing === null) return Number.MAX_SAFE_INTEGER
-  const calorieScore = Math.abs(recipe.caloriesPerServing - targetCalories)
-  const protein = recipe.proteinGramPerServing ?? 0
-  return goal === 'muscle_gain' ? calorieScore - protein * 4 : calorieScore
-}
-
-// Thành phần RecipeChoice nhận dữ liệu đầu vào và hiển thị phần giao diện thuộc thực đơn bảy ngày và danh sách đi chợ.
-function RecipeChoice({
-  recipe,
-  currentMeal,
-  servings,
-  selected,
-  disabled,
-  onSelect,
-}: {
-  recipe: ReplacementRecipe
-  currentMeal: SavedPlanMeal
-  servings: number
-  selected: boolean
-  disabled: boolean
-  onSelect: () => void
+// Danh sách đổi món dùng kết quả đánh giá của BE, không tự tính mục tiêu cân nặng lần nữa.
+function RecipeChoice({ recipe, selected, disabled, onSelect }: {
+  recipe: ReplacementRecipe; currentMeal: SavedPlanMeal; servings: number;
+  selected: boolean; disabled: boolean; onSelect: () => void
 }) {
-  const changes = ingredientChanges(currentMeal.ingredientNames ?? [], recipe.ingredientNames ?? [])
-  const nutrition = [
-    ['Calo', nutritionChange(recipe.caloriesPerServing, currentMeal.caloriesPerServing, servings, ' kcal')],
-    ['Đạm', nutritionChange(recipe.proteinGramPerServing, currentMeal.proteinGramPerServing, servings, ' g')],
-    ['Carb', nutritionChange(recipe.carbohydrateGramPerServing, currentMeal.carbohydrateGramPerServing, servings, ' g')],
-    ['Béo', nutritionChange(recipe.fatGramPerServing, currentMeal.fatGramPerServing, servings, ' g')],
-  ] as const
-
-  // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
-  return (
-    <label
-      className={`block rounded-2xl border p-3.5 transition-all cursor-pointer ${
-        selected
-          ? 'border-[#2E7D32] bg-emerald-50/70 ring-1 ring-[#2E7D32]/30 shadow-xs'
-          : 'border-slate-200 hover:border-emerald-200 hover:bg-slate-50/50'
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <input
-          type="radio"
-          name="replacementRecipe"
-          required
-          checked={selected}
-          disabled={disabled}
-          onChange={onSelect}
-          className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[#2E7D32]"
-        />
-        {recipe.imageUrl ? (
-          <img src={recipe.imageUrl} alt={recipe.name} className="h-14 w-14 shrink-0 rounded-xl bg-slate-100 object-cover" />
-        ) : (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-[#2E7D32]">
-            <UtensilsCrossed size={20} />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <span className="block font-bold text-sm text-slate-900">{recipe.name}</span>
-          <small className="mt-0.5 block text-xs text-slate-500">
-            {mealNutrition(recipe.caloriesPerServing, servings)}{recipe.caloriesPerServing !== null ? ' kcal' : ''} · {recipe.cookTimeMinutes + recipe.prepTimeMinutes} phút
-          </small>
-        </div>
+  const blocked = recipe.isCompatible === false
+  return <label className={`block rounded-xl border p-3 ${blocked ? 'bg-slate-50 border-slate-200' : selected ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white hover:border-emerald-400'} ${blocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+    <div className="flex items-start gap-3">
+      <input type="radio" name="replacementRecipe" checked={selected} disabled={disabled || blocked} onChange={onSelect} className="mt-4 accent-emerald-700" />
+      {recipe.imageUrl ? <img src={recipe.imageUrl} alt={recipe.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" /> : <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100" />}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-slate-900">{recipe.name}</p>
+        <p className={`mt-1 text-xs ${blocked ? 'text-rose-700' : 'text-emerald-700'}`}>{blocked ? recipe.incompatibilityReason : 'Phù hợp chế độ ăn và điều kiện hồ sơ'}</p>
+        {recipe.lastEatenOn && <p className="mt-1 text-xs text-slate-500">Đã ăn ngày {formatPlanDate(recipe.lastEatenOn)}</p>}
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-1.5 text-[11px] sm:grid-cols-4">
-        {nutrition.map(([label, value]) => (
-          <span key={label} className="rounded-lg bg-white px-2 py-1.5 text-slate-600 ring-1 ring-slate-100">
-            <strong className="mr-1 text-slate-700">{label}</strong>{value}
-          </span>
-        ))}
-      </div>
-      {(changes.added.length > 0 || changes.removed.length > 0) && (
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
-          {changes.added.slice(0, 3).map((name) => <span key={`add-${name}`} className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-800">+ {name}</span>)}
-          {changes.removed.slice(0, 3).map((name) => <span key={`remove-${name}`} className="rounded-full bg-rose-50 px-2 py-0.5 font-medium text-rose-700">− {name}</span>)}
-        </div>
-      )}
-    </label>
-  )
+    </div>
+    <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
+      {([['Calo', recipe.caloriesPerServing, 'kcal'], ['Đạm', recipe.proteinGramPerServing, 'g'], ['Carb', recipe.carbohydrateGramPerServing, 'g'], ['Béo', recipe.fatGramPerServing, 'g']] as const).map(([label, value, unit]) => <div key={label} className="rounded-lg bg-slate-50 p-2"><span className="block text-slate-500">{label}</span><strong className="text-slate-800">{value == null ? '—' : new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 1}).format(value)} {unit}</strong></div>)}
+    </div>
+    {!blocked && recipe.nutritionWarning && <p className="mt-2 text-xs text-amber-800">{recipe.nutritionWarning}</p>}
+  </label>
 }
-
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (MealPlanDetailPage); thuộc thực đơn bảy ngày và danh sách đi chợ.
 export const MealPlanDetailPage = ({
   planId,
@@ -223,11 +146,12 @@ export const MealPlanDetailPage = ({
   const [recipeError, setRecipeError] = useState<string | null>(null)
   const [recipeId, setRecipeId] = useState('')
   const servings = 1
-  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [showAllChoices, setShowAllChoices] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [refresh, setRefresh] = useState(0)
   const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([])
   const [today, setToday] = useState(localDate)
-  const planDiet = plan?.profileDiet
+
   const shoppingPlanId = plan?.id
 
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
@@ -251,12 +175,14 @@ export const MealPlanDetailPage = ({
         const detail = id ? await mealPlanApi.get(id, controller.signal) : null
         if (!controller.signal.aborted) {
           setPlan(detail)
+          setReviewOpen(!!detail?.requiresReview)
           try {
             const adjustment = detail ? sessionStorage.getItem(`meal-plan-adjustment:${detail.id}`) : null
             setNotice(adjustment)
             if (detail) sessionStorage.removeItem(`meal-plan-adjustment:${detail.id}`)
           } catch { /* Không ảnh hưởng việc tải thực đơn nếu trình duyệt chặn lưu phiên. */ }
-          setDay(1)
+          const elapsed = detail ? Math.round((new Date(`${today}T12:00:00`).getTime() - new Date(`${detail.weekStartDate}T12:00:00`).getTime()) / 86400000) : 0
+          setDay(elapsed >= 0 && elapsed < 7 ? elapsed + 1 : 1)
         }
       } catch (err) {
         if (!controller.signal.aborted) setError(message(err))
@@ -269,19 +195,18 @@ export const MealPlanDetailPage = ({
   }, [planId, refresh, today])
 
   useEffect(() => {
+    const reload = () => { if (document.visibilityState === 'visible') setRefresh(value => value + 1) }
+    window.addEventListener('focus', reload)
+    window.addEventListener('vegetarian_user_updated', reload)
+    return () => { window.removeEventListener('focus', reload); window.removeEventListener('vegetarian_user_updated', reload) }
+  }, [])
+
+  useEffect(() => {
     const timer = window.setInterval(() => setToday(localDate()), 60_000)
     return () => window.clearInterval(timer)
   }, [])
 
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
-  useEffect(() => {
-    let active = true
-    void profileApi.getProfile().then((value) => {
-      if (active) setProfile(value)
-    }).catch(() => undefined)
-    return () => { active = false }
-  }, [])
-
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!shoppingOpen || !shoppingPlanId || shoppingDay === null) return
@@ -301,13 +226,13 @@ export const MealPlanDetailPage = ({
 
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
-    if (!replacement || !planDiet) return
+    if (!replacement || !plan) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
       setRecipesLoading(true)
       setRecipeError(null)
       mealPlanApi
-        .recipes(planDiet, recipeSearch, recipePage, controller.signal)
+        .choices(plan.id, replacement, recipeSearch, recipePage, showAllChoices, controller.signal)
         .then((result) => {
           if (!controller.signal.aborted) {
             setRecipes(result.items)
@@ -328,30 +253,9 @@ export const MealPlanDetailPage = ({
       clearTimeout(timer)
       controller.abort()
     }
-  }, [replacement, planDiet, recipeSearch, recipePage])
+  }, [replacement, plan?.id, recipeSearch, recipePage, showAllChoices])
 
-  const goalTargetCalories = useMemo(() => {
-    const baseline = profile?.metrics.tdeeKcal
-      ? profile.metrics.tdeeKcal / 3
-      : replacement?.caloriesPerServing ?? 0
-    if (profile?.metrics.goal === 'weight_loss') return baseline * 0.88
-    if (profile?.metrics.goal === 'muscle_gain') return baseline * 1.12
-    return baseline
-  }, [profile, replacement])
-
-  const goalRecipeIds = useMemo(() => {
-    if (!replacement || !profile || goalTargetCalories <= 0) return new Set<string>()
-    return new Set(
-      [...recipes]
-        .filter((recipe) => recipe.id !== replacement.recipeId)
-        .sort((left, right) => recipeGoalScore(left, goalTargetCalories, profile.metrics.goal) - recipeGoalScore(right, goalTargetCalories, profile.metrics.goal))
-        .slice(0, 4)
-        .map((recipe) => recipe.id),
-    )
-  }, [goalTargetCalories, profile, recipes, replacement])
-
-  const goalRecipes = recipes.filter((recipe) => goalRecipeIds.has(recipe.id))
-  const dietRecipes = recipes.filter((recipe) => recipe.id !== replacement?.recipeId && !goalRecipeIds.has(recipe.id))
+  const dietRecipes = recipes
 
   // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (act); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const act = async (operation: () => Promise<void>) => {
@@ -370,6 +274,8 @@ export const MealPlanDetailPage = ({
 
   // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (openReplacement); thuộc thực đơn bảy ngày và danh sách đi chợ.
   const openReplacement = (meal: SavedPlanMeal) => {
+    if (!plan || meal.checkedInAt || addPlanDays(plan.weekStartDate, meal.dayNumber - 1) < today) return
+    setShowAllChoices(false)
     setReplacement(meal)
     setRecipeId('')
     setRecipeSearch('')
@@ -378,14 +284,14 @@ export const MealPlanDetailPage = ({
   }
 
   const openMealRecipe = (meal: SavedPlanMeal) => {
-    if (!plan || busy || meal.availabilityWarning) return
+    if (!plan || busy) return
     void act(async () => {
       // Kiểm tra lại trước khi mở để bắt thay đổi của Admin sau lúc tải lịch.
       const current = await mealPlanApi.get(plan.id)
       setPlan(current)
       const updated = current.meals.find(item => item.id === meal.id)
-      if (updated && !updated.availabilityWarning)
-        onNavigate?.(`/recipes/${updated.recipeId}?from=meal-plans`)
+      if (updated)
+        onNavigate?.(`/recipes/${updated.recipeId}?from=meal-plans&planId=${plan.id}`)
     })
   }
 
@@ -460,9 +366,12 @@ export const MealPlanDetailPage = ({
           return next
         })
       }
-      const exportItems = shoppingDay === null ? updatedItems : await mealPlanApi.shoppingList(plan.id, shoppingDay)
+      // Lấy cùng một bản dữ liệu đã lọc cho cả số bữa và nguyên liệu của bản in.
+      const exportPlan = await mealPlanApi.exportData(plan.id, shoppingDay ?? undefined)
+      const exportItems = exportPlan.shoppingItems
+      if (!exportItems.length) { setNotice('Không còn nguyên liệu cần mua cho các bữa chưa thực hiện.'); return }
       if (shoppingDay !== null) setDailyShoppingItems(exportItems)
-      exportShoppingListPdf({ ...plan, shoppingItems: updatedItems }, exportItems, shoppingDay)
+      exportShoppingListPdf(exportPlan, exportItems, shoppingDay)
       setNotice('Đã chuẩn bị bản in/PDF danh sách đi chợ.')
     })
   }
@@ -541,6 +450,19 @@ export const MealPlanDetailPage = ({
   // Hiển thị giao diện thực đơn bảy ngày và danh sách đi chợ từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-8 min-[641px]:px-[18px] min-[1121px]:px-6">
+      {plan?.requiresReview && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="flex-1">Một số bữa chưa ăn cần được cập nhật theo hồ sơ hiện tại.</p><button type="button" disabled={busy} onClick={() => setReviewOpen(true)} className="font-semibold underline underline-offset-4">Xem và cập nhật</button></div>}
+      {plan && reviewOpen && plan.requiresReview && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="plan-review-title">
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <h2 id="plan-review-title" className="text-lg font-semibold text-slate-900">Cập nhật thực đơn</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">{plan.reviewMessage}</p>
+          <p className="mt-2 text-sm text-slate-500">Các bữa đã thực hiện và ngày đã qua được giữ nguyên.</p>
+          {error && <p role="alert" className="mt-3 text-sm text-rose-700">{error}</p>}
+          <div className="mt-5 flex justify-end gap-3">
+            <button type="button" disabled={busy} onClick={() => setReviewOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600">Để sau</button>
+            <button type="button" disabled={busy} onClick={() => void act(async () => { const updated = await mealPlanApi.review(plan.id); setPlan(updated); setReviewOpen(false); setNotice(updated.nutritionAdjustmentMessage ?? 'Đã cập nhật thực đơn.'); })} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Đang cập nhật…' : 'Xác nhận đổi món'}</button>
+          </div>
+        </div>
+      </div>}
       <PageHeading
         title="Thực đơn của bạn"
         description="Kế hoạch 7 ngày · 21 bữa ăn theo hồ sơ · Lưu theo tài khoản"
@@ -569,7 +491,7 @@ export const MealPlanDetailPage = ({
           </button>
         }
       />
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="space-y-6">
       <div className="min-w-0 space-y-6">
 
       {deleteTarget && (
@@ -720,14 +642,15 @@ export const MealPlanDetailPage = ({
             <button
               disabled={busy}
               className={actionButtonClass}
-              onClick={() => {
-                exportMealPlanPdf(plan)
-                setNotice('Đã chuẩn bị bản in/PDF thực đơn 7 ngày.')
-              }}
+              onClick={() => void act(async () => {
+                exportMealPlanPdf(await mealPlanApi.exportData(plan.id))
+                setNotice('Đã chuẩn bị PDF các bữa chưa thực hiện trong tuần.')
+              })}
             >
               <FileDown size={15} className="text-slate-600" />
               Tải PDF thực đơn
             </button>
+
           </div>
 
           {/* Chọn ngày 1 -> 7 (Căn đều 7 ngày vừa vặn chiều ngang) */}
@@ -764,27 +687,54 @@ export const MealPlanDetailPage = ({
             })}
           </div>
 
-          {plan.dailyNutritionTarget && (
+          {(
             <section className="rounded-2xl border border-emerald-100 bg-white p-5">
               <h3 className="font-bold text-slate-900">Dinh dưỡng ngày {day} so với mục tiêu</h3>
               <p className="mt-1 text-xs text-slate-500">Mục tiêu được lưu cùng thực đơn. Tạo lại thực đơn để áp dụng hồ sơ mới.</p>
               <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
                 {([
-                  ['Calo', 'caloriesPerServing', plan.dailyNutritionTarget.calories, 'kcal'],
-                  ['Đạm', 'proteinGramPerServing', plan.dailyNutritionTarget.proteinGrams, 'g'],
-                  ['Carb', 'carbohydrateGramPerServing', plan.dailyNutritionTarget.carbohydrateGrams, 'g'],
-                  ['Béo', 'fatGramPerServing', plan.dailyNutritionTarget.fatGrams, 'g'],
+                  ['Calo', 'caloriesPerServing', plan.dailyNutritionTarget?.calories, 'kcal'],
+                  ['Đạm', 'proteinGramPerServing', plan.dailyNutritionTarget?.proteinGrams, 'g'],
+                  ['Carb', 'carbohydrateGramPerServing', plan.dailyNutritionTarget?.carbohydrateGrams, 'g'],
+                  ['Béo', 'fatGramPerServing', plan.dailyNutritionTarget?.fatGrams, 'g'],
                 ] as const).map(([label, key, target, unit]) => {
                   const actual = sum(key)
                   return <div key={key} className="rounded-xl bg-slate-50 p-3">
                     <p className="text-sm text-slate-500">{label}</p>
-                    <p className="mt-1 font-bold text-slate-900">{actual === null ? '—' : Math.round(actual * 10) / 10} / {target} {unit}</p>
+                    <p className="mt-1 font-bold text-slate-900">{actual === null ? '—' : Math.round(actual * 10) / 10}{target != null ? ` / ${target}` : ''} {unit}</p>
                   </div>
                 })}
               </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Tổng cả tuần: Năng lượng (kcal){' '}
+              <strong className="text-slate-800">
+                {weeklyValue('caloriesPerServing', plan.nutrition.calories)}
+              </strong>{' '}
+              · Đạm (g){' '}
+              <strong className="text-slate-800">
+                {weeklyValue('proteinGramPerServing', plan.nutrition.proteinGrams)}
+              </strong>{' '}
+              · Carbs (g){' '}
+              <strong className="text-slate-800">
+                {weeklyValue(
+                  'carbohydrateGramPerServing',
+                  plan.nutrition.carbohydrateGrams,
+                )}
+              </strong>{' '}
+              · Béo (g){' '}
+              <strong className="text-slate-800">
+                {weeklyValue('fatGramPerServing', plan.nutrition.fatGrams)}
+              </strong>
+              . Mỗi bữa ăn được tính cho 1 người.
+            </p>
+
+
+
+
             </section>
           )}
           {/* 3 Thẻ Bữa ăn (Sáng / Trưa / Tối) */}
+          <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="grid md:grid-cols-3 gap-5">
             {slots.map((slot) => {
               const meal = meals.find((item) => item.slot === slot)
@@ -844,6 +794,9 @@ export const MealPlanDetailPage = ({
                         </span>
                       </div>
 
+                      {meal.declaredDietaryType && <span className="absolute bottom-2.5 left-2.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-emerald-800 shadow-sm">
+                        {({Vegan:'Thuần chay', LactoVegetarian:'Chay có sữa', OvoVegetarian:'Chay có trứng', LactoOvoVegetarian:'Chay trứng & sữa'})[meal.declaredDietaryType]}
+                      </span>}
                       {/* Tag Buổi ăn ở góc trên trái */}
                       <div className="absolute top-2.5 left-2.5">
                         <span
@@ -890,7 +843,7 @@ export const MealPlanDetailPage = ({
                         </p>
                       )}
 
-                      <div className="flex items-center justify-between text-xs pt-0.5">
+                      <div className="flex items-center gap-2 text-xs pt-0.5">
                         <span className="text-slate-500 font-medium">
                           Năng lượng:
                         </span>
@@ -939,9 +892,22 @@ export const MealPlanDetailPage = ({
                     </div>
                   </div>
 
+                  <button type="button" disabled={busy || (!meal.checkedInAt && (!!meal.availabilityWarning || addPlanDays(plan.weekStartDate, meal.dayNumber - 1) !== today))}
+                    aria-pressed={!!meal.checkedInAt}
+                    title={meal.checkedInAt ? 'Bấm để hủy đánh dấu đã thực hiện' : 'Đánh dấu đã thực hiện bữa ăn'}
+                    onClick={() => void act(async () => {
+                      const undo = !!meal.checkedInAt
+                      const updated = undo ? await mealPlanApi.undoCheckIn(plan.id, meal) : await mealPlanApi.checkIn(plan.id, meal)
+                      setPlan(updated)
+                      setReviewOpen(!!updated.requiresReview)
+                      setNotice(undo ? 'Đã hủy đánh dấu bữa ăn.' : 'Đã thực hiện bữa ăn.')
+                    })}
+                    className={`mt-4 w-full rounded-xl border py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${meal.checkedInAt ? 'border-emerald-200 bg-emerald-50 text-emerald-700 enabled:hover:bg-emerald-100' : 'border-[#2E7D32] bg-[#2E7D32] text-white enabled:hover:bg-[#1B5E20]'}`}>
+                    Đã thực hiện
+                  </button>
                   {/* Nút Xem công thức & Đổi món */}
                   <div className="flex gap-2 pt-3 mt-3 border-t border-slate-100">
-                    {!meal.availabilityWarning && <button
+                    <button
                       type="button"
                       disabled={busy}
                       onClick={() =>
@@ -951,12 +917,12 @@ export const MealPlanDetailPage = ({
                     >
                       <ExternalLink size={13} />
                       Xem công thức
-                    </button>}
+                    </button>
                     <button
                       type="button"
-                      disabled={busy}
+                      disabled={busy || !!meal.checkedInAt || addPlanDays(plan.weekStartDate, meal.dayNumber - 1) < today}
                       onClick={() => openReplacement(meal)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-50 text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white border border-emerald-200/60 text-xs font-bold transition-all disabled:opacity-50"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#2E7D32] text-white enabled:hover:bg-[#1B5E20] border border-[#2E7D32] text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:border-emerald-200 disabled:bg-emerald-50 disabled:text-emerald-600"
                     >
                       <RefreshCw size={13} />
                       Đổi món
@@ -967,54 +933,20 @@ export const MealPlanDetailPage = ({
             })}
           </div>
 
-          {/* Dinh dưỡng tổng hợp trong ngày */}
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 space-y-4 shadow-sm">
-            <h3 className="font-extrabold text-base text-slate-900">
-              Tổng quan dinh dưỡng Ngày {day}
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              {(
-                [
-                  ['Năng lượng (kcal)', sum('caloriesPerServing')],
-                  ['Chất đạm (g)', sum('proteinGramPerServing')],
-                  ['Carbohydrate (g)', sum('carbohydrateGramPerServing')],
-                  ['Chất béo (g)', sum('fatGramPerServing')],
-                ] as const
-              ).map(([label, value]) => (
-                <div
-                  key={label}
-                  className="rounded-2xl bg-emerald-50/60 border border-emerald-100 p-4"
-                >
-                  <p className="text-xs text-slate-500 font-medium">{label}</p>
-                  <strong className="text-xl font-black text-[#2E7D32] mt-0.5 block">
-                    {mealNutrition(value, 1)}
-                  </strong>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Tổng cả tuần: Năng lượng (kcal){' '}
-              <strong className="text-slate-800">
-                {weeklyValue('caloriesPerServing', plan.nutrition.calories)}
-              </strong>{' '}
-              · Đạm (g){' '}
-              <strong className="text-slate-800">
-                {weeklyValue('proteinGramPerServing', plan.nutrition.proteinGrams)}
-              </strong>{' '}
-              · Carbs (g){' '}
-              <strong className="text-slate-800">
-                {weeklyValue(
-                  'carbohydrateGramPerServing',
-                  plan.nutrition.carbohydrateGrams,
-                )}
-              </strong>{' '}
-              · Béo (g){' '}
-              <strong className="text-slate-800">
-                {weeklyValue('fatGramPerServing', plan.nutrition.fatGrams)}
-              </strong>
-              . Mỗi bữa ăn được tính cho 1 người.
-            </p>
-          </section>
+
+      <aside className="min-w-0">
+      <SavedPlanHistory
+        plans={savedPlans}
+        selectedId={plan?.id}
+        disabled={busy || deleteBusy}
+        onSelect={(id) => onNavigate?.(`/meal-plans/${id}`)}
+        onDelete={(saved) => {
+          setDeleteError(null)
+          setDeleteTarget(saved)
+        }}
+      />
+      </aside>
+          </div>
         </>
       )}
 
@@ -1035,7 +967,7 @@ export const MealPlanDetailPage = ({
                   <ShoppingCart size={18} />
                 </span>
                 <h2 className="text-xl font-extrabold text-slate-900">
-                  Danh sách đi chợ ({shoppingDay === null ? '21 bữa' : `Ngày ${shoppingDay} · 3 bữa`})
+                  Danh sách đi chợ ({shoppingDay === null ? 'Bữa chưa thực hiện' : `Ngày ${shoppingDay} · Bữa chưa thực hiện`})
                 </h2>
               </div>
               <button
@@ -1082,7 +1014,7 @@ export const MealPlanDetailPage = ({
             {shoppingError && <p role="alert" className="text-sm text-rose-700">{shoppingError}</p>}
             {!shoppingLoading && !shoppingError && (shoppingDay === null ? plan.shoppingItems : dailyShoppingItems).length === 0 && (
               <p className="text-sm text-slate-500 py-8 text-center">
-                {shoppingDay === null ? 'Danh sách đi chợ trống.' : 'Ngày này chưa có nguyên liệu cần liệt kê.'}
+                Không còn nguyên liệu cần liệt kê cho các bữa chưa thực hiện. Ngày đã qua và bữa đã thực hiện được loại khỏi danh sách.
               </p>
             )}
 
@@ -1364,7 +1296,7 @@ export const MealPlanDetailPage = ({
             </div>
 
             <p className="text-xs leading-relaxed text-slate-500">
-              Danh sách đầu là công thức đúng chế độ ăn đã lưu. Nhóm ưu tiên được xếp theo chỉ số và mục tiêu hiện tại; khi xác nhận, hệ thống vẫn kiểm tra dị ứng và thực phẩm cần tránh.
+              Danh sách dùng hồ sơ mới nhất. Món xung đột dị ứng hoặc chế độ ăn không thể chọn; món chưa sát mục tiêu dinh dưỡng vẫn có thể chọn.
             </p>
 
             <input
@@ -1389,23 +1321,9 @@ export const MealPlanDetailPage = ({
                 </div>
               ) : (
                 <>
-                  {goalRecipes.length > 0 && (
-                    <section className="space-y-2.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="text-sm font-extrabold text-emerald-900">Phù hợp chỉ số &amp; mục tiêu</h3>
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
-                          Mục tiêu khoảng {Math.round(goalTargetCalories)} kcal/bữa
-                        </span>
-                      </div>
-                      <div className="space-y-2.5">
-                        {goalRecipes.map((recipe) => (
-                          <RecipeChoice key={recipe.id} recipe={recipe} currentMeal={replacement} servings={servings} selected={recipeId === recipe.id} disabled={busy} onSelect={() => setRecipeId(recipe.id)} />
-                        ))}
-                      </div>
-                    </section>
-                  )}
+
                   <section className="space-y-2.5">
-                    <h3 className="text-sm font-extrabold text-slate-800">Tất cả công thức phù hợp chế độ ăn</h3>
+                    <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold text-slate-800">{showAllChoices ? 'Tất cả món đang hoạt động' : 'Món phù hợp với bạn'}</h3><button type="button" className="text-xs font-semibold text-emerald-700 underline underline-offset-4" onClick={() => {setShowAllChoices(value => !value); setRecipePage(1); setRecipeId('')}}>{showAllChoices ? 'Chỉ xem món phù hợp' : 'Xem tất cả'}</button></div>
                     <div className="space-y-2.5">
                       {dietRecipes.map((recipe) => (
                         <RecipeChoice key={recipe.id} recipe={recipe} currentMeal={replacement} servings={servings} selected={recipeId === recipe.id} disabled={busy} onSelect={() => setRecipeId(recipe.id)} />
@@ -1415,7 +1333,7 @@ export const MealPlanDetailPage = ({
                 </>
               )}
 
-              {!recipesLoading && !goalRecipes.length && !dietRecipes.length && !recipeError && (
+              {!recipesLoading && !dietRecipes.length && !recipeError && (
                 <p className="text-sm text-slate-500 py-6 text-center">
                   Không tìm thấy công thức nào phù hợp tiêu chí.
                 </p>
@@ -1474,10 +1392,10 @@ export const MealPlanDetailPage = ({
         </div>
       )}
       </div>
-      <aside className="min-w-0">
+      {!plan && (      <aside className="min-w-0">
       <SavedPlanHistory
         plans={savedPlans}
-        selectedId={plan?.id}
+        selectedId={undefined}
         disabled={busy || deleteBusy}
         onSelect={(id) => onNavigate?.(`/meal-plans/${id}`)}
         onDelete={(saved) => {
@@ -1485,7 +1403,7 @@ export const MealPlanDetailPage = ({
           setDeleteTarget(saved)
         }}
       />
-      </aside>
+      </aside>)}
       </div>
     </div>
   )

@@ -59,14 +59,16 @@ internal static class NutritionTargetPlanChecks
             activityLevel = ActivityLevel.ModeratelyActive, weightGoal = WeightGoal.Lose });
         check(bodyUpdate.IsSuccessStatusCode, "save updated activity and weight goal");
         var saved = (await client.GetFromJsonAsync<MealPlanResponse>($"/api/meal-plans/{plan.Id}"))!;
-        check(saved.DailyNutritionTarget?.Calories == 1682, "profile edit does not silently rewrite saved plan targets");
+        check(saved.CurrentDailyNutritionTarget?.Calories == 1955 &&
+            (saved.RequiresReview ? saved.DailyNutritionTarget?.Calories == 1682 : saved.DailyNutritionTarget?.Calories == 1955),
+            "current week adopts a compatible target or requests review before changing unsuitable meals");
         check(saved.NutritionNotice is null && saved.NutritionAdjustmentMessage is null,
             "viewing old plan after profile edit produces no nutrition adjustment notice");
-        var copyRequest = new MealPlanCopyToWeekRequest { WeekStartDate = plan.WeekStartDate.AddDays(7) };
+        var copyRequest = new MealPlanCopyToWeekRequest { WeekStartDate = plan.WeekStartDate.AddDays(7), AcceptRecipeChanges = true };
         var copiedResult = await client.PostAsJsonAsync($"/api/meal-plans/{plan.Id}/apply-to-week", copyRequest);
         var copied = (await copiedResult.Content.ReadFromJsonAsync<MealPlanResponse>())!;
-        check(copied.DailyNutritionTarget?.Calories == 1955 && copied.NutritionAdjustmentMessage is not null,
-            "new week copied from old plan adapts to updated nutrition profile and reports it once");
+        check(copied.DailyNutritionTarget?.Calories == 1955,
+            "confirmed copy uses the current daily nutrition target");
         var rereadCopy = (await client.GetFromJsonAsync<MealPlanResponse>($"/api/meal-plans/{copied.Id}"))!;
         check(rereadCopy.NutritionAdjustmentMessage is null && rereadCopy.NutritionNotice is null,
             "copied plan does not repeat the adjustment notice when reopened");
@@ -89,8 +91,8 @@ internal static class NutritionTargetPlanChecks
         legacy.ProfileSnapshot = System.Text.Json.JsonSerializer.Serialize(new { Diet = VegetarianDiet.Vegan, Allergies = Array.Empty<string>(), AvoidedFoods = Array.Empty<string>() });
         await db.SaveChangesAsync();
         var legacyResponse = (await client.GetFromJsonAsync<MealPlanResponse>($"/api/meal-plans/{plan.Id}"))!;
-        check(legacyResponse.DailyNutritionTarget is null && legacyResponse.NutritionNotice is null,
-            "legacy plan remains quiet even when no saved target exists");
+        check(legacyResponse.CurrentDailyNutritionTarget?.Calories == 2660 && legacyResponse.NutritionNotice is null,
+            "legacy current week exposes the latest target through the same review flow");
         client.DefaultRequestHeaders.Remove("Test-Role"); client.DefaultRequestHeaders.Remove("Test-UserId");
         if (roles.Length > 0) client.DefaultRequestHeaders.Add("Test-Role", roles);
         if (users.Length > 0) client.DefaultRequestHeaders.Add("Test-UserId", users);

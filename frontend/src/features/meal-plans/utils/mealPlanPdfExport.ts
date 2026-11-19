@@ -252,6 +252,7 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
     const dayDate = formatPlanDate(addPlanDays(plan.weekStartDate, dayNum - 1))
     const dayMeals = plan.meals.filter((m) => m.dayNumber === dayNum)
 
+    if (!dayMeals.length) continue
     let mealRows = ''
     dayMeals.forEach((m) => {
       mealRows += `<tr>
@@ -268,7 +269,7 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
       <div class="day-block">
         <div class="day-header">
           <span>Ngày ${dayNum} · ${dayDate}</span>
-          <span style="font-size: 8.5pt; font-weight: normal; color: #64748b;">3 bữa chính</span>
+          <span style="font-size: 8.5pt; font-weight: normal; color: #64748b;">${dayMeals.length} bữa chưa thực hiện</span>
         </div>
         <table class="meals-table">
           <thead>
@@ -304,14 +305,14 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
     <h1 class="doc-title">${plan.name}</h1>
     <div class="info-card">
       <div class="info-item">Chế độ ăn: <strong>${PLAN_DIET_LABELS[plan.profileDiet]}</strong></div>
-      <div class="info-item">Thời gian: <strong>${startDateStr} – ${endDateStr}</strong> (7 ngày)</div>
+      <div class="info-item">Thời gian: <strong>${startDateStr} – ${endDateStr}</strong></div>
       <div class="info-item">Tổng số bữa: <strong>${plan.meals.length} bữa ăn</strong></div>
     </div>
 
     ${daysHtml}
 
     <div class="nutrition-summary">
-      <strong style="color: #166534; font-size: 11pt;">📊 Tổng hợp dinh dưỡng cả tuần (7 ngày)</strong>
+      <strong style="color: #166534; font-size: 11pt;">📊 Tổng dinh dưỡng các bữa được xuất</strong>
       <div class="nutrition-grid">
         <div class="nutri-box">
           <div class="nutri-val">${mealNutrition(plan.nutrition.calories, 1)}</div>
@@ -345,6 +346,9 @@ export function exportShoppingListPdf(plan: SavedPlan, items: PlanShoppingItem[]
   const period = day === null
     ? `Tuần: ${startDateStr} – ${endDateStr}`
     : `Ngày ${day}: ${formatPlanDate(addPlanDays(plan.weekStartDate, day - 1))}`
+  const mealCount = plan.meals?.filter(meal => !meal.checkedInAt && (day === null || meal.dayNumber === day)).length
+  const scope = day === null ? 'Cả tuần' : `Ngày ${day}`
+  const remainingLabel = mealCount == null ? 'Các bữa chưa thực hiện' : `${mealCount} bữa chưa thực hiện`
   const itemsToBuy = items.filter((item) => item.quantityToBuy > 0)
 
   let itemsHtml = ''
@@ -381,11 +385,11 @@ export function exportShoppingListPdf(plan: SavedPlan, items: PlanShoppingItem[]
       </div>
     </div>
 
-    <h1 class="doc-title">Danh sách nguyên liệu cần mua (${day === null ? '21 bữa' : `Ngày ${day} · 3 bữa`})</h1>
+    <h1 class="doc-title">Danh sách nguyên liệu cần mua (${scope} · ${remainingLabel})</h1>
     <div class="info-card">
       <div class="info-item">Tổng số loại nguyên liệu cần mua: <strong>${itemsToBuy.length} loại</strong></div>
       <div class="info-item">Chế độ ăn: <strong>${PLAN_DIET_LABELS[plan.profileDiet]}</strong></div>
-      <div class="info-item" style="color: #2E7D32;">Số lượng theo kết quả đối soát tủ bếp đã lưu cho thực đơn này.</div>
+      <div class="info-item" style="color: #2E7D32;">Chỉ tính bữa chưa thực hiện từ hôm nay. Nguyên liệu dùng chung vẫn được giữ với lượng cần cho các bữa còn lại.</div>
     </div>
 
     <table class="checklist-table">

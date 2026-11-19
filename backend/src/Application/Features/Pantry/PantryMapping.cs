@@ -129,19 +129,12 @@ internal static class PantryMapping
     // MatchingAllergies: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static IReadOnlyList<string> MatchingAllergies(Ingredient ingredient, UserProfile profile) =>
         // Người dùng có thể khai báo chính tên nguyên liệu hoặc tên gọi khác, không chỉ nhóm dị ứng trên nhãn.
-        profile.Allergies.Where(item => ContainsTerm(ingredient.Allergens, item.NormalizedName)
-                || ContainsTerm(ingredient.Name, item.NormalizedName)
-                || ContainsTerm(ingredient.Aliases, item.NormalizedName))
+        profile.Allergies.Where(item => IngredientRestrictionRules.MatchesAllergy(ingredient, item.NormalizedName))
             .Select(item => item.Name).OrderBy(name => name).ToArray();
 
     // MatchingAvoidedFoods: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static IReadOnlyList<string> MatchingAvoidedFoods(Ingredient ingredient, UserProfile profile) =>
-        profile.AvoidedFoods.Where(item => ContainsTerm(ingredient.Name, item.NormalizedName) ||
-                ContainsTerm(ingredient.Aliases, item.NormalizedName))
+        profile.AvoidedFoods.Where(item => IngredientRestrictionRules.MatchesNameOrAlias(ingredient, item.NormalizedName))
             .Select(item => item.Name).OrderBy(name => name).ToArray();
 
-    // ContainsTerm: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    private static bool ContainsTerm(string? source, string normalizedTerm) => !string.IsNullOrWhiteSpace(source) &&
-        source.Split([',', ';', '|'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Any(value => string.Equals(value, normalizedTerm, StringComparison.OrdinalIgnoreCase));
 }

@@ -70,11 +70,11 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             if (latest.ContentType != command.ContentType)
                 throw new ModerationException(ModerationError.Validation, "Không thể đổi loại nội dung giữa các phiên bản.");
 
-            if (latest.AdminReviewStatus is not (
-                AdminReviewStatus.RevisionRequested or AdminReviewStatus.Rejected or AdminReviewStatus.Published))
+            if (latest.AdminReviewStatus is AdminReviewStatus.Rejected or AdminReviewStatus.RevisionRequested or AdminReviewStatus.Removed)
             {
-                throw new ModerationException(ModerationError.Conflict, "Phiên bản hiện tại chưa thể gửi duyệt lại. Vui lòng kiểm tra trạng thái và phản hồi của Quản trị viên.");
+                throw new ModerationException(ModerationError.Conflict, "Nội dung đã bị từ chối hoặc gỡ, chỉ được xem và không thể gửi lại.");
             }
+            latest.WithdrawPendingForEdit(DateTimeOffset.UtcNow);
 
             contentId = existingId;
             version = checked(latest.Version + 1);
@@ -251,15 +251,23 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         Guid submissionId,
         ModerationDecisionType decision,
         string adminUserId,
-        string reason,
+        string? reason,
         CancellationToken cancellationToken)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(adminUserId) || adminUserId.Length > 450)
             throw new ModerationException(ModerationError.Forbidden, "Thao tác này cần tài khoản Quản trị viên.");
 
-        if (!Enum.IsDefined(decision) || string.IsNullOrWhiteSpace(reason) || reason.Length > 2_000)
-            throw new ModerationException(ModerationError.Validation, "Vui lòng chọn kết quả xử lý và nhập lý do không quá 2.000 ký tự.");
+        if (!Enum.IsDefined(decision) || reason?.Length > 2_000)
+            throw new ModerationException(ModerationError.Validation, "Vui lòng chọn kết quả xử lý hợp lệ.");
+        // Không yêu cầu Admin nhập phản hồi; vẫn ghi mô tả quyết định để giữ lịch sử xử lý nhất quán.
+        reason = string.IsNullOrWhiteSpace(reason) ? decision switch
+        {
+            ModerationDecisionType.Approve => "Đã được chấp nhận",
+            ModerationDecisionType.Reject => "Đã bị từ chối",
+            ModerationDecisionType.RequestRevision => "Yêu cầu chỉnh sửa",
+            _ => "Đã gỡ nội dung"
+        } : reason.Trim();
 
         var submission = await repository.GetByIdAsync(submissionId, cancellationToken)
             ?? throw new ModerationException(ModerationError.NotFound, "Không tìm thấy bản nội dung đã gửi hoặc bạn không có quyền xem.");

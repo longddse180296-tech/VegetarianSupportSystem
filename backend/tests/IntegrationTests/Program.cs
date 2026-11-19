@@ -284,16 +284,48 @@ try
     Check(!(await db.Database.GetPendingMigrationsAsync()).Any(), "all migrations applied");
     await app.StartAsync();
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+    if (args.Contains("--revision-access-only", StringComparer.Ordinal))
+    {
+        await RevisionAccessChecks.RunAsync(client, db, app.Services, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} REVISION ACCESS CHECKS PASSED");
+        return;
+    }
+    if (args.Contains("--moderation-ui-only", StringComparer.Ordinal))
+    {
+        await ModerationDecisionUiChecks.RunAsync(client, db, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} MODERATION UI CHECKS PASSED");
+        return;
+    }
+    if (args.Contains("--home-popularity-only", StringComparer.Ordinal))
+    {
+        await HomePopularityChecks.RunAsync(client, db, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} HOME POPULARITY CHECKS PASSED");
+        return;
+    }
+    if (args.Contains("--meal-updates-only", StringComparer.Ordinal))
+    {
+        await MealPlanUpdateChecks.RunAsync(client, db, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} MEAL UPDATE CHECKS PASSED");
+        return;
+    }
     await CoreDataApiChecks.RunAsync(client, db, Check);
     await SinglePersonDietChecks.RunAsync(client, db, Check);
     await NutritionTargetPlanChecks.RunAsync(client, db, Check);
+    await MealPlanUpdateChecks.RunAsync(client, db, Check);
     await RecipeReviewOrderChecks.RunAsync(client, db, Check);
+    await RecipeSynchronizationChecks.RunAsync(client, db, Check);
     await SavedContentDietaryChecks.RunAsync(client, db, Check);
     await SeedFilterChecks.RunAsync(client, db, Check);
     await DemoSeedChecks.RunAsync(client, db, Check);
     await FavoriteSourceApiChecks.RunAsync(client, db, Check);
     await IngredientNutritionChecks.RunAsync(client, db, Check);
     await RecipeNutritionHubChecks.RunAsync(client, db, Check);
+    await HomePopularityChecks.RunAsync(client, db, Check);
+    await ModerationDecisionUiChecks.RunAsync(client, db, Check);
     if (args.Contains("--core-only", StringComparer.Ordinal))
     {
         await app.StopAsync();

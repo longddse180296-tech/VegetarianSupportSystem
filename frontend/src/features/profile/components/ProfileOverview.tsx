@@ -323,6 +323,14 @@ export const ProfileOverview: React.FC<ProfileOverviewProps> = ({
         </div>
       </div>
 
+      {!!profile.metrics.targetCalories && <section className="rounded-2xl border border-slate-200 bg-white p-5" aria-label="Mục tiêu dinh dưỡng hiện tại">
+        <h3 className="text-sm font-semibold text-slate-900">Mục tiêu mỗi ngày</h3>
+        <p className="mt-1 text-xs text-slate-500">Đã điều chỉnh theo mức vận động và mục tiêu cân nặng. Năng lượng duy trì ở trên là chỉ số trước điều chỉnh.</p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {([['Calo', profile.metrics.targetCalories, 'kcal'], ['Đạm', profile.metrics.dailyProteinGrams, 'g'], ['Carb', profile.metrics.dailyCarbsGrams, 'g'], ['Béo', profile.metrics.dailyFatGrams, 'g']] as const).map(([label, value, unit]) => <div key={label} className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-semibold text-slate-900">{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(value)} {unit}</p></div>)}
+        </div>
+      </section>}
+
       <section className="ui-card p-5 sm:p-6 space-y-4" aria-label="Thực phẩm trong hồ sơ">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>

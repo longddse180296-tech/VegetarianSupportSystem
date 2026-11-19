@@ -7,6 +7,7 @@ namespace Application.Features.Administration;
 // FeaturedContentListQuery: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class FeaturedContentListQuery
 {
+    public bool RankByPopularity { get; init; }
     [Required]
     public string ContentType { get; init; } = string.Empty;
     [StringLength(120)]

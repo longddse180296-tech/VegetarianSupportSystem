@@ -20,11 +20,14 @@ internal static class RecipeValidation
             Fail(nameof(request.DeclaredDietaryType), "Vui lòng chọn một chế độ ăn hợp lệ.");
         }
 
-        if (request.ImageUrl is not null &&
-            (!Uri.TryCreate(request.ImageUrl, UriKind.Absolute, out var uri) ||
+        var imageUrl = request.ImageUrl?.Trim();
+        var storedImage = imageUrl is not null && System.Text.RegularExpressions.Regex.IsMatch(imageUrl,
+            @"^/api/public-images/[a-fA-F0-9]{32}\.(jpg|png|webp)$");
+        if (imageUrl is not null && !storedImage &&
+            (!Uri.TryCreate(imageUrl, UriKind.Absolute, out var uri) ||
                 (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)))
         {
-            Fail(nameof(request.ImageUrl), "Đường dẫn ảnh chưa hợp lệ. Vui lòng tải lại ảnh hoặc dùng đường dẫn bắt đầu bằng http:// hoặc https://.");
+            Fail(nameof(request.ImageUrl), "Đường dẫn ảnh chưa hợp lệ. Vui lòng dùng ảnh đã tải lên hệ thống hoặc đường dẫn http://, https://.");
         }
 
         for (var index = 0; index < request.Ingredients.Length; index++)

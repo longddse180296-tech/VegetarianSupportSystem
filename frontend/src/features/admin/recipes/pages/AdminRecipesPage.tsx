@@ -70,8 +70,8 @@ export const AdminRecipesPage = ({
           <strong>{item.name}</strong>
           <p className="text-xs text-slate-500 mt-1">
             {item.declaredDietaryType ? `Khai báo: ${dietLabels[item.declaredDietaryType]}` : 'Chưa khai báo loại công thức'}
-            {item.declaredDietaryType && !item.dietaryAssessments.some(assessment => assessment.dietaryType === item.declaredDietaryType && assessment.status === 'Compatible') && (
-              <span className="mt-1 block text-amber-800">Cần kiểm tra lại nguyên liệu và chế độ ăn</span>
+            {item.requiresReview && (
+              <span className="mt-1 block text-amber-800">Cần kiểm tra lại nguyên liệu, chế độ ăn hoặc dinh dưỡng</span>
             )}
           </p>
         </div>
@@ -243,6 +243,7 @@ export const AdminRecipesPage = ({
             onCancel={() => setEditing(undefined)}
             onSaved={() => {
               setEditing(undefined)
+              window.dispatchEvent(new Event('recipe-catalog-updated'))
               setNotice('Đã lưu công thức.')
               result.reload()
             }}
@@ -274,16 +275,7 @@ export const AdminRecipesPage = ({
             <h4 className="font-bold">Hướng dẫn</h4>
             <p className="whitespace-pre-wrap">{viewing.instructions}</p>
             <h4 className="font-bold">Phân loại theo thành phần</h4>
-            {viewing.dietaryAssessments.map((item) => (
-              <p key={item.dietaryType}>
-                {dietLabels[item.dietaryType]}:{' '}
-                {item.status === 'Compatible'
-                  ? 'Phù hợp'
-                  : item.status === 'Incompatible'
-                    ? 'Không phù hợp'
-                    : 'Chưa đủ thông tin'}
-              </p>
-            ))}
+            <p>{viewing.declaredDietaryType ? dietLabels[viewing.declaredDietaryType] : 'Chưa phân loại'}</p>
           </div>
         )}
       </Modal>
@@ -325,6 +317,7 @@ export const AdminRecipesPage = ({
               try {
                 if (statusTarget.isActive) {
                   await recipeApi.deactivate(statusTarget.id)
+                  window.dispatchEvent(new Event('recipe-catalog-updated'))
                   result.setData((prev) =>
                     prev
                       ? {
@@ -339,6 +332,7 @@ export const AdminRecipesPage = ({
                 } else {
                   // Chỉ đổi trạng thái trên màn hình sau khi backend đã lưu thành công.
                   await recipeApi.activate(statusTarget.id)
+                  window.dispatchEvent(new Event('recipe-catalog-updated'))
                   result.setData((prev) =>
                     prev
                       ? {

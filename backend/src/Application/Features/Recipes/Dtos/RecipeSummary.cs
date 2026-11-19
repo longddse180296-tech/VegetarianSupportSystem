@@ -23,4 +23,4 @@ public sealed record RecipeSummary(
     decimal? CarbohydrateGramPerServing,
     decimal? FatGramPerServing,
     IReadOnlyList<string> IngredientNames,
-    string? Description = null);
+    string? Description = null, DietaryType? InferredDietaryType = null, bool RequiresReview = false);

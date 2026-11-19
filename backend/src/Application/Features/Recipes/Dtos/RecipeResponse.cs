@@ -23,4 +23,4 @@ public sealed record RecipeResponse(
     DietaryType? DeclaredDietaryType,
     bool IsActive, DateTimeOffset CreatedAt, DateTimeOffset? UpdatedAt,
     string CategoryName, IReadOnlyList<RecipeIngredientResponse> Ingredients,
-    IReadOnlyList<DietaryAssessment> DietaryAssessments);
+    IReadOnlyList<DietaryAssessment> DietaryAssessments, DietaryType? InferredDietaryType = null, bool RequiresReview = false);

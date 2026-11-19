@@ -70,6 +70,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   onNavigate,
   fromSource,
 }) => {
+  const planId = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search).get('planId') || undefined
   const hashQuery =
     typeof window !== 'undefined'
       ? new URLSearchParams(window.location.hash.split('?')[1] || '').get('from')
@@ -141,7 +142,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
       setIsNotFound(false)
       setRelatedRecipes([])
       try {
-        const data = await getRecipeDetail(recipeId)
+        const data = await getRecipeDetail(recipeId, planId)
 
         if (!cancelled) {
           if (!data) {
@@ -177,7 +178,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     return () => {
       cancelled = true
     }
-  }, [recipeId])
+  }, [recipeId, planId])
 
   // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (showToast); thuộc công thức và định lượng nguyên liệu.
   const showToast = (msg: string) => {
