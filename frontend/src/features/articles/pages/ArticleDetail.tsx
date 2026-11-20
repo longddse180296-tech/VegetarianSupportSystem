@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, Bookmark, Calendar, Edit3, Heart, Leaf, MessageSquare, Plus, ThumbsUp, User } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { apiClient, getStoredToken } from '../../../shared/api/apiClient'
-import { Feedback, Pager } from '../../admin/components/ApiWorkspace'
+import { Feedback } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
-import { Badge, Button, PageHeading } from '../../../shared/components'
+import { Badge, Button, PageHeading, Pagination } from '../../../shared/components'
 import {
   primaryClass,
   secondaryClass,
@@ -524,13 +524,12 @@ export const ArticleDetail = ({
             )}
 
             {comments.data && comments.data.totalCount > 10 && (
-              <div className="pt-2 flex justify-center">
-                <Pager
-                  page={page}
-                  total={comments.data?.totalCount || 0}
-                  onChange={setPage}
-                />
-              </div>
+              <Pagination
+                currentPage={page}
+                totalPages={Math.ceil((comments.data.totalCount || 0) / 10)}
+                onPageChange={setPage}
+                className="pt-4"
+              />
             )}
           </section>
 

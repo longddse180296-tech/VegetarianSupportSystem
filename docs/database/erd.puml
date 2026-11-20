@@ -1,0 +1,543 @@
+@startuml VegetarianSupportSystem_ERD
+' =====================================================================
+' ERD - HỆ THỐNG HỖ TRỢ ĂN CHAY (VEGETARIAN SUPPORT SYSTEM)
+' Công cụ hỗ trợ vẽ: PlantUML / PlantText / Draw.io / VS Code PlantUML
+' =====================================================================
+
+hide circle
+skinparam linetype ortho
+skinparam roundcorner 5
+skinparam shadowing false
+skinparam classFontSize 12
+skinparam classFontName "Segoe UI, Arial"
+skinparam defaultFontName "Segoe UI, Arial"
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2C3E50
+    BorderColor #34495E
+}
+
+' =====================================================================
+' 1. NHÓM TÀI KHOẢN & HỒ SƠ CÁ NHÂN (USER & PROFILE)
+' =====================================================================
+package "Tài khoản & Hồ sơ cá nhân" #F8F9FA {
+    entity "Users" as Users {
+        * Id : nvarchar(450) <<PK>>
+        --
+        * Email : nvarchar(254)
+        * NormalizedEmail : nvarchar(254)
+        * FullName : nvarchar(150)
+        * PasswordHash : nvarchar(1000)
+        * Role : nvarchar(16) [User | Admin]
+        * TokenVersion : int
+        * IsLocked : bit
+        PhoneNumber : nvarchar(30)
+        RefreshTokenHash : nvarchar(64)
+        ActiveSessionId : nvarchar(32)
+        SessionExpiresAtUtc : datetimeoffset
+        LockReason : nvarchar(1000)
+        LockedAtUtc : datetimeoffset
+        * CreatedAtUtc : datetimeoffset
+        * UpdatedAtUtc : datetimeoffset
+    }
+
+    entity "UserProfiles" as UserProfiles {
+        * UserId : nvarchar(450) <<PK, FK>>
+        --
+        HeightCm : decimal(5,2)
+        WeightKg : decimal(6,2)
+        BirthDate : date
+        ActivityLevel : nvarchar(20)
+        WeightGoal : nvarchar(16)
+        SexForEnergyEstimate : nvarchar(16)
+        Diet : nvarchar(16)
+        RestaurantArea : nvarchar(200)
+        * UpdatedAtUtc : datetimeoffset
+    }
+
+    entity "UserAllergies" as UserAllergies {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        * Name : nvarchar(150)
+        * NormalizedName : nvarchar(150)
+        * CreatedAtUtc : datetimeoffset
+    }
+
+    entity "UserAvoidedFoods" as UserAvoidedFoods {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        * Name : nvarchar(150)
+        * NormalizedName : nvarchar(150)
+        * CreatedAtUtc : datetimeoffset
+    }
+
+    entity "PasswordResetTokens" as PasswordResetTokens {
+        * TokenHash : nvarchar(64) <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        ConsumedAtUtc : datetimeoffset
+        * ExpiresAtUtc : datetimeoffset
+        * CreatedAtUtc : datetimeoffset
+    }
+
+    entity "RevokedAccessTokens" as RevokedAccessTokens {
+        * TokenId : nvarchar(32) <<PK>>
+        --
+        * ExpiresAtUtc : datetimeoffset
+    }
+
+    entity "MemberStatusChanges" as MemberStatusChanges {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        * AdminId : nvarchar(450) <<FK>>
+        * IsLocked : bit
+        * Reason : nvarchar(1000)
+        * OccurredAtUtc : datetimeoffset
+    }
+}
+
+' =====================================================================
+' 2. NHÓM DỮ LIỆU CỐT LÕI (CORE DATA: CATEGORY, INGREDIENT, RECIPE, RESTAURANT)
+' =====================================================================
+package "Dữ liệu thực phẩm & Công thức" #EBF5FB {
+    entity "Categories" as Categories {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * Name : nvarchar(120) <<Unique>>
+        Description : nvarchar(500)
+        * IsActive : bit
+        * CreatedAt : datetimeoffset
+        UpdatedAt : datetimeoffset
+    }
+
+    entity "Ingredients" as Ingredients {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * Name : nvarchar(120) <<Unique>>
+        Aliases : nvarchar(1000)
+        * Origin : int [Unknown=0, Plant=1, Animal=2]
+        * ContainsEgg : bit
+        * ContainsMilk : bit
+        * ContainsHoney : bit
+        ContainsOtherAnimalProducts : bit
+        Allergens : nvarchar(1000)
+        DefaultUnit : nvarchar(40)
+        CaloriesPer100Gram : decimal(12,3)
+        ProteinGramPer100Gram : decimal(12,3)
+        CarbohydrateGramPer100Gram : decimal(12,3)
+        FatGramPer100Gram : decimal(12,3)
+        * NutritionBasisQuantity : decimal(12,3)
+        * NutritionBasisUnit : nvarchar(40)
+        Source : nvarchar(1000)
+        * IsActive : bit
+        * CreatedAt : datetimeoffset
+        UpdatedAt : datetimeoffset
+    }
+
+    entity "Recipes" as Recipes {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * CategoryId : uniqueidentifier <<FK>>
+        * Name : nvarchar(120) <<Unique>>
+        Description : nvarchar(2000)
+        * Servings : int
+        * Instructions : nvarchar(max)
+        * PrepTimeMinutes : int
+        * CookTimeMinutes : int
+        ImageUrl : nvarchar(2048)
+        CaloriesPerServing : decimal(12,3)
+        ProteinGramPerServing : decimal(12,3)
+        CarbohydrateGramPerServing : decimal(12,3)
+        FatGramPerServing : decimal(12,3)
+        DeclaredDietaryType : int
+        * IsActive : bit
+        * CreatedAt : datetimeoffset
+        UpdatedAt : datetimeoffset
+    }
+
+    entity "RecipeIngredients" as RecipeIngredients {
+        * RecipeId : uniqueidentifier <<PK, FK>>
+        * IngredientId : uniqueidentifier <<PK, FK>>
+        --
+        * Quantity : decimal(12,3)
+        * Unit : nvarchar(40)
+        Note : nvarchar(500)
+    }
+}
+
+package "Nhà hàng chay & Điểm đến" #EAFAF1 {
+    entity "Restaurants" as Restaurants {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * Name : nvarchar(120) <<Unique>>
+        Description : nvarchar(2000)
+        * Address : nvarchar(300)
+        District : nvarchar(120)
+        Latitude : decimal(9,6)
+        Longitude : decimal(9,6)
+        ContactPhone : nvarchar(40)
+        WebsiteUrl : nvarchar(2048)
+        OpeningHours : nvarchar(1000)
+        PriceFromVnd : int
+        PriceToVnd : int
+        ImageUrl : nvarchar(2048)
+        Source : nvarchar(500)
+        * DataUpdatedAt : datetimeoffset
+        * IsActive : bit
+        * CreatedAt : datetimeoffset
+        UpdatedAt : datetimeoffset
+    }
+
+    entity "RestaurantDietaryTypes" as RestaurantDietaryTypes {
+        * RestaurantId : uniqueidentifier <<PK, FK>>
+        * DietaryType : int <<PK>>
+    }
+
+    entity "RestaurantAmenities" as RestaurantAmenities {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * RestaurantId : uniqueidentifier <<FK>>
+        * Name : nvarchar(120)
+    }
+
+    entity "RestaurantFeaturedDishes" as RestaurantFeaturedDishes {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * RestaurantId : uniqueidentifier <<FK>>
+        * Name : nvarchar(120)
+        * ImageUrl : nvarchar(2048)
+        * DisplayOrder : int
+    }
+}
+
+' =====================================================================
+' 3. TỦ BẾP, KẾ HOẠCH BỮA ĂN & DANH SÁCH ĐI CHỢ
+' =====================================================================
+package "Tủ bếp, Thực đơn & Đi chợ" #FEF9E7 {
+    entity "PantryItems" as PantryItems {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        IngredientId : uniqueidentifier <<FK, nullable>>
+        CustomName : nvarchar(150)
+        Quantity : decimal(12,3)
+        Unit : nvarchar(40)
+        Note : nvarchar(500)
+        * CreatedAtUtc : datetimeoffset
+        * UpdatedAtUtc : datetimeoffset
+    }
+
+    entity "Favorites" as Favorites {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        * TargetType : nvarchar(16) [Recipe | Video | Restaurant]
+        * TargetId : uniqueidentifier
+        SavedFrom : nvarchar(16) [Recipe | Pantry]
+        * CreatedAt : datetimeoffset
+    }
+
+    entity "MealPlans" as MealPlans {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        * Name : nvarchar(120)
+        * WeekStartDate : date
+        * ProfileDiet : nvarchar(16)
+        * ProfileSnapshot : nvarchar(4000)
+        * CreatedAt : datetimeoffset
+        UpdatedAt : datetimeoffset
+    }
+
+    entity "MealPlanMeals" as MealPlanMeals {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * MealPlanId : uniqueidentifier <<FK>>
+        * DayNumber : int [1..7]
+        * Slot : int [Breakfast | Lunch | Dinner | Snack]
+        * RecipeId : uniqueidentifier <<FK>>
+        * RecipeName : nvarchar(120)
+        ImageUrl : nvarchar(2048)
+        * Servings : int
+        * SwapCount : int
+        * TotalTimeMinutes : int
+        CaloriesPerServing : decimal(12,3)
+        ProteinGramPerServing : decimal(12,3)
+        CarbohydrateGramPerServing : decimal(12,3)
+        FatGramPerServing : decimal(12,3)
+    }
+
+    entity "MealPlanMealIngredients" as MealPlanMealIngredients {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * MealPlanMealId : uniqueidentifier <<FK>>
+        * IngredientId : uniqueidentifier <<FK>>
+        * IngredientName : nvarchar(120)
+        * Quantity : decimal(12,3)
+        * Unit : nvarchar(40)
+    }
+
+    entity "MealPlanShoppingItems" as MealPlanShoppingItems {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * MealPlanId : uniqueidentifier <<FK>>
+        * IngredientId : uniqueidentifier <<FK>>
+        * IngredientName : nvarchar(120)
+        * RequiredQuantity : decimal(12,3)
+        * PantryQuantity : decimal(12,3)
+        * QuantityToBuy : decimal(12,3)
+        * Unit : nvarchar(40)
+        * IsPurchased : bit
+    }
+}
+
+' =====================================================================
+' 4. BÀI VIẾT, BÌNH LUẬN & KIỂM DUYỆT CỘNG ĐỒNG
+' =====================================================================
+package "Cộng đồng & Kiểm duyệt nội dung" #FDEDEC {
+    entity "Articles" as Articles {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * OwnerUserId : nvarchar(450) <<FK>>
+        * DraftTitle : nvarchar(200)
+        * DraftContent : nvarchar(max)
+        DraftCoverImageUrl : nvarchar(2000)
+        * DraftCategory : nvarchar(120)
+        ModerationContentId : uniqueidentifier
+        * RowVersion : rowversion
+        * CreatedAt : datetimeoffset
+        * UpdatedAt : datetimeoffset
+    }
+
+    entity "ArticleVersions" as ArticleVersions {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * ArticleId : uniqueidentifier <<FK>>
+        * Version : int
+        * Title : nvarchar(200)
+        * Content : nvarchar(max)
+        CoverImageUrl : nvarchar(2000)
+        * Category : nvarchar(120)
+        * SubmissionId : uniqueidentifier <<FK>>
+        * SubmittedAt : datetimeoffset
+    }
+
+    entity "Videos" as Videos {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * OwnerUserId : nvarchar(450) <<FK>>
+        * Title : nvarchar(200)
+        * Description : nvarchar(max)
+        MediaKey : nvarchar(200)
+        ThumbnailKey : nvarchar(200)
+        CategoryId : uniqueidentifier <<FK, nullable>>
+        PublishedSubmissionId : uniqueidentifier
+        PublishedCategoryId : uniqueidentifier
+        PublishedThumbnailKey : nvarchar(200)
+        * UploadStatus : nvarchar(24)
+        * ViewCount : bigint
+        * CreatedAtUtc : datetimeoffset
+        * UpdatedAtUtc : datetimeoffset
+    }
+
+    entity "VideoMediaMetadata" as VideoMediaMetadata {
+        * MediaKey : nvarchar(200) <<PK>>
+        --
+        DurationSeconds : float
+        Width : int
+        Height : int
+        Codec : nvarchar(50)
+        Bitrate : bigint
+        * CheckedAtUtc : datetimeoffset
+    }
+
+    entity "Comments" as Comments {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * AuthorId : nvarchar(450) <<FK>>
+        * TargetType : nvarchar(16) [Article | Video]
+        * TargetId : uniqueidentifier
+        ParentId : uniqueidentifier <<FK, nullable>>
+        * Body : nvarchar(2000)
+        * Status : nvarchar(16)
+        ModeratedAt : datetimeoffset
+        ModeratedBy : nvarchar(450)
+        ModerationReason : nvarchar(1000)
+        * RowVersion : rowversion
+        * CreatedAt : datetimeoffset
+        * UpdatedAt : datetimeoffset
+    }
+
+    entity "ContentReactions" as ContentReactions {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        * TargetType : nvarchar(24)
+        * TargetId : uniqueidentifier
+        * CreatedAt : datetimeoffset
+    }
+
+    entity "ContentReports" as ContentReports {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * ReporterId : nvarchar(450) <<FK>>
+        * TargetType : nvarchar(20)
+        * TargetId : uniqueidentifier
+        * SubmissionId : uniqueidentifier
+        * ContentTitle : nvarchar(200)
+        * ContentVersion : int
+        * Reason : nvarchar(30)
+        Details : nvarchar(2000)
+        * Status : nvarchar(20) [Pending | Resolved | Rejected]
+        ResolutionNote : nvarchar(2000)
+        ResolvedAt : datetimeoffset
+        ResolvedBy : nvarchar(450)
+        * RowVersion : rowversion
+        * CreatedAt : datetimeoffset
+    }
+
+    entity "FeaturedContent" as FeaturedContent {
+        * ContentType : nvarchar(16) <<PK>>
+        * ContentId : uniqueidentifier <<PK>>
+        --
+        * PinnedByUserId : nvarchar(450) <<FK>>
+        * PinnedAt : datetimeoffset
+    }
+
+    entity "ContactFeedback" as ContactFeedback {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * Name : nvarchar(100)
+        * Email : nvarchar(254)
+        * Subject : nvarchar(150)
+        * Message : nvarchar(4000)
+        ReadAt : datetimeoffset
+        * CreatedAt : datetimeoffset
+    }
+
+    entity "ModerationSubmissions" as ModerationSubmissions {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * ContentId : uniqueidentifier
+        * Version : int
+        * ContentType : int [Article=1, Video=2]
+        * OwnerUserId : nvarchar(450) <<FK>>
+        * Title : nvarchar(200)
+        * TextContent : nvarchar(max)
+        MediaReference : nvarchar(2000)
+        * AiFlagStatus : int
+        * AdminReviewStatus : int
+        AiSummary : nvarchar(max)
+        SystemRejectionReason : nvarchar(1000)
+        AiFlagReason : nvarchar(1000)
+        * SubmittedAt : datetimeoffset
+        * CreatedAtUtc : datetimeoffset
+        * UpdatedAtUtc : datetimeoffset
+    }
+
+    entity "ModerationDecisions" as ModerationDecisions {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * SubmissionId : uniqueidentifier <<FK>>
+        * Version : int
+        * Decision : int [Approve | Reject | RequestRevision]
+        * AdminUserId : nvarchar(450) <<FK>>
+        * Reason : nvarchar(1000)
+        * DecidedAt : datetimeoffset
+    }
+}
+
+' =====================================================================
+' 5. TƯ VẤN THÔNG MINH (AI CHAT & FOOD SCAN)
+' =====================================================================
+package "Tư vấn thông minh (AI Services)" #F4ECF7 {
+    entity "FoodScanRecords" as FoodScanRecords {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * OwnerUserId : nvarchar(450) <<FK>>
+        * SourceType : nvarchar(20) [DishImage | NutritionLabel]
+        * InputJson : nvarchar(max)
+        * ResultJson : nvarchar(max)
+        * ProfileSnapshotJson : nvarchar(max)
+        * ResultVersion : int
+        PreviousScanId : uniqueidentifier
+        * CreatedAtUtc : datetimeoffset
+    }
+
+    entity "AiChatConversations" as AiChatConversations {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * UserId : nvarchar(450) <<FK>>
+        * CreatedAtUtc : datetimeoffset
+        * UpdatedAtUtc : datetimeoffset
+    }
+
+    entity "AiChatMessages" as AiChatMessages {
+        * Id : uniqueidentifier <<PK>>
+        --
+        * ConversationId : uniqueidentifier <<FK>>
+        * Role : nvarchar(16) [User | Assistant]
+        * Content : nvarchar(max)
+        * CreatedAtUtc : datetimeoffset
+    }
+}
+
+' =====================================================================
+' QUAN HỆ GIỮA CÁC THỰC THỂ (RELATIONSHIPS)
+' =====================================================================
+
+' User relations
+Users ||--o| UserProfiles : "1-1 hồ sơ"
+Users ||--o{ UserAllergies : "dị ứng"
+Users ||--o{ UserAvoidedFoods : "tránh ăn"
+Users ||--o{ PasswordResetTokens : "reset token"
+Users ||--o{ MemberStatusChanges : "bị tác động"
+Users ||--o{ PantryItems : "sở hữu"
+Users ||--o{ Favorites : "lưu mục"
+Users ||--o{ MealPlans : "thiết lập"
+Users ||--o{ Articles : "tác giả"
+Users ||--o{ Videos : "đăng tải"
+Users ||--o{ Comments : "bình luận"
+Users ||--o{ ContentReactions : "tương tác"
+Users ||--o{ ContentReports : "báo cáo"
+Users ||--o{ FoodScanRecords : "thực hiện scan"
+Users ||--o{ AiChatConversations : "trò chuyện"
+
+' Core Data relations
+Categories ||--o{ Recipes : "phân loại"
+Categories ||--o{ Videos : "danh mục video"
+Recipes ||--|{ RecipeIngredients : "chứa"
+Ingredients ||--o{ RecipeIngredients : "được dùng trong"
+Ingredients ||--o{ PantryItems : "đối chiếu"
+
+' Restaurant relations
+Restaurants ||--|{ RestaurantDietaryTypes : "phục vụ chế độ"
+Restaurants ||--o{ RestaurantAmenities : "có tiện ích"
+Restaurants ||--o{ RestaurantFeaturedDishes : "món đặc trưng"
+
+' Meal Plan relations
+MealPlans ||--|{ MealPlanMeals : "lịch 7 ngày"
+MealPlans ||--o{ MealPlanShoppingItems : "tạo danh sách mua"
+MealPlanMeals ||--|{ MealPlanMealIngredients : "bóc tách nguyên liệu"
+Recipes ||--o{ MealPlanMeals : "áp dụng công thức"
+Ingredients ||--o{ MealPlanMealIngredients : "nguyên liệu bữa ăn"
+Ingredients ||--o{ MealPlanShoppingItems : "nguyên liệu cần mua"
+
+' Article & Moderation relations
+Articles ||--|{ ArticleVersions : "lịch sử phiên bản"
+ArticleVersions }o--|| ModerationSubmissions : "gửi duyệt"
+ModerationSubmissions ||--o{ ModerationDecisions : "kết luận duyệt"
+
+' Comment self-reference
+Comments ||--o{ Comments : "phản hồi (ParentId)"
+
+' AI Chat relations
+AiChatConversations ||--|{ AiChatMessages : "chuỗi tin nhắn"
+
+@enduml

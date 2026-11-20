@@ -6,7 +6,6 @@ import {
 import { AdminFrame, Feedback } from '../../components/ApiWorkspace'
 import { useApiData } from '../../hooks/useApiData'
 import { secondaryClass, formatDate } from '../../utils/apiUi'
-import { FeaturedContent } from '../components/FeaturedContent'
 import type { DashboardResponse } from '../api/dashboardApi'
 
 const catalogCards = [
@@ -150,8 +149,6 @@ export const AdminDashboardPage = ({ onNavigate }: { onNavigate: (path: string) 
             </div>
           </section>
         )}
-
-        <FeaturedContent onNavigate={onNavigate} />
 
         {data && (
           <section aria-labelledby="recent-activity-title" className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">

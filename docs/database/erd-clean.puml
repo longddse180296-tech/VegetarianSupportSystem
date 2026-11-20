@@ -1,0 +1,168 @@
+@startuml VegetarianSupportSystem_Clean_ERD
+hide circle
+hide empty members
+skinparam linetype ortho
+skinparam roundcorner 6
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI, Arial"
+skinparam packageFontSize 13
+skinparam packageFontStyle bold
+skinparam classFontSize 12
+skinparam classFontStyle bold
+
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2C3E50
+    BorderColor #34495E
+}
+
+' ==========================================
+' 1. TÀI KHOẢN & HỒ SƠ
+' ==========================================
+package "Tài khoản & Hồ sơ" #F8F9FA {
+    entity Users
+    entity UserProfiles
+    entity UserAllergies
+    entity UserAvoidedFoods
+    entity PasswordResetTokens
+    entity RevokedAccessTokens
+    entity MemberStatusChanges
+}
+
+' ==========================================
+' 2. THỰC PHẨM & CÔNG THỨC
+' ==========================================
+package "Thực phẩm & Công thức" #EBF5FB {
+    entity Categories
+    entity Ingredients
+    entity Recipes
+    entity RecipeIngredients
+}
+
+' ==========================================
+' 3. NHÀ HÀNG CHAY
+' ==========================================
+package "Nhà hàng chay" #EAFAF1 {
+    entity Restaurants
+    entity RestaurantDietaryTypes
+    entity RestaurantAmenities
+    entity RestaurantFeaturedDishes
+}
+
+' ==========================================
+' 4. THỰC ĐƠN & TỦ BẾP
+' ==========================================
+package "Thực đơn & Tủ bếp" #FEF9E7 {
+    entity PantryItems
+    entity Favorites
+    entity MealPlans
+    entity MealPlanMeals
+    entity MealPlanMealIngredients
+    entity MealPlanShoppingItems
+}
+
+' ==========================================
+' 5. BÀI VIẾT & VIDEO
+' ==========================================
+package "Bài viết & Video" #FDEDEC {
+    entity Articles
+    entity ArticleVersions
+    entity ArticleCategories
+    entity ArticleDietaryTypes
+    entity ArticleVersionCategories
+    entity ArticleVersionDietaryTypes
+    entity Videos
+    entity VideoMediaMetadata
+}
+
+' ==========================================
+' 6. KIỂM DUYỆT NỘI DUNG
+' ==========================================
+package "Kiểm duyệt" #FADBD8 {
+    entity ModerationSubmissions
+    entity ModerationDecisions
+}
+
+' ==========================================
+' 7. TƯƠNG TÁC & BÁO CÁO
+' ==========================================
+package "Tương tác & Báo cáo" #F5EEF8 {
+    entity Comments
+    entity ContentReactions
+    entity ContentReports
+    entity FeaturedContent
+    entity ContactFeedback
+}
+
+' ==========================================
+' 8. DỊCH VỤ AI
+' ==========================================
+package "Dịch vụ AI" #E8F8F5 {
+    entity FoodScanRecords
+    entity AiChatConversations
+    entity AiChatMessages
+}
+
+' ==========================================
+' CÁC ĐƯỜNG LIÊN KẾT (KHÔNG CÓ TÊN MỐI QUAN HỆ)
+' ==========================================
+
+' Nhóm Users
+Users ||--o| UserProfiles
+Users ||--o{ UserAllergies
+Users ||--o{ UserAvoidedFoods
+Users ||--o{ PasswordResetTokens
+Users ||--o{ MemberStatusChanges
+Users ||--o{ PantryItems
+Users ||--o{ Favorites
+Users ||--o{ MealPlans
+Users ||--o{ Articles
+Users ||--o{ Videos
+Users ||--o{ Comments
+Users ||--o{ ContentReactions
+Users ||--o{ ContentReports
+Users ||--o{ FeaturedContent
+Users ||--o{ FoodScanRecords
+Users ||--o{ AiChatConversations
+
+' Nhóm Công thức & Thực phẩm
+Categories ||--o{ Recipes
+Categories ||--o{ Videos
+Recipes ||--|{ RecipeIngredients
+Ingredients ||--o{ RecipeIngredients
+Ingredients ||--o{ PantryItems
+
+' Nhóm Nhà hàng
+Restaurants ||--|{ RestaurantDietaryTypes
+Restaurants ||--o{ RestaurantAmenities
+Restaurants ||--o{ RestaurantFeaturedDishes
+
+' Nhóm Thực đơn & Đi chợ
+MealPlans ||--|{ MealPlanMeals
+MealPlans ||--o{ MealPlanShoppingItems
+MealPlanMeals ||--|{ MealPlanMealIngredients
+Recipes ||--o{ MealPlanMeals
+Ingredients ||--o{ MealPlanMealIngredients
+Ingredients ||--o{ MealPlanShoppingItems
+
+' Nhóm Bài viết & Video
+Articles ||--|{ ArticleVersions
+Articles ||--o{ ArticleCategories
+Articles ||--o{ ArticleDietaryTypes
+ArticleVersions ||--o{ ArticleVersionCategories
+ArticleVersions ||--o{ ArticleVersionDietaryTypes
+ArticleVersions }o--|| ModerationSubmissions
+
+Videos ||--o| VideoMediaMetadata
+Videos }o--|| ModerationSubmissions
+
+' Nhóm Kiểm duyệt
+ModerationSubmissions ||--o{ ModerationDecisions
+
+' Nhóm Bình luận (Self-reference)
+Comments ||--o{ Comments
+
+' Nhóm AI Chat
+AiChatConversations ||--|{ AiChatMessages
+
+@enduml
