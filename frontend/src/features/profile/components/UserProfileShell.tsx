@@ -1,5 +1,5 @@
 // Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   FileText,
@@ -17,6 +17,8 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { PublicLayout } from '../../../app/layouts/PublicLayout'
+import { profileApi } from '../api/profileApi'
+import { getDietaryTypeLabel } from '../../../shared/constants'
 
 // Cấu trúc BreadcrumbItem quy định dữ liệu trao đổi trong hồ sơ và nhu cầu dinh dưỡng cá nhân.
 export interface BreadcrumbItem {
@@ -55,6 +57,33 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
   onNavigate,
 }) => {
   const { user, logout } = useAuth()
+  const [savedDiet, setSavedDiet] = useState<{ userId: string; label: string } | null>(null)
+
+  // Các tab con không truyền hồ sơ: đọc chế độ ăn đã lưu thay vì coi là chưa khai báo.
+  useEffect(() => {
+    if (dietaryType || !user?.id) return
+    let active = true
+    let version = 0
+    const userId = user.id
+    const refresh = async () => {
+      const requestVersion = ++version
+      try {
+        const profile = await profileApi.getProfile()
+        if (active && requestVersion === version)
+          setSavedDiet({ userId, label: getDietaryTypeLabel(profile.dietaryType) })
+      } catch {
+        if (active && requestVersion === version)
+          setSavedDiet({ userId, label: 'Không tải được chế độ ăn' })
+      }
+    }
+    void refresh()
+    const onProfileUpdated = () => { void refresh() }
+    window.addEventListener('vegetarian_user_updated', onProfileUpdated)
+    return () => {
+      active = false
+      window.removeEventListener('vegetarian_user_updated', onProfileUpdated)
+    }
+  }, [dietaryType, user?.id])
 
   // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (handleNav); thuộc hồ sơ và nhu cầu dinh dưỡng cá nhân.
   const handleNav = (path: string) => {
@@ -101,7 +130,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
   const displayName = userName || user?.fullName || 'Thành viên'
   const displayEmail = userEmail || user?.email || ''
   const displayAvatar = avatarUrl || user?.avatarUrl || DEFAULT_AVATAR
-  const displayDiet = dietaryType || 'Chưa cung cấp'
+  const displayDiet = dietaryType || (savedDiet?.userId === user?.id ? savedDiet?.label : 'Đang tải…')
 
   // Hiển thị giao diện hồ sơ và nhu cầu dinh dưỡng cá nhân từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
