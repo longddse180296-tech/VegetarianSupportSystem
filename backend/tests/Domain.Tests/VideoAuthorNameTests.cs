@@ -36,6 +36,7 @@ public sealed class VideoAuthorNameTests
 
     private sealed class SingleVideoRepository(Video video) : IVideoRepository
     {
+        public Task<bool> ReserveSubmissionSlotAsync(string ownerId, Guid excludingVideoId, CancellationToken ct) => Task.FromResult(true);
         public Task<Video?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult<Video?>(id == video.Id ? video : null);
         public Task<bool> CategoryExistsAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
         public Task<(IReadOnlyList<Video> Items, int Total)> ListAsync(string? owner, bool publishedOnly,
@@ -54,6 +55,7 @@ public sealed class VideoAuthorNameTests
 
     private sealed class SingleModerationRepository(ModerationSubmission submission) : IModerationRepository
     {
+        public Task<OwnerSubmissionAvailability> GetOwnerSubmissionAvailabilityAsync(string ownerId, CancellationToken ct) => Task.FromResult(new OwnerSubmissionAvailability(false, false));
         public Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> ids, CancellationToken ct) =>
             Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
         public Task<ModerationSubmission?> GetByIdAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();

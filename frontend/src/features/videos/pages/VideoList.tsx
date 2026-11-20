@@ -1,3 +1,4 @@
+import { useSubmissionAvailability } from '../../../shared/hooks/useSubmissionAvailability'
 // Chức năng: video, bản nháp và nội dung công khai. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -39,6 +40,7 @@ function cleanPrefix(text?: string | null): string {
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (VideoList); thuộc video, bản nháp và nội dung công khai.
 export default function VideoList({ onNavigate }: Props) {
+  const { videoPending } = useSubmissionAvailability()
   // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [videos, setVideos] = useState<VideoDetails[]>([])
   const [categories, setCategories] = useState<VideoCategoryOption[]>([])
@@ -187,6 +189,7 @@ export default function VideoList({ onNavigate }: Props) {
   // Navigate to dedicated create page
   // Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (handleOpenUpload); thuộc video, bản nháp và nội dung công khai.
   const handleOpenUpload = () => {
+    if (videoPending) { onNavigate?.('/profile/my-videos'); return }
     if (!getStoredToken()) {
       onNavigate?.('/auth/login?returnUrl=%2Fvideos%2Fcreate%3Ffrom%3Dvideos')
       return
@@ -212,7 +215,7 @@ export default function VideoList({ onNavigate }: Props) {
             onClick={handleOpenUpload}
             className="!rounded-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20] font-semibold shadow-xs"
           >
-            Đăng video
+            {videoPending ? 'Xem video của tôi' : 'Đăng video'}
           </Button>
         }
       />

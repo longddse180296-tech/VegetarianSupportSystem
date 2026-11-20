@@ -6,6 +6,7 @@ import {
   Bookmark,
   Calendar,
   ChefHat,
+  Eye,
   Heart,
   MessageSquare,
   Reply,
@@ -323,6 +324,8 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
     viewRecorded.current = true
     try {
       await recordVideoView(videoId)
+      const updated = await getPublicVideo(videoId)
+      setVideo(current => current?.id === updated.id ? { ...current, viewCount: updated.viewCount } : current)
     } catch {
       viewRecorded.current = false
     }
@@ -533,6 +536,9 @@ function VideoDetailContent({ videoId, onNavigate }: Props) {
               </div>
             </div>
             <div className="text-xs font-medium text-slate-500 sm:text-right">
+              <span className="mb-1 flex items-center gap-1.5">
+                <Eye size={14} aria-hidden="true" /> {video.viewCount.toLocaleString('vi-VN')} lượt xem
+              </span>
               <span className="flex items-center gap-1.5">
                 <Calendar size={14} /> Xuất bản: {formatDate(video.createdAtUtc)}
               </span>

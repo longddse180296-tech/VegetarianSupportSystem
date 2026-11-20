@@ -55,6 +55,14 @@ public sealed class ModerationController(ModerationService moderationService) : 
         }
     }
 
+    [HttpGet("availability")]
+    public async Task<IActionResult> Availability(CancellationToken ct)
+    {
+        var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (string.IsNullOrWhiteSpace(ownerId)) return Unauthorized();
+        return Ok(await moderationService.GetOwnerSubmissionAvailabilityAsync(ownerId, ct));
+    }
+
     // GetMine: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet]
     public async Task<IActionResult> GetMine(

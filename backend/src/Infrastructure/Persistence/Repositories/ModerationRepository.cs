@@ -10,6 +10,16 @@ namespace Infrastructure.Persistence.Repositories;
 // ModerationRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRepository
 {
+    public async Task<OwnerSubmissionAvailability> GetOwnerSubmissionAvailabilityAsync(string ownerId, CancellationToken ct)
+    {
+        var types = await dbContext.ModerationSubmissions.AsNoTracking().Where(x => x.OwnerUserId == ownerId &&
+            (x.AdminReviewStatus == AdminReviewStatus.Submitted || x.AdminReviewStatus == AdminReviewStatus.PendingAdminReview || x.AdminReviewStatus == AdminReviewStatus.Draft) &&
+            !dbContext.ModerationSubmissions.Any(newer => newer.ContentId == x.ContentId && newer.Version > x.Version) &&
+            (x.ContentType == ModeratedContentType.Article && dbContext.Articles.Any(a => a.OwnerUserId == ownerId && a.ModerationContentId == x.ContentId) ||
+             x.ContentType == ModeratedContentType.Video && dbContext.Videos.Any(v => v.OwnerUserId == ownerId && v.Id == x.ContentId)))
+            .Select(x => x.ContentType).Distinct().ToArrayAsync(ct);
+        return new(types.Contains(ModeratedContentType.Article), types.Contains(ModeratedContentType.Video));
+    }
     // AuthorNamesAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public async Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> userIds, CancellationToken cancellationToken)
     {
@@ -69,6 +79,9 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (search.OwnerUserId is not null)
             query = query.Where(x => x.OwnerUserId == search.OwnerUserId);
+        else
+            // Các phiên bản đã rút về nháp không còn là yêu cầu kiểm duyệt của Admin.
+            query = query.Where(x => x.AdminReviewStatus != AdminReviewStatus.Draft);
         if (search.ContentType is { } contentType)
             query = query.Where(x => x.ContentType == contentType);
         if (search.AiStatus is { } aiStatus)
@@ -134,5 +147,7 @@ public sealed class ModerationRepository(AppDbContext dbContext) : IModerationRe
         }
         catch (SqlException ex) when (ex.Number == 1205)
         { throw new ModerationException(ModerationError.Conflict, "Nội dung đang thay đổi ở phiên khác. Vui lòng tải lại và thử lại."); }
+        catch (SqlException ex) when (ex.Number == 51001)
+        { throw new ModerationException(ModerationError.Conflict, "Tài khoản đang gửi nội dung ở phiên khác. Vui lòng đợi và thử lại."); }
     }
 }

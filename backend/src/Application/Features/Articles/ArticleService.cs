@@ -54,10 +54,13 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
     public async Task<MyArticleDetail> SubmitAsync(Guid id, string ownerId, CancellationToken ct)
     {
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
-        return await repository.InTransactionAsync(async token =>
+        return await repository.InTransactionAsync(ownerId, async token =>
         {
             var article = await GetOwnedAsync(id, ownerId, token);
             EnsureEditable(article);
+            if (await repository.HasUnreviewedArticleAsync(ownerId, article.Id, token))
+                throw new ArticleException(ArticleError.Conflict,
+                    "Bạn đang có một bài viết chờ Quản trị viên xử lý. Vui lòng đợi bài đó được chấp nhận hoặc từ chối trước khi gửi bài khác. Bạn vẫn có thể lưu bản nháp.");
             var duplicateTitle = await repository.HasDuplicatePublishedTitleAsync(article.Id, article.DraftTitle, token);
             var submission = await moderation.SubmitAsync(ownerId,
                 new SubmitModerationCommand(article.ModerationContentId, ModeratedContentType.Article,

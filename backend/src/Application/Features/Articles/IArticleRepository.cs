@@ -28,5 +28,6 @@ public interface IArticleRepository
     // SaveAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     Task SaveAsync(CancellationToken ct);
     // InTransactionAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    Task<T> InTransactionAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken ct);
+    Task<T> InTransactionAsync<T>(string ownerId, Func<CancellationToken, Task<T>> action, CancellationToken ct);
+    Task<bool> HasUnreviewedArticleAsync(string ownerId, Guid excludingArticleId, CancellationToken ct);
 }

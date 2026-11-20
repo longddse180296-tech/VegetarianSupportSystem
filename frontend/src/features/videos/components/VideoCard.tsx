@@ -1,7 +1,7 @@
 // Chức năng: video, bản nháp và nội dung công khai. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import React from 'react'
-import { Play, PlayCircle } from 'lucide-react'
+import { Eye, Play, PlayCircle } from 'lucide-react'
 import { Button, StatusBadge } from '../../../shared/components'
 import type { Video, VideoModerationStatus } from '../types/video.types'
 import { CATEGORY_LABELS, MODERATION_STATUS_LABELS } from '../types/video.types'
@@ -242,6 +242,9 @@ export const VideoCard: React.FC<VideoCardProps> = ({
 
           {/* Quick CTA button */}
           <div className="mt-auto pt-3.5">
+            <p className="mb-2 flex items-center gap-1.5 text-xs text-slate-500">
+              <Eye size={14} aria-hidden="true" /> {video.viewCount.toLocaleString('vi-VN')} lượt xem
+            </p>
             <Button
               type="button"
               variant="secondary"

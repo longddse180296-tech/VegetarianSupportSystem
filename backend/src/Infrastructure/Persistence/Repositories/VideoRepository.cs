@@ -9,6 +9,20 @@ namespace Infrastructure.Persistence.Repositories;
 // VideoRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class VideoRepository(AppDbContext db) : IVideoRepository, IVideoPublication
 {
+    public async Task<bool> ReserveSubmissionSlotAsync(string ownerId, Guid excludingVideoId, CancellationToken ct)
+    {
+        var resource = "VideoSubmission:" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(ownerId)));
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            DECLARE @result int;
+            EXEC @result = sys.sp_getapplock @Resource={resource}, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000;
+            IF @result < 0 THROW 51001, 'Video submission lock timed out.', 1;
+            """, ct);
+        return !await db.ModerationSubmissions.AnyAsync(x => x.OwnerUserId == ownerId &&
+            x.ContentType == ModeratedContentType.Video && x.ContentId != excludingVideoId &&
+            (x.AdminReviewStatus == AdminReviewStatus.Submitted || x.AdminReviewStatus == AdminReviewStatus.PendingAdminReview || x.AdminReviewStatus == AdminReviewStatus.Draft) &&
+            db.Videos.Any(video => video.Id == x.ContentId && video.OwnerUserId == ownerId) &&
+            !db.ModerationSubmissions.Any(newer => newer.ContentId == x.ContentId && newer.Version > x.Version), ct);
+    }
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<Video?> GetAsync(Guid id, CancellationToken cancellationToken) =>
         db.Videos.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);

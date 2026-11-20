@@ -32,6 +32,7 @@ import { useApiData } from '../../admin/hooks/useApiData'
 import { errorMessage } from '../../admin/utils/apiUi'
 import { Modal } from '../../../shared/components/Modal'
 import { articleReviewStatus } from '../utils/articleReviewStatus'
+import { OwnerModerationNotice } from '../../../shared/components/OwnerModerationNotice'
 
 import {
   articleApi,
@@ -126,6 +127,8 @@ export const ArticleEditorPage = ({
 
   // Chỉ theo dõi phiên bản mới nhất đang kiểm tra; không xóa form hay gọi lại Gemini khi đọc trạng thái.
   const latestVersion = Math.max(0, ...(record.data?.versions.map(version => version.version) || []))
+  const latestReview = record.data?.versions.find(version => version.version === latestVersion)
+  const duplicateTitleReason = latestReview?.systemRejectionReason
   const awaitingAi = record.data?.versions.some(version => version.version === latestVersion && version.aiStatus === 'Checking') ?? false
   const setRecordData = record.setData
   useEffect(() => {
@@ -324,7 +327,7 @@ export const ArticleEditorPage = ({
         />
 
         {/* Feedback alerts */}
-        <Feedback error={error || record.error} />
+        <Feedback error={error || record.error || duplicateTitleReason} />
 
         {/* Notice with quick return button */}
         {notice && (
@@ -370,7 +373,7 @@ export const ArticleEditorPage = ({
         )}
 
         {/* Status Callout Card */}
-        {record.data && (
+        {record.data && !duplicateTitleReason && (
           <div
             className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm ${
               articleReviewStatus(state).className
@@ -397,6 +400,7 @@ export const ArticleEditorPage = ({
           </div>
         )}
 
+        <OwnerModerationNotice status={state} reason={record.data?.versions.find(version => version.version === latestVersion)?.adminFeedback} />
         {/* MAIN FORM */}
         <form
           className="space-y-6"

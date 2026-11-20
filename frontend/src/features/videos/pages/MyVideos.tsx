@@ -1,3 +1,4 @@
+import { useSubmissionAvailability } from '../../../shared/hooks/useSubmissionAvailability'
 // Chức năng: video, bản nháp và nội dung công khai. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
@@ -5,6 +6,8 @@ import { Button, EmptyState, Input, Modal, Select, Textarea } from '../../../sha
 import AlertError from '../../../shared/components/AlertError'
 import { VideoFileMetadata } from '../components/VideoFileMetadata'
 import { formatVideoDuration } from '../utils/videoMetadata'
+import { OwnerModerationNotice } from '../../../shared/components/OwnerModerationNotice'
+import { useOwnerReviewUpdates } from '../../../shared/hooks/useOwnerReviewUpdates'
 import {
   createVideo,
   deleteVideo,
@@ -108,6 +111,7 @@ function VideoThumbnail({ video }: { video: VideoDetails }) {
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (MyVideosPage); thuộc video, bản nháp và nội dung công khai.
 export default function MyVideosPage({ onNavigate }: Props) {
+  const { videoPending } = useSubmissionAvailability()
   // Lưu dữ liệu và trạng thái thao tác của video, bản nháp và nội dung công khai trong vòng đời màn hình.
   const [videos, setVideos] = useState<VideoDetails[]>([])
   const [categories, setCategories] = useState<VideoCategoryOption[]>([])
@@ -125,6 +129,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
   const [savedDraftId, setSavedDraftId] = useState<string | null>(null)
   const [form, setForm] = useState<VideoForm>(emptyForm)
   const [saving, setSaving] = useState(false)
+  useOwnerReviewUpdates('my-videos', () => listVideos(true), setVideos)
 
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
@@ -247,7 +252,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
             <h1 className="text-2xl font-bold text-slate-900">Video của tôi</h1>
             <p className="mt-1 text-sm text-slate-500">Tải video lên, lưu bản nháp và gửi Admin duyệt.</p>
           </div>
-          <Button variant="primary" onClick={() => onNavigate?.('/videos/create?from=profile')}>+ Tải video mới</Button>
+          <Button variant="primary" onClick={() => { if (videoPending) { setTab('all'); setKeyword(''); setCategoryFilter('all'); setPage(1) } else onNavigate?.('/videos/create?from=profile') }}>{videoPending ? 'Xem video của tôi' : '+ Tải video mới'}</Button>
         </div>
 
         {notice && <p className="my-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
@@ -268,7 +273,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
         </div>
 
         {loading ? <p className="py-8 text-center text-slate-500">Đang tải video...</p> : null}
-        {!loading && !error && visible.length === 0 && <EmptyState title="Chưa có video" description="Tải video đầu tiên hoặc thay đổi bộ lọc." actionLabel="Tải video mới" onAction={startCreate} />}
+        {!loading && !error && visible.length === 0 && <EmptyState title="Chưa có video" description="Tải video đầu tiên hoặc thay đổi bộ lọc." actionLabel={videoPending ? 'Xem video của tôi' : 'Tải video mới'} onAction={() => { if (videoPending) { setTab('all'); setKeyword(''); setCategoryFilter('all'); setPage(1) } else startCreate() }} />}
         {!loading && visible.length > 0 && (
           <div className="space-y-4">
             {visible.map((video) => {
@@ -287,6 +292,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
                   </div>
                   <h2 className="mt-2 text-lg font-bold text-slate-900">{video.title}</h2>
                   <p className="mt-1 line-clamp-2 text-sm text-slate-600">{video.description}</p>
+                  <div className="mt-3"><OwnerModerationNotice status={video.adminReviewStatus} reason={video.adminReason} /></div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {editable && <Button size="sm" variant="ghost" disabled={saving}
                       className="text-rose-600 hover:bg-rose-50" onClick={async () => {

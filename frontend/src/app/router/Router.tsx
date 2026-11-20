@@ -25,6 +25,7 @@ import AdminReportsPage from '../../features/admin/reports/pages/AdminReportsPag
 import RecipeList from '../../features/recipes/pages/RecipeList'
 import RecipeDetail from '../../features/recipes/pages/RecipeDetail'
 import AiChatPage from '../../features/ai-chat/pages/AiChatPage'
+import { NewSubmissionGate } from '../../shared/components/NewSubmissionGate'
 import {
   ArticleList,
   ArticleDetail,
@@ -199,7 +200,7 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
       return <LoginPage onNavigate={onNavigate} />
     }
     const fromParam = (searchParams.get('from') as 'articles' | 'profile') || 'articles'
-    return <ArticleEditorPage onNavigate={onNavigate} fromSource={fromParam} />
+    return <NewSubmissionGate type="Article" onNavigate={onNavigate}><ArticleEditorPage onNavigate={onNavigate} fromSource={fromParam} /></NewSubmissionGate>
   }
   if (articleEditorMatch) {
     if (!ctx.user) {
@@ -257,10 +258,10 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
 
   if (isCreateVideoRoute) {
     return withPublic(
-      <VideoCreatePage
+      <NewSubmissionGate type="Video" onNavigate={onNavigate}><VideoCreatePage
         onNavigate={onNavigate}
         fromSource={fromVideoParam}
-      />,
+      /></NewSubmissionGate>,
       'videos',
       ctx,
     )

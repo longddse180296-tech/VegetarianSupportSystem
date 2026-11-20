@@ -10,6 +10,9 @@ namespace Application.Features.Moderation;
 public sealed class ModerationService(IModerationRepository repository, IVideoPublication videos,
     IFavoriteRepository? favorites = null)
 {
+    public Task<OwnerSubmissionAvailability> GetOwnerSubmissionAvailabilityAsync(string ownerId, CancellationToken ct) =>
+        repository.GetOwnerSubmissionAvailabilityAsync(ownerId, ct);
+
     // GetAuthorNamesAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public Task<IReadOnlyDictionary<string, string>> GetAuthorNamesAsync(IEnumerable<string> userIds, CancellationToken ct) =>
         repository.AuthorNamesAsync(userIds, ct);
@@ -219,8 +222,11 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         Guid submissionId,
         CancellationToken cancellationToken)
     {
-        return await repository.GetByIdAsync(submissionId, cancellationToken)
+        var submission = await repository.GetByIdAsync(submissionId, cancellationToken)
             ?? throw new ModerationException(ModerationError.NotFound, "Không tìm thấy bản nội dung đã gửi hoặc bạn không có quyền xem.");
+        if (submission.AdminReviewStatus == AdminReviewStatus.Draft)
+            throw new ModerationException(ModerationError.NotFound, "Nội dung đã được rút về bản nháp và không còn trong hàng đợi kiểm duyệt.");
+        return submission;
     }
 
     // GetAdminPageAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

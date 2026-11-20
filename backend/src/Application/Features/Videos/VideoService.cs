@@ -116,6 +116,8 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
     private async Task<ModerationSubmission?> SubmitWithinTransactionAsync(Guid id, string userId,
         ModerationService moderationService, CancellationToken ct)
     {
+        if (!await repository.ReserveSubmissionSlotAsync(userId, id, ct))
+            throw new InvalidOperationException("Bạn đang có một video chờ Quản trị viên xử lý. Vui lòng đợi video đó được chấp nhận hoặc từ chối trước khi gửi video khác. Bạn vẫn có thể lưu bản nháp và gửi một bài viết.");
         var video = await GetOwnedAsync(id, userId, ct);
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (video is null) return null;

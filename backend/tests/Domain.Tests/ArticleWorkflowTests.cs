@@ -125,11 +125,13 @@ public sealed class ArticleWorkflowTests
         public Task AddAsync(Article value, CancellationToken ct) => throw new NotImplementedException();
         public void Remove(Article value) => throw new NotImplementedException();
         public Task SaveAsync(CancellationToken ct) => Task.CompletedTask;
-        public Task<T> InTransactionAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken ct) => throw new NotImplementedException();
+        public Task<T> InTransactionAsync<T>(string ownerId, Func<CancellationToken, Task<T>> action, CancellationToken ct) => throw new NotImplementedException();
+        public Task<bool> HasUnreviewedArticleAsync(string ownerId, Guid excludingArticleId, CancellationToken ct) => Task.FromResult(false);
     }
 
     private sealed class EmptyModerationRepository : IModerationRepository
     {
+        public Task<OwnerSubmissionAvailability> GetOwnerSubmissionAvailabilityAsync(string ownerId, CancellationToken ct) => Task.FromResult(new OwnerSubmissionAvailability(false, false));
         public Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> ids, CancellationToken ct) =>
             Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
         public Task<ModerationSubmission?> GetByIdAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();

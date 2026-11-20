@@ -139,16 +139,51 @@ public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
     }
 
     // InTransactionAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    public async Task<T> InTransactionAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken ct)
+    public Task<bool> HasUnreviewedArticleAsync(string ownerId, Guid excludingArticleId, CancellationToken ct) =>
+        db.Articles.Where(article => article.OwnerUserId == ownerId && article.Id != excludingArticleId)
+            .SelectMany(article => article.Versions)
+            .AnyAsync(version =>
+                (version.Submission.AdminReviewStatus == AdminReviewStatus.Submitted ||
+                 version.Submission.AdminReviewStatus == AdminReviewStatus.PendingAdminReview ||
+                 version.Submission.AdminReviewStatus == AdminReviewStatus.Draft) &&
+                !db.Set<ArticleVersion>().Any(newer => newer.ArticleId == version.ArticleId && newer.Version > version.Version), ct);
+
+    public async Task<T> InTransactionAsync<T>(string ownerId, Func<CancellationToken, Task<T>> action, CancellationToken ct)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
-        try
+        for (var attempt = 0; ; attempt++)
         {
-            var result = await action(ct);
-            await transaction.CommitAsync(ct);
-            return result;
+            try
+            {
+                await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+                // Khóa theo tài khoản tại SQL Server: hai tab/instance không cùng vượt qua kiểm tra chờ duyệt.
+                var resource = "ArticleSubmission:" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(ownerId)));
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    DECLARE @result int;
+                    EXEC @result = sys.sp_getapplock @Resource={resource}, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000;
+                    IF @result < 0 THROW 51001, 'Article submission lock timed out.', 1;
+                    """, ct);
+                var result = await action(ct);
+                await transaction.CommitAsync(ct);
+                return result;
+            }
+            catch (Exception ex) when (IsDeadlock(ex) && attempt < 3)
+            {
+                // SQL đã hủy giao dịch deadlock. Đọc lại toàn bộ entity/phiên bản trước khi thử lại,
+                // không dùng các snapshot hoặc submission đã thêm trong giao dịch thất bại.
+                db.ChangeTracker.Clear();
+                await Task.Delay(TimeSpan.FromMilliseconds(100 * (attempt + 1)), ct);
+            }
+            catch (Exception ex) when (IsDeadlock(ex))
+            { throw new ArticleException(ArticleError.Conflict, "Bài viết đang thay đổi ở phiên khác. Vui lòng tải lại và thử lại."); }
+            catch (SqlException ex) when (ex.Number == 51001)
+            { throw new ArticleException(ArticleError.Conflict, "Tài khoản đang gửi bài ở phiên khác. Vui lòng đợi và thử lại."); }
         }
-        catch (SqlException ex) when (ex.Number == 1205)
-        { throw new ArticleException(ArticleError.Conflict, "Bài viết đang thay đổi ở phiên khác. Vui lòng tải lại và thử lại."); }
+    }
+
+    private static bool IsDeadlock(Exception error)
+    {
+        for (Exception? current = error; current is not null; current = current.InnerException)
+            if (current is SqlException { Number: 1205 }) return true;
+        return false;
     }
 }

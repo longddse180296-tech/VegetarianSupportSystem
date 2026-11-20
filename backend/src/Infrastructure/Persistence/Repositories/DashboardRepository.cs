@@ -79,6 +79,7 @@ public sealed class DashboardRepository(AppDbContext db) : IDashboardRepository
         var submissions = await (
             from submission in db.ModerationSubmissions.AsNoTracking()
             join owner in db.Users.AsNoTracking() on submission.OwnerUserId equals owner.Id
+            where submission.AdminReviewStatus != AdminReviewStatus.Draft
             orderby submission.SubmittedAt descending, submission.Id descending
             select new { submission.Id, submission.ContentType, submission.Title,
                 submission.OwnerUserId, OwnerName = owner.FullName, submission.SubmittedAt })

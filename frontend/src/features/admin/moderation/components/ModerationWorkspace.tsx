@@ -15,6 +15,7 @@ import {
 } from '../../../../shared/components/SharedDataTable'
 import { Modal } from '../../../../shared/components/Modal'
 import { Select } from '../../../../shared/components/Select'
+import { AutoGrowTextarea } from '../../../../shared/components/AutoGrowTextarea'
 import { getStoredToken } from '../../../../shared/api/apiClient'
 import { RichContentRenderer } from '../../../articles/components/RichContentRenderer'
 import { formatVideoDuration } from '../../../videos/utils/videoMetadata'
@@ -241,6 +242,8 @@ export function ModerationWorkspace({
   )
   const [selected, setSelected] = useState<Submission | null>(null)
   const [decision, setDecision] = useState<Decision | ''>('')
+  const [decisionReason, setDecisionReason] = useState('')
+  useEffect(() => { setDecisionReason('') }, [selected?.id])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -540,6 +543,7 @@ export function ModerationWorkspace({
                   <p className="break-all">
                     Quản trị viên: {item.adminUserId} · {formatDate(item.decidedAt)}
                   </p>
+                  <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere]">Lý do / phản hồi: {item.reason}</p>
                 </div>
               ))
             ) : (
@@ -559,11 +563,13 @@ export function ModerationWorkspace({
                     await adminModerationApi.decide(
                       selected.id,
                       decision,
+                      decisionReason.trim(),
                     )
                     setSelected(null)
                     setNotice('Đã lưu quyết định kiểm duyệt.')
                     window.dispatchEvent(new Event('admin-inbox-updated'))
                     setDecision('')
+                    setDecisionReason('')
                     result.reload()
                   } catch (reason) {
                     setError(errorMessage(reason))
@@ -596,6 +602,14 @@ export function ModerationWorkspace({
                   ]}
                 />
 
+                <div>
+                  <label htmlFor="moderation-decision-reason" className="block text-sm font-semibold text-slate-700">Lý do / phản hồi cho người đăng</label>
+                  <AutoGrowTextarea id="moderation-decision-reason" value={decisionReason}
+                    onChange={event => setDecisionReason(event.target.value)} disabled={busy} maxLength={2000}
+                    placeholder="Nhập lý do duyệt, từ chối hoặc gỡ nội dung..."
+                    className="admin-field mt-2 w-full" />
+                  <p className="mt-1 text-xs text-slate-500">Người đăng sẽ thấy phản hồi này cùng quyết định. Tối đa 2.000 ký tự; để trống sẽ dùng thông báo trạng thái mặc định.</p>
+                </div>
                 <Feedback error={error} />
                 <button
                   disabled={busy || !decision}

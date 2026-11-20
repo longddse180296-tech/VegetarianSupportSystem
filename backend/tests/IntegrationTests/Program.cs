@@ -46,6 +46,11 @@ builder.Services.AddApplication();
 builder.Services.AddScoped<AccountTokenValidator>();
 builder.Services.AddSignalR();
 builder.Services.AddInfrastructure(builder.Configuration);
+if (args.Contains("--moderation-queue-only", StringComparer.Ordinal))
+{
+    builder.Services.AddSingleton<QueueModerationAiProbe>();
+    builder.Services.AddSingleton<Application.Abstractions.AI.IGeminiService>(provider => provider.GetRequiredService<QueueModerationAiProbe>());
+}
 if (args.Contains("--article-precheck-only", StringComparer.Ordinal))
 {
     builder.Services.AddSingleton<TitlePrecheckAiProbe>();
@@ -284,6 +289,13 @@ try
     Check(!(await db.Database.GetPendingMigrationsAsync()).Any(), "all migrations applied");
     await app.StartAsync();
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+    if (args.Contains("--moderation-queue-only", StringComparer.Ordinal))
+    {
+        await ModerationQueueChecks.RunAsync(client, db, app.Services.GetRequiredService<QueueModerationAiProbe>(), Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} MODERATION QUEUE CHECKS PASSED");
+        return;
+    }
     if (args.Contains("--history-delete-only", StringComparer.Ordinal))
     {
         await HistoryDeletionChecks.RunAsync(client, db, Check);

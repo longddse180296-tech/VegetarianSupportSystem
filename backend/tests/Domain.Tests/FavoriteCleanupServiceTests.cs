@@ -88,6 +88,7 @@ public sealed class FavoriteCleanupServiceTests
 
     private sealed class SingleSubmissionRepository(ModerationSubmission submission) : IModerationRepository
     {
+        public Task<OwnerSubmissionAvailability> GetOwnerSubmissionAvailabilityAsync(string ownerId, CancellationToken ct) => Task.FromResult(new OwnerSubmissionAvailability(false, false));
         public bool Saved { get; private set; }
 
         public Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> ids, CancellationToken ct) =>

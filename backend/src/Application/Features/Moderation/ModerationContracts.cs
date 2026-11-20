@@ -4,6 +4,8 @@ using Domain.Enums;
 
 namespace Application.Features.Moderation;
 
+public sealed record OwnerSubmissionAvailability(bool ArticlePending, bool VideoPending);
+
 // SubmitModerationCommand: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record SubmitModerationCommand(
     Guid? ContentId,

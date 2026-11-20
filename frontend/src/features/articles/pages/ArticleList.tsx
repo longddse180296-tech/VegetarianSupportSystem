@@ -1,3 +1,4 @@
+import { useSubmissionAvailability } from '../../../shared/hooks/useSubmissionAvailability'
 // Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import { PageHeading, Badge, Button, Input, EmptyState, SkeletonCard } from '../../../shared/components'
@@ -45,6 +46,7 @@ function formatArticleDate(dateStr?: string | null): string {
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (ArticleList); thuộc bài viết và phiên bản gửi duyệt.
 export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }: Props) => {
+  const { articlePending } = useSubmissionAvailability()
   // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
   const [searchInput, setSearchInput] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
@@ -109,11 +111,11 @@ export const ArticleList = ({ onSelectArticle, onCreateArticle, onNavigateHome }
           onCreateArticle ? (
             <Button
               leftIcon={<Plus size={16} />}
-              onClick={onCreateArticle}
+              onClick={() => { if (articlePending) window.location.hash = '/profile/my-articles'; else onCreateArticle?.() }}
               variant="primary"
               className="!rounded-[12px] !bg-[#2E7D32] hover:!bg-[#1B5E20] font-semibold shadow-xs"
             >
-              Viết bài mới
+              {articlePending ? 'Xem bài viết của tôi' : 'Viết bài mới'}
             </Button>
           ) : undefined
         }

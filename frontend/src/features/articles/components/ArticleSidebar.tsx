@@ -1,3 +1,4 @@
+import { useSubmissionAvailability } from '../../../shared/hooks/useSubmissionAvailability'
 // Chức năng: bài viết và phiên bản gửi duyệt. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import { Button, Input } from '../../../shared/components'
@@ -20,6 +21,7 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
   onCreateArticle,
 }) => {
   // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
+  const { articlePending } = useSubmissionAvailability()
   const [newsletterEmail, setNewsletterEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
 
@@ -79,6 +81,7 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
           size="sm"
           fullWidth
           onClick={() => {
+            if (articlePending) { window.location.hash = '/profile/my-articles'; return }
             if (onCreateArticle) {
               onCreateArticle()
             } else {
@@ -87,7 +90,7 @@ export const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
           }}
           leftIcon={<span className="text-sm font-bold leading-none">+</span>}
         >
-          Tạo bài viết mới
+          {articlePending ? 'Xem bài viết của tôi' : 'Tạo bài viết mới'}
         </Button>
       </div>
 

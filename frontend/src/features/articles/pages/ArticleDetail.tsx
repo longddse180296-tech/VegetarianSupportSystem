@@ -1,3 +1,4 @@
+import { useSubmissionAvailability } from '../../../shared/hooks/useSubmissionAvailability'
 // Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useState } from 'react'
@@ -88,6 +89,7 @@ export const ArticleDetail = ({
   onEditArticle?: (id: string) => void
   onSelectRelatedArticle?: (id: string) => void
 }) => {
+  const { articlePending } = useSubmissionAvailability()
   const { user } = useAuth()
   const currentUserId = user?.id
   const article = useApiData<PublicArticleDetail>(
@@ -321,9 +323,9 @@ export const ArticleDetail = ({
                   <Button
                     leftIcon={<Plus size={16} />}
                     variant="primary"
-                    onClick={onCreateArticle}
+                    onClick={() => { if (articlePending) window.location.hash = '/profile/my-articles'; else onCreateArticle?.() }}
                   >
-                    Chia sẻ bài viết mới
+                    {articlePending ? 'Xem bài viết của tôi' : 'Chia sẻ bài viết mới'}
                   </Button>
                 )}
               </div>

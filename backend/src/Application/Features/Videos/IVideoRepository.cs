@@ -6,6 +6,7 @@ namespace Application.Features.Videos;
 // IVideoRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IVideoRepository
 {
+    Task<bool> ReserveSubmissionSlotAsync(string ownerId, Guid excludingVideoId, CancellationToken ct);
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<Video?> GetAsync(Guid id, CancellationToken cancellationToken);
     // CategoryExistsAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.

@@ -1,6 +1,10 @@
+import { useSubmissionAvailability } from '../../../shared/hooks/useSubmissionAvailability'
 // Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { articleReviewStatus } from '../utils/articleReviewStatus'
 import { ContentImage } from '../../../shared/components/ContentImage'
+import { OwnerModerationNotice } from '../../../shared/components/OwnerModerationNotice'
+import { useOwnerReviewUpdates } from '../../../shared/hooks/useOwnerReviewUpdates'
+import { apiClient } from '../../../shared/api/apiClient'
 import { useState } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import { UserProfileShell } from '../../profile/components/UserProfileShell'
@@ -24,11 +28,12 @@ export const MyArticlesPage = ({
   onNavigate: (path: string) => void
 }) => {
   // Lưu dữ liệu và trạng thái thao tác của bài viết và phiên bản gửi duyệt trong vòng đời màn hình.
+  const { articlePending } = useSubmissionAvailability()
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
-  const result = useApiData<ContentPage<MyArticleRecord>>(
-    `/api/me/articles?page=${page}&pageSize=6${status ? `&status=${status}` : ''}`,
-  )
+  const path = `/api/me/articles?page=${page}&pageSize=6${status ? `&status=${status}` : ''}`
+  const result = useApiData<ContentPage<MyArticleRecord>>(path)
+  useOwnerReviewUpdates(path, () => apiClient.get<ContentPage<MyArticleRecord>>(path), result.setData)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -59,9 +64,9 @@ export const MyArticlesPage = ({
           <Button
             variant="primary"
             leftIcon={<Plus size={16} />}
-            onClick={() => onNavigate('/articles/create?from=profile')}
+            onClick={() => { if (articlePending) { setStatus(''); setPage(1) } else onNavigate('/articles/create?from=profile') }}
           >
-            Viết bài mới
+            {articlePending ? 'Xem bài viết của tôi' : 'Viết bài mới'}
           </Button>
         </div>
 
@@ -143,6 +148,7 @@ export const MyArticlesPage = ({
                   </div>
                 </div>
 
+                <OwnerModerationNotice status={item.status} reason={[...item.versions].sort((a, b) => b.version - a.version)[0]?.adminFeedback} />
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
                   <Button
                     size="sm"
@@ -196,8 +202,8 @@ export const MyArticlesPage = ({
             <EmptyState
               title="Chưa có bài viết phù hợp"
               description="Bạn chưa có bài viết nào theo bộ lọc này. Hãy bắt đầu chia sẻ kinh nghiệm ăn chay cùng cộng đồng."
-              actionLabel="Viết bài mới ngay"
-              onAction={() => onNavigate('/articles/create?from=profile')}
+              actionLabel={articlePending ? 'Xem bài viết của tôi' : 'Viết bài mới ngay'}
+              onAction={() => { if (articlePending) { setStatus(''); setPage(1) } else onNavigate('/articles/create?from=profile') }}
             />
           )
         )}

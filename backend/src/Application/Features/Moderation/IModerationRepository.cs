@@ -6,6 +6,7 @@ namespace Application.Features.Moderation;
 // IModerationRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IModerationRepository
 {
+    Task<OwnerSubmissionAvailability> GetOwnerSubmissionAvailabilityAsync(string ownerId, CancellationToken ct);
     // AuthorNamesAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     Task<IReadOnlyDictionary<string, string>> AuthorNamesAsync(IEnumerable<string> userIds, CancellationToken cancellationToken);
     // GetByIdAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
