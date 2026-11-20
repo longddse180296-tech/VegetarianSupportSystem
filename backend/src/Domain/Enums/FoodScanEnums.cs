@@ -9,7 +9,8 @@ public enum IngredientKind
     Dairy,
     Honey,
     Animal,
-    Unknown
+    Unknown,
+    Vegetarian
 }
 
 // VegetarianDiet: định nghĩa các giá trị trạng thái được phép.

@@ -39,4 +39,16 @@ public sealed class FoodScanAssessmentTests
             VegetarianDiet.Vegan, [IngredientKind.Plant, IngredientKind.Unknown], true);
         Assert.Equal(FoodScanAssessmentStatus.InsufficientInformation, actual);
     }
+
+    [Theory]
+    [InlineData(VegetarianDiet.Vegan)]
+    [InlineData(VegetarianDiet.Lacto)]
+    [InlineData(VegetarianDiet.Ovo)]
+    [InlineData(VegetarianDiet.LactoOvo)]
+    public void ConfirmedPlantAndVegetarianIngredientsAreSuitableForAllDiets(VegetarianDiet diet)
+    {
+        var actual = FoodScanAssessment.Evaluate(
+            diet, [IngredientKind.Plant, IngredientKind.Vegetarian], true);
+        Assert.Equal(FoodScanAssessmentStatus.SuitableBasedOnProvidedInformation, actual);
+    }
 }

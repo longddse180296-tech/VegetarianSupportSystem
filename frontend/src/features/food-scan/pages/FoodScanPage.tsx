@@ -32,15 +32,89 @@ type ScanTab = 'scanner' | 'confirm' | 'result'
 // Cấu trúc HistoryStatus quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 type HistoryStatus = 'idle' | 'loading' | 'done'
 
+const VEGETARIAN_NON_PLANT_NAMES = new Set([
+  'muối',
+  'muối i-ốt',
+  'muối i ốt',
+  'muối iốt',
+  'muối i-ot',
+  'muối i ot',
+  'muối iot',
+  'muối ăn',
+  'muối biển',
+  'muối tinh',
+  'muối hồng',
+  'muối hồng himalaya',
+  'muối khoáng',
+  'muối hầm',
+  'nước',
+  'nước sạch',
+  'nước tinh khiết',
+  'nước lọc',
+  'nước khoáng',
+  'nước uống',
+  'nước đá',
+  'đá viên',
+  'men',
+  'men nở',
+  'men khô',
+  'baking soda',
+  'muối nở',
+  'bột nở',
+  'salt',
+  'iodized salt',
+  'sea salt',
+  'table salt',
+  'water',
+  'purified water',
+  'drinking water',
+  'mineral water',
+  'yeast',
+  'baking powder',
+])
+
+// Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (normalizeIngredientName); thuộc phân tích ảnh món ăn và nhãn thành phần.
+function normalizeIngredientName(name: string): string {
+  return name
+    .trim()
+    .toLocaleLowerCase('vi')
+    .replace(/\s*\(\s*\d+(?:[.,]\d+)?\s*(?:%|kg|mg|g|ml|l)?\s*\)\s*$/i, '')
+    .replace(/\s+\d+(?:[.,]\d+)?\s*(?:%|kg|mg|g|ml|l)\s*$/i, '')
+    .replace(/[.,;:]+$/, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+// Chuẩn hóa gợi ý loại nguyên liệu từ AI/OCR, loại bỏ lựa chọn Mật ong và nhận diện nguyên liệu chay như muối i-ốt, nước.
+function resolveSuggestedIngredientKind(
+  name: string,
+  kind: IngredientKind | string | undefined,
+): IngredientKind {
+  const normalizedKind: IngredientKind =
+    kind === 'Plant' ||
+    kind === 'Vegetarian' ||
+    kind === 'Egg' ||
+    kind === 'Dairy' ||
+    kind === 'Animal' ||
+    kind === 'Unknown'
+      ? kind
+      : 'Unknown'
+
+  if (
+    (normalizedKind === 'Unknown' || normalizedKind === 'Plant') &&
+    VEGETARIAN_NON_PLANT_NAMES.has(normalizeIngredientName(name))
+  ) {
+    return 'Vegetarian'
+  }
+  return normalizedKind
+}
+
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (labelIngredients); thuộc phân tích ảnh món ăn và nhãn thành phần.
 function labelIngredients(
   text: string,
   suggestions: Array<{ name: string; kind: IngredientKind }> = [],
 ): DraftIngredient[] {
-  // Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (normalizeName); thuộc phân tích ảnh món ăn và nhãn thành phần.
-  const normalizeName = (name: string) => name.trim().toLocaleLowerCase('vi')
-    .replace(/\s+\d+(?:[.,]\d+)?\s*(?:kg|mg|g|ml|l|%)?\s*$/i, '').replace(/\s+/g, ' ')
-  const kinds = new Map(suggestions.map((item) => [normalizeName(item.name), item.kind]))
+  const kinds = new Map(suggestions.map((item) => [normalizeIngredientName(item.name), item.kind]))
   return text
     .replace(/^\s*thành phần\s*:/i, '')
     .split(/[,;\n]+/)
@@ -50,7 +124,7 @@ function labelIngredients(
     .map((name) => ({
       id: crypto.randomUUID(),
       name: name.slice(0, 200),
-      kind: kinds.get(normalizeName(name)) ?? 'Unknown',
+      kind: resolveSuggestedIngredientKind(name, kinds.get(normalizeIngredientName(name))),
       source: 'LabelOcr' as const,
     }))
 }
@@ -196,7 +270,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
         setIngredients(response.data.visibleIngredients.map((name, index) => ({
           id: crypto.randomUUID(),
           name: name.slice(0, 200),
-          kind: response.data.suggestedIngredientKinds?.[index] ?? 'Unknown',
+          kind: resolveSuggestedIngredientKind(name, response.data.suggestedIngredientKinds?.[index]),
           source: 'AiSuggested',
         })))
         setCorrectedLabelText('')
@@ -207,7 +281,7 @@ export default function FoodScanPage({ onNavigate, isLoggedIn = false }: FoodSca
         setIngredients(response.data.suggestedIngredients?.map((item) => ({
           id: crypto.randomUUID(),
           name: item.name.slice(0, 200),
-          kind: item.kind,
+          kind: resolveSuggestedIngredientKind(item.name, item.kind),
           source: 'LabelOcr',
         })) ?? labelIngredients(text))
         setLabelIncomplete(response.data.isIncomplete)
