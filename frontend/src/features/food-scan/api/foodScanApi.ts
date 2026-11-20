@@ -101,9 +101,9 @@ export const DIET_LABELS: Record<string, string> = {
 
 export const INGREDIENT_KIND_LABELS: Record<IngredientKind, string> = {
   Plant: 'Thực vật',
+  Vegetarian: 'Nguyên liệu chay',
   Egg: 'Trứng',
   Dairy: 'Sữa',
-  Honey: 'Mật ong',
   Animal: 'Động vật',
   Unknown: 'Chưa rõ',
 }

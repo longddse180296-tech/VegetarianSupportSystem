@@ -4,12 +4,55 @@ using Domain.Enums;
 using Domain.Rules;
 using Domain.Entities;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Application.Features.FoodScanning;
 
 // FoodScanningService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanRepository repository)
 {
+    private static readonly HashSet<string> VegetarianNonPlantNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "muối",
+        "muối i-ốt",
+        "muối i ốt",
+        "muối iốt",
+        "muối i-ot",
+        "muối i ot",
+        "muối iot",
+        "muối ăn",
+        "muối biển",
+        "muối tinh",
+        "muối hồng",
+        "muối hồng himalaya",
+        "muối khoáng",
+        "muối hầm",
+        "nước",
+        "nước sạch",
+        "nước tinh khiết",
+        "nước lọc",
+        "nước khoáng",
+        "nước uống",
+        "nước đá",
+        "đá viên",
+        "men",
+        "men nở",
+        "men khô",
+        "baking soda",
+        "muối nở",
+        "bột nở",
+        "salt",
+        "iodized salt",
+        "sea salt",
+        "table salt",
+        "water",
+        "purified water",
+        "drinking water",
+        "mineral water",
+        "yeast",
+        "baking powder",
+    };
+
     // Dùng Gemini đọc nhãn và trả thành phần gợi ý để người dùng xác nhận.
     public async Task<LabelImageScanResult> AnalyzeLabelAsync(byte[] imageBytes, string mimeType,
         CancellationToken cancellationToken)
@@ -20,9 +63,12 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
         var evidence = suggestions.Count > 0
             ? await repository.FindIngredientEvidenceAsync(suggestions.Select(item => item.Name).ToArray(), cancellationToken)
             : [];
-        var ingredients = suggestions.Select(item => new LabelIngredientSuggestion(item.Name,
-            evidence.FirstOrDefault(entry => entry.Name.Equals(item.Name,
-                StringComparison.OrdinalIgnoreCase))?.Kind ?? item.Kind)).ToArray();
+        var ingredients = suggestions.Select(item =>
+        {
+            var suggestedKind = evidence.FirstOrDefault(entry => entry.Name.Equals(item.Name,
+                StringComparison.OrdinalIgnoreCase))?.Kind ?? item.Kind;
+            return new LabelIngredientSuggestion(item.Name, ResolveSuggestedKind(item.Name, suggestedKind));
+        }).ToArray();
         return new LabelImageScanResult(ai.IsAvailable ? "NeedsConfirmation" : "AnalysisFailed",
             ai.ExtractedText, ai.IsIncomplete, ai.ErrorCode,
             "OCR chỉ chép phần đọc được. Loại nguyên liệu là gợi ý; hãy sửa và xác nhận trước khi đánh giá.",
@@ -49,7 +95,7 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
                 StringComparison.OrdinalIgnoreCase));
             return catalog is not null &&
                 catalog.Kind is (IngredientKind.Animal or IngredientKind.Egg or IngredientKind.Dairy or IngredientKind.Honey) &&
-                item.Kind is (IngredientKind.Plant or IngredientKind.Unknown)
+                item.Kind is (IngredientKind.Plant or IngredientKind.Vegetarian or IngredientKind.Unknown)
                 ? item with { Kind = catalog.Kind } : item;
         }).ToArray();
         var complete = ingredientsComplete && !labelIncomplete && unknownAnswers.Count == 0;
@@ -140,10 +186,13 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             ? await repository.FindIngredientEvidenceAsync(ai.VisibleIngredients, cancellationToken)
             : [];
         var suggestedKinds = ai.VisibleIngredients.Select((ingredient, index) =>
-            evidence.FirstOrDefault(item => item.Name.Equals(ingredient,
+        {
+            var suggestedKind = evidence.FirstOrDefault(item => item.Name.Equals(ingredient,
                 StringComparison.OrdinalIgnoreCase))?.Kind
-            ?? (ai.SuggestedIngredientKinds?.Count > index
-                ? ai.SuggestedIngredientKinds[index] : IngredientKind.Unknown)).ToArray();
+                ?? (ai.SuggestedIngredientKinds?.Count > index
+                    ? ai.SuggestedIngredientKinds[index] : IngredientKind.Unknown);
+            return ResolveSuggestedKind(ingredient, suggestedKind);
+        }).ToArray();
         return new DishImageScanResult(
             ai.IsAvailable ? "NeedsConfirmation" : "AnalysisFailed",
             ai.SuggestedDishName,
@@ -156,6 +205,29 @@ public sealed class FoodScanningService(IGeminiService geminiService, IFoodScanR
             ai.ErrorCode,
             "Hệ thống nhận diện sơ bộ qua hình ảnh. Loại nguyên liệu là gợi ý; vui lòng sửa và xác nhận trước khi đánh giá.",
             suggestedKinds);
+    }
+
+    // ResolveSuggestedKind: Chuẩn hóa gợi ý loại nguyên liệu từ AI/kho (bỏ Mật ong và nhận diện nguyên liệu chay như muối i-ốt, nước).
+    public static IngredientKind ResolveSuggestedKind(string name, IngredientKind suggestedKind)
+    {
+        if (suggestedKind == IngredientKind.Honey)
+            return IngredientKind.Unknown;
+
+        if (suggestedKind is IngredientKind.Unknown or IngredientKind.Plant
+            && !string.IsNullOrWhiteSpace(name)
+            && VegetarianNonPlantNames.Contains(NormalizeIngredientNameForLookup(name)))
+            return IngredientKind.Vegetarian;
+
+        return suggestedKind;
+    }
+
+    private static string NormalizeIngredientNameForLookup(string name)
+    {
+        var normalized = name.Trim().ToLowerInvariant();
+        normalized = Regex.Replace(normalized, @"\s*\(\s*\d+(?:[.,]\d+)?\s*(?:%|kg|mg|g|ml|l)?\s*\)\s*$", "");
+        normalized = Regex.Replace(normalized, @"\s+\d+(?:[.,]\d+)?\s*(?:%|kg|mg|g|ml|l)\s*$", "");
+        normalized = normalized.TrimEnd('.', ',', ';', ':').Trim();
+        return Regex.Replace(normalized, @"\s+", " ");
     }
 
     // Đánh giá tương thích với các chế độ ăn bằng quy tắc của Domain.

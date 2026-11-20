@@ -202,12 +202,12 @@ export default function ScanResultCard({
                   <span>Nguồn: {INGREDIENT_SOURCE_LABELS[item.source] || item.source}</span>
                   {item.kind === 'Plant' ? (
                     <span className="text-emerald-700 font-semibold">Gốc thực vật</span>
+                  ) : item.kind === 'Vegetarian' ? (
+                    <span className="text-emerald-700 font-semibold">Nguyên liệu chay</span>
                   ) : item.kind === 'Animal' ? (
                     <span className="text-rose-700 font-semibold">Động vật</span>
                   ) : item.kind === 'Dairy' || item.kind === 'Egg' ? (
                     <span className="text-amber-700 font-semibold">Trứng / Sữa</span>
-                  ) : item.kind === 'Honey' ? (
-                    <span className="text-amber-700 font-semibold">Mật ong</span>
                   ) : null}
                 </div>
               </div>
@@ -223,7 +223,7 @@ export default function ScanResultCard({
         <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
           <h3 className="font-bold text-slate-800 text-base mb-1">Đối chiếu kho nguyên liệu hệ thống</h3>
           <p className="text-xs text-slate-500 mb-3">
-            Hệ thống nhận diện được nguyên liệu trùng khớp với danh mục kiểm soát động vật, trứng, sữa hoặc mật ong:
+            Hệ thống nhận diện được nguyên liệu trùng khớp với danh mục kiểm soát động vật, trứng hoặc sữa:
           </p>
           <ul className="space-y-2">
             {result.catalogEvidence.map((item) => (
