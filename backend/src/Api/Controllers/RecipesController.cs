@@ -1,6 +1,7 @@
 // BE2-01/04 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
 // Cung cấp API xem công thức công khai và API quản trị tạo, sửa hoặc ngừng sử dụng công thức.
 using Api.Authorization;
+using Api.Hubs;
 using Application.Features.Recipes;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +12,7 @@ namespace Api.Controllers;
 [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-public sealed class RecipesController(RecipeService service) : CoreDataControllerBase
+public sealed class RecipesController(RecipeService service, PublicRecipeUpdates updates) : CoreDataControllerBase
 {
     [CoreDataAdmin]
     [HttpGet("/api/admin/recipes/review-count")]
@@ -57,6 +58,7 @@ public sealed class RecipesController(RecipeService service) : CoreDataControlle
         Execute(async () =>
         {
             var result = await service.CreateAsync(request, ct);
+            await updates.PublishAsync();
             return CreatedAtAction(nameof(AdminGet), new { id = result.Id }, result);
         });
 
@@ -67,7 +69,12 @@ public sealed class RecipesController(RecipeService service) : CoreDataControlle
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public Task<IActionResult> Update(Guid id, RecipeRequest request, CancellationToken ct) =>
-        Execute(async () => Ok(await service.UpdateAsync(id, request, ct)));
+        Execute(async () =>
+        {
+            var result = await service.UpdateAsync(id, request, ct);
+            await updates.PublishAsync();
+            return Ok(result);
+        });
 
     // BE2-04 | Mở lại công thức đã ngừng sử dụng và lưu trạng thái thật xuống database.
     [CoreDataAdmin]
@@ -79,6 +86,7 @@ public sealed class RecipesController(RecipeService service) : CoreDataControlle
         Execute(async () =>
         {
             await service.ActivateAsync(id, ct);
+            await updates.PublishAsync();
             return NoContent();
         });
 
@@ -92,6 +100,7 @@ public sealed class RecipesController(RecipeService service) : CoreDataControlle
         Execute(async () =>
         {
             await service.DeactivateAsync(id, ct);
+            await updates.PublishAsync();
             return NoContent();
         });
 }

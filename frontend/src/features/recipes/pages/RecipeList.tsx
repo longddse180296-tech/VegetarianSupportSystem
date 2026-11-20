@@ -1,9 +1,10 @@
 // BE2-01/06 | Hiển thị danh sách công thức từ API public, bộ lọc và thao tác lưu món.
 // Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRight, ChefHat, Sparkles, UtensilsCrossed } from 'lucide-react'
 import { Badge, EmptyState, PageHeading, SkeletonCard } from '../../../shared/components'
 import { getRecipes } from '../api/recipeApi'
+import { usePublicRecipeUpdates } from '../hooks/usePublicRecipeUpdates'
 import { useRecipeSaves } from '../../favorites/hooks/useRecipeSaves'
 import AlertError from '../../../shared/components/AlertError'
 import { RecipeCard } from '../components/RecipeCard'
@@ -138,39 +139,52 @@ export default function RecipeList({
   const [kcalTier, setKcalTier] = useState('all')
   const [dietPill, setDietPill] = useState('all')
   const [sort] = useState<RecipeSortOption>('relevance')
+  const requestVersion = useRef(0)
+  const hasLoaded = useRef(false)
+  const invalidateRequests = useCallback(() => { requestVersion.current++ }, [])
 
   // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (loadList); thuộc công thức và định lượng nguyên liệu.
-  const loadList = async (next: Partial<RecipeListFilter> = {}) => {
+  const loadList = useCallback(async (next: Partial<RecipeListFilter> = {}, quiet = false) => {
+    quiet = quiet && hasLoaded.current
+    const version = ++requestVersion.current
     const applied: RecipeListFilter = { ...filter, ...next }
-    setIsLoading(true)
-    setIsError(false)
+    if (!quiet) {
+      setIsLoading(true)
+      setIsError(false)
+    }
     try {
       const res = await getRecipes(applied)
+      // Kết quả cũ không được ghi đè bộ lọc mới hoặc cập nhật sau khi rời trang.
+      if (version !== requestVersion.current) return
+      hasLoaded.current = true
       setAllItems(res.items)
       setTotalCount(res.totalCount)
+      setIsError(false)
     } catch {
-      setIsError(true)
-      setAllItems([])
-      setTotalCount(0)
+      if (version !== requestVersion.current) return
+      if (!quiet) {
+        setIsError(true)
+        setAllItems([])
+        setTotalCount(0)
+      }
     } finally {
-      setIsLoading(false)
+      if (version === requestVersion.current) setIsLoading(false)
     }
-  }
+  }, [filter])
 
-  // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
-  useEffect(() => {
-    void loadList()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Làm mới nền giữ nguyên bộ lọc, trang hiện tại và danh sách trong lúc chờ API.
+  usePublicRecipeUpdates(() => { void loadList({}, true) })
 
   // Đồng bộ trạng thái hoặc tác động bên ngoài khi các phụ thuộc thay đổi.
   useEffect(() => {
     const t = window.setTimeout(() => {
       void loadList()
     }, 250)
-    return () => window.clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter.search, filter.diet, filter.difficulty, filter.sort, filter.favoritesOnly])
+    return () => {
+      window.clearTimeout(t)
+      invalidateRequests()
+    }
+  }, [loadList, invalidateRequests])
 
   // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (updateFilter); thuộc công thức và định lượng nguyên liệu.
   const updateFilter = (patch: Partial<RecipeListFilter>) => {

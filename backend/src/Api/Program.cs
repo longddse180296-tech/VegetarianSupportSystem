@@ -42,6 +42,7 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddApplication();
 // Đăng ký các tầng xử lý và kênh tính dinh dưỡng; hub chỉ điều phối, phép tính nằm trong nghiệp vụ.
 builder.Services.AddSignalR(options => options.MaximumReceiveMessageSize = 64 * 1024);
+builder.Services.AddScoped<PublicRecipeUpdates>();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(
@@ -263,5 +264,7 @@ app.UseAuthorization();
 app.MapControllers();
 // BE2-04 | Đăng ký endpoint SignalR tính trước dinh dưỡng cho form công thức.
 app.MapHub<RecipeNutritionHub>("/api/hubs/recipe-nutrition", options => options.CloseOnAuthenticationExpiration = true);
+// Tín hiệu công khai chỉ yêu cầu trình duyệt lấy lại danh sách bằng API hiện có.
+app.MapHub<PublicRecipesHub>("/api/hubs/public-recipes");
 
 app.Run();
