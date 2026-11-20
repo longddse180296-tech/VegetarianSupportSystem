@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nhận ảnh nhãn hoặc món ăn, dữ liệu thành phần đã xác nhận và yêu cầu xem lịch sử quét.
 using Application.Features.FoodScanning;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +9,7 @@ namespace Api.Controllers;
 
 // FoodScansController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
-[Authorize(Roles = "User,Admin")]
+[Authorize(Roles = "User")]
 [Route("api/food-scans")]
 public sealed class FoodScansController(FoodScanningService scanningService) : ControllerBase
 {
@@ -138,6 +138,13 @@ public sealed class FoodScansController(FoodScanningService scanningService) : C
         if (UserId is null) return Unauthorized();
         try { return Ok(await scanningService.ListOwnedAsync(UserId, page, pageSize, cancellationToken)); }
         catch (ArgumentException ex) { return BadRequest(new ProblemDetails { Detail = ex.Message }); }
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        if (UserId is null) return Unauthorized();
+        return await scanningService.DeleteOwnedAsync(id, UserId, ct) ? NoContent() : NotFound();
     }
 
     // Get: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

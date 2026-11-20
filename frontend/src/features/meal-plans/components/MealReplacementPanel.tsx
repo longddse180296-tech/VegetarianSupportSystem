@@ -1,3 +1,4 @@
+// BE2-09 | Giao diện chọn công thức và khẩu phần thay cho một bữa trong lịch.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import { RefreshCw, Check, Sparkles, X } from 'lucide-react'

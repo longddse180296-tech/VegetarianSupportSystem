@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Đăng ký các service nghiệp vụ để controller và worker lấy qua dependency injection.
 using Application.Features.AiChat;
 using Application.Features.Articles;
 using Application.Features.Administration;

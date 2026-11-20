@@ -1,4 +1,5 @@
-// Chức năng: xuất tài liệu thực đơn. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-09 | Render thực đơn đã lưu thành PDF để người dùng tải xuống.
+// Kết xuất thực đơn và danh sách mua sắm thành PDF để người dùng tải về.
 using System.Globalization;
 using System.Text;
 using Application.Features.MealPlans;
@@ -27,7 +28,7 @@ public sealed class MealPlanPdfRenderer : IMealPlanPdfRenderer
         {
             lines.Add("Day " + day.Key);
             foreach (var meal in day.OrderBy(meal => meal.Slot))
-                lines.Add("  " + SlotName(meal.Slot) + ": " + meal.RecipeName + " (" + meal.Servings + " serving(s))");
+                lines.Add("  " + SlotName(meal.Slot) + ": " + meal.RecipeName);
         }
 
         lines.Add("");

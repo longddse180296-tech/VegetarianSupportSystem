@@ -1,5 +1,6 @@
 // Chức năng: phân tích ảnh món ăn và nhãn thành phần. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { SkeletonLoader, StatusBadge } from '../../../shared/components'
+import { Trash2 } from 'lucide-react'
 import type { ScanHistoryItem } from '../types/foodScan.types'
 
 // Cấu trúc ScanHistoryListProps quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
@@ -11,6 +12,8 @@ export interface ScanHistoryListProps {
   onRetry: () => void
   onLoadMore: () => void
   onSelect: (id: string) => void
+  onDelete: (id: string) => void
+  deletingId: string | null
 }
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (ScanHistoryList); thuộc phân tích ảnh món ăn và nhãn thành phần.
@@ -22,6 +25,8 @@ export default function ScanHistoryList({
   onRetry,
   onLoadMore,
   onSelect,
+  onDelete,
+  deletingId,
 }: ScanHistoryListProps) {
   if (historyState === 'idle') return null
   // Hiển thị giao diện phân tích ảnh món ăn và nhãn thành phần từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
@@ -45,10 +50,11 @@ export default function ScanHistoryList({
       {history.length > 0 && (
         <ul className="space-y-2" role="list">
           {history.map((h) => (
-            <li key={h.id}>
+            <li key={h.id} className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => onSelect(h.id)}
+                disabled={deletingId !== null}
                 className="group flex w-full items-start justify-between gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/70 p-3 text-left hover:border-emerald-300 hover:bg-emerald-50/40 transition-all cursor-pointer shadow-2xs"
               >
                 <div className="min-w-0 flex-1">
@@ -64,6 +70,11 @@ export default function ScanHistoryList({
                 <div className="shrink-0 mt-0.5">
                   <StatusBadge status={h.status} size="sm" />
                 </div>
+              </button>
+              <button type="button" onClick={() => onDelete(h.id)} disabled={deletingId !== null}
+                title="Xóa lịch sử quét" aria-label={`Xóa lần quét: ${h.productName}`}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40">
+                <Trash2 size={16} />
               </button>
             </li>
           ))}

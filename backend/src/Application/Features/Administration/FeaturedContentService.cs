@@ -1,4 +1,5 @@
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-06 | Lấy danh sách nội dung nổi bật và xử lý yêu cầu ghim hoặc bỏ ghim của Admin.
+// Cho Admin ghim hoặc bỏ ghim nội dung và trả các mục đủ điều kiện hiển thị.
 using System.ComponentModel.DataAnnotations;
 using Domain.Enums;
 
@@ -14,6 +15,8 @@ public sealed class FeaturedContentService(IFeaturedContentRepository repository
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (query.Page > int.MaxValue / query.PageSize)
             throw new ValidationException("Số trang vượt giới hạn.");
+        if (query.RankByPopularity)
+            return repository.ListPopularAsync(ParseContentType(query.ContentType), query.Page, query.PageSize, ct);
         return repository.ListAsync(ParseContentType(query.ContentType),
             pinnedOnly ? null : query.Search?.Trim(), pinnedOnly, query.Page, query.PageSize, ct);
     }

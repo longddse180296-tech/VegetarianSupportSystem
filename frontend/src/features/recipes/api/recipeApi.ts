@@ -1,3 +1,4 @@
+// BE2-01/04 | Gửi bộ lọc công thức public và dữ liệu tạo hoặc sửa công thức qua API.
 // Chức năng: công thức và định lượng nguyên liệu. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type { SelectOption } from '../../../shared/components'
@@ -207,7 +208,22 @@ export type CoreDietType =
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (resolveDietType); thuộc công thức và định lượng nguyên liệu.
 export function resolveDietType(
   assessments?: Array<{ dietaryType: number | string; status: number | string }>,
+  declaredDietaryType?: number | string | null,
 ): { dietType?: CoreDietType; dietCategory?: RecipeDietCategory; compatibleDietCategories: RecipeDietCategory[] } {
+  // Nhãn public chỉ đổi khi Admin lưu lại loại ăn chay trên công thức.
+  const declaredTypes = ['Vegan', 'LactoVegetarian', 'OvoVegetarian', 'LactoOvoVegetarian']
+  const declaredName = typeof declaredDietaryType === 'number'
+    ? declaredTypes[declaredDietaryType - 1]
+    : declaredDietaryType
+  const declaredIndex = declaredTypes.findIndex(type => type.toLowerCase() === declaredName?.toLowerCase())
+  if (declaredIndex >= 0) {
+    const dietType: CoreDietType = ['Thuần chay (Vegan)', 'Ăn chay có sữa (Lacto)', 'Chay có trứng (Ovo)', 'Trứng & Sữa (Lacto-ovo)'][declaredIndex] as CoreDietType
+    const dietCategory: RecipeDietCategory = ['vegan', 'lacto', 'ovo', 'ovo-lacto'][declaredIndex] as RecipeDietCategory
+    const compatibleDietCategories: RecipeDietCategory[] = declaredIndex === 0
+      ? ['vegan', 'lacto', 'ovo', 'ovo-lacto']
+      : declaredIndex === 3 ? ['ovo-lacto'] : [dietCategory, 'ovo-lacto']
+    return { dietType, dietCategory, compatibleDietCategories }
+  }
   if (assessments && assessments.length > 0) {
     // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (isCompatible); thuộc công thức và định lượng nguyên liệu.
     const isCompatible = (typeNum: number, typeName: string) =>
@@ -253,6 +269,7 @@ export function resolveDietType(
 // ---------- Real Backend Interfaces & Adapters ----------
 // Cấu trúc BackendRecipeSummary quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface BackendRecipeSummary {
+  declaredDietaryType?: number | string | null
   id: string
   name: string
   description: string | null
@@ -269,6 +286,7 @@ interface BackendRecipeSummary {
 
 // Cấu trúc BackendRecipeResponse quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 interface BackendRecipeResponse {
+  declaredDietaryType?: number | string | null
   id: string
   categoryId: string
   name: string
@@ -303,7 +321,7 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
   const cookMin = summary.cookTimeMinutes || 20
   const prepMin = summary.prepTimeMinutes || 10
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
-  const { dietType, dietCategory, compatibleDietCategories } = resolveDietType(summary.dietaryAssessments)
+  const { dietType, dietCategory, compatibleDietCategories } = resolveDietType(summary.dietaryAssessments, summary.declaredDietaryType)
   const img = summary.imageUrl?.trim() || ''
 
   return {
@@ -315,13 +333,13 @@ function mapSummaryToRecipe(summary: BackendRecipeSummary): Recipe {
     prepTime: `${prepMin} phút`,
     cookTime: `${cookMin} phút`,
     totalTime: `${prepMin + cookMin} phút`,
-    servings: summary.servings || 2,
+    servings: 1,
     calories: summary.caloriesPerServing == null ? undefined : Math.round(summary.caloriesPerServing),
     imageUrl: img,
     coverImage: img,
     cookTimeMinutes: cookMin,
     prepTimeMinutes: prepMin,
-    servingSize: summary.servings || 2,
+    servingSize: 1,
     dietCategory,
     compatibleDietCategories,
     difficulty,
@@ -352,7 +370,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   const cookMin = detail.cookTimeMinutes || 20
   const prepMin = detail.prepTimeMinutes || 10
   const difficulty: RecipeDifficulty = cookMin <= 20 ? 'easy' : cookMin <= 40 ? 'medium' : 'hard'
-  const { dietType, dietCategory, compatibleDietCategories } = resolveDietType(detail.dietaryAssessments)
+  const { dietType, dietCategory, compatibleDietCategories } = resolveDietType(detail.dietaryAssessments, detail.declaredDietaryType)
   const img = detail.imageUrl?.trim() || ''
 
   const rawSteps = detail.instructions
@@ -374,7 +392,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
   const ingredients: RecipeIngredient[] = (detail.ingredients || []).map((ing) => ({
     id: ing.ingredientId,
     name: ing.name,
-    amount: ing.quantity,
+    amount: ing.quantity / detail.servings,
     unit: ing.unit,
     note: ing.note || '',
   }))
@@ -394,7 +412,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
     prepTime: `${prepMin} phút`,
     cookTime: `${cookMin} phút`,
     totalTime: `${prepMin + cookMin} phút`,
-    servings: detail.servings || 2,
+    servings: 1,
     calories: detail.caloriesPerServing == null ? undefined : Math.round(detail.caloriesPerServing),
     protein: detail.proteinGramPerServing == null ? undefined : Math.round(detail.proteinGramPerServing),
     carbs: detail.carbohydrateGramPerServing == null ? undefined : Math.round(detail.carbohydrateGramPerServing),
@@ -404,7 +422,7 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
     coverImage: img,
     cookTimeMinutes: cookMin,
     prepTimeMinutes: prepMin,
-    servingSize: detail.servings || 2,
+    servingSize: 1,
     dietCategory,
     compatibleDietCategories,
     difficulty,
@@ -431,6 +449,27 @@ function mapDetailToRecipe(detail: BackendRecipeResponse): Recipe {
 }
 
 // ---------- Public API ----------
+// Lọc theo chế độ ăn Admin đã lưu, trước khi phân trang; loại công thức đang xem.
+export async function getRelatedRecipes(recipe: Recipe): Promise<Recipe[]> {
+  const diets: Record<string, number> = { vegan: 1, lacto: 2, ovo: 3, 'ovo-lacto': 4 }
+  const diet = recipe.dietCategory ? diets[recipe.dietCategory] : undefined
+  if (!diet) return []
+
+  try {
+    const res = await apiClient.get<BackendRecipePage>(
+      `/api/recipes?declaredDietaryType=${diet}&pageNumber=1&pageSize=4`,
+      { requiresAuth: false },
+    )
+    return (res.items || [])
+      .map(mapSummaryToRecipe)
+      .filter(item => item.id.toLowerCase() !== recipe.id.toLowerCase() && item.dietCategory === recipe.dietCategory)
+      .slice(0, 3)
+  } catch (error) {
+    console.error('[recipeApi.getRelatedRecipes] Không tải được công thức liên quan', error)
+    return []
+  }
+}
+
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipes); thuộc công thức và định lượng nguyên liệu.
 export async function getRecipes(
   inputFilter: Partial<RecipeListFilter> = {},
@@ -450,7 +489,7 @@ export async function getRecipes(
     params.set('dietaryType', String(dietMap[applied.diet]))
   }
   params.set('pageNumber', '1')
-  params.set('pageSize', '50')
+  params.set('pageSize', '100')
 
   const url = `/api/recipes?${params.toString()}`
   try {
@@ -458,7 +497,15 @@ export async function getRecipes(
       requiresAuth: false,
     })
     if (res && Array.isArray(res.items)) {
-      const items = res.items.map(mapSummaryToRecipe)
+      const summaries = [...res.items]
+      let page = 1
+      while (summaries.length < res.totalCount) {
+        params.set('pageNumber', String(++page))
+        const next = await apiClient.get<BackendRecipePage>(`/api/recipes?${params.toString()}`, { requiresAuth: false })
+        if (!next.items?.length) break
+        summaries.push(...next.items)
+      }
+      const items = summaries.map(mapSummaryToRecipe)
       return {
         items,
         totalCount: res.totalCount ?? items.length,
@@ -478,11 +525,11 @@ export async function getRecipes(
 }
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipeDetail); thuộc công thức và định lượng nguyên liệu.
-export async function getRecipeDetail(id: string): Promise<Recipe | null> {
-  const url = `/api/recipes/${id}`
+export async function getRecipeDetail(id: string, planId?: string): Promise<Recipe | null> {
+  const url = planId ? `/api/meal-plans/${encodeURIComponent(planId)}/recipes/${encodeURIComponent(id)}` : `/api/recipes/${id}`
   try {
     const detail = await apiClient.get<BackendRecipeResponse>(url, {
-      requiresAuth: false,
+      requiresAuth: !!planId,
     })
     if (detail && detail.id) {
       return mapDetailToRecipe(detail)

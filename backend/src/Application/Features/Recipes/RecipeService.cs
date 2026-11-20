@@ -1,4 +1,5 @@
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-01/04 | Điều phối nghiệp vụ và kiểm tra điều kiện trước khi lưu (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
+// Kiểm tra danh mục Công thức, nguyên liệu, chế độ ăn và tính dinh dưỡng trước khi lưu công thức.
 using Application.Common.Exceptions;
 using Application.Common.Validation;
 using Domain.Entities;
@@ -15,6 +16,7 @@ public sealed class RecipeService(
     ICategoryRepository categories,
     IIngredientRepository ingredients)
 {
+    public Task<int> CountRequiringReviewAsync(CancellationToken ct) => repository.CountRequiringReviewAsync(ct);
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<RecipePage> ListAsync(RecipeListQuery query, bool includeInactive, CancellationToken ct)
     {
@@ -57,7 +59,17 @@ public sealed class RecipeService(
         return RecipeMapping.ToResponse(entity);
     }
 
-    // DeactivateAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // BE2-04 | Kích hoạt lại giữ nguyên nội dung, ảnh và định lượng; gọi lặp khi đang hoạt động vẫn thành công.
+    public async Task ActivateAsync(Guid id, CancellationToken ct)
+    {
+        var entity = await FindAsync(id, ct);
+        if (entity.IsActive) return;
+        entity.IsActive = true;
+        entity.UpdatedAt = DateTimeOffset.UtcNow;
+        await repository.SaveAsync(ct);
+    }
+
+    // Đánh dấu công thức ngừng sử dụng và ghi lại thời điểm cập nhật.
     public async Task DeactivateAsync(Guid id, CancellationToken ct)
     {
         var entity = await FindAsync(id, ct);
@@ -76,7 +88,7 @@ public sealed class RecipeService(
     private async Task<Recipe> FindAsync(Guid id, CancellationToken ct) =>
         await repository.GetAsync(id, ct) ?? throw new KeyNotFoundException("Không tìm thấy công thức hoặc công thức không còn khả dụng.");
 
-    // ApplyAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Kiểm tra thông tin, loại danh mục và nguyên liệu trước khi cập nhật công thức cùng các dòng định lượng.
     private async Task ApplyAsync(Recipe entity, RecipeRequest request, CancellationToken ct)
     {
         RecipeValidation.Validate(request);
@@ -87,7 +99,7 @@ public sealed class RecipeService(
         }
 
         var category = await categories.GetAsync(request.CategoryId, ct);
-        if (category is null || (!category.IsActive && entity.CategoryId != category.Id))
+        if (category is null || category.Kind != CategoryKind.Recipe || (!category.IsActive && entity.CategoryId != category.Id))
         {
             RecipeValidation.Fail(nameof(request.CategoryId), "Vui lòng chọn danh mục đang được sử dụng.");
         }
@@ -99,6 +111,19 @@ public sealed class RecipeService(
             RecipeValidation.Fail(nameof(request.Ingredients), "Một số nguyên liệu không tồn tại hoặc đã ngừng sử dụng. Vui lòng chọn lại.");
         }
         var declaredDietaryType = request.DeclaredDietaryType!.Value;
+        var inferredDiet = DietaryRules.InferRecipeDiet(selected);
+        if (declaredDietaryType != inferredDiet)
+        {
+            var expected = inferredDiet switch
+            {
+                DietaryType.Vegan => "Thuần chay",
+                DietaryType.OvoVegetarian => "Chay có trứng",
+                DietaryType.LactoVegetarian => "Chay có sữa",
+                DietaryType.LactoOvoVegetarian => "Chay có trứng và sữa",
+                _ => "Chưa xác định"
+            };
+            RecipeValidation.Fail(nameof(request.DeclaredDietaryType), $"Nguyên liệu hiện tại thuộc loại {expected}. Vui lòng chọn đúng loại ăn chay của công thức.");
+        }
         var assessment = DietaryRules.Classify(selected).Single(item => item.DietaryType == declaredDietaryType);
         if (assessment.Status != DietaryCompatibility.Compatible)
         {

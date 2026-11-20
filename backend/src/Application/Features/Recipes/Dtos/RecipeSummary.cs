@@ -1,4 +1,5 @@
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-01/04 | Dữ liệu trả về cho giao diện (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
+// Trả thông tin rút gọn về công thức, số khẩu phần, nguyên liệu và hướng dẫn nấu để hiển thị trong danh sách.
 using Domain.ValueObjects;
 using Domain.Enums;
 
@@ -22,4 +23,4 @@ public sealed record RecipeSummary(
     decimal? CarbohydrateGramPerServing,
     decimal? FatGramPerServing,
     IReadOnlyList<string> IngredientNames,
-    string? Description = null);
+    string? Description = null, DietaryType? InferredDietaryType = null, bool RequiresReview = false);

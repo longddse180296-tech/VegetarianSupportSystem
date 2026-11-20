@@ -1,3 +1,4 @@
+// Kiểm thử thống kê nghiệp vụ và dữ liệu trả cho dashboard Admin.
 using System.Net;
 using System.Net.Http.Json;
 using Application.Features.Administration;

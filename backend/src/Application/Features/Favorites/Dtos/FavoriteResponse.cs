@@ -1,4 +1,5 @@
-// Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-06 | Dữ liệu trả về cho giao diện (yêu thích: công thức, video và nhà hàng theo tài khoản).
+// Định nghĩa các trường API trả về cho nội dung do người dùng lưu vào yêu thích.
 using Domain.Enums;
 
 namespace Application.Features.Favorites;
@@ -12,4 +13,5 @@ public sealed record FavoriteResponse(
     string? ImageUrl,
     DateTimeOffset CreatedAt,
     FavoriteSaveSource? SavedFrom = null,
-    double? DurationSeconds = null);
+    double? DurationSeconds = null,
+    string? DietaryWarning = null);

@@ -253,6 +253,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -264,7 +267,7 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("Kind", "Name")
                         .IsUnique();
 
                     b.ToTable("Categories", (string)null);
@@ -617,9 +620,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<bool>("ContainsMilk")
                         .HasColumnType("bit");
 
-                    b.Property<bool?>("ContainsOtherAnimalProducts")
-                        .HasColumnType("bit");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -654,9 +654,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(40)")
                         .HasDefaultValue("g");
 
-                    b.Property<int>("Origin")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("ProteinGram")
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)")
@@ -686,10 +683,40 @@ namespace Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Ingredients_NutritionBasisUnit", "[NutritionBasisUnit] IN (N'g', N'kg', N'ml', N'đơn vị')");
 
-                            t.HasCheckConstraint("CK_Ingredients_Origin", "[Origin] IN (0, 1, 2)");
-
                             t.HasCheckConstraint("CK_Ingredients_ProteinGramPer100Gram", "[ProteinGramPer100Gram] IS NULL OR [ProteinGramPer100Gram] >= 0");
                         });
+                });
+
+            modelBuilder.Entity("Domain.Entities.MealCheckIn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CheckedInAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateOnly>("EatenOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("MealId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RecipeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "MealId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "EatenOn", "RecipeId");
+
+                    b.ToTable("MealCheckIns");
                 });
 
             modelBuilder.Entity("Domain.Entities.MealPlan", b =>
@@ -746,6 +773,9 @@ namespace Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 3)
                         .HasColumnType("decimal(12,3)");
 
+                    b.Property<DateTimeOffset?>("CheckedInAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<int>("DayNumber")
                         .HasColumnType("int");
 
@@ -770,6 +800,12 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("Servings")
                         .HasColumnType("int");
@@ -835,6 +871,9 @@ namespace Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DailyShoppingJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("IngredientId")
                         .HasColumnType("uniqueidentifier");
@@ -1379,6 +1418,10 @@ namespace Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");

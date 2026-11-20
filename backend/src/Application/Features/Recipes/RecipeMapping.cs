@@ -1,4 +1,5 @@
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-01/04 | Chuyển dữ liệu nghiệp vụ sang dạng API trả về (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
+// Chuyển dữ liệu về công thức, số khẩu phần, nguyên liệu và hướng dẫn nấu từ entity sang cấu trúc API trả về.
 using Domain.Entities;
 using Domain.Rules;
 
@@ -32,7 +33,8 @@ internal static class RecipeMapping
             .ThenBy(row => row.IngredientId)
             .Select(ToIngredientResponse)
             .ToArray(),
-        DietaryRules.Classify(entity.RecipeIngredients.Select(row => row.Ingredient!)));
+        DietaryRules.Classify(entity.RecipeIngredients.Select(row => row.Ingredient!)),
+        DietaryRules.InferRecipeDiet(entity.RecipeIngredients.Select(row => row.Ingredient!)), RecipeReviewRules.NeedsReview(entity));
 
     // ToSummary: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     public static RecipeSummary ToSummary(Recipe entity) => new(
@@ -56,7 +58,7 @@ internal static class RecipeMapping
             .Select(x => x.Ingredient!.Name)
             .ToArray(),
         // Danh sách dùng cùng mô tả đã lưu với trang chi tiết, không tự tạo nội dung thay thế.
-        entity.Description);
+        entity.Description, DietaryRules.InferRecipeDiet(entity.RecipeIngredients.Select(row => row.Ingredient!)), RecipeReviewRules.NeedsReview(entity));
 
     // ToIngredientResponse: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static RecipeIngredientResponse ToIngredientResponse(RecipeIngredient row) => new(

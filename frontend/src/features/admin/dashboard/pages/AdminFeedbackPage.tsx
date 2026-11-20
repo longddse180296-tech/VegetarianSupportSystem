@@ -38,6 +38,7 @@ export default function AdminFeedbackPage({ onNavigate }: { onNavigate: (path: s
     setError('')
     try {
       await apiClient.post(`/api/admin/feedback/${id}/read`)
+      window.dispatchEvent(new Event('admin-inbox-updated'))
       result.reload()
     } catch (reason) {
       setError(errorMessage(reason))

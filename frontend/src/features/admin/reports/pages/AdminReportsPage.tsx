@@ -121,6 +121,7 @@ export default function AdminReportsPage({ onNavigate }: { onNavigate: (path: st
     try {
       for (const reportId of selectedGroup.reportIds) {
         await resolveContentReport(reportId, decision, note)
+        window.dispatchEvent(new Event('admin-inbox-updated'))
       }
       setSelectedGroup(null)
       setNotice('Đã lưu kết quả xử lý báo cáo.')
@@ -190,7 +191,6 @@ export default function AdminReportsPage({ onNavigate }: { onNavigate: (path: st
           acc[r.reason] = (acc[r.reason] || 0) + 1
           return acc
         }, {})
-        const detailPath = `/${group.targetType === 'Article' ? 'articles' : 'videos'}/${group.targetId}`
         const moderationPath = `/admin/${group.targetType === 'Article' ? 'articles' : 'videos'}?submissionId=${group.submissionId}`
 
         return (
@@ -287,16 +287,7 @@ export default function AdminReportsPage({ onNavigate }: { onNavigate: (path: st
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <a
-                className={secondaryClass}
-                href={`#${detailPath}`}
-                onClick={event => {
-                  event.preventDefault()
-                  onNavigate(detailPath)
-                }}
-              >
-                Xem nội dung hiện tại
-              </a>
+
               <a
                 className={secondaryClass}
                 href={`#${moderationPath}`}

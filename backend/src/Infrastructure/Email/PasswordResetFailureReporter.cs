@@ -1,4 +1,4 @@
-// Chức năng: gửi thư khôi phục tài khoản. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Ghi nhận lỗi gửi thư đặt lại mật khẩu bằng dữ liệu phù hợp cho việc theo dõi vận hành.
 using Application.Features.Auth;
 using Microsoft.Extensions.Logging;
 

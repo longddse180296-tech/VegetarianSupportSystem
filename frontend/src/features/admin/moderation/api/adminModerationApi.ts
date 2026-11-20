@@ -22,10 +22,10 @@ export type Decision = 'Approve' | 'RequestRevision' | 'Reject' | 'Remove'
 export const adminStatusLabels: Record<AdminStatus, string> = {
   Draft: 'Bản nháp',
   Submitted: 'Đã gửi',
-  PendingAdminReview: 'Chờ Quản trị viên duyệt',
-  Published: 'Đã xuất bản',
+  PendingAdminReview: 'Đang đợi duyệt',
+  Published: 'Đã được chấp nhận',
   RevisionRequested: 'Yêu cầu sửa',
-  Rejected: 'Từ chối',
+  Rejected: 'Đã bị từ chối',
   Removed: 'Đã gỡ',
 }
 export const aiStatusLabels: Record<AiStatus, string> = {
@@ -79,9 +79,11 @@ export interface Submission {
   }>
 }
 export const adminModerationApi = {
+  retryAi: (id: string) =>
+    apiClient.post<Submission>(`/api/admin/moderation/submissions/${id}/retry-ai`, {}),
   get: (id: string) =>
     apiClient.get<Submission>(`/api/admin/moderation/submissions/${id}`),
-  decide: (id: string, decision: Decision, reason: string) =>
+  decide: (id: string, decision: Decision, reason?: string) =>
     apiClient.post<Submission>(
       `/api/admin/moderation/submissions/${id}/decisions`,
       { decision, reason },

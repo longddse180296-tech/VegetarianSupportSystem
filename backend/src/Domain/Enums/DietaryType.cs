@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo các chế độ chay được dùng để phân loại công thức và nội dung.
 namespace Domain.Enums;
 
 // DietaryType: định nghĩa các giá trị trạng thái được phép.

@@ -40,17 +40,49 @@ for (const operation of ['getPantryItems', 'deletePantryItem', 'updatePantryItem
   })
 }
 test('Thiếu calo giữ null; số 0 có dữ liệu vẫn được giữ', async () => {
-  const suggestion = { recipeId: 'test-recipe', recipeName: 'Món kiểm thử', servings: 1, totalTimeMinutes: 10, matchPercent: 50, availableIngredients: [], missingIngredients: [] }
+  const suggestion = { recipeId: 'test-recipe', recipeName: 'Món kiểm thử', servings: 1, totalTimeMinutes: 10, matchPercent: 50, availableIngredients: [{ name: 'Đậu hũ' }], missingIngredients: [] }
   const api = pantryWith({ get: async () => [{ ...suggestion, caloriesPerServing: null }, { ...suggestion, recipeId: 'zero', caloriesPerServing: 0 }] })
   const results = await api.getRecipeMatches([])
   assert.equal(results[0].kcal, null)
   assert.equal(results[1].kcal, 0)
 })
-test('Không tự gán số lượng 1 hoặc đơn vị gram khi thêm thiếu dữ liệu', async () => {
-  let calls = 0
-  const api = pantryWith({ post: async () => { calls++; return item } })
-  await assert.rejects(api.addPantryItem({ name: 'Kiểm thử', quantity: '', unit: '', category: 'khac' }))
-  assert.equal(calls, 0)
+test('Thêm nguyên liệu không định lượng gửi null, không tự gán 200 gram', async () => {
+  let body
+  const api = pantryWith({ post: async (_url, value) => { body = value; return item } })
+  await api.addPantryItem({ name: 'Kiểm thử', quantity: '', unit: '', category: 'khac' })
+  assert.equal(body.quantity, null)
+  assert.equal(body.unit, null)
+})
+
+test('Dinh dưỡng tủ bếp nhận đủ đạm, carb, béo; giữ số 0 và dữ liệu thiếu', async () => {
+  const base = { recipeId: 'recipe', availableIngredients: [{ name: 'Đậu hũ' }], missingIngredients: [], caloriesPerServing: 100, matchPercent: 100 }
+  const result = await pantryWith({ get: async () => [
+    { ...base, proteinGramPerServing: 12.5, carbohydrateGramPerServing: 0, fatGramPerServing: 3.2 },
+    { ...base, recipeId: 'missing' },
+  ] }).getRecipeMatches([])
+  assert.equal(result[0].proteinG, 12.5)
+  assert.equal(result[0].carbsG, 0)
+  assert.equal(result[0].fatG, 3.2)
+  assert.equal(result[1].proteinG, null)
+})
+
+test('Phổ biến lấy đúng ID và tên từ catalog, không chèn tên viết sẵn', async () => {
+  let url
+  const api = pantryWith({ get: async path => { url = path; return { items: [{ id: 'db-id', name: 'Rau mới trong database' }] } } })
+  const chips = await api.getQuickAddChips()
+  assert.equal(url, '/api/ingredients?pageNumber=1&pageSize=8')
+  assert.equal(chips.length, 1)
+  assert.equal(chips[0].id, 'db-id')
+  assert.equal(chips[0].name, 'Rau mới trong database')
+  assert.equal((await pantryWith({ get: async () => ({ items: [] }) }).getQuickAddChips()).length, 0)
+})
+
+test('Chỉ hiện món có nguyên liệu trong tủ; không khớp món nào thì trả rỗng', async () => {
+  const unmatched = { recipeId: 'none', availableIngredients: [], missingIngredients: [{ name: 'Nấm' }], matchPercent: 0 }
+  const matched = { ...unmatched, recipeId: 'matched', availableIngredients: [{ name: 'Đậu hũ' }], matchPercent: 50 }
+  const result = await pantryWith({ get: async () => [unmatched, matched] }).getRecipeMatches([])
+  assert.deepEqual(Array.from(result, item => item.id), ['matched'])
+  assert.equal((await pantryWith({ get: async () => [unmatched] }).getRecipeMatches([])).length, 0)
 })
 test('Cập nhật nguyên liệu chưa định lượng giữ null khi gửi backend', async () => {
   let body

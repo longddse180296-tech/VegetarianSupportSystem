@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nhận yêu cầu đọc hoặc đổi lượt thích và đánh dấu hữu ích của người dùng.
 using Api.Authorization;
 using Application.Features.Comments;
 using Domain.Enums;
@@ -17,12 +17,12 @@ public sealed class ReactionsController(CommentService service) : ControllerBase
     public Task<IActionResult> ArticleHelpful(Guid id, CancellationToken ct) => React(ReactionTargetType.ArticleHelpful, id, null, ct);
 
     // AddArticleHelpful: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpPut("/api/articles/{id:guid}/helpful")]
     public Task<IActionResult> AddArticleHelpful(Guid id, CancellationToken ct) => React(ReactionTargetType.ArticleHelpful, id, true, ct);
 
     // DeleteArticleHelpful: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpDelete("/api/articles/{id:guid}/helpful")]
     public Task<IActionResult> DeleteArticleHelpful(Guid id, CancellationToken ct) => React(ReactionTargetType.ArticleHelpful, id, false, ct);
 
@@ -32,12 +32,12 @@ public sealed class ReactionsController(CommentService service) : ControllerBase
     public Task<IActionResult> VideoLike(Guid id, CancellationToken ct) => React(ReactionTargetType.VideoLike, id, null, ct);
 
     // AddVideoLike: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpPut("/api/videos/{id:guid}/like")]
     public Task<IActionResult> AddVideoLike(Guid id, CancellationToken ct) => React(ReactionTargetType.VideoLike, id, true, ct);
 
     // DeleteVideoLike: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpDelete("/api/videos/{id:guid}/like")]
     public Task<IActionResult> DeleteVideoLike(Guid id, CancellationToken ct) => React(ReactionTargetType.VideoLike, id, false, ct);
 
@@ -47,12 +47,12 @@ public sealed class ReactionsController(CommentService service) : ControllerBase
     public Task<IActionResult> CommentLike(Guid id, CancellationToken ct) => React(ReactionTargetType.CommentLike, id, null, ct);
 
     // AddCommentLike: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpPut("/api/comments/{id:guid}/like")]
     public Task<IActionResult> AddCommentLike(Guid id, CancellationToken ct) => React(ReactionTargetType.CommentLike, id, true, ct);
 
     // DeleteCommentLike: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpDelete("/api/comments/{id:guid}/like")]
     public Task<IActionResult> DeleteCommentLike(Guid id, CancellationToken ct) => React(ReactionTargetType.CommentLike, id, false, ct);
 

@@ -1,3 +1,5 @@
+// Kiểm thử cách dữ liệu mẫu được lọc khỏi kết quả theo điều kiện thử nghiệm.
+// BE2-01/07 | Kiểm tra lọc công thức public trên kho dữ liệu mẫu.
 using System.Net;
 using System.Net.Http.Json;
 using Application.Features.Ingredients;
@@ -33,7 +35,7 @@ internal static class SeedFilterChecks
             "invalid declared diet filter returns 400");
 
         var all = (await client.GetFromJsonAsync<RecipePage>("/api/recipes?pageSize=100"))!;
-        check(all.TotalCount == 6, "six public sample recipes");
+        check(all.TotalCount == 5, "five public sample recipes");
         foreach (var direction in new[] { "asc", "desc" })
         {
             var known = all.Items.Where(x => x.CaloriesPerServing.HasValue);
@@ -75,7 +77,7 @@ internal static class SeedFilterChecks
             !lacto.Items.Any(x => x.Name == "[Mẫu] Cơm trứng" || x.Name == "[Mẫu] Trứng sữa hấp"),
             "Lacto allows milk-only recipes and excludes every egg recipe");
 
-        check((await client.GetFromJsonAsync<RecipePage>("/api/recipes?maxCookTimeMinutes=15"))!.TotalCount == 4, "cook time boundary filter");
+        check((await client.GetFromJsonAsync<RecipePage>("/api/recipes?maxCookTimeMinutes=15"))!.TotalCount == 3, "cook time boundary filter");
         check((await client.GetFromJsonAsync<RecipePage>("/api/recipes?maxCaloriesPerServing=250"))!.TotalCount == 3, "calorie filter excludes unknown calories");
         check((await client.GetFromJsonAsync<RecipePage>("/api/recipes?dietaryType=1&maxCookTimeMinutes=20&maxCaloriesPerServing=300"))!.TotalCount == 1, "combined filters");
         check((await client.GetAsync("/api/recipes?dietaryType=99")).StatusCode == HttpStatusCode.BadRequest, "invalid diet filter 400");
@@ -89,9 +91,8 @@ internal static class SeedFilterChecks
         {
             Name = milk.Name,
             DefaultUnit = "g", Calories = 60, ProteinGram = 3, CarbohydrateGram = 5, FatGram = 3,
-            Origin = IngredientOrigin.Animal,
             ContainsMilk = true,
-            ContainsOtherAnimalProducts = true,
+            ContainsEgg = true,
             Aliases = "test-milk-alias",
             Source = "Admin edit"
         });
@@ -103,7 +104,8 @@ internal static class SeedFilterChecks
         foreach (var recipe in milkRecipes.Items)
         {
             var detail = (await client.GetFromJsonAsync<RecipeResponse>("/api/recipes/" + recipe.Id))!;
-            check(detail.DietaryAssessments.All(x => x.Status == DietaryCompatibility.Incompatible),
+            check(detail.DietaryAssessments.All(x => x.Status ==
+                (x.DietaryType == DietaryType.LactoOvoVegetarian ? DietaryCompatibility.Compatible : DietaryCompatibility.Incompatible)),
                 "recipe detail reflects ingredient edits");
         }
 
@@ -111,15 +113,5 @@ internal static class SeedFilterChecks
         await CoreDataSeeder.SeedAsync(db);
         check((await db.Ingredients.AsNoTracking().SingleAsync(x => x.Id == milk.Id)).Source == "Admin edit",
             "seed preserves Admin modifications");
-        check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest
-        {
-            Name = "Conflicting plant",
-            Origin = IngredientOrigin.Plant,
-            ContainsEgg = true
-        })).StatusCode == HttpStatusCode.BadRequest, "reject contradictory plant origin");
-
-        var unknownId = all.Items.Single(x => x.DietaryAssessments.All(a => a.Status == DietaryCompatibility.Unknown)).Id;
-        check((await client.GetFromJsonAsync<RecipeResponse>("/api/recipes/" + unknownId))!.DietaryAssessments.All(
-            x => x.Status == DietaryCompatibility.Unknown), "unknown recipe remains explicit");
     }
 }

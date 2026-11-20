@@ -1,3 +1,4 @@
+// BE2-05/06 | Hiển thị chi tiết nhà hàng public và hỗ trợ lưu yêu thích.
 // Chức năng: tra cứu và quản lý nhà hàng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import { useEffect, useState } from 'react'
@@ -12,7 +13,6 @@ import {
   Navigation,
   Phone,
   Share2,
-  Sparkles,
   Wallet,
 } from 'lucide-react'
 import {
@@ -412,36 +412,28 @@ export default function RestaurantDetail({
 
         {/* ===== MÓN ĂN NỔI BẬT CỦA NHÀ HÀNG ===== */}
         {restaurant.featuredDishes && restaurant.featuredDishes.length > 0 && (
-          <section className="rounded-[20px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
-            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-[#2E7D32]">
-                  <Sparkles size={16} />
-                </span>
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Món ăn nổi bật tại quán
-                </h2>
+          <section aria-labelledby="featured-dishes-heading" className="rounded-[24px] border border-[#E1E8DD] bg-[#F7F9F3] p-5 sm:p-7">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#718365]">Hương vị tại {restaurant.name}</p>
+                <h2 id="featured-dishes-heading" className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">Món ăn nổi bật</h2>
+                <p className="mt-2 text-sm text-slate-500">Một vài món để bạn tham khảo trước khi ghé quán.</p>
               </div>
+              <span className="rounded-full border border-[#DEE7D7] bg-white px-3 py-1.5 text-xs font-medium text-[#42633A]">{restaurant.featuredDishes.length} món giới thiệu</span>
             </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {restaurant.featuredDishes.map((item) => (
-                <article
-                  key={item.id}
-                  className="group relative flex flex-col overflow-hidden rounded-[16px] border border-slate-200/90 bg-white p-3.5 shadow-2xs transition-all hover:border-emerald-400/80 hover:shadow-md"
-                >
-                  <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[12px] bg-slate-900 mb-3">
-                    <ContentImage
-                      src={item.imageUrl}
-                      alt={item.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
+            <div className={`grid gap-5 ${restaurant.featuredDishes.length === 1 ? 'max-w-xl' : restaurant.featuredDishes.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
+              {restaurant.featuredDishes.map((item, index) => (
+                <article key={item.id} className="group flex h-full min-w-0 flex-col overflow-hidden rounded-[20px] border border-[#E1E8DD] bg-white shadow-[0_2px_8px_rgba(25,50,25,0.03)]">
+                  <div className="relative aspect-[16/11] overflow-hidden bg-slate-100">
+                    <ContentImage src={item.imageUrl} alt={item.name} loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.035] motion-reduce:transform-none" />
+                    <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-[#42633A] shadow-sm">Món {String(index + 1).padStart(2, '0')}</span>
                   </div>
-
-                  <h4 className="line-clamp-2 text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                    {item.name}
-                  </h4>
+                  <div className="flex flex-1 flex-col p-5">
+                    <h3 className="break-words text-[18px] font-bold leading-snug text-slate-900">{item.name}</h3>
+                    {item.description?.trim() && <p className="mt-3 whitespace-pre-line break-words text-[13px] leading-6 text-slate-500">{item.description}</p>}
+                    <div className="mt-5 h-0.5 w-8 rounded-full bg-[#CADABC]" aria-hidden="true" />
+                  </div>
                 </article>
               ))}
             </div>

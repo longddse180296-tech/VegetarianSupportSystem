@@ -1,5 +1,7 @@
-// Chức năng: danh mục nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-02 | Hợp đồng đọc và ghi dữ liệu mà service sử dụng (danh mục: tên, mô tả và trạng thái sử dụng).
+// Quy định các thao tác truy xuất danh mục theo loại nội dung mà nghiệp vụ sử dụng.
 using Domain.Entities;
+using Domain.Enums;
 
 namespace Application.Features.Categories;
 
@@ -7,11 +9,11 @@ namespace Application.Features.Categories;
 public interface ICategoryRepository
 {
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
-    Task<(IReadOnlyList<Category> Items, int TotalCount)> ListAsync(CategoryListQuery query, bool includeInactive, CancellationToken ct);
+    Task<(IReadOnlyList<Category> Items, int TotalCount)> ListAsync(CategoryListQuery query, bool includeInactive, CategoryKind kind, CancellationToken ct);
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<Category?> GetAsync(Guid id, CancellationToken ct);
     // NameExistsAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    Task<bool> NameExistsAsync(string name, Guid? exceptId, CancellationToken ct);
+    Task<bool> NameExistsAsync(string name, Guid? exceptId, CategoryKind kind, CancellationToken ct);
     // Add: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     void Add(Category entity);
     // SaveAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.

@@ -1,3 +1,4 @@
+// Chuẩn hóa tiêu đề để kiểm tra bài trùng khi khác cách viết hoa hoặc định dạng khoảng trắng.
 // Chuẩn hóa tiêu đề để phát hiện trùng khi gửi duyệt; giữ dấu tiếng Việt, không suy đoán hai tiêu đề gần giống là trùng.
 using System.Text;
 

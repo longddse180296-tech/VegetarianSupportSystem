@@ -1,3 +1,4 @@
+// Kiểm thử quy tắc khóa, mở khóa và ghi lịch sử thành viên.
 using Domain.Entities;
 
 namespace Domain.Tests;

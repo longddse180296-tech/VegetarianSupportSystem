@@ -1,4 +1,5 @@
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-01/04 | Dữ liệu đầu vào từ API (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
+// Nhận dữ liệu từ frontend để thực hiện thao tác với công thức, số khẩu phần, nguyên liệu và hướng dẫn nấu.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 using Domain.Enums;

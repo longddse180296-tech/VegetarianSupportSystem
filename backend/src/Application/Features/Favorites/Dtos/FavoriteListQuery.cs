@@ -1,4 +1,5 @@
-// Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-06 | Tham số lọc, phân trang hoặc giới hạn kết quả (yêu thích: công thức, video và nhà hàng theo tài khoản).
+// Nhận bộ lọc và phân trang cho danh sách nội dung do người dùng lưu vào yêu thích.
 using System.ComponentModel.DataAnnotations;
 using Domain.Enums;
 

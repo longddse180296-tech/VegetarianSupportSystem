@@ -1,3 +1,4 @@
+// Định nghĩa thao tác đọc thông tin thời lượng và audio từ tệp video.
 // Hợp đồng đọc metadata kỹ thuật; Application không phụ thuộc công cụ FFprobe hay đường dẫn lưu tệp.
 namespace Application.Features.Videos;
 

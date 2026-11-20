@@ -1,5 +1,5 @@
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: video, bản nháp và nội dung công khai. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Bổ sung lưu trữ bản ghi video và lịch sử quét thực phẩm.
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

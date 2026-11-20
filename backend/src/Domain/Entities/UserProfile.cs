@@ -1,4 +1,4 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu hồ sơ ăn uống và mục tiêu dinh dưỡng.
 using Domain.Enums;
 
 namespace Domain.Entities;
@@ -80,7 +80,12 @@ public sealed class UserProfile
         SexForEnergyEstimate = sexForEnergyEstimate;
         HeightCm = heightCm;
         WeightKg = weightKg;
-        ActivityLevel = activityLevel;
+        ActivityLevel = activityLevel switch
+        {
+            Domain.Enums.ActivityLevel.LightlyActive => Domain.Enums.ActivityLevel.ModeratelyActive,
+            Domain.Enums.ActivityLevel.ExtraActive => Domain.Enums.ActivityLevel.VeryActive,
+            _ => activityLevel
+        };
         WeightGoal = weightGoal;
         UpdatedAtUtc = updatedAtUtc;
     }

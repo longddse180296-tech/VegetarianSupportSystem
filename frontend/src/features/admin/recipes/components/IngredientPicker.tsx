@@ -1,3 +1,4 @@
+// BE2-04 | Chọn nguyên liệu có trong danh mục để đưa vào công thức.
 // Chức năng: công thức và định lượng nguyên liệu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import { useEffect, useId, useRef, useState } from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'

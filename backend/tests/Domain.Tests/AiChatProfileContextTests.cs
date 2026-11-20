@@ -1,3 +1,4 @@
+// Kiểm thử thông tin hồ sơ dùng khi tạo ngữ cảnh AI Chat.
 using System.Text.Json;
 using Application.Features.AiChat;
 using Application.Features.Profiles;
@@ -146,6 +147,7 @@ public sealed class AiChatProfileContextTests
 
     private sealed class Conversations(string userId) : IAiChatRepository
     {
+        public Task<bool> DeleteConversationAsync(Guid id, string owner, CancellationToken ct) => throw new NotSupportedException();
         public AiChatConversation Conversation { get; } = AiChatConversation.Create(userId, Now);
         private readonly List<AiChatMessage> messages = [];
         public Task<AiChatConversation?> GetConversationForUserAsync(Guid id, string owner, CancellationToken ct) =>

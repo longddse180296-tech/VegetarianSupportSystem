@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Nhận quyết định xử lý cùng lý do Admin nhập cho báo cáo vi phạm.
 using Domain.Enums;
 
 namespace Application.Features.Moderation;

@@ -12,7 +12,8 @@ import {
   BookOpen,
   MapPin,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { apiClient } from '../../shared/api/apiClient'
 import { useAuth } from '../../features/auth'
 import { Logo } from './Logo'
 import './AdminLayout.css'
@@ -36,7 +37,7 @@ const nav = [
     path: '/admin/dashboard',
     icon: LayoutDashboard,
   },
-  { id: 'categories', label: 'Danh mục công thức', path: '/admin/categories', icon: Tag },
+  { id: 'categories', label: 'Danh mục', path: '/admin/categories', icon: Tag },
   {
     id: 'ingredients',
     label: 'Nguyên liệu',
@@ -90,6 +91,49 @@ export function AdminLayout({
   onLogout,
   availableNavIds,
 }: AdminLayoutProps) {
+  const [recipeWarnings, setRecipeWarnings] = useState<number | null>(null)
+  const [feedbackCount, setFeedbackCount] = useState<number | null>(null)
+  const [reportCount, setReportCount] = useState<number | null>(null)
+  const [articleCount, setArticleCount] = useState<number | null>(null)
+  const [videoCount, setVideoCount] = useState<number | null>(null)
+  useEffect(() => {
+    let disposed = false
+    let request: AbortController | null = null
+    const refresh = () => {
+      if (document.visibilityState === 'hidden') return
+      request?.abort()
+      request = new AbortController()
+      const signal = request.signal
+      // Cộng các nội dung đang kiểm tra và đang chờ Admin; bỏ bản nháp và các quyết định đã xử lý.
+      const pendingCount = async (contentType: 'Article' | 'Video') => {
+        const pages = await Promise.all(['Submitted', 'PendingAdminReview'].map(adminStatus =>
+          apiClient.get<{totalCount: number}>(`/api/admin/moderation/submissions?contentType=${contentType}&adminStatus=${adminStatus}&page=1&pageSize=1`, {signal})))
+        return pages.reduce((total, page) => total + page.totalCount, 0)
+      }
+      void Promise.allSettled([
+        apiClient.get<{count: number}>('/api/admin/recipes/review-count', {signal}),
+        apiClient.get<{total: number}>('/api/admin/feedback?isRead=false&page=1&pageSize=1', {signal}),
+        apiClient.get<{totalCount: number}>('/api/admin/content-reports?status=Pending&page=1&pageSize=1', {signal}),
+        pendingCount('Article'),
+        pendingCount('Video'),
+      ]).then(([recipes, feedback, reports, articles, videos]) => {
+        if (disposed || signal.aborted) return
+        if (recipes.status === 'fulfilled') setRecipeWarnings(recipes.value.count)
+        if (feedback.status === 'fulfilled') setFeedbackCount(feedback.value.total)
+        if (reports.status === 'fulfilled') setReportCount(reports.value.totalCount)
+        if (articles.status === 'fulfilled') setArticleCount(articles.value)
+        if (videos.status === 'fulfilled') setVideoCount(videos.value)
+      })
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 30_000)
+    window.addEventListener('focus', refresh)
+    window.addEventListener('recipe-catalog-updated', refresh)
+    window.addEventListener('admin-inbox-updated', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => { disposed = true; request?.abort(); window.clearInterval(timer); window.removeEventListener('focus', refresh); window.removeEventListener('recipe-catalog-updated', refresh); window.removeEventListener('admin-inbox-updated', refresh); document.removeEventListener('visibilitychange', refresh) }
+  }, [])
+  const badgeCounts: Record<string, number | null> = {recipes: recipeWarnings, feedback: feedbackCount, reports: reportCount, articles: articleCount, videos: videoCount}
   const auth = useAuth()
   const displayName = adminName || auth.user?.fullName || 'Quản trị viên'
   const displayEmail = adminEmail || auth.user?.email || ''
@@ -136,6 +180,11 @@ export function AdminLayout({
                 >
                   <item.icon className="w-4 h-4 shrink-0" />
                   <span className="hidden sm:inline">{item.label}</span>
+                  {(badgeCounts[item.id] ?? 0) > 0 && <span title={`${badgeCounts[item.id]} mục cần xử lý`}
+                    aria-label={`${badgeCounts[item.id]} mục cần xử lý`}
+                    className="absolute right-1 top-1 rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-900 sm:static sm:ml-auto sm:px-2 sm:py-0.5 sm:text-xs">
+                    {(badgeCounts[item.id] ?? 0) > 99 ? '99+' : badgeCounts[item.id]}
+                  </span>}
                 </button>
               ))}
           </nav>

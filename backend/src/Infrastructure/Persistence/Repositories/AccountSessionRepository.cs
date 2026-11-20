@@ -1,4 +1,4 @@
-// Chức năng: cập nhật phiên bằng câu lệnh nguyên tử; đăng nhập đồng thời chỉ có phiên ghi cuối còn hiệu lực.
+// Đọc và ghi phiên trình duyệt và mã làm mới bằng EF Core.
 using Application.Features.Auth;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;

@@ -1,3 +1,4 @@
+// Kiểm thử upload, đọc metadata và trả dữ liệu video qua API.
 // Kiểm thử upload thật, âm thanh và snapshot trên database/tệp riêng; không dùng media người dùng.
 using System.Net;
 using System.Net.Http.Json;

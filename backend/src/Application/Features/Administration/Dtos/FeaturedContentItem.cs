@@ -1,4 +1,5 @@
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-06 | Hợp đồng API cho truy vấn, hiển thị hoặc cập nhật nội dung nổi bật.
+// Định nghĩa một mục trong danh sách nội dung được Admin ghim nổi bật.
 namespace Application.Features.Administration;
 
 // FeaturedContentItem: định nghĩa dữ liệu trao đổi của tính năng.

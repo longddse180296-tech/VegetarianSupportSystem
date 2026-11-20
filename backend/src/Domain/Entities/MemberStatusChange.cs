@@ -1,4 +1,4 @@
-// Chức năng: quản lý thành viên. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu lần khóa hoặc mở khóa tài khoản.
 namespace Domain.Entities;
 
 // MemberStatusChange: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

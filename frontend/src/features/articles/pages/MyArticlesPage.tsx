@@ -1,4 +1,5 @@
 // Chức năng: bài viết và phiên bản gửi duyệt. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
+import { articleReviewStatus } from '../utils/articleReviewStatus'
 import { ContentImage } from '../../../shared/components/ContentImage'
 import { useState } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
@@ -9,33 +10,12 @@ import { Feedback } from '../../admin/components/ApiWorkspace'
 import { useApiData } from '../../admin/hooks/useApiData'
 import { errorMessage, formatDate } from '../../admin/utils/apiUi'
 import {
-  adminStatusLabels,
-  type AdminStatus,
-} from '../../admin/moderation/api/adminModerationApi'
-import {
   articleApi,
   type ContentPage,
   type MyArticleRecord,
 } from '../api/articles.api'
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getStatusBadge); thuộc bài viết và phiên bản gửi duyệt.
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'Published':
-      return 'bg-emerald-50 text-[#2E7D32] border border-emerald-200'
-    case 'PendingAdminReview':
-      return 'bg-amber-50 text-amber-800 border border-amber-200'
-    case 'Draft':
-      return 'bg-slate-100 text-slate-700 border border-slate-200'
-    case 'RevisionRequested':
-      return 'bg-orange-50 text-orange-800 border border-orange-200'
-    case 'Rejected':
-    case 'Removed':
-      return 'bg-rose-50 text-rose-700 border border-rose-200'
-    default:
-      return 'bg-slate-100 text-slate-700 border border-slate-200'
-  }
-}
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (MyArticlesPage); thuộc bài viết và phiên bản gửi duyệt.
 export const MyArticlesPage = ({
@@ -97,10 +77,7 @@ export const MyArticlesPage = ({
               }}
               options={[
                 { value: '', label: 'Tất cả trạng thái' },
-                ...Object.entries(adminStatusLabels).map(([value, label]) => ({
-                  value,
-                  label,
-                })),
+                ...['Draft', 'PendingAdminReview', 'Published', 'Rejected'].map(value => ({ value, label: articleReviewStatus(value).label })),
               ]}
             />
           </div>
@@ -139,9 +116,9 @@ export const MyArticlesPage = ({
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusBadge(item.status)}`}
+                        className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${articleReviewStatus(item.status).className}`}
                       >
-                        {adminStatusLabels[item.status as AdminStatus] || item.status}
+                        {articleReviewStatus(item.status).label}
                       </span>
                       <span className="text-xs text-slate-300 font-medium">·</span>
                       <span className="text-xs text-slate-500 font-medium">
@@ -162,9 +139,7 @@ export const MyArticlesPage = ({
                         Phiên bản {item.publishedVersion.version} đang công khai
                       </p>
                     )}
-                    {item.versions[0]?.systemRejectionReason && <p className="rounded-lg bg-red-50 p-2 text-xs text-red-800">
-                      <strong>Hệ thống từ chối: </strong>{item.versions[0].systemRejectionReason}
-                    </p>}
+
                   </div>
                 </div>
 
@@ -187,7 +162,7 @@ export const MyArticlesPage = ({
                       Xem bản công khai
                     </Button>
                   )}
-                  {item.status !== 'Removed' && (
+                  {!['Rejected', 'RevisionRequested', 'Removed'].includes(item.status) && (
                     <Button
                       size="sm"
                       variant="ghost"

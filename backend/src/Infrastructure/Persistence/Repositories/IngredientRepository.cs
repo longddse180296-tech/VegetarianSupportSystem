@@ -1,4 +1,5 @@
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-03 | Triển khai truy vấn và lưu dữ liệu EF Core cho nguồn gốc, dị nguyên và mốc dinh dưỡng của nguyên liệu.
+// Đọc và ghi nguyên liệu, nguồn gốc, đơn vị và dinh dưỡng bằng EF Core.
 using Application.Common.Exceptions;
 using Application.Features.Ingredients;
 using Domain.Entities;
@@ -10,6 +11,14 @@ namespace Infrastructure.Persistence.Repositories;
 // IngredientRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class IngredientRepository(AppDbContext db) : IIngredientRepository
 {
+    // Tải graph có tracking để nguyên liệu và các công thức được tính lại, lưu trong cùng transaction.
+    public async Task<IReadOnlyList<Recipe>> GetDependentRecipesAsync(Guid ingredientId, CancellationToken ct) =>
+        await db.Recipes.Where(recipe => recipe.RecipeIngredients.Any(row => row.IngredientId == ingredientId))
+            .Include(recipe => recipe.RecipeIngredients).ThenInclude(row => row.Ingredient).AsSplitQuery().ToListAsync(ct);
+    // Đối chiếu khai báo tự nhập với cả danh mục hiện có; trạng thái nhận diện luôn tính lại, không lưu cố định.
+    public async Task<IReadOnlyList<Ingredient>> GetRestrictionCatalogAsync(CancellationToken ct) =>
+        await db.Ingredients.AsNoTracking().Select(x => new Ingredient
+            { Id = x.Id, Name = x.Name, Aliases = x.Aliases, Allergens = x.Allergens }).ToListAsync(ct);
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<(IReadOnlyList<Ingredient> Items, int TotalCount)> ListAsync(IngredientListQuery request, bool includeInactive, CancellationToken ct)
     {
@@ -24,6 +33,16 @@ public sealed class IngredientRepository(AppDbContext db) : IIngredientRepositor
             var search = request.Search.Trim();
             query = query.Where(x => x.Name.Contains(search) || (x.Aliases != null && x.Aliases.Contains(search)));
         }
+        if (request.IsActive.HasValue)
+            query = query.Where(x => x.IsActive == request.IsActive.Value);
+        query = request.Component switch
+        {
+            "plant" => query.Where(x => !x.ContainsEgg && !x.ContainsMilk && !x.ContainsHoney),
+            "egg" => query.Where(x => x.ContainsEgg),
+            "milk" => query.Where(x => x.ContainsMilk),
+            "egg-milk" => query.Where(x => x.ContainsEgg && x.ContainsMilk),
+            _ => query
+        };
 
         var count = await query.CountAsync(ct);
         var offset = ((long)request.PageNumber - 1) * request.PageSize;

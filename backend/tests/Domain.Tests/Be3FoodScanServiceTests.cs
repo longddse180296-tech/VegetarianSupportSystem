@@ -1,3 +1,4 @@
+// Kiểm thử dữ liệu đầu vào và kết quả đánh giá quét thực phẩm.
 using Application.Abstractions.AI;
 using Application.Features.FoodScanning;
 using Domain.Entities;
@@ -89,6 +90,7 @@ public sealed class Be3FoodScanServiceTests
 
     private sealed class MemoryScanRepository : IFoodScanRepository
     {
+        public Task<bool> DeleteOwnedAsync(Guid id, string owner, CancellationToken ct) => throw new NotSupportedException();
         private readonly List<FoodScanRecord> records = [];
         public ScanProfileSnapshot Profile { get; set; } = new(VegetarianDiet.Vegan, [], DateTimeOffset.UtcNow);
         public IReadOnlyList<ScanIngredientEvidence> Evidence { get; set; } = [];

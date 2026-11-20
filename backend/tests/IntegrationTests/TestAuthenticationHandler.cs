@@ -1,3 +1,4 @@
+// Tạo danh tính kiểm thử từ header để chạy các ca phân quyền qua HTTP.
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;

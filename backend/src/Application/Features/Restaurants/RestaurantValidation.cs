@@ -1,4 +1,5 @@
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-05 | Kiểm tra dữ liệu đầu vào theo quy tắc nghiệp vụ (nhà hàng: danh mục public và quản trị, vị trí và chế độ ăn).
+// Kiểm tra dữ liệu đầu vào của nhà hàng chay, vị trí, khoảng giá và tiện ích trước khi thực hiện nghiệp vụ.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 using Domain.Enums;
@@ -86,6 +87,9 @@ internal static class RestaurantValidation
             Fail(nameof(RestaurantRequest.FeaturedDishes), "Vui lòng nhập đủ 3 món nổi bật, mỗi món có tên và ảnh tải lên hợp lệ.");
             return;
         }
+
+        if (dishes.Any(dish => dish.Description?.Length > 1000))
+            Fail(nameof(RestaurantRequest.FeaturedDishes), "Mô tả mỗi món nổi bật không được vượt quá 1000 ký tự.");
 
         if (dishes.Select(dish => dish.Name.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != dishes.Length)
             Fail(nameof(RestaurantRequest.FeaturedDishes), "Tên các món nổi bật không được trùng nhau.");

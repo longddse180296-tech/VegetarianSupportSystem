@@ -1,4 +1,4 @@
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Điều phối bản nháp của tác giả, tạo bản gửi duyệt và trả bản công khai. Kiểm tra danh mục và tiêu đề trùng khi cần.
 using Application.Features.Moderation;
 using Domain.Entities;
 using Domain.Enums;
@@ -8,14 +8,16 @@ namespace Application.Features.Articles;
 // ArticleService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class ArticleService(IArticleRepository repository, ModerationService moderation)
 {
-    // CreateAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
+    // Tạo bản nháp thuộc tài khoản hiện tại và kiểm tra trạng thái của các danh mục được chọn.
     public async Task<MyArticleDetail> CreateAsync(string ownerId, ArticleDraftRequest request, CancellationToken ct)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(ownerId) || ownerId.Length > 450)
             throw new ArticleException(ArticleError.Validation, "Vui lòng đăng nhập để quản lý bài viết của bạn.");
         Validate(request);
-        var article = new Article(ownerId, request.Title.Trim(), request.Content.Trim(), Categories(request),
+        var categories = Categories(request);
+        await EnsureCategoriesAvailableAsync(categories, ct);
+        var article = new Article(ownerId, request.Title.Trim(), request.Content.Trim(), categories,
             request.CoverImageUrl?.Trim(), DietaryTypes(request), DateTimeOffset.UtcNow);
         await repository.AddAsync(article, ct);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
@@ -23,20 +25,32 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
         return ToMine(article);
     }
 
-    // UpdateAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
+    // Cập nhật bản nháp khi tác giả có quyền sửa. Kiểm tra nhãn mới thêm và giữ được nhãn cũ đã gắn.
     public async Task<MyArticleDetail> UpdateAsync(Guid id, string ownerId, ArticleDraftRequest request, CancellationToken ct)
     {
         Validate(request);
         var article = await GetOwnedAsync(id, ownerId, ct);
         EnsureEditable(article);
-        article.SetDraft(request.Title.Trim(), request.Content.Trim(), Categories(request),
+        article.Versions.OrderByDescending(version => version.Version).FirstOrDefault()?.Submission
+            .WithdrawPendingForEdit(DateTimeOffset.UtcNow);
+        var categories = Categories(request);
+        var added = categories.Except(Categories(article.Categories), StringComparer.OrdinalIgnoreCase).ToArray();
+        await EnsureCategoriesAvailableAsync(added, ct);
+        article.SetDraft(request.Title.Trim(), request.Content.Trim(), categories,
             request.CoverImageUrl?.Trim(), DietaryTypes(request), DateTimeOffset.UtcNow);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveAsync(ct);
         return ToMine(article);
     }
 
-    // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Chặn việc chọn mới danh mục bài viết đã ngừng sử dụng.
+    private async Task EnsureCategoriesAvailableAsync(IReadOnlyCollection<string> categories, CancellationToken ct)
+    {
+        if (categories.Count > 0 && await repository.HasInactiveCategoryAsync(categories, ct))
+            throw new ArticleException(ArticleError.Validation, "Vui lòng chọn danh mục bài viết đang được sử dụng.");
+    }
+
+    // Tạo hồ sơ duyệt và chụp lại bản nháp trong một giao dịch. Tiêu đề trùng bản công khai sẽ bị hệ thống từ chối.
     public async Task<MyArticleDetail> SubmitAsync(Guid id, string ownerId, CancellationToken ct)
     {
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
@@ -117,10 +131,8 @@ public sealed class ArticleService(IArticleRepository repository, ModerationServ
     {
         var latest = article.Versions.OrderByDescending(x => x.Version).FirstOrDefault();
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
-        if (latest?.Submission.AdminReviewStatus is AdminReviewStatus.Submitted or AdminReviewStatus.PendingAdminReview)
-            throw new ArticleException(ArticleError.Conflict, "Bài viết đang được kiểm duyệt. Bạn có thể chỉnh sửa sau khi có kết quả.");
-        if (latest?.Submission.AdminReviewStatus == AdminReviewStatus.Removed)
-            throw new ArticleException(ArticleError.Conflict, "Bài viết đã được gỡ nên chưa thể chỉnh sửa hoặc gửi duyệt lại.");
+        if (latest?.Submission.AdminReviewStatus is AdminReviewStatus.Rejected or AdminReviewStatus.RevisionRequested or AdminReviewStatus.Removed)
+            throw new ArticleException(ArticleError.Conflict, "Bài viết đã bị từ chối hoặc gỡ, chỉ được xem và không thể chỉnh sửa, lưu nháp hay gửi lại.");
     }
 
     // ToMine: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.

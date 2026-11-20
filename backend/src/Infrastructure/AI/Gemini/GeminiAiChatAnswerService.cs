@@ -1,4 +1,4 @@
-// Chức năng: kết nối Gemini để phân tích nội dung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Chuyển câu hỏi, lịch sử và ngữ cảnh hồ sơ thành request Gemini. Chuẩn hóa kết quả về định dạng mà AI Chat sử dụng.
 using Application.Abstractions.AI;
 using Application.Features.AiChat;
 using Domain.Enums;
@@ -8,7 +8,7 @@ namespace Infrastructure.AI.Gemini;
 // GeminiAiChatAnswerService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class GeminiAiChatAnswerService(IGeminiService geminiService) : IAiChatAnswerService
 {
-    // GenerateAsync: Tạo kết quả dựa trên đầu vào và các ràng buộc đang áp dụng.
+    // Ánh xạ vai trò các lượt chat sang hợp đồng Gemini và chuyển lỗi kết nối hoặc timeout về trạng thái không có câu trả lời.
     public async Task<AiChatAnswerResult> GenerateAsync(
         string prompt,
         IReadOnlyList<AiChatTurn> history,

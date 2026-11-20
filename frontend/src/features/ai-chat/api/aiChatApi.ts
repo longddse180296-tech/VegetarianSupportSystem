@@ -277,6 +277,9 @@ export async function createChatConversation(): Promise<string> {
   return conversation.id
 }
 
+export const deleteChatConversation = (id: string) =>
+  apiClient.delete<void>(`/api/ai-chat/conversations/${encodeURIComponent(id)}`)
+
 // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (sendMessageToAi); thuộc hội thoại hỗ trợ ăn chay.
 export async function sendMessageToAi(
   _role: ChatRole,

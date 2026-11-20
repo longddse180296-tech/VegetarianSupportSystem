@@ -1,3 +1,4 @@
+// Kiểm thử hành vi gửi email đặt lại mật khẩu qua SMTP.
 using System.Net;
 using System.Net.Sockets;
 using System.Text;

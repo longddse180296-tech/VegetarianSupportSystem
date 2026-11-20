@@ -1,3 +1,4 @@
+// BE2-04 | Màn hình quản trị danh sách công thức và các thao tác thêm, sửa, ngừng sử dụng.
 // Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
 import { Plus, Pencil, Lock, Unlock, Eye, BookOpen } from 'lucide-react'
@@ -69,8 +70,8 @@ export const AdminRecipesPage = ({
           <strong>{item.name}</strong>
           <p className="text-xs text-slate-500 mt-1">
             {item.declaredDietaryType ? `Khai báo: ${dietLabels[item.declaredDietaryType]}` : 'Chưa khai báo loại công thức'}
-            {item.declaredDietaryType && !item.dietaryAssessments.some(assessment => assessment.dietaryType === item.declaredDietaryType && assessment.status === 'Compatible') && (
-              <span className="mt-1 block text-amber-800">Cần kiểm tra lại nguyên liệu và chế độ ăn</span>
+            {item.requiresReview && (
+              <span className="mt-1 block text-amber-800">Cần kiểm tra lại nguyên liệu, chế độ ăn hoặc dinh dưỡng</span>
             )}
           </p>
         </div>
@@ -89,9 +90,9 @@ export const AdminRecipesPage = ({
         <button type="button"
           className="inline-flex min-h-11 items-center gap-2 rounded-md text-inherit uppercase tracking-wider hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
           title={`Đang xếp ${calorieSortLabel}. Bấm để xếp ${nextCalorieSortLabel}.`}
-          aria-label={`Kcal/khẩu phần: ${calorieSortLabel}. Sắp xếp ${nextCalorieSortLabel}`}
+          aria-label={`Kcal/người: ${calorieSortLabel}. Sắp xếp ${nextCalorieSortLabel}`}
           onClick={() => { setCalorieSort(nextCalorieSort); setPage(1) }}>
-          Kcal/khẩu phần
+          Kcal/người
           <span className="inline-flex flex-col text-[9px] leading-tight" aria-hidden="true">
             <span className={calorieSort === 'asc' ? 'text-emerald-700' : 'text-slate-300'}>▲</span>
             <span className={calorieSort === 'desc' ? 'text-emerald-700' : 'text-slate-300'}>▼</span>
@@ -242,6 +243,7 @@ export const AdminRecipesPage = ({
             onCancel={() => setEditing(undefined)}
             onSaved={() => {
               setEditing(undefined)
+              window.dispatchEvent(new Event('recipe-catalog-updated'))
               setNotice('Đã lưu công thức.')
               result.reload()
             }}
@@ -258,14 +260,14 @@ export const AdminRecipesPage = ({
           <div className="space-y-4 text-sm">
             <p>{viewing.description}</p>
             <p>
-              {viewing.categoryName} · {viewing.servings} khẩu phần ·{' '}
+              {viewing.categoryName} · Dành cho 1 người ·{' '}
               {viewing.prepTimeMinutes + viewing.cookTimeMinutes} phút
             </p>
             <h4 className="font-bold">Nguyên liệu</h4>
             <ul className="space-y-2">
               {viewing.ingredients.map((item) => (
                 <li key={item.ingredientId}>
-                  {item.name}: {item.quantity} {item.unit}
+                  {item.name}: {Math.round(item.quantity / viewing.servings * 1000) / 1000} {item.unit}
                   {item.note && ` · ${item.note}`}
                 </li>
               ))}
@@ -273,16 +275,7 @@ export const AdminRecipesPage = ({
             <h4 className="font-bold">Hướng dẫn</h4>
             <p className="whitespace-pre-wrap">{viewing.instructions}</p>
             <h4 className="font-bold">Phân loại theo thành phần</h4>
-            {viewing.dietaryAssessments.map((item) => (
-              <p key={item.dietaryType}>
-                {dietLabels[item.dietaryType]}:{' '}
-                {item.status === 'Compatible'
-                  ? 'Phù hợp'
-                  : item.status === 'Incompatible'
-                    ? 'Không phù hợp'
-                    : 'Chưa đủ thông tin'}
-              </p>
-            ))}
+            <p>{viewing.declaredDietaryType ? dietLabels[viewing.declaredDietaryType] : 'Chưa phân loại'}</p>
           </div>
         )}
       </Modal>
@@ -324,6 +317,7 @@ export const AdminRecipesPage = ({
               try {
                 if (statusTarget.isActive) {
                   await recipeApi.deactivate(statusTarget.id)
+                  window.dispatchEvent(new Event('recipe-catalog-updated'))
                   result.setData((prev) =>
                     prev
                       ? {
@@ -336,6 +330,9 @@ export const AdminRecipesPage = ({
                   )
                   setNotice(`Đã ngừng sử dụng công thức “${statusTarget.name}”.`)
                 } else {
+                  // Chỉ đổi trạng thái trên màn hình sau khi backend đã lưu thành công.
+                  await recipeApi.activate(statusTarget.id)
+                  window.dispatchEvent(new Event('recipe-catalog-updated'))
                   result.setData((prev) =>
                     prev
                       ? {

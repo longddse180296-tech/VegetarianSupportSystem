@@ -1,4 +1,4 @@
-// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Tiếp nhận đăng ký, đăng nhập, làm mới phiên, đăng xuất và yêu cầu đặt lại mật khẩu.
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Json.Serialization;
@@ -76,6 +76,7 @@ public sealed class AuthController(AuthService authService, PasswordResetService
     }
 
     // Access token hết hạn vẫn được gia hạn bằng cookie phiên; không cần JWT đã hết hạn.
+    // Đọc mã làm mới để yêu cầu cấp access token mới cho phiên hiện tại.
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponse>> Refresh(CancellationToken cancellationToken)

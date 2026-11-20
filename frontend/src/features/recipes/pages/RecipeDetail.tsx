@@ -1,3 +1,4 @@
+// BE2-01/06 | Hiển thị chi tiết công thức, định lượng, dinh dưỡng và trạng thái đã lưu.
 // Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { ContentImage } from '../../../shared/components/ContentImage'
 import React, { useEffect, useMemo, useState } from 'react'
@@ -16,7 +17,7 @@ import {
 import { Breadcrumb, Button, EmptyState, SkeletonLoader } from '../../../shared/components'
 import {
   getRecipeDetail,
-  getRecipes,
+  getRelatedRecipes,
   getRelatedArticles,
   getRelatedRestaurants,
   getRelatedVideos,
@@ -69,6 +70,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   onNavigate,
   fromSource,
 }) => {
+  const planId = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search).get('planId') || undefined
   const hashQuery =
     typeof window !== 'undefined'
       ? new URLSearchParams(window.location.hash.split('?')[1] || '').get('from')
@@ -138,11 +140,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
       }
       setIsLoading(true)
       setIsNotFound(false)
+      setRelatedRecipes([])
       try {
-        const [data, allRecipes] = await Promise.all([
-          getRecipeDetail(recipeId),
-          getRecipes(),
-        ])
+        const data = await getRecipeDetail(recipeId, planId)
 
         if (!cancelled) {
           if (!data) {
@@ -152,20 +152,17 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
             setIsNotFound(false)
           }
 
-          // Related recipes: exclude current recipe, pick 3 with distinct real photos
-          const others = (allRecipes.items || []).filter(
-            (r) => r.id.toLowerCase() !== recipeId.toLowerCase(),
-          )
-          setRelatedRecipes(others.slice(0, 3))
         }
 
         if (!cancelled && data) {
-          const [arts, vids, rests] = await Promise.all([
+          const [related, arts, vids, rests] = await Promise.all([
+            getRelatedRecipes(data),
             getRelatedArticles(recipeId),
             getRelatedVideos(recipeId),
             getRelatedRestaurants(recipeId),
           ])
           if (!cancelled) {
+            setRelatedRecipes(related)
             setRelatedArticles(data.relatedBlogs || arts)
             setRelatedVideos(data.relatedVideos || vids)
             setRelatedRestaurants(data.relatedRestaurants || rests)
@@ -181,7 +178,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
     return () => {
       cancelled = true
     }
-  }, [recipeId])
+  }, [recipeId, planId])
 
   // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (showToast); thuộc công thức và định lượng nguyên liệu.
   const showToast = (msg: string) => {
@@ -251,7 +248,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
   const totalTimeText =
     recipe.totalTime ||
     `${(recipe.prepTimeMinutes || 10) + (recipe.cookTimeMinutes || 20)} phút`
-  const servingsText = `${recipe.servings || recipe.servingSize || 2} người`
+  const servingsText = '1 người'
   const calories = recipe.calories ?? recipe.nutrition.kcal
   const protein = recipe.protein ?? recipe.nutrition.proteinG
   const carbs = recipe.carbs ?? recipe.nutrition.carbsG
@@ -364,7 +361,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                     {servingsText}
                   </span>
                   <span className="mt-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-slate-500">
-                    Khẩu phần
+                    Dành cho
                   </span>
                 </div>
 
@@ -436,7 +433,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
                         )}
                       </div>
                       <span className="font-bold text-emerald-800 bg-emerald-50/60 px-2.5 py-1 rounded-md text-[13px] whitespace-nowrap">
-                        {ig.amount}
+                        {typeof ig.amount === 'number' ? new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 7 }).format(ig.amount) : ig.amount}
                         {ig.unit ? ` ${ig.unit}` : ''}
                       </span>
                     </div>
@@ -523,7 +520,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({
         <section className="mb-12 rounded-[20px] border border-slate-200 bg-white p-6 shadow-xs">
           <h2 className="mb-5 flex items-center gap-2 text-[17px] font-bold text-[#111827]">
             <span className="h-2 w-2 rounded-full bg-[#2E7D32]" />
-            Thông tin dinh dưỡng chi tiết
+            Dinh dưỡng cho 1 người
           </h2>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

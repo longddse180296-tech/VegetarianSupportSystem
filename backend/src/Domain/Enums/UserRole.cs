@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo vai trò tài khoản dùng để phân quyền.
 namespace Domain.Enums;
 
 // Guest is an unauthenticated request, not a persisted account role.

@@ -1,3 +1,4 @@
+// Lưu thời lượng và thông tin audio đọc từ tệp video, kèm trạng thái xử lý.
 // Lưu thông tin kỹ thuật theo từng tệp video; bản công khai và bản sửa không dùng nhầm thời lượng.
 namespace Domain.Entities;
 

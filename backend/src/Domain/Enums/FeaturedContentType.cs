@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo các loại nội dung Admin có thể ghim.
 namespace Domain.Enums;
 
 // FeaturedContentType: định nghĩa các giá trị trạng thái được phép.

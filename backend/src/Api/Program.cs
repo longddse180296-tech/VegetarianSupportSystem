@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Điểm khởi động ASP.NET Core. Nạp cấu hình, đăng ký dịch vụ, cấu hình xác thực, middleware và đăng ký các tuyến HTTP hoặc SignalR.
 using Api.Configuration;
 using Api.Hubs;
 using Api.Authorization;
@@ -50,6 +50,7 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<BearerOpenApiTransformer>());
 builder.Services.AddProblemDetails();
 builder.Services.AddDistributedMemoryCache();
+// Trạng thái trong phiên HTTP giữ số lượt và lịch sử ngắn của khách dùng AI Chat.
 builder.Services.AddSession(options =>
 {
     options.Cookie.HttpOnly = true;
@@ -90,6 +91,7 @@ builder.Services.AddSingleton<IAccessTokenIssuer>(
     new JwtAccessTokenIssuer(jwtIssuer, jwtAudience, jwtSigningKey));
 builder.Services.AddScoped<AccountTokenValidator>();
 
+// Sau khi kiểm tra chữ ký và hạn token, API đối chiếu tài khoản và phiên hiện hành.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -187,6 +189,20 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+// Chỉ log mã băm rút gọn trong môi trường phát triển để đối chiếu cấu hình, tuyệt đối không ghi API key.
+if (app.Environment.IsDevelopment())
+{
+    static string KeyFingerprint(string? value) => string.IsNullOrWhiteSpace(value) ? "missing"
+        : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim())))[..12];
+    app.Logger.LogInformation(
+        "AI configuration loaded: ChatModel={ChatModel}; ImageModel={ImageModel}; KeySha256={KeySha256}; ModerationModel={ModerationModel}; ModerationKeySha256={ModerationKeySha256}",
+        app.Configuration["Gemini:Model"] ?? "gemini-2.5-flash",
+        app.Configuration["Gemini:ImageModel"] ?? "gemini-2.5-flash",
+        KeyFingerprint(app.Configuration["Gemini:ApiKey"]),
+        app.Configuration["Gemini:ModerationModel"] ?? "default",
+        KeyFingerprint(app.Configuration["Gemini:ModerationApiKey"] ?? app.Configuration["Gemini:ApiKey"]));
+}
+
 if (args.Contains("--seed-core-data", StringComparer.Ordinal) ||
     args.Contains("--seed-demo-data", StringComparer.Ordinal))
 {
@@ -236,6 +252,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+// Xác định endpoint trước khi áp dụng giới hạn tần suất, phiên và phân quyền.
 app.UseRouting();
 // Thứ tự middleware đảm bảo có route, phiên và danh tính trước khi endpoint được thực thi.
 app.UseRateLimiter();
@@ -244,6 +261,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+// BE2-04 | Đăng ký endpoint SignalR tính trước dinh dưỡng cho form công thức.
 app.MapHub<RecipeNutritionHub>("/api/hubs/recipe-nutrition", options => options.CloseOnAuthenticationExpiration = true);
 
 app.Run();

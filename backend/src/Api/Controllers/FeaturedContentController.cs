@@ -1,4 +1,5 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// BE2-06 | Trang chủ đọc nội dung đã ghim qua API public. Admin dùng API riêng để quản lý ghim.
+// Tiếp nhận request HTTP và trả dữ liệu về nội dung được Admin ghim nổi bật.
 using Api.Authorization;
 using Application.Features.Administration;
 using Microsoft.AspNetCore.Authorization;

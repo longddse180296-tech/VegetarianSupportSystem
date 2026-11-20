@@ -64,7 +64,7 @@ test('Adapter video không tự tạo URL thumbnail khi server chưa có ảnh b
 test('Gợi ý tủ bếp không thay ảnh công thức còn thiếu bằng ảnh ngoài dữ liệu', async () => {
   const api = apiAt('../src/features/pantry/api/pantryApi.ts', [{
     recipeId: 'recipe', recipeName: 'Công thức', servings: 1, totalTimeMinutes: 10,
-    caloriesPerServing: null, matchPercent: 0, availableIngredients: [], missingIngredients: [], imageUrl: null,
+    caloriesPerServing: null, matchPercent: 100, availableIngredients: [{ name: 'Đậu hũ' }], missingIngredients: [], imageUrl: null,
   }])
   assert.equal((await api.getRecipeMatches([]))[0].cover, '')
 })

@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Gắn các interface nghiệp vụ với EF Core, Gemini, SMTP, kho file và các worker chạy nền.
 using Application.Abstractions.AI;
 using Application.Features.AiChat;
 using Application.Features.Articles;
@@ -77,7 +77,7 @@ public static class DependencyInjection
         services.AddScoped<IFoodScanRepository, FoodScanRepository>();
         services.AddHostedService<ModerationAiWorker>();
         services.AddHttpClient<IGeminiService, GeminiService>(client =>
-            client.Timeout = TimeSpan.FromSeconds(45));
+            client.Timeout = TimeSpan.FromMinutes(3));
         services.AddScoped<IAiChatAnswerService, GeminiAiChatAnswerService>();
 
         services.AddScoped<ICategoryRepository, CategoryRepository>();

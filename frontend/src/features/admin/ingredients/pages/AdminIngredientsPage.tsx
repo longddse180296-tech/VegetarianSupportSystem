@@ -1,3 +1,4 @@
+// BE2-03 | Màn hình quản lý thông tin nguyên liệu, bằng chứng chế độ ăn và dinh dưỡng.
 // Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useState } from 'react'
 import { Pencil, Plus, Lock, Unlock, Leaf, Flame, Eye } from 'lucide-react'
@@ -6,23 +7,15 @@ import { Modal } from '../../../../shared/components/Modal'
 import { CustomSelect } from '../../../../shared/components/CustomSelect'
 import { SharedDataTable, type ColumnDef } from '../../../../shared/components/SharedDataTable'
 import { adminIngredientsApi } from '../api/adminIngredientsApi'
-import type { AdminIngredientItem, IngredientInput, IngredientOrigin } from '../types/adminIngredients.types'
+import type { AdminIngredientItem, IngredientInput } from '../types/adminIngredients.types'
 import { ingredientUnits, normalizeIngredientUnit } from '../../utils/ingredientUnits'
-
-const originLabels: Record<IngredientOrigin, string> = {
-  Unknown: 'Chưa xác định',
-  Plant: 'Thực vật',
-  Animal: 'Động vật',
-}
 
 const emptyInput: IngredientInput = {
   name: '',
   aliases: null,
-  origin: 'Unknown',
   containsEgg: false,
   containsMilk: false,
   containsHoney: false,
-  containsOtherAnimalProducts: null,
   allergens: null,
   defaultUnit: null,
   calories: null,
@@ -56,6 +49,8 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [componentFilter, setComponentFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -79,7 +74,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
       setLoading(true)
       setError(null)
       adminIngredientsApi
-        .list(page, search, controller.signal)
+        .list(page, search, controller.signal, { status: statusFilter, component: componentFilter })
         .then(result => {
           if (!controller.signal.aborted) {
             setItems(result.items)
@@ -99,7 +94,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
       clearTimeout(timer)
       controller.abort()
     }
-  }, [page, search, refresh])
+  }, [page, search, statusFilter, componentFilter, refresh])
 
   // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (openForm); thuộc danh mục nguyên liệu và dữ liệu dinh dưỡng.
   const openForm = (item: AdminIngredientItem | null) => {
@@ -134,31 +129,12 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
       ),
     },
     {
-      key: 'origin',
-      header: 'Nguồn gốc',
-      render: item => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-            item.origin === 'Plant'
-              ? 'bg-emerald-50 text-emerald-700'
-              : item.origin === 'Animal'
-              ? 'bg-amber-50 text-amber-700'
-              : 'bg-slate-100 text-slate-600'
-          }`}
-        >
-          {originLabels[item.origin]}
-        </span>
-      ),
-    },
-    {
       key: 'evidence',
       header: 'Thành phần',
       render: item =>
         [
           item.containsEgg && 'Trứng',
           item.containsMilk && 'Sữa',
-          item.containsOtherAnimalProducts === true && 'Động vật khác',
-          item.containsOtherAnimalProducts === null && 'Động vật khác: chưa rõ',
         ]
           .filter(Boolean)
           .join(', ') || 'Thuần thực vật',
@@ -248,8 +224,8 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
             {notice}
           </p>
         )}
-        <div className="admin-filter-bar flex flex-wrap items-center gap-4">
-          <span className="flex shrink-0 items-center gap-2 rounded-lg bg-lime-50 px-3 py-2 text-sm font-semibold text-lime-700">
+        <div className="admin-filter-bar grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[auto_minmax(180px,1fr)_190px_210px_auto]">
+          <span className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-lime-50 px-3 py-2 text-sm font-semibold text-lime-700">
             <Leaf aria-hidden="true" className="h-4 w-4" />
             {total} nguyên liệu
           </span>
@@ -263,12 +239,36 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
               setSearch(event.target.value)
               setPage(1)
             }}
-            className="admin-field min-w-0 flex-1 basis-60"
+            className="admin-field min-w-0 sm:col-span-2 xl:col-span-1"
+          />
+          <CustomSelect
+            label="Trạng thái"
+            value={statusFilter}
+            onChange={value => { setStatusFilter(value); setPage(1) }}
+            options={[
+              { value: 'all', label: 'Tất cả trạng thái' },
+              { value: 'active', label: 'Đang sử dụng' },
+              { value: 'inactive', label: 'Ngừng sử dụng' },
+            ]}
+            className="w-full"
+          />
+          <CustomSelect
+            label="Thành phần"
+            value={componentFilter}
+            onChange={value => { setComponentFilter(value); setPage(1) }}
+            options={[
+              { value: 'all', label: 'Tất cả thành phần' },
+              { value: 'plant', label: 'Thuần thực vật' },
+              { value: 'egg', label: 'Có trứng' },
+              { value: 'milk', label: 'Có sữa' },
+              { value: 'egg-milk', label: 'Có cả trứng và sữa' },
+            ]}
+            className="w-full"
           />
           <button
             type="button"
             onClick={() => openForm(null)}
-            className="fe1-btn fe1-btn-primary inline-flex min-h-11 items-center justify-center gap-2 font-bold px-4 rounded-xl"
+            className="fe1-btn fe1-btn-primary inline-flex h-11 min-h-11 items-center justify-center gap-2 whitespace-nowrap font-bold px-4 rounded-xl"
           >
             <Plus aria-hidden="true" className="h-4 w-4" />
             Thêm nguyên liệu
@@ -377,7 +377,7 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                 else await adminIngredientsApi.create(input)
                 setEditing(undefined)
                 setNotice(editing ? 'Đã cập nhật nguyên liệu thành công.' : 'Đã thêm nguyên liệu mới thành công.')
-                setRefresh(value => value + 1)
+                window.dispatchEvent(new Event('recipe-catalog-updated')); setRefresh(value => value + 1)
               } catch (err) {
                 setFormError(err instanceof Error ? err.message : 'Không thể lưu nguyên liệu.')
               } finally {
@@ -441,41 +441,12 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
 
               </div>
 
-              {/* Block 2: Nguồn gốc & Cờ thành phần */}
+              {/* Block 2: Cờ thành phần */}
               <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-4 space-y-3.5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                   <Leaf className="w-3.5 h-3.5 text-emerald-600" />
-                  Nguồn gốc & Thuộc tính phân loại
+                  Thuộc tính phân loại
                 </h4>
-
-                <div className="grid sm:grid-cols-2 gap-3.5">
-                  <CustomSelect
-                    label="Nguồn gốc nguyên liệu"
-                    value={form.origin}
-                    onChange={val => setForm({ ...form, origin: val as IngredientOrigin })}
-                    options={[
-                      { value: 'Plant', label: 'Thực vật', subLabel: 'Có nguồn gốc thực vật' },
-                      { value: 'Animal', label: 'Động vật', subLabel: 'Có nguồn gốc động vật' },
-                      { value: 'Unknown', label: 'Chưa xác định', subLabel: 'Cần xác minh thêm' },
-                    ]}
-                  />
-
-                  <CustomSelect
-                    label="Động vật khác (thịt, cá...)"
-                    value={form.containsOtherAnimalProducts === null ? 'unknown' : String(form.containsOtherAnimalProducts)}
-                    onChange={val =>
-                      setForm({
-                        ...form,
-                        containsOtherAnimalProducts: val === 'unknown' ? null : val === 'true',
-                      })
-                    }
-                    options={[
-                      { value: 'unknown', label: 'Chưa xác minh', subLabel: 'Chưa rõ thông tin' },
-                      { value: 'false', label: 'Đã xác minh không có', subLabel: 'Không chứa thịt, cá...' },
-                      { value: 'true', label: 'Có thành phần động vật', subLabel: 'Chứa thịt, cá hoặc dẫn xuất' },
-                    ]}
-                  />
-                </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -631,11 +602,13 @@ export const AdminIngredientsPage = ({ onNavigate }: { onNavigate?: (path: strin
                   try {
                     if (statusTarget.isActive) {
                       await adminIngredientsApi.deactivate(statusTarget.id)
+                      window.dispatchEvent(new Event('recipe-catalog-updated'))
                       setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: false } : it))
                       setNotice(`Đã ngừng sử dụng nguyên liệu “${statusTarget.name}”.`)
                     } else {
                       // Chỉ báo mở khóa sau khi backend đã lưu thành công; lỗi giữ nguyên trạng thái cũ.
                       await adminIngredientsApi.activate(statusTarget.id)
+                      window.dispatchEvent(new Event('recipe-catalog-updated'))
                       setItems(prev => prev.map(it => it.id === statusTarget.id ? { ...it, isActive: true } : it))
                       setNotice(`Đã mở khóa và kích hoạt lại nguyên liệu “${statusTarget.name}”.`)
                     }

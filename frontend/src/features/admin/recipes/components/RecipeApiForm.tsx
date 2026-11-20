@@ -1,5 +1,6 @@
+// BE2-04 | Form tạo/sửa gửi thông tin công thức và URL ảnh. Dinh dưỡng xem trước lấy qua SignalR.
 // Chức năng: công thức và định lượng nguyên liệu. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BookOpen, Check, ChefHat, Leaf, LoaderCircle, Plus, BarChart3, Trash2 } from 'lucide-react'
 import { RecordPicker, Feedback } from '../../components/ApiWorkspace'
 import {
@@ -20,6 +21,8 @@ import { ingredientUnits } from '../../utils/ingredientUnits'
 import { apiClient } from '../../../../shared/api/apiClient'
 import { recipeQuantityUnit, type RecipeIngredientOption } from '../api/recipeNutrition'
 import { useRecipeNutrition } from '../hooks/useRecipeNutrition'
+import { ingredientDietWarnings } from '../utils/ingredientDietWarnings'
+import { quantityPerPerson, totalRecipeQuantity } from '../utils/recipeServings'
 
 // Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý (parseSteps); thuộc công thức và định lượng nguyên liệu.
 function parseSteps(instructions: string) {
@@ -60,7 +63,7 @@ export function RecipeApiForm({
           categoryId: recipe.categoryId,
           name: recipe.name,
           description: recipe.description,
-          servings: recipe.servings,
+          servings: 1,
           instructions: recipe.instructions,
           prepTimeMinutes: recipe.prepTimeMinutes,
           cookTimeMinutes: recipe.cookTimeMinutes,
@@ -73,7 +76,7 @@ export function RecipeApiForm({
           ingredients: recipe.ingredients.map(
             ({ ingredientId, quantity, unit, note }) => ({
               ingredientId,
-              quantity,
+              quantity: quantityPerPerson(quantity, recipe.servings),
               unit,
               note,
             }),
@@ -83,7 +86,7 @@ export function RecipeApiForm({
           categoryId: '',
           name: '',
           description: null,
-          servings: '',
+          servings: 1,
           instructions: '',
           prepTimeMinutes: '',
           cookTimeMinutes: '',
@@ -109,6 +112,14 @@ export function RecipeApiForm({
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loadingUnits, setLoadingUnits] = useState(!!recipe)
+  const [ingredientInfo, setIngredientInfo] = useState<Record<string, RecipeIngredientOption>>({})
+  const selectedIngredients = form.ingredients.map(row => ingredientInfo[row.ingredientId]).filter(Boolean)
+  const hasEgg = selectedIngredients.some(item => item.containsEgg)
+  const hasMilk = selectedIngredients.some(item => item.containsMilk)
+  const inferredDiet = selectedIngredients.length === form.ingredients.length && selectedIngredients.length > 0
+    ? (hasEgg && hasMilk ? 'LactoOvoVegetarian' : hasEgg ? 'OvoVegetarian' : hasMilk ? 'LactoVegetarian' : 'Vegan') : null
+
+  const ingredientSection = useRef<HTMLElement>(null)
   // Đồng bộ dữ liệu theo thay đổi đầu vào; hủy hoặc bỏ qua kết quả cũ khi màn hình thay đổi.
   useEffect(() => {
     if (!recipe) return
@@ -118,6 +129,8 @@ export function RecipeApiForm({
     ))).then(items => {
       if (controller.signal.aborted) return
       const byId = new Map(items.map(item => [item.id, item]))
+      setIngredientInfo(Object.fromEntries(items.map(item => [item.id, item])))
+      setNames(current => ({ ...current, ...Object.fromEntries(items.map(item => [item.id, item.name])) }))
       setForm(current => ({ ...current, ingredients: current.ingredients.map(row => {
         const item = byId.get(row.ingredientId)
         if (!item) return row
@@ -127,22 +140,24 @@ export function RecipeApiForm({
         let quantity: number | '' = ''
         if (row.quantity !== '' && massUnits.includes(unit) && massUnits.includes(row.unit)) {
           const converted = row.quantity * (row.unit === 'kg' ? 1000 : 1) / (unit === 'kg' ? 1000 : 1)
-          if (Math.abs(converted * 1000 - Math.round(converted * 1000)) < 1e-6 && converted >= 0.001 && converted <= 999999999) quantity = converted
+          const total = totalRecipeQuantity(converted, Number(current.servings))
+          if (Number.isFinite(converted) && converted > 0 && total >= 0.001 && total <= 999999999) quantity = converted
         }
         return { ...row, unit, quantity }
       }) }))
       setLoadingUnits(false)
     }).catch(() => {
-      if (!controller.signal.aborted) setError('Không tải được đơn vị nguyên liệu. Vui lòng mở lại biểu mẫu để thử lại.')
+      if (!controller.signal.aborted) setError('Không tải được thông tin và đơn vị nguyên liệu để kiểm tra chế độ ăn. Vui lòng mở lại biểu mẫu để thử lại.')
     })
     return () => controller.abort()
   }, [recipe])
   const completeInput = !loadingUnits && Number.isInteger(form.servings) && Number(form.servings) >= 1 && Number(form.servings) <= 10000 &&
     form.ingredients.length > 0 && new Set(form.ingredients.map(row => row.ingredientId)).size === form.ingredients.length &&
-    form.ingredients.every(row => row.ingredientId && row.unit && row.quantity !== '' && Number.isFinite(row.quantity) && row.quantity > 0 && row.quantity <= 999999999)
+    form.ingredients.every(row => row.ingredientId && row.unit && row.quantity !== '' && Number.isFinite(row.quantity) && row.quantity > 0 &&
+      totalRecipeQuantity(row.quantity, Number(form.servings)) >= 0.001 && totalRecipeQuantity(row.quantity, Number(form.servings)) <= 999999999)
   const nutrition = useRecipeNutrition(completeInput ? {
     servings: Number(form.servings),
-    ingredients: form.ingredients.map(row => ({ ingredientId: row.ingredientId, quantity: Number(row.quantity), unit: row.unit })),
+    ingredients: form.ingredients.map(row => ({ ingredientId: row.ingredientId, quantity: totalRecipeQuantity(Number(row.quantity), Number(form.servings)), unit: row.unit })),
   } : null)
   // Kiểm tra và tải tệp phục vụ nội dung đang chỉnh sửa (uploadImage); thuộc công thức và định lượng nguyên liệu.
   const uploadImage = async (file?: File) => {
@@ -169,6 +184,11 @@ export function RecipeApiForm({
         i === index ? { ...item, ...patch } : item,
       ),
     }))
+  const ingredientWarnings = form.ingredients.map(row => {
+    const ingredient = ingredientInfo[row.ingredientId]
+    return ingredient ? ingredientDietWarnings(ingredient, form.declaredDietaryType) : []
+  })
+  const warningCount = ingredientWarnings.filter(reasons => reasons.length > 0).length
   // Hiển thị giao diện công thức và định lượng nguyên liệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
   return (
     <form
@@ -182,7 +202,7 @@ export function RecipeApiForm({
           return
         }
         if (form.servings === '' || form.prepTimeMinutes === '' || form.cookTimeMinutes === '') {
-          setError('Vui lòng nhập đầy đủ khẩu phần, thời gian chuẩn bị và thời gian nấu.')
+          setError('Vui lòng nhập đầy đủ thời gian chuẩn bị và thời gian nấu.')
           return
         }
         if (
@@ -206,7 +226,7 @@ export function RecipeApiForm({
           return
         }
         if (!completeInput) {
-          setError('Vui lòng nhập định lượng lớn hơn 0 cho từng nguyên liệu và số khẩu phần hợp lệ.')
+          setError('Vui lòng nhập định lượng lớn hơn 0 cho từng nguyên liệu.')
           return
         }
         if (nutrition.result && !nutrition.result.isComplete) {
@@ -226,7 +246,7 @@ export function RecipeApiForm({
         setError(null)
         try {
           const input: RecipeInput = { ...form, instructions,
-            ingredients: form.ingredients.map(row => ({ ...row, quantity: Number(row.quantity) })),
+            ingredients: form.ingredients.map(row => ({ ...row, quantity: totalRecipeQuantity(Number(row.quantity), Number(form.servings)) })),
             servings: Number(form.servings), prepTimeMinutes: Number(form.prepTimeMinutes), cookTimeMinutes: Number(form.cookTimeMinutes),
             caloriesPerServing: nutrition.result?.caloriesPerServing ?? null,
             proteinGramPerServing: nutrition.result?.proteinGramPerServing ?? null,
@@ -243,6 +263,20 @@ export function RecipeApiForm({
       }}
     >
       <fieldset disabled={busy} className="admin-recipe-fields space-y-5">
+        {loadingUnits && <p role="status" className="text-sm text-slate-600">Đang kiểm tra thông tin nguyên liệu...</p>}
+        {warningCount > 0 && (
+          <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <strong>{warningCount} nguyên liệu cần kiểm tra{form.declaredDietaryType ? ` với chế độ ${dietLabels[form.declaredDietaryType]}` : ''}.</strong>
+            <p className="mt-1">
+              {form.ingredients.filter((_, index) => ingredientWarnings[index].length > 0)
+                .map(row => names[row.ingredientId] || ingredientInfo[row.ingredientId]?.name).join(', ')}
+            </p>
+            <button type="button" className="mt-2 font-semibold underline underline-offset-2"
+              onClick={() => ingredientSection.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              Xem nguyên nhân tại từng nguyên liệu
+            </button>
+          </div>
+        )}
         <section aria-label="Thông tin chung" className="space-y-4 border-b border-slate-100 pb-5">
           <div className="flex items-center gap-2.5">
             <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
@@ -291,9 +325,10 @@ export function RecipeApiForm({
               >
                 <option value="">Chọn một chế độ ăn</option>
                 {Object.entries(dietLabels).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                  <option key={value} value={value} disabled={!!inferredDiet && value !== inferredDiet}>{label}</option>
                 ))}
               </select>
+              {inferredDiet && <span className="mt-1 block text-xs text-emerald-700">Theo nguyên liệu: {dietLabels[inferredDiet]}. Chọn đúng loại này để lưu.</span>}
             </label>
             <div className="space-y-2.5">
               <label htmlFor="recipe-image-file" className="text-sm font-semibold text-slate-700">
@@ -360,7 +395,6 @@ export function RecipeApiForm({
           <div className="grid gap-3 sm:grid-cols-3">
             {(
               [
-                ['servings', 'Khẩu phần', 1, 10000],
                 ['prepTimeMinutes', 'Chuẩn bị (phút)', 0, 10080],
                 ['cookTimeMinutes', 'Nấu (phút)', 0, 10080],
               ] as const
@@ -384,18 +418,18 @@ export function RecipeApiForm({
           </div>
         </section>
 
-        <section aria-label="Thành phần và định lượng" className="space-y-4 border-b border-slate-100 pb-5">
+        <section ref={ingredientSection} aria-label="Thành phần và định lượng" className="space-y-4 border-b border-slate-100 pb-5">
           <div className="flex items-center gap-2.5">
             <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
               <Leaf size={17} aria-hidden="true" />
             </span>
             <div>
               <h4 className="text-sm font-bold text-slate-800">Thành phần và định lượng</h4>
-              <p className="mt-0.5 text-xs text-slate-400">Chọn từng nguyên liệu và lượng dùng cho toàn bộ công thức.</p>
+              <p className="mt-0.5 text-xs text-slate-500">Nhập lượng dùng cho 1 người. Nếu nấu cho nhiều người, người dùng tự nhân định lượng.</p>
             </div>
           </div>
           {form.ingredients.map((ingredient, index) => (
-            <div key={index} className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4">
+            <div key={index} className={`space-y-3 rounded-xl border p-4 ${ingredientWarnings[index].length ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200/80 bg-slate-50/50'}`}>
               <IngredientPicker
                 label={`Nguyên liệu ${index + 1}`}
                 value={ingredient.ingredientId}
@@ -404,18 +438,27 @@ export function RecipeApiForm({
                   const unit = recipeQuantityUnit(item)
                   changeIngredient(index, { ingredientId: item.id, unit, quantity: ingredient.ingredientId === item.id ? ingredient.quantity : '' })
                   setNames({ ...names, [item.id]: item.name })
+                  setIngredientInfo(current => ({ ...current, [item.id]: item }))
                 }}
               />
+              {ingredientWarnings[index].length > 0 && (
+                <div className="text-sm text-amber-900">
+                  <p className="font-semibold">{names[ingredient.ingredientId] || ingredientInfo[ingredient.ingredientId]?.name} cần kiểm tra</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5">
+                    {ingredientWarnings[index].map(reason => <li key={reason}>{reason}</li>)}
+                  </ul>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="block text-sm font-medium text-slate-700">
-                  <span className="block leading-5">Số lượng <span className="text-rose-500" aria-hidden="true">*</span></span>
+                  <span className="block leading-5">Lượng / 1 người <span className="text-rose-500" aria-hidden="true">*</span></span>
                   <input
                     required
                     aria-label={`Số lượng nguyên liệu ${index + 1}`}
                     type="number"
-                    min={0.001}
+                    min={0.0000001}
                     max={999999999}
-                    step="0.001"
+                    step="any"
                     value={ingredient.quantity}
                     className={fieldClass}
                     onChange={(e) =>
@@ -448,7 +491,7 @@ export function RecipeApiForm({
                   />
                 </div>
               </div>
-              <p className="text-xs leading-relaxed text-slate-500">Đơn vị được lấy từ dữ liệu nguyên liệu. {ingredient.unit === 'ml' ? 'Nhập lượng ml; dinh dưỡng tính theo mốc ml đã khai báo, không đổi sang gam. ' : ingredient.unit === 'đơn vị' ? 'Nhập số lượng cần dùng; dinh dưỡng tính theo 1 đơn vị đã khai báo, không đổi sang gam. ' : ''}Nhập lượng dùng cho toàn bộ công thức; hệ thống tự tính dinh dưỡng mỗi khẩu phần.</p>
+              <p className="text-xs leading-relaxed text-slate-500">Đơn vị được lấy từ dữ liệu nguyên liệu. {ingredient.unit === 'ml' ? 'Nhập lượng ml; dinh dưỡng tính theo mốc ml đã khai báo, không đổi sang gam. ' : ingredient.unit === 'đơn vị' ? 'Nhập số lượng cần dùng; dinh dưỡng tính theo 1 đơn vị đã khai báo, không đổi sang gam. ' : ''}Nhập lượng dùng cho 1 người; hệ thống tự tính dinh dưỡng tương ứng.</p>
               {form.ingredients.length > 1 && (
                 <div className="flex justify-end">
                   <button
@@ -518,8 +561,8 @@ export function RecipeApiForm({
               <BarChart3 size={17} aria-hidden="true" />
             </span>
             <div>
-              <h4 className="text-sm font-bold text-slate-800">Dinh dưỡng mỗi khẩu phần</h4>
-              <p className="mt-0.5 text-xs text-slate-400">Tự tính theo nguyên liệu, định lượng và số khẩu phần.</p>
+              <h4 className="text-sm font-bold text-slate-800">Dinh dưỡng cho 1 người</h4>
+              <p className="mt-0.5 text-xs text-slate-500">Tự tính từ định lượng nguyên liệu cho 1 người.</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -537,9 +580,9 @@ export function RecipeApiForm({
             ))}
           </div>
           <div aria-live="polite" aria-busy={nutrition.loading} className="text-sm text-slate-600">
-            {loadingUnits ? 'Đang lấy đơn vị nguyên liệu...' : !completeInput ? 'Chọn nguyên liệu, nhập đủ định lượng và số khẩu phần để tính dinh dưỡng.'
+            {loadingUnits ? 'Đang lấy đơn vị nguyên liệu...' : !completeInput ? 'Chọn nguyên liệu và nhập đủ định lượng cho 1 người để tính dinh dưỡng.'
               : nutrition.loading ? <span className="inline-flex items-center gap-2"><LoaderCircle size={15} className="animate-spin" aria-hidden="true" />Đang tính dinh dưỡng...</span>
-                : nutrition.result?.isComplete ? 'Đã cập nhật dinh dưỡng mỗi khẩu phần.' : null}
+                : nutrition.result?.isComplete ? 'Đã cập nhật dinh dưỡng cho 1 người.' : null}
             {nutrition.result?.issues.map((issue, index) => <p key={`${issue.ingredientId}-${index}`} className="mt-1 text-amber-800">{issue.message}</p>)}
             {nutrition.error && <p className="mt-1 text-rose-700">{nutrition.error} <button type="button" className="underline" onClick={nutrition.retry}>Kết nối lại</button></p>}
           </div>

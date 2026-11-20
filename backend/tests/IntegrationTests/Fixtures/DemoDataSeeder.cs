@@ -1,3 +1,4 @@
+// Nạp bộ fixture demo vào database kiểm thử theo các ID xác định.
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Seeding;

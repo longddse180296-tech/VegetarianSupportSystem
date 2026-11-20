@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Biểu diễn xung đột dữ liệu như tên đã tồn tại để API có thể trả HTTP 409.
 namespace Application.Common.Exceptions;
 
 // ConflictException: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

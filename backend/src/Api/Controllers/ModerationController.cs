@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp lịch sử gửi duyệt cho tác giả và hàng đợi xử lý cho Admin.
 using System.Security.Claims;
 using Application.Features.Moderation;
 using Domain.Entities;
@@ -10,7 +10,7 @@ namespace Api.Controllers;
 
 // ModerationController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
-[Authorize(Roles = "User,Admin")]
+[Authorize(Roles = "User")]
 [Route("api/moderation/submissions")]
 public sealed class ModerationController(ModerationService moderationService) : ControllerBase
 {
@@ -156,6 +156,7 @@ public sealed class AdminModerationController(
     }
 
     // GetQueue: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
+    // BE2-10 (dùng chung) | Admin xem hàng chờ duyệt, trong đó có kết quả kiểm tra AI của bài viết.
     [HttpGet("queue")]
     public async Task<IActionResult> GetQueue(
         [FromQuery] ModeratedContentType? contentType,
@@ -210,6 +211,20 @@ public sealed class AdminModerationController(
         }
     }
 
+    // Đưa yêu cầu kiểm tra lại vào hàng đợi; worker gọi Gemini với văn bản và ảnh đã lưu.
+    [HttpPost("{id:guid}/retry-ai")]
+    public async Task<IActionResult> RetryAi(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await moderationService.RetryAiForAdminAsync(id, cancellationToken);
+            return await GetById(id, cancellationToken);
+        }
+        catch (ModerationException ex)
+        {
+            return ModerationHttpError.From(ex);
+        }
+    }
     // Decide: Áp dụng quyết định Admin lên đúng phiên bản và ghi lại lịch sử xử lý.
     [HttpPost("{id:guid}/decisions")]
     public async Task<IActionResult> Decide(
@@ -252,7 +267,7 @@ public sealed record SubmitModerationRequest(
 // MakeModerationDecisionRequest: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record MakeModerationDecisionRequest(
     ModerationDecisionType Decision,
-    string Reason);
+    string? Reason = null);
 
 // ModerationDecisionResponse: định nghĩa dữ liệu trao đổi của tính năng.
 public sealed record ModerationDecisionResponse(

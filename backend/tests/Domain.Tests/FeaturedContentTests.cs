@@ -1,3 +1,4 @@
+// Kiểm thử quy tắc ghim và hiển thị nội dung nổi bật.
 using System.ComponentModel.DataAnnotations;
 using Api.Controllers;
 using Application.Features.Administration;

@@ -1,4 +1,4 @@
-// Chức năng: quản trị tài khoản và thống kê hệ thống. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Tìm thành viên và đổi trạng thái tài khoản kèm lịch sử thao tác.
 namespace Application.Features.Administration;
 
 // MemberService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.

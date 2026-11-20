@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Thêm cấu hình JWT Bearer vào OpenAPI để Swagger mô tả cách gửi access token.
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 

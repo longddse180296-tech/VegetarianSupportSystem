@@ -1,4 +1,4 @@
-// Chức năng: video, bản nháp và nội dung công khai. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Điều phối bản nháp, tải tệp, danh mục Video, kiểm duyệt và quyền mở media.
 using Application.Features.Moderation;
 using Domain.Entities;
 using Domain.Enums;
@@ -18,7 +18,7 @@ public sealed record VideoPage(IReadOnlyList<VideoDetails> Items, int TotalCount
 // VideoService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class VideoService(IVideoRepository repository, IModerationRepository moderation, VideoMetadataService metadata)
 {
-    // CreateAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
+    // Kiểm tra danh mục Video rồi tạo bản nháp thuộc tài khoản gửi yêu cầu.
     public async Task<VideoDetails> CreateAsync(string userId, string title, string description,
         Guid? categoryId, CancellationToken ct)
     {
@@ -39,13 +39,14 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         if (video is null) return null;
         await EnsureEditable(video, ct);
         await CheckCategory(categoryId, ct);
+        await WithdrawPendingAsync(video, ct);
         video.Edit(title, description, categoryId);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await repository.SaveAsync(ct);
         return await MapAsync(video, false, ct);
     }
 
-    // SetMediaAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
+    // Gắn mã tệp đã tải lên với bản nháp và cập nhật luồng đọc thông tin video.
     public async Task<VideoDetails?> SetMediaAsync(Guid id, string userId, string key,
         bool thumbnail, CancellationToken ct)
     {
@@ -53,6 +54,7 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (video is null) return null;
         await EnsureEditable(video, ct);
+        await WithdrawPendingAsync(video, ct);
         if (thumbnail) video.SetThumbnail(key);
         else
         {
@@ -64,7 +66,7 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         return await MapAsync(video, false, ct);
     }
 
-    // BeginMediaUploadAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Kiểm tra chủ sở hữu và quyền sửa trước khi chuyển video vào trạng thái đang tải tệp.
     public async Task<bool> BeginMediaUploadAsync(Guid id, string userId, CancellationToken ct)
     {
         var video = await GetOwnedAsync(id, userId, ct);
@@ -98,7 +100,7 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         await repository.SaveAsync(ct);
     }
 
-    // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Gửi bản nháp đủ điều kiện sang hàng đợi duyệt của Admin.
     public async Task<ModerationSubmission?> SubmitAsync(Guid id, string userId,
         ModerationService moderationService, CancellationToken ct)
     {
@@ -120,6 +122,8 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         await EnsureEditable(video, ct);
         if (video.UploadStatus != "Ready" || video.MediaKey is null)
             throw new InvalidOperationException("Vui lòng tải video hợp lệ lên trước khi gửi duyệt.");
+        if (string.IsNullOrWhiteSpace(video.ThumbnailKey))
+            throw new InvalidOperationException("Vui lòng tải ảnh bìa video lên trước khi gửi duyệt.");
         if (await moderation.GetLatestForContentAsync(id, ct) is null)
             return await moderationService.SubmitFirstVideoAsync(id, userId, video.Title,
                 video.Description, video.MediaKey, ct);
@@ -175,7 +179,7 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
         return new VideoPage(output, total, page, pageSize);
     }
 
-    // OpenMediaAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Chọn đúng tệp của bản công khai hoặc bản của chủ sở hữu trước khi mở luồng đọc.
     public async Task<(Stream Stream, string MimeType)?> OpenMediaAsync(Guid id, string? userId,
         bool isAdmin, bool thumbnail, Guid? submissionId, IPrivateMediaStore store, CancellationToken ct)
     {
@@ -220,13 +224,12 @@ public sealed class VideoService(IVideoRepository repository, IModerationReposit
     private async Task EnsureEditable(Video video, CancellationToken ct)
     {
         var latest = await moderation.GetLatestForContentAsync(video.Id, ct);
-        if (latest?.AdminReviewStatus == AdminReviewStatus.Removed)
-            throw new InvalidOperationException("Video đã bị xóa hoặc gỡ, không thể chỉnh sửa hay gửi duyệt lại.");
-        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
-        if (latest?.AdminReviewStatus is AdminReviewStatus.Submitted or AdminReviewStatus.PendingAdminReview)
-            throw new InvalidOperationException("Video đang được kiểm duyệt. Vui lòng chờ kết quả trước khi chỉnh sửa.");
+        if (latest?.AdminReviewStatus is AdminReviewStatus.Rejected or AdminReviewStatus.RevisionRequested or AdminReviewStatus.Removed)
+            throw new InvalidOperationException("Video đã bị từ chối hoặc gỡ, chỉ được xem và không thể chỉnh sửa, lưu nháp hay gửi lại.");
     }
-    // MapAsync: Chuẩn hóa hoặc chuyển đổi dữ liệu giữa các bước xử lý.
+    private async Task WithdrawPendingAsync(Video video, CancellationToken ct) =>
+        (await moderation.GetLatestForContentAsync(video.Id, ct))?.WithdrawPendingForEdit(DateTimeOffset.UtcNow);
+    // Dựng dữ liệu trả về từ bản công khai hoặc bản nháp theo ngữ cảnh, kèm thông tin tệp và tác giả.
     private async Task<VideoDetails> MapAsync(Video video, bool publicView, CancellationToken ct,
         ModerationSubmission? published = null, IReadOnlyDictionary<string, string>? authorNames = null)
     {

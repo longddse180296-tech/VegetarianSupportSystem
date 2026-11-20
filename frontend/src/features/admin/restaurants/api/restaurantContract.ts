@@ -5,6 +5,7 @@ import type { DietaryType } from '../../recipes/api/recipeContract'
 // Cấu trúc RestaurantFeaturedDishInput quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.
 export interface RestaurantFeaturedDishInput {
   name: string
+  description?: string | null
   imageUrl: string | null
 }
 

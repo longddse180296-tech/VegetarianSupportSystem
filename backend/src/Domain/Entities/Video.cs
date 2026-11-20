@@ -1,4 +1,4 @@
-// Chức năng: video, bản nháp và nội dung công khai. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Giữ dữ liệu đang chỉnh sửa và dữ liệu đã công khai của video, cùng mã tệp tương ứng.
 namespace Domain.Entities;
 
 // Video: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

@@ -1,4 +1,4 @@
-// Chức năng: bổ sung dữ liệu phiên trình duyệt và hash gia hạn cho tài khoản; tệp migration sinh tự động.
+// Lưu trạng thái phiên trình duyệt và dữ liệu cần để làm mới hoặc kết thúc phiên.
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

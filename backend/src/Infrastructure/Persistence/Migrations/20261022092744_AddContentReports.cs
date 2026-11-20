@@ -1,5 +1,5 @@
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: báo cáo nội dung cần xem xét. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Tạo bảng lưu báo cáo vi phạm và thông tin xử lý.
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 

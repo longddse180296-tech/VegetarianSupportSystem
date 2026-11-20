@@ -1,4 +1,5 @@
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-05 | Chuyển dữ liệu nghiệp vụ sang dạng API trả về (nhà hàng: danh mục public và quản trị, vị trí và chế độ ăn).
+// Chuyển dữ liệu về nhà hàng chay, vị trí, khoảng giá và tiện ích từ entity sang cấu trúc API trả về.
 using Domain.Entities;
 
 namespace Application.Features.Restaurants;
@@ -54,7 +55,7 @@ internal static class RestaurantMapping
             dietaryTypes.Count == 1 ? dietaryTypes[0] : null,
             restaurant.Amenities.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
             restaurant.FeaturedDishes.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Id)
-                .Select(x => new RestaurantFeaturedDishResponse(x.Id, x.Name, x.ImageUrl, x.DisplayOrder)).ToArray(),
+                .Select(x => new RestaurantFeaturedDishResponse(x.Id, x.Name, x.ImageUrl, x.DisplayOrder, x.Description)).ToArray(),
             distanceKm);
     }
 

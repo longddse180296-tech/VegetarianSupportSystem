@@ -1,3 +1,4 @@
+// Lấy hoặc ghi nhận kết quả kiểm tra thời lượng và audio gắn với tệp hiện tại.
 // Điều phối đọc, lưu metadata và bổ sung video cũ; không thay đổi nội dung hoặc âm thanh của tệp.
 using Domain.Entities;
 

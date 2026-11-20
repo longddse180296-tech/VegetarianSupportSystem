@@ -1,4 +1,4 @@
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Tải bản nháp và lịch sử duyệt, tìm bản đang công khai và đối chiếu tiêu đề đã xuất bản.
 using Application.Features.Articles;
 using Domain.Entities;
 using Domain.Enums;
@@ -11,7 +11,12 @@ namespace Infrastructure.Persistence.Repositories;
 // ArticleRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class ArticleRepository(AppDbContext db) : IArticleRepository
 {
+    // Kiểm tra nhãn có trùng danh mục bài viết đã khóa, dựa trên quy tắc so sánh của SQL Server.
+    public Task<bool> HasInactiveCategoryAsync(IReadOnlyCollection<string> names, CancellationToken ct) =>
+        db.Categories.AnyAsync(category => category.Kind == CategoryKind.Article && !category.IsActive && names.Contains(category.Name), ct);
+
     // Chỉ đối chiếu bản đã duyệt đang công khai; bỏ qua chính bài đang sửa, bài chờ duyệt và các trạng thái khác.
+    // Chỉ so tiêu đề với các phiên bản đang công khai và bỏ qua chính bài đang sửa.
     public async Task<bool> HasDuplicatePublishedTitleAsync(Guid excludingArticleId, string title, CancellationToken ct)
     {
         var normalized = ArticleTitleRules.Normalize(title);

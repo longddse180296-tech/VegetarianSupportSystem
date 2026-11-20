@@ -1,4 +1,4 @@
-// Chức năng: kiểm tra quyền truy cập. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Đối chiếu token với trạng thái tài khoản, phiên đang hoạt động và danh sách token bị thu hồi.
 using System.Security.Claims;
 using System.Globalization;
 using Application.Features.Auth;

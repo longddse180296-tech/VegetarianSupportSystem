@@ -1,3 +1,4 @@
+// BE2-01/06 | Hiển thị danh sách công thức từ API public, bộ lọc và thao tác lưu món.
 // Chức năng: công thức và định lượng nguyên liệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, ChefHat, Sparkles, UtensilsCrossed } from 'lucide-react'
@@ -301,7 +302,7 @@ export default function RecipeList({
           />
         </section>
 
-        {/* ============== BANNER AI TỦ BẾP (Background xanh nhạt, icon tủ lạnh mở, Card nổi bật) ============== */}
+        {/* ============== BANNER GỢI Ý TỦ BẾP (Background xanh nhạt, icon tủ lạnh mở, Card nổi bật) ============== */}
         <section
           className="mt-7 overflow-hidden rounded-[20px] border border-emerald-200/90 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-green-50 shadow-xs"
         >
@@ -314,18 +315,18 @@ export default function RecipeList({
                 Bạn có sẵn nguyên liệu trong bếp?
               </h2>
               <p className="mt-1 text-[14px] font-normal leading-[22px] text-emerald-800/90">
-                Thử ngay tính năng Tủ bếp AI để nhận gợi ý các món chay thơm ngon,
+                Thử ngay tính năng Gợi ý Tủ bếp để nhận gợi ý các món chay thơm ngon,
                 chuẩn dinh dưỡng từ chính những gì bạn đang có mà không lo lãng phí!
               </p>
             </div>
 
-            {/* Nhãn "Mở tủ bếp AI" dạng Card nổi bật nhưng không lấn át danh sách món */}
+            {/* Nhãn "Mở Gợi ý Tủ bếp" dạng Card nổi bật nhưng không lấn át danh sách món */}
             <div className="flex md:col-span-4 md:justify-end">
               <div
                 role="button"
                 tabIndex={0}
                 onClick={() => {
-                  showToast('✨ Đang mở Tủ bếp AI...')
+                  showToast('✨ Đang mở Gợi ý Tủ bếp...')
                   onNavigate?.('/pantry')
                 }}
                 onKeyDown={(e) => {
@@ -344,7 +345,7 @@ export default function RecipeList({
                     Gợi ý món theo bếp
                   </span>
                   <span className="text-[15px] font-extrabold text-slate-900 group-hover:text-emerald-800">
-                    Mở tủ bếp AI
+                    Mở Gợi ý Tủ bếp
                   </span>
                 </div>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-all group-hover:bg-emerald-50 group-hover:text-emerald-700 group-hover:translate-x-0.5">
@@ -387,7 +388,7 @@ export default function RecipeList({
           ) : totalFiltered === 0 ? (
             <EmptyState
               title="Không có công thức nào phù hợp"
-              description="Hãy thử từ khóa khác, nới lỏng bộ lọc về thời gian, mức calo hoặc thay đổi chế độ ăn. Bạn cũng có thể dùng Tủ bếp AI để gợi ý theo nguyên liệu đang có."
+              description="Hãy thử từ khóa khác, nới lỏng bộ lọc về thời gian, mức calo hoặc thay đổi chế độ ăn. Bạn cũng có thể dùng Gợi ý Tủ bếp để gợi ý theo nguyên liệu đang có."
               actionLabel="Xóa bộ lọc"
               onAction={resetFilter}
               icon={<ChefHat size={40} className="text-[#2E7D32]" />}

@@ -1,3 +1,4 @@
+// Kiểm thử chuyển trạng thái bản nháp, gửi duyệt và bản công khai.
 using Application.Features.Articles;
 using Application.Features.Moderation;
 using Application.Features.Videos;
@@ -42,7 +43,7 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
-    public async Task PendingSubmissionCannotBeEdited()
+    public async Task PendingSubmissionCanBeEditedAndLeavesTheOldQueue()
     {
         var now = DateTimeOffset.UtcNow;
         var article = new Article("owner", "First", "Original", "Health", null, now);
@@ -50,8 +51,11 @@ public sealed class ArticleWorkflowTests
             ModeratedContentType.Article, "owner", "First", "Original", null, now), now);
         var service = new ArticleService(new SingleArticleRepository(article), new ModerationService(new EmptyModerationRepository(), new EmptyVideoPublication()));
 
-        Assert.Equal(ArticleError.Conflict, (await Assert.ThrowsAsync<ArticleException>(
-            () => service.UpdateAsync(article.Id, "owner", new("Changed", "Text", "Health", null), CancellationToken.None))).Error);
+        var result = await service.UpdateAsync(article.Id, "owner", new("Changed", "Text", "Health", null), CancellationToken.None);
+        Assert.Equal("Changed", result.Title);
+        Assert.Equal(AdminReviewStatus.Draft, Assert.Single(article.Versions).Submission.AdminReviewStatus);
+        Assert.Equal("Original", Assert.Single(article.Versions).Content);
+
     }
 
     [Fact]
@@ -99,6 +103,9 @@ public sealed class ArticleWorkflowTests
 
     private sealed class SingleArticleRepository(Article article, string? ownerName = null) : IArticleRepository
     {
+        public Task<bool> HasInactiveCategoryAsync(IReadOnlyCollection<string> names, CancellationToken ct) =>
+            Task.FromResult(false);
+
         public Task<bool> HasDuplicatePublishedTitleAsync(Guid excludingArticleId, string title, CancellationToken ct) => Task.FromResult(false);
         public Task<Article?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult<Article?>(article.Id == id ? article : null);
         public Task<ArticlePage<Article>> ListMineAsync(string ownerId, MyArticleListQuery query, CancellationToken ct) => throw new NotImplementedException();

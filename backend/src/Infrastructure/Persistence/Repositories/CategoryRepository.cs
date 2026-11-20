@@ -1,7 +1,9 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-02 | Triển khai truy vấn và lưu dữ liệu EF Core cho danh mục và trạng thái còn sử dụng.
+// Lọc danh mục theo loại, trạng thái và từ khóa. Lưu thay đổi và chuyển lỗi trùng tên của SQL Server thành lỗi nghiệp vụ.
 using Application.Common.Exceptions;
 using Application.Features.Categories;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,10 +12,10 @@ namespace Infrastructure.Persistence.Repositories;
 // CategoryRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class CategoryRepository(AppDbContext db) : ICategoryRepository
 {
-    // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
-    public async Task<(IReadOnlyList<Category> Items, int TotalCount)> ListAsync(CategoryListQuery request, bool includeInactive, CancellationToken ct)
+    // Lọc theo loại, trạng thái và từ khóa trước khi đếm và lấy đúng trang.
+    public async Task<(IReadOnlyList<Category> Items, int TotalCount)> ListAsync(CategoryListQuery request, bool includeInactive, CategoryKind kind, CancellationToken ct)
     {
-        var query = db.Categories.AsNoTracking();
+        var query = db.Categories.AsNoTracking().Where(x => x.Kind == kind);
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (!includeInactive)
         {
@@ -41,8 +43,8 @@ public sealed class CategoryRepository(AppDbContext db) : ICategoryRepository
         db.Categories.SingleOrDefaultAsync(x => x.Id == id, ct);
 
     // NameExistsAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    public Task<bool> NameExistsAsync(string name, Guid? exceptId, CancellationToken ct) =>
-        db.Categories.AnyAsync(x => x.Name == name && x.Id != exceptId, ct);
+    public Task<bool> NameExistsAsync(string name, Guid? exceptId, CategoryKind kind, CancellationToken ct) =>
+        db.Categories.AnyAsync(x => x.Kind == kind && x.Name == name && x.Id != exceptId, ct);
 
     // Add: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     public void Add(Category entity) => db.Categories.Add(entity);

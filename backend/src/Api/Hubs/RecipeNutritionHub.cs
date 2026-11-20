@@ -1,4 +1,5 @@
-// Chức năng: công thức và định lượng nguyên liệu. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// BE2-04 | Hub SignalR nhận định lượng và số khẩu phần để xem trước dinh dưỡng trên form Admin.
+// Nhận yêu cầu tính dinh dưỡng qua SignalR để Admin xem kết quả ngay khi cập nhật định lượng.
 using System.ComponentModel.DataAnnotations;
 using Application.Features.Recipes;
 using Microsoft.AspNetCore.Authorization;

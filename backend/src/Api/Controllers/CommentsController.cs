@@ -1,4 +1,4 @@
-// Chức năng: bình luận và tương tác cộng đồng. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp API đọc bình luận công khai, trả lời và thao tác quản lý của tác giả hoặc Admin.
 using Api.Authorization;
 using Application.Features.Comments;
 using Domain.Enums;
@@ -24,7 +24,7 @@ public sealed class CommentsController(CommentService service) : ControllerBase
         Execute(async () => Ok(await service.GetPublicAsync(id, ct)));
 
     // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpPost("/api/comments")]
     public Task<IActionResult> Create([FromBody] CreateCommentRequest request, CancellationToken ct) =>
         Execute(async () =>
@@ -34,19 +34,19 @@ public sealed class CommentsController(CommentService service) : ControllerBase
         });
 
     // Edit: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpPut("/api/comments/{id:guid}")]
     public Task<IActionResult> Edit(Guid id, [FromBody] EditCommentRequest request, CancellationToken ct) =>
         Execute(async () => Ok(await service.EditAsync(id, User.GetUserId()!, request, ct)));
 
     // Delete: Xóa dữ liệu trong phạm vi cho phép và xử lý các liên kết liên quan.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpDelete("/api/comments/{id:guid}")]
     public Task<IActionResult> Delete(Guid id, CancellationToken ct) =>
         Execute(async () => { await service.DeleteAsync(id, User.GetUserId()!, ct); return NoContent(); });
 
     // Mine: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpGet("/api/me/comments")]
     public Task<IActionResult> Mine([FromQuery] CommentQuery query, CancellationToken ct) =>
         Execute(async () => Ok(await service.ListMineAsync(User.GetUserId()!, query, ct)));

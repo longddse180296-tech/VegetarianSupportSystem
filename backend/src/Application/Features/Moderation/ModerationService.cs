@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quản lý các lần gửi duyệt, ghi kết quả AI và áp dụng quyết định của Admin đối với bài viết hoặc video.
 using Domain.Entities;
 using Domain.Enums;
 using Application.Features.Favorites;
@@ -28,7 +28,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
         await repository.SaveChangesAsync(ct);
         return submission;
     }
-    // SubmitAsync: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Tạo một lần gửi duyệt có số phiên bản. Áp dụng luồng kiểm tra phù hợp với bài viết hoặc video.
     public async Task<ModerationSubmission> SubmitAsync(
         string ownerUserId,
         SubmitModerationCommand command,
@@ -70,11 +70,11 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             if (latest.ContentType != command.ContentType)
                 throw new ModerationException(ModerationError.Validation, "Không thể đổi loại nội dung giữa các phiên bản.");
 
-            if (latest.AdminReviewStatus is not (
-                AdminReviewStatus.RevisionRequested or AdminReviewStatus.Rejected or AdminReviewStatus.Published))
+            if (latest.AdminReviewStatus is AdminReviewStatus.Rejected or AdminReviewStatus.RevisionRequested or AdminReviewStatus.Removed)
             {
-                throw new ModerationException(ModerationError.Conflict, "Phiên bản hiện tại chưa thể gửi duyệt lại. Vui lòng kiểm tra trạng thái và phản hồi của Quản trị viên.");
+                throw new ModerationException(ModerationError.Conflict, "Nội dung đã bị từ chối hoặc gỡ, chỉ được xem và không thể gửi lại.");
             }
+            latest.WithdrawPendingForEdit(DateTimeOffset.UtcNow);
 
             contentId = existingId;
             version = checked(latest.Version + 1);
@@ -137,11 +137,17 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             cancellationToken);
     }
 
-    // RetryAiAsync: Thử lại thao tác khi trạng thái hiện tại cho phép.
+    // Admin yêu cầu worker kiểm tra lại đúng phiên bản mới nhất, chưa có quyết định duyệt.
+    public async Task<ModerationSubmission> RetryAiForAdminAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var submission = await GetForAdminAsync(id, cancellationToken);
+        return await RetryAiAsync(id, submission.OwnerUserId, cancellationToken, allowCompleted: true);
+    }
+    // Đưa bài viết đủ điều kiện trở lại bước kiểm tra sau khi AI gặp lỗi.
     public async Task<ModerationSubmission> RetryAiAsync(
         Guid submissionId,
         string ownerUserId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool allowCompleted = false)
     {
         var submission = await GetOwnedAsync(submissionId, ownerUserId, cancellationToken);
         var latest = await repository.GetLatestForContentAsync(submission.ContentId, cancellationToken);
@@ -151,7 +157,7 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
 
         try
         {
-            submission.RetryAiCheck(DateTimeOffset.UtcNow);
+            submission.RetryAiCheck(DateTimeOffset.UtcNow, allowCompleted);
         }
         catch (InvalidOperationException ex)
         {
@@ -166,6 +172,8 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
     // Called by a trusted backend AI worker after it has performed a real check.
     // It is intentionally not exposed as an HTTP endpoint.
     // RecordAiResultAsync: Ghi kết quả AI độc lập với quyết định xuất bản của Admin.
+    // BE2-10 | Ghi cờ, lý do và phạm vi kiểm tra AI độc lập với quyết định duyệt của Admin.
+    // Ghi kết quả kiểm tra tự động và đưa hồ sơ sang trạng thái tiếp theo theo quy tắc duyệt.
     public async Task<ModerationSubmission> RecordAiResultAsync(
         Guid submissionId,
         ModerationAiResult result,
@@ -238,20 +246,28 @@ public sealed class ModerationService(IModerationRepository repository, IVideoPu
             cancellationToken);
     }
 
-    // DecideAsync: Áp dụng quyết định Admin lên đúng phiên bản và ghi lại lịch sử xử lý.
+    // Ghi quyết định của Admin và đồng bộ bản đang công khai hoặc việc gỡ nội dung.
     public async Task<ModerationSubmission> DecideAsync(
         Guid submissionId,
         ModerationDecisionType decision,
         string adminUserId,
-        string reason,
+        string? reason,
         CancellationToken cancellationToken)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (string.IsNullOrWhiteSpace(adminUserId) || adminUserId.Length > 450)
             throw new ModerationException(ModerationError.Forbidden, "Thao tác này cần tài khoản Quản trị viên.");
 
-        if (!Enum.IsDefined(decision) || string.IsNullOrWhiteSpace(reason) || reason.Length > 2_000)
-            throw new ModerationException(ModerationError.Validation, "Vui lòng chọn kết quả xử lý và nhập lý do không quá 2.000 ký tự.");
+        if (!Enum.IsDefined(decision) || reason?.Length > 2_000)
+            throw new ModerationException(ModerationError.Validation, "Vui lòng chọn kết quả xử lý hợp lệ.");
+        // Không yêu cầu Admin nhập phản hồi; vẫn ghi mô tả quyết định để giữ lịch sử xử lý nhất quán.
+        reason = string.IsNullOrWhiteSpace(reason) ? decision switch
+        {
+            ModerationDecisionType.Approve => "Đã được chấp nhận",
+            ModerationDecisionType.Reject => "Đã bị từ chối",
+            ModerationDecisionType.RequestRevision => "Yêu cầu chỉnh sửa",
+            _ => "Đã gỡ nội dung"
+        } : reason.Trim();
 
         var submission = await repository.GetByIdAsync(submissionId, cancellationToken)
             ?? throw new ModerationException(ModerationError.NotFound, "Không tìm thấy bản nội dung đã gửi hoặc bạn không có quyền xem.");

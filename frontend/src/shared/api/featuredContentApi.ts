@@ -1,3 +1,4 @@
+// BE2-06 | Kết nối trang chủ và màn hình Admin với API nội dung nổi bật.
 // Chức năng: giao diện và thành phần dùng chung. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from './apiClient'
 
@@ -46,4 +47,10 @@ export async function getPublicFeaturedContent(contentType: FeaturedContentType,
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (setFeaturedPin); thuộc giao diện và thành phần dùng chung.
 export function setFeaturedPin(contentType: FeaturedContentType, id: string, isPinned: boolean) {
   return apiClient.put<void>(`/api/admin/featured-content/${contentType}/${encodeURIComponent(id)}`, { isPinned })
+}
+
+// Trang chủ lấy top sau khi BE xếp hạng toàn bộ nội dung công khai.
+export async function getPopularFeaturedContent(contentType: FeaturedContentType, signal?: AbortSignal) {
+  const query = new URLSearchParams({ contentType, page: '1', pageSize: '3', rankByPopularity: 'true' })
+  return (await apiClient.get<FeaturedContentPage>(`/api/featured-content?${query}`, {requiresAuth: false, signal})).items
 }

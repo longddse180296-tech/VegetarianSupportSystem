@@ -1,4 +1,5 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// BE2-06 | Mô hình nghiệp vụ lưu nội dung được Admin ghim lên trang chủ.
+// Lưu nội dung được Admin ghim nổi bật.
 using Domain.Enums;
 
 namespace Domain.Entities;

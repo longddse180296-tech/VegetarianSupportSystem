@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Tạo JWT chứa danh tính, vai trò và dữ liệu phiên để xác thực các request tiếp theo.
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;

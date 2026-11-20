@@ -1,3 +1,4 @@
+// BE2-04 | Kết nối SignalR để xem trước dinh dưỡng khi Admin thay đổi định lượng hoặc số khẩu phần.
 // Chức năng: công thức và định lượng nguyên liệu. Quản lý trạng thái, vòng đời yêu cầu và dữ liệu được tái sử dụng.
 import { useEffect, useRef, useState } from 'react'
 import { HubConnectionBuilder, HubConnectionState, LogLevel, type HubConnection } from '@microsoft/signalr'

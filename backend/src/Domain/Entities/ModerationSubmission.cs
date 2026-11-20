@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Giữ trạng thái kiểm duyệt AI và Admin của một phiên bản nội dung.
 using Domain.Enums;
 
 namespace Domain.Entities;
@@ -6,6 +6,13 @@ namespace Domain.Entities;
 // ModerationSubmission: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class ModerationSubmission
 {
+    // Bản đã được tác giả sửa không còn là ứng viên duyệt. Gửi lại tạo phiên bản mới ở cuối hàng đợi.
+    public void WithdrawPendingForEdit(DateTimeOffset now)
+    {
+        if (AdminReviewStatus is not (AdminReviewStatus.Submitted or AdminReviewStatus.PendingAdminReview)) return;
+        AdminReviewStatus = AdminReviewStatus.Draft;
+        UpdatedAtUtc = now;
+    }
     private ModerationSubmission() { }
 
     private ModerationSubmission(
@@ -110,6 +117,7 @@ public sealed class ModerationSubmission
     }
 
     // RecordAiResult: Ghi kết quả AI độc lập với quyết định xuất bản của Admin.
+    // BE2-10 | Lưu trạng thái và bằng chứng AI rồi chuyển bản gửi sang chờ Admin duyệt.
     public void RecordAiResult(
         AiFlagStatus status,
         string summary,
@@ -174,16 +182,18 @@ public sealed class ModerationSubmission
     }
 
     // RetryAiCheck: Thử lại thao tác khi trạng thái hiện tại cho phép.
-    public void RetryAiCheck(DateTimeOffset retriedAt)
+    public void RetryAiCheck(DateTimeOffset retriedAt, bool allowCompleted = false)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
         if (ContentType == ModeratedContentType.Video)
             throw new InvalidOperationException("Video không thuộc luồng kiểm tra tự động; Quản trị viên sẽ xem trực tiếp.");
 
-        if (AiFlagStatus != AiFlagStatus.Failed || AdminReviewStatus != AdminReviewStatus.Submitted)
+        if ((AiFlagStatus != AiFlagStatus.Failed && !(allowCompleted && AiFlagStatus is (AiFlagStatus.Passed or AiFlagStatus.Flagged or AiFlagStatus.Partial))) ||
+            (AdminReviewStatus != AdminReviewStatus.Submitted && !(allowCompleted && AdminReviewStatus == AdminReviewStatus.PendingAdminReview)))
             throw new InvalidOperationException("Hệ thống chưa thể kiểm tra lại bản này. Vui lòng xem trạng thái kiểm duyệt hiện tại.");
 
         AiFlagStatus = AiFlagStatus.Checking;
+        AdminReviewStatus = AdminReviewStatus.Submitted;
         AiSummary = null;
         AiFlagReason = null;
         AiFlagType = null;

@@ -78,7 +78,7 @@ export interface Restaurant {
   hasTakeAway: boolean
   acceptsBooking: boolean
   createdAt: string
-  featuredDishes?: Array<{ id: string; name: string; imageUrl: string; displayOrder: number }>
+  featuredDishes?: Array<{ id: string; name: string; description?: string | null; imageUrl: string; displayOrder: number }>
 }
 
 // Cấu trúc RestaurantFilter quy định dữ liệu trao đổi trong tra cứu và quản lý nhà hàng.

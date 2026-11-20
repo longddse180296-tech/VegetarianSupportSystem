@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi lịch sử và kết quả quét thực phẩm bằng EF Core.
 using Application.Features.FoodScanning;
 using Domain.Entities;
 using Domain.Enums;
@@ -9,6 +9,8 @@ namespace Infrastructure.Persistence.Repositories;
 // FoodScanRepository: thực hiện truy vấn và lưu dữ liệu của tính năng qua EF Core.
 public sealed class FoodScanRepository(AppDbContext db) : IFoodScanRepository
 {
+    public async Task<bool> DeleteOwnedAsync(Guid id, string userId, CancellationToken ct) =>
+        await db.FoodScanRecords.Where(x => x.Id == id && x.OwnerUserId == userId).ExecuteDeleteAsync(ct) > 0;
     // GetProfileAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<ScanProfileSnapshot> GetProfileAsync(string userId, CancellationToken ct)
     {
@@ -26,13 +28,10 @@ public sealed class FoodScanRepository(AppDbContext db) : IFoodScanRepository
             .Where(x => x.IsActive && normalized.Contains(x.Name))
             .ToArrayAsync(ct);
         return ingredients.Select(x => new ScanIngredientEvidence(x.Id, x.Name,
-            x.Origin == IngredientOrigin.Animal || x.ContainsOtherAnimalProducts == true
-                ? IngredientKind.Animal :
             x.ContainsEgg && !x.ContainsMilk && !x.ContainsHoney ? IngredientKind.Egg :
             x.ContainsMilk && !x.ContainsEgg && !x.ContainsHoney ? IngredientKind.Dairy :
             x.ContainsHoney && !x.ContainsEgg && !x.ContainsMilk ? IngredientKind.Honey :
-            x.Origin == IngredientOrigin.Plant && x.ContainsOtherAnimalProducts == false &&
-                !x.ContainsEgg && !x.ContainsMilk && !x.ContainsHoney ? IngredientKind.Plant :
+            !x.ContainsEgg && !x.ContainsMilk && !x.ContainsHoney ? IngredientKind.Plant :
             IngredientKind.Unknown, x.Source, x.Allergens)).ToArray();
     }
     // AddAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.

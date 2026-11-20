@@ -1,4 +1,4 @@
-// Chức năng: kiểm tra hai trình duyệt độc lập, gia hạn cookie và thu hồi phiên bằng JWT thật trên database kiểm thử.
+// Kiểm thử vòng đời phiên trình duyệt và tính hợp lệ của access token.
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;

@@ -1,4 +1,4 @@
-// Chức năng: xóa nội dung của chính chủ, dừng xuất bản và giữ lịch sử kiểm duyệt trong cùng giao dịch.
+// Gỡ nội dung do chủ sở hữu yêu cầu, xử lý lượt yêu thích liên quan và giữ lịch sử duyệt khi nội dung từng được gửi.
 using System.Data;
 using Application.Features.Moderation;
 using Domain.Entities;
@@ -17,6 +17,7 @@ public sealed class OwnerContentDeletionRepository(AppDbContext db) : IOwnerCont
         { throw new ModerationException(ModerationError.Conflict, "Nội dung đang được xử lý ở phiên khác. Vui lòng tải lại và thử xóa lại."); }
     }
 
+    // Khóa phạm vi phiên bản trong lúc gỡ nội dung để tránh thao tác duyệt đồng thời khôi phục bản đã gỡ.
     private async Task<bool> DeleteWithinTransactionAsync(ModeratedContentType type, Guid id, string ownerId, CancellationToken ct)
     {
         // Serializable khóa phạm vi phiên bản, tránh submit/duyệt đồng thời làm sống lại nội dung đã xóa.
@@ -33,6 +34,8 @@ public sealed class OwnerContentDeletionRepository(AppDbContext db) : IOwnerCont
         var versions = await db.ModerationSubmissions.Where(x => x.ContentId == contentId && x.ContentType == type)
             .ToListAsync(ct);
         var now = DateTimeOffset.UtcNow;
+        if (versions.OrderByDescending(version => version.Version).FirstOrDefault()?.AdminReviewStatus is AdminReviewStatus.Rejected or AdminReviewStatus.RevisionRequested)
+            throw new ModerationException(ModerationError.Conflict, "Nội dung đã bị từ chối, chỉ được xem và không thể xóa hoặc thay đổi.");
         foreach (var version in versions) version.RemoveByOwner(ownerId, now);
         if (video is not null) video.RemovePublication();
 

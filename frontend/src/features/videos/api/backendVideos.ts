@@ -120,7 +120,7 @@ export async function uploadVideoFile(id: string, file: File, thumbnail = false)
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (listVideoCategories); thuộc video, bản nháp và nội dung công khai.
 export async function listVideoCategories(): Promise<VideoCategoryOption[]> {
   const response = await apiClient.get<{ items: VideoCategoryOption[] }>(
-    '/api/categories?pageNumber=1&pageSize=100',
+    '/api/categories?kind=Video&pageNumber=1&pageSize=100',
     { requiresAuth: false },
   )
   return response.items

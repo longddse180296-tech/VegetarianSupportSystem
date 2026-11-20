@@ -1,4 +1,4 @@
-// Chức năng: xác thực danh tính và mã truy cập. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Khởi tạo tài khoản Admin ban đầu từ cấu hình khi đáp ứng điều kiện chạy.
 using Application.Features.Auth;
 using Domain.Entities;
 using System.ComponentModel.DataAnnotations;

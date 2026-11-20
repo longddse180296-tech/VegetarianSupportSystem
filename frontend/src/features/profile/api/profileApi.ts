@@ -35,6 +35,7 @@ interface BackendProfile {
     | 'Overweight'
     | 'Obesity'
     | null
+  dailyNutritionTarget?: { calories: number; proteinGrams: number; carbohydrateGrams: number; fatGrams: number } | null
   estimatedTdeeKcal: number | null
   activityLevel:
     | 'Sedentary'
@@ -54,6 +55,7 @@ interface BackendProfile {
 interface BackendEstimate {
   bmi: number | null
   adultBmiCategory: BackendProfile['adultBmiCategory']
+  dailyNutritionTarget?: { calories: number; proteinGrams: number; carbohydrateGrams: number; fatGrams: number } | null
   estimatedTdeeKcal: number | null
 }
 
@@ -80,20 +82,18 @@ const activityToBackend: Record<
   NonNullable<BackendProfile['activityLevel']>
 > = {
   sedentary: 'Sedentary',
-  light: 'LightlyActive',
   moderate: 'ModeratelyActive',
   active: 'VeryActive',
-  very_active: 'ExtraActive',
 }
 const activityFromBackend: Record<
   NonNullable<BackendProfile['activityLevel']>,
   ActivityLevel
 > = {
   Sedentary: 'sedentary',
-  LightlyActive: 'light',
+  LightlyActive: 'moderate',
   ModeratelyActive: 'moderate',
   VeryActive: 'active',
-  ExtraActive: 'very_active',
+  ExtraActive: 'active',
 }
 const goalToBackend: Record<
   Exclude<GoalType, ''>,
@@ -196,9 +196,10 @@ function mapProfile(data: BackendProfile): UserProfile {
     bmrKcal: 0,
     tdeeKcal: data.estimatedTdeeKcal ?? 0,
     goal: data.weightGoal ? goalFromBackend[data.weightGoal] : '',
-    dailyProteinGrams: 0,
-    dailyCarbsGrams: 0,
-    dailyFatGrams: 0,
+    targetCalories: data.dailyNutritionTarget?.calories ?? 0,
+    dailyProteinGrams: data.dailyNutritionTarget?.proteinGrams ?? 0,
+    dailyCarbsGrams: data.dailyNutritionTarget?.carbohydrateGrams ?? 0,
+    dailyFatGrams: data.dailyNutritionTarget?.fatGrams ?? 0,
   }
   return {
     id: data.userId,
@@ -250,7 +251,7 @@ export const profileApi = {
   async previewMetrics(
     metrics: BodyMetrics,
     signal?: AbortSignal,
-  ): Promise<Pick<BodyMetrics, 'bmi' | 'bmiCategory' | 'tdeeKcal'>> {
+  ): Promise<Pick<BodyMetrics, 'bmi' | 'bmiCategory' | 'tdeeKcal' | 'targetCalories' | 'dailyProteinGrams' | 'dailyCarbsGrams' | 'dailyFatGrams'>> {
     const data = await apiClient.post<BackendEstimate>(
       '/api/profile/me/body/estimate',
       bodyRequest(metrics),
@@ -262,6 +263,10 @@ export const profileApi = {
         ? categoryFromBackend[data.adultBmiCategory]
         : 'unknown',
       tdeeKcal: data.estimatedTdeeKcal ?? 0,
+      targetCalories: data.dailyNutritionTarget?.calories ?? 0,
+      dailyProteinGrams: data.dailyNutritionTarget?.proteinGrams ?? 0,
+      dailyCarbsGrams: data.dailyNutritionTarget?.carbohydrateGrams ?? 0,
+      dailyFatGrams: data.dailyNutritionTarget?.fatGrams ?? 0,
     }
   },
 

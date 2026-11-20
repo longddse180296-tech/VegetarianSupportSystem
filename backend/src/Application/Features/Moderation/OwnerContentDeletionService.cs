@@ -1,4 +1,4 @@
-// Chức năng: chủ sở hữu xóa bài viết/video; hạ tầng bảo đảm toàn bộ thay đổi trong một giao dịch.
+// Xác định đúng loại nội dung và tác giả trước khi chuyển thao tác xóa sang repository.
 using Domain.Enums;
 
 namespace Application.Features.Moderation;

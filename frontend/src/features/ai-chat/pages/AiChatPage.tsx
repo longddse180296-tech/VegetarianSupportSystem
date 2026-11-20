@@ -7,7 +7,7 @@ import {
   ChevronDown,
   Clock,
   Copy,
-  HelpCircle,
+  Trash2,
   History as HistoryIcon,
   Leaf,
   Lock,
@@ -84,7 +84,7 @@ import {
   createChatConversation,
   getChatHistory,
   getConversationMessages,
-  getFaqsFigma,
+  deleteChatConversation,
   getUserProfileFields,
   sendMessageToAi,
   streamAiText,
@@ -92,7 +92,6 @@ import {
 import type {
   AppRole,
   ChatMessage,
-  FaqItem,
   GuestChatState,
   HistoryItem,
   PersonalProfileField,
@@ -104,11 +103,6 @@ interface AiChatPageProps {
   isLoggedIn?: boolean
   initialQuery?: string
 }
-
-const EXTRA_FAQS: FaqItem[] = [
-  { id: 'f-4', icon: 'HelpCircle', question: 'Cách bổ sung Vitamin B12 cho người ăn chay?' },
-  { id: 'f-5', icon: 'HelpCircle', question: 'Gợi ý các loại hạt giàu Omega-3?' },
-]
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (AiChatPage); thuộc hội thoại hỗ trợ ăn chay.
 export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }: AiChatPageProps) {
@@ -129,14 +123,14 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   const [isBotBusy, setIsBotBusy] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [showMoreFaqs, setShowMoreFaqs] = useState(false)
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false)
 
   // Sidebar data from API
   const [profileFields, setProfileFields] = useState<PersonalProfileField[]>([])
-  const [faqs, setFaqs] = useState<FaqItem[]>([])
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
   const [historyError, setHistoryError] = useState(false)
+  const [deletingHistory, setDeletingHistory] = useState<string | null>(null)
+  const [deleteHistoryError, setDeleteHistoryError] = useState<string | null>(null)
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   const [isLoadingInit, setIsLoadingInit] = useState(true)
 
@@ -189,9 +183,8 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
     let alive = true
     void (async () => {
       setIsLoadingInit(true)
-      const [fields, faqsData, historyData] = await Promise.all([
+      const [fields, historyData] = await Promise.all([
         getUserProfileFields(),
-        getFaqsFigma(),
         appRole === 'User' ? getChatHistory().catch(() => {
           if (alive) setHistoryError(true)
           return []
@@ -200,7 +193,6 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
       if (!alive) return
       setActiveConversationId(null)
       setProfileFields(fields)
-      setFaqs(faqsData)
       setHistoryItems(historyData)
 
       setMessages([
@@ -273,7 +265,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
   // Kiểm tra dữ liệu trước khi gửi thao tác và xử lý kết quả trả về (handleSend); thuộc hội thoại hỗ trợ ăn chay.
   const handleSend = async (forcedText?: string) => {
     const textToSend = (forcedText ?? draft).trim()
-    if (!textToSend || isBotBusy || isLoadingConversation || isLoadingInit) return
+    if (!textToSend || isBotBusy || isLoadingConversation || isLoadingInit || deletingHistory) return
 
     if (!consumeQuota()) return
 
@@ -343,7 +335,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
 
   // Xử lý lựa chọn hoặc chuyển trạng thái giao diện theo thao tác người dùng (handleSelectHistory); thuộc hội thoại hỗ trợ ăn chay.
   const handleSelectHistory = async (conversationId: string) => {
-    if (isBotBusy || isLoadingConversation) return
+    if (isBotBusy || isLoadingConversation || deletingHistory) return
     setIsLoadingConversation(true)
     try {
       const savedMessages = await getConversationMessages(conversationId)
@@ -379,7 +371,20 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
     ])
   }
 
-  // Hiển thị giao diện hội thoại hỗ trợ ăn chay từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
+  const handleDeleteHistory = async (id: string) => {
+    if (isBotBusy || isLoadingConversation || deletingHistory) return
+    if (!window.confirm('Xóa hội thoại này và toàn bộ tin nhắn?')) return
+    setDeletingHistory(id)
+    setDeleteHistoryError(null)
+    try {
+      await deleteChatConversation(id)
+      if (activeConversationId === id) handleResetChat()
+      await refreshHistory()
+    } catch (error) {
+      setDeleteHistoryError(error instanceof Error ? error.message : 'Không thể xóa hội thoại. Vui lòng thử lại.')
+    } finally { setDeletingHistory(null) }
+  }
+
   return (
     <div className="ui-page-container py-8 space-y-6">
       <PageHeading
@@ -426,7 +431,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
               <button
                 type="button"
                 onClick={handleResetChat}
-                disabled={isBotBusy || isLoadingConversation}
+                disabled={isBotBusy || isLoadingConversation || deletingHistory !== null}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:text-[#2E7D32] hover:border-emerald-300 hover:bg-emerald-50/50 shadow-2xs transition active:scale-95 cursor-pointer"
                 title="Bắt đầu phiên hội thoại mới"
               >
@@ -845,44 +850,6 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
               </div>
             )}
 
-            {/* Card 3: Câu hỏi thường gặp */}
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
-              <div className="mb-3.5 flex items-center gap-2 text-[15px] font-bold text-slate-800">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-[#2E7D32]">
-                  <HelpCircle size={15} />
-                </div>
-                <span>Câu hỏi thường gặp</span>
-              </div>
-
-              <div className="space-y-2">
-                {(showMoreFaqs ? [...faqs, ...EXTRA_FAQS] : faqs).map((faq) => (
-                  <button
-                    key={faq.id}
-                    type="button"
-                    onClick={() => void handleSend(faq.question)}
-                    className="group w-full text-left p-3 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:border-emerald-300 hover:bg-emerald-50/50 text-slate-800 text-[13px] font-medium flex items-center gap-2.5 transition cursor-pointer"
-                  >
-                    <span className="text-[#2E7D32] group-hover:scale-110 transition-transform">💬</span>
-                    <span className="truncate flex-1">{faq.question}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setShowMoreFaqs((prev) => !prev)}
-                  className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#2E7D32] hover:underline cursor-pointer"
-                >
-                  <span>{showMoreFaqs ? 'Thu gọn' : 'Xem thêm gợi ý'}</span>
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform duration-200 ${showMoreFaqs ? 'rotate-180' : ''}`}
-                  />
-                </button>
-              </div>
-            </div>
-
             {/* Card 4: Lịch sử gần đây */}
             <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
               <div className="mb-3 flex items-center justify-between text-[15px] font-bold text-slate-800">
@@ -897,6 +864,7 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
                 </span>
               </div>
 
+              {deleteHistoryError && <p role="alert" className="mb-2 text-xs text-rose-600">{deleteHistoryError}</p>}
               <div className="space-y-2">
                 {historyError ? (
                   <div className="py-4 text-center text-xs text-rose-600">
@@ -908,13 +876,13 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
                   </div>
                 ) : (
                   historyItems.map((item) => (
+                    <div key={item.id} className="flex items-center gap-1">
                     <button
-                      key={item.id}
                       type="button"
                       onClick={() => void handleSelectHistory(item.id)}
-                      disabled={isBotBusy || isLoadingConversation}
+                      disabled={isBotBusy || isLoadingConversation || deletingHistory !== null}
                       aria-current={activeConversationId === item.id ? 'true' : undefined}
-                      className={`w-full text-left p-2.5 rounded-xl hover:bg-slate-50 hover:border-emerald-200 border transition group cursor-pointer disabled:cursor-not-allowed ${activeConversationId === item.id ? 'border-emerald-300 bg-emerald-50' : 'border-transparent'}`}
+                      className={`min-w-0 flex-1 text-left p-2.5 rounded-xl hover:bg-slate-50 hover:border-emerald-200 border transition group cursor-pointer disabled:cursor-not-allowed ${activeConversationId === item.id ? 'border-emerald-300 bg-emerald-50' : 'border-transparent'}`}
                     >
                       <div className="text-[13px] font-bold text-slate-800 group-hover:text-[#2E7D32] truncate max-w-full">
                         {item.title}
@@ -926,6 +894,13 @@ export default function AiChatPage({ onNavigate, isLoggedIn, initialQuery = '' }
                         ) : null}
                       </div>
                     </button>
+                    <button type="button" onClick={() => void handleDeleteHistory(item.id)}
+                      disabled={isBotBusy || isLoadingConversation || deletingHistory !== null}
+                      title="Xóa hội thoại" aria-label={`Xóa hội thoại: ${item.title}`}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40">
+                      <Trash2 size={16} />
+                    </button>
+                    </div>
                   ))
                 )}
               </div>

@@ -1,3 +1,4 @@
+// Khởi động API với xác thực kiểm thử và database riêng, áp dụng migration rồi chạy các kịch bản tích hợp.
 using Application;
 using Api.Controllers;
 using Api.Configuration;
@@ -261,6 +262,7 @@ try
     }
 
     DietaryChecks.Run(Check);
+    // BE2-07 | Dựng schema cũ để kiểm tra bản ghi cũ vẫn đúng nghĩa sau khi áp dụng migration mới.
     await db.GetService<IMigrator>().MigrateAsync("20261002044444_InitialCoreData");
     var legacyId = Guid.NewGuid();
     var legacyCalories = new SqlParameter("@legacyCalories", System.Data.SqlDbType.Decimal)
@@ -273,21 +275,64 @@ try
         VALUES ({legacyId}, {"Legacy animal"}, {2}, {true}, {false}, {false}, {false}, {DateTimeOffset.UtcNow}, {legacyCalories}, {"ml"})");
     await db.Database.MigrateAsync();
     var legacy = await db.Ingredients.AsNoTracking().SingleAsync(x => x.Id == legacyId);
-    Check(legacy.ContainsOtherAnimalProducts is null, "upgrade preserves unverified legacy evidence");
+    Check(legacy.ContainsEgg, "upgrade preserves the legacy egg classification");
     Check(legacy.Calories == 12.345m && legacy.NutritionBasisQuantity == 100 && legacy.NutritionBasisUnit == "g" && legacy.DefaultUnit == "ml",
         "nutrition migration preserves old per-100g values independently of default unit");
     Check(Domain.Rules.DietaryRules.Classify([legacy]).Single(x =>
-        x.DietaryType == Domain.Enums.DietaryType.OvoVegetarian).Status == Domain.Enums.DietaryCompatibility.Unknown,
-        "legacy animal ingredient is not silently marked compatible");
+        x.DietaryType == Domain.Enums.DietaryType.LactoVegetarian).Status == Domain.Enums.DietaryCompatibility.Incompatible,
+        "legacy egg ingredient remains incompatible with Lacto");
     Check(!(await db.Database.GetPendingMigrationsAsync()).Any(), "all migrations applied");
     await app.StartAsync();
     using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+    if (args.Contains("--history-delete-only", StringComparer.Ordinal))
+    {
+        await HistoryDeletionChecks.RunAsync(client, db, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} HISTORY DELETION CHECKS PASSED");
+        return;
+    }
+    if (args.Contains("--revision-access-only", StringComparer.Ordinal))
+    {
+        await RevisionAccessChecks.RunAsync(client, db, app.Services, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} REVISION ACCESS CHECKS PASSED");
+        return;
+    }
+    if (args.Contains("--moderation-ui-only", StringComparer.Ordinal))
+    {
+        await ModerationDecisionUiChecks.RunAsync(client, db, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} MODERATION UI CHECKS PASSED");
+        return;
+    }
+    if (args.Contains("--home-popularity-only", StringComparer.Ordinal))
+    {
+        await HomePopularityChecks.RunAsync(client, db, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} HOME POPULARITY CHECKS PASSED");
+        return;
+    }
+    if (args.Contains("--meal-updates-only", StringComparer.Ordinal))
+    {
+        await MealPlanUpdateChecks.RunAsync(client, db, Check);
+        await app.StopAsync();
+        Console.WriteLine($"ALL {checks} MEAL UPDATE CHECKS PASSED");
+        return;
+    }
     await CoreDataApiChecks.RunAsync(client, db, Check);
+    await SinglePersonDietChecks.RunAsync(client, db, Check);
+    await NutritionTargetPlanChecks.RunAsync(client, db, Check);
+    await MealPlanUpdateChecks.RunAsync(client, db, Check);
+    await RecipeReviewOrderChecks.RunAsync(client, db, Check);
+    await RecipeSynchronizationChecks.RunAsync(client, db, Check);
+    await SavedContentDietaryChecks.RunAsync(client, db, Check);
     await SeedFilterChecks.RunAsync(client, db, Check);
     await DemoSeedChecks.RunAsync(client, db, Check);
     await FavoriteSourceApiChecks.RunAsync(client, db, Check);
     await IngredientNutritionChecks.RunAsync(client, db, Check);
     await RecipeNutritionHubChecks.RunAsync(client, db, Check);
+    await HomePopularityChecks.RunAsync(client, db, Check);
+    await ModerationDecisionUiChecks.RunAsync(client, db, Check);
     if (args.Contains("--core-only", StringComparer.Ordinal))
     {
         await app.StopAsync();
@@ -307,7 +352,8 @@ try
     await db.GetService<IMigrator>().MigrateAsync("0");
     Check(!(await db.Database.GetAppliedMigrationsAsync()).Any(), "migration rollback");
     await db.Database.MigrateAsync();
-    Check(await db.Categories.CountAsync() == 0, "migration reapply without automatic sample data");
+    Check(!await db.Categories.AnyAsync(category => category.Kind != Domain.Enums.CategoryKind.Article),
+        "migration reapply without automatic sample recipe/video categories");
     Console.WriteLine($"ALL {checks} CHECKS PASSED");
 }
 finally

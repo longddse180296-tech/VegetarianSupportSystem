@@ -1,4 +1,5 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// BE2-04 (dùng chung) | Upload kiểm tra kích thước và định dạng ảnh, trả URL để form lưu vào công thức.
+// Nhận ảnh công khai hợp lệ và dựng phản hồi tệp ảnh theo mã lưu trữ.
 using Application.Features.Media;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -1,3 +1,4 @@
+// BE2-09 | Hiển thị danh sách mua sắm của thực đơn.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Hiển thị một phần giao diện và phát sự kiện cho màn hình cha xử lý.
 import React, { useState } from 'react'
 import { X, Check, Copy, Download, ShoppingBag } from 'lucide-react'

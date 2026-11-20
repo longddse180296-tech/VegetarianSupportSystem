@@ -1,4 +1,5 @@
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-03 | Hợp đồng đọc và ghi dữ liệu mà service sử dụng (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
+// Quy định các thao tác truy xuất nguyên liệu, nguồn gốc, đơn vị và dinh dưỡng mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.Ingredients;
@@ -6,6 +7,9 @@ namespace Application.Features.Ingredients;
 // IIngredientRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IIngredientRepository
 {
+    Task<IReadOnlyList<Recipe>> GetDependentRecipesAsync(Guid ingredientId, CancellationToken ct);
+    Task<IReadOnlyList<Ingredient>> GetRestrictionCatalogAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Ingredient>>([]);
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<(IReadOnlyList<Ingredient> Items, int TotalCount)> ListAsync(IngredientListQuery query, bool includeInactive, CancellationToken ct);
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

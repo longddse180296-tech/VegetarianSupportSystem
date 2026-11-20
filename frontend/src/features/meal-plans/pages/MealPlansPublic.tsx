@@ -78,7 +78,7 @@ export const MealPlansPublic = ({ onNavigate }: MealPlansPublicProps) => {
             </p>
             <p className="text-2xl font-black">7 ngày · 21 bữa</p>
             <p className="text-xs text-white/70">
-              Sáng, trưa, tối mỗi ngày. Có thể đổi món và khẩu phần sau khi tạo.
+              Sáng, trưa, tối mỗi ngày. Dành cho 1 người, có thể đổi món sau khi tạo.
             </p>
           </div>
         </div>

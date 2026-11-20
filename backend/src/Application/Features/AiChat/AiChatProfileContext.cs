@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Xây dựng phần ngữ cảnh hồ sơ khai báo cho lời nhắc Gemini.
 using System.Text.Json;
 using Application.Features.Profiles;
 
@@ -25,6 +25,7 @@ public static class AiChatProfileContext
             bmi = profile.Bmi,
             adultBmiCategory = profile.AdultBmiCategory?.ToString(),
             estimatedTdeeKcal = profile.EstimatedTdeeKcal,
+            dailyNutritionTarget = profile.DailyNutritionTarget,
             allergies = profile.Allergies,
             avoidedFoods = profile.AvoidedFoods,
             updatedAtUtc = profile.UpdatedAtUtc

@@ -1,3 +1,4 @@
+// Kiểm thử đọc kết quả JSON của Gemini khi quét nhãn thành phần.
 using System.Net;
 using System.Net.Http.Json;
 using Application.Abstractions.AI;

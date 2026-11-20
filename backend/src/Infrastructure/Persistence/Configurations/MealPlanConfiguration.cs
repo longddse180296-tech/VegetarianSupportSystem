@@ -1,9 +1,22 @@
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-09/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu lịch tuần và bản chụp món, nguyên liệu, số lượng mua.
+// Ánh xạ thực đơn theo ngày và bữa cùng danh sách mua sắm sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Persistence.Configurations;
+
+public sealed class MealCheckInConfiguration : IEntityTypeConfiguration<MealCheckIn>
+{
+    public void Configure(EntityTypeBuilder<MealCheckIn> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
+        builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+        builder.HasIndex(x => new { x.UserId, x.MealId }).IsUnique();
+        builder.HasIndex(x => new { x.UserId, x.EatenOn, x.RecipeId });
+    }
+}
 
 // MealPlanConfiguration: ánh xạ entity, kiểu cột và ràng buộc dữ liệu khi làm việc với SQL Server.
 public sealed class MealPlanConfiguration : IEntityTypeConfiguration<MealPlan>
@@ -26,6 +39,7 @@ public sealed class MealPlanMealConfiguration : IEntityTypeConfiguration<MealPla
     public void Configure(EntityTypeBuilder<MealPlanMeal> builder)
     {
         builder.ToTable("MealPlanMeals", t => t.HasCheckConstraint("CK_MealPlanMeals_Day", "[DayNumber] BETWEEN 1 AND 7"));
+        builder.Property(x => x.RowVersion).IsRowVersion();
         builder.HasKey(x => x.Id); builder.Property(x => x.Id).ValueGeneratedNever(); builder.Property(x => x.Slot).HasConversion<string>().HasMaxLength(16);
         builder.Property(x => x.RecipeName).HasMaxLength(120).IsRequired(); builder.Property(x => x.SwapCount).HasDefaultValue(0); foreach (var p in new[] { "CaloriesPerServing", "ProteinGramPerServing", "CarbohydrateGramPerServing", "FatGramPerServing" }) builder.Property(p).HasPrecision(12, 3);
         builder.HasIndex(x => new { x.MealPlanId, x.DayNumber, x.Slot }).IsUnique(); builder.HasMany(x => x.Ingredients).WithOne(x => x.MealPlanMeal).HasForeignKey(x => x.MealPlanMealId).OnDelete(DeleteBehavior.Cascade);

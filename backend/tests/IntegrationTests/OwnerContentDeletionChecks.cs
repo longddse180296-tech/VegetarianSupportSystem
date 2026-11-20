@@ -1,3 +1,4 @@
+// Kiểm thử quyền và ảnh hưởng khi tác giả xóa nội dung.
 // Kiểm tra HTTP và SQL trên database kiểm thử riêng; không xóa nội dung của database đang chạy.
 using System.Net;
 using System.Net.Http.Json;

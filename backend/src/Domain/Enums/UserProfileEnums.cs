@@ -1,4 +1,4 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo các lựa chọn hồ sơ như giới tính, hoạt động, mục tiêu và chế độ ăn.
 namespace Domain.Enums;
 
 // SexForEnergyEstimate: định nghĩa các giá trị trạng thái được phép.

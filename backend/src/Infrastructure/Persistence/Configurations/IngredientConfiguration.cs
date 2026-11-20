@@ -1,4 +1,5 @@
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-03/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu nguồn gốc, dị nguyên và mốc dinh dưỡng của nguyên liệu.
+// Ánh xạ nguyên liệu, nguồn gốc, đơn vị và dinh dưỡng sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -17,7 +18,6 @@ public sealed class IngredientConfiguration : IEntityTypeConfiguration<Ingredien
             table.HasCheckConstraint("CK_Ingredients_ProteinGramPer100Gram", "[ProteinGramPer100Gram] IS NULL OR [ProteinGramPer100Gram] >= 0");
             table.HasCheckConstraint("CK_Ingredients_CarbohydrateGramPer100Gram", "[CarbohydrateGramPer100Gram] IS NULL OR [CarbohydrateGramPer100Gram] >= 0");
             table.HasCheckConstraint("CK_Ingredients_FatGramPer100Gram", "[FatGramPer100Gram] IS NULL OR [FatGramPer100Gram] >= 0");
-            table.HasCheckConstraint("CK_Ingredients_Origin", "[Origin] IN (0, 1, 2)");
             table.HasCheckConstraint("CK_Ingredients_NutritionBasisQuantity", "[NutritionBasisQuantity] > 0");
             table.HasCheckConstraint("CK_Ingredients_NutritionBasisUnit", "[NutritionBasisUnit] IN (N'g', N'kg', N'ml', N'đơn vị')");
         });

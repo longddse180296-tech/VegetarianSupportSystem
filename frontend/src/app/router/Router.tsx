@@ -95,6 +95,11 @@ const withPublic = (
   )
 }
 
+function AdminRouteRedirect({ onNavigate }: { onNavigate: (path: string) => void }) {
+  React.useEffect(() => onNavigate('/admin/dashboard'), [onNavigate])
+  return <p role="status" className="p-8 text-center text-sm text-slate-500">Đang chuyển đến trang quản trị...</p>
+}
+
 // Dựng nội dung hiển thị từ trạng thái và dữ liệu hiện có (RouterRenderer); thuộc giao diện và thành phần dùng chung.
 export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
   const { isLoading: authLoading } = useAuth()
@@ -111,6 +116,8 @@ export const RouterRenderer: React.FC<RouterRendererProps> = (ctx) => {
         Đang kiểm tra phiên đăng nhập...
       </div>
     )
+
+  if (ctx.user?.role === 'Admin' && !path.startsWith('/admin')) return <AdminRouteRedirect onNavigate={onNavigate} />
 
   if (path === '/' || path === '' || path === '/home' || path === 'home') {
     return withPublic(

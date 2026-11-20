@@ -1,4 +1,5 @@
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-08 | Chuyển dữ liệu nghiệp vụ sang dạng API trả về (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
+// Chuyển dữ liệu về nguyên liệu trong tủ bếp cá nhân từ entity sang cấu trúc API trả về.
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Rules;
@@ -63,7 +64,10 @@ internal static class PantryMapping
             recipe.CaloriesPerServing,
             matchPercent,
             available,
-            missing);
+            missing,
+            recipe.ProteinGramPerServing,
+            recipe.CarbohydrateGramPerServing,
+            recipe.FatGramPerServing);
     }
 
     // ToSubstitutionCandidate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
@@ -91,6 +95,9 @@ internal static class PantryMapping
 
     // IsRecipeUsableForProfile: Đánh giá điều kiện nghiệp vụ để quyết định nhánh xử lý.
     public static bool IsRecipeUsableForProfile(Recipe recipe, UserProfile? profile) =>
+        (profile?.Diet is not { } diet || recipe.DeclaredDietaryType is not { } declared ||
+            DietaryRules.SupportsDiet(declared, ToDietaryType(diet))) &&
+        recipe.RecipeIngredients.Count > 0 &&
         recipe.RecipeIngredients.All(row => row.Ingredient is not null && IsUsableForProfile(row.Ingredient, profile));
 
     // ToDietaryType: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
@@ -122,19 +129,12 @@ internal static class PantryMapping
     // MatchingAllergies: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static IReadOnlyList<string> MatchingAllergies(Ingredient ingredient, UserProfile profile) =>
         // Người dùng có thể khai báo chính tên nguyên liệu hoặc tên gọi khác, không chỉ nhóm dị ứng trên nhãn.
-        profile.Allergies.Where(item => ContainsTerm(ingredient.Allergens, item.NormalizedName)
-                || ContainsTerm(ingredient.Name, item.NormalizedName)
-                || ContainsTerm(ingredient.Aliases, item.NormalizedName))
+        profile.Allergies.Where(item => IngredientRestrictionRules.MatchesAllergy(ingredient, item.NormalizedName))
             .Select(item => item.Name).OrderBy(name => name).ToArray();
 
     // MatchingAvoidedFoods: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     private static IReadOnlyList<string> MatchingAvoidedFoods(Ingredient ingredient, UserProfile profile) =>
-        profile.AvoidedFoods.Where(item => ContainsTerm(ingredient.Name, item.NormalizedName) ||
-                ContainsTerm(ingredient.Aliases, item.NormalizedName))
+        profile.AvoidedFoods.Where(item => IngredientRestrictionRules.MatchesNameOrAlias(ingredient, item.NormalizedName))
             .Select(item => item.Name).OrderBy(name => name).ToArray();
 
-    // ContainsTerm: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
-    private static bool ContainsTerm(string? source, string normalizedTerm) => !string.IsNullOrWhiteSpace(source) &&
-        source.Split([',', ';', '|'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Any(value => string.Equals(value, normalizedTerm, StringComparison.OrdinalIgnoreCase));
 }

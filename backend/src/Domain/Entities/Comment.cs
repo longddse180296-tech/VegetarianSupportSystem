@@ -1,4 +1,4 @@
-// Chức năng: bình luận và tương tác cộng đồng. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu bình luận và phản hồi trên bài viết hoặc video.
 using Domain.Enums;
 
 namespace Domain.Entities;
@@ -47,7 +47,8 @@ public sealed class Comment
     public void RemoveByOwner(DateTimeOffset now)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
-        if (Status != CommentStatus.Visible) throw new InvalidOperationException("Bình luận không còn hiển thị nên chưa thể thực hiện thao tác này.");
+        if (Status == CommentStatus.Removed) return;
+        // Tác giả vẫn được gỡ bình luận đã bị ẩn; thông tin kiểm duyệt được giữ để truy vết.
         Status = CommentStatus.Removed;
         UpdatedAt = now;
     }

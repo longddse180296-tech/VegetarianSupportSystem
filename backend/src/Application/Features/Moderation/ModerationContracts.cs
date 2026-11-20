@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Khai báo hợp đồng dữ liệu giữa các bước xử lý hồ sơ kiểm duyệt bài viết và video.
 using Domain.Entities;
 using Domain.Enums;
 

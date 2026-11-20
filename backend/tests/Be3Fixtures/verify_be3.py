@@ -1,3 +1,4 @@
+# Đăng nhập các tài khoản mẫu và gọi API để kiểm tra dữ liệu BE3 đã nạp.
 """Read-only smoke check for seeded BE3 fixtures; does not call Gemini."""
 
 from seed_be3 import CREDS_FILE, MANIFEST_FILE, api, load_json

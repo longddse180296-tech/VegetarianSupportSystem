@@ -1,4 +1,5 @@
-// Chức năng: công thức và định lượng nguyên liệu. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// BE2-01/04 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
+// Cung cấp API xem công thức công khai và API quản trị tạo, sửa hoặc ngừng sử dụng công thức.
 using Api.Authorization;
 using Application.Features.Recipes;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,10 @@ namespace Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
 public sealed class RecipesController(RecipeService service) : CoreDataControllerBase
 {
+    [CoreDataAdmin]
+    [HttpGet("/api/admin/recipes/review-count")]
+    public Task<IActionResult> ReviewCount(CancellationToken ct) =>
+        Execute(async () => Ok(new { count = await service.CountRequiringReviewAsync(ct) }));
     // List: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("/api/recipes")]
     [ProducesResponseType<RecipePage>(StatusCodes.Status200OK)]
@@ -63,6 +68,19 @@ public sealed class RecipesController(RecipeService service) : CoreDataControlle
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public Task<IActionResult> Update(Guid id, RecipeRequest request, CancellationToken ct) =>
         Execute(async () => Ok(await service.UpdateAsync(id, request, ct)));
+
+    // BE2-04 | Mở lại công thức đã ngừng sử dụng và lưu trạng thái thật xuống database.
+    [CoreDataAdmin]
+    [HttpPost("/api/admin/recipes/{id:guid}/activate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public Task<IActionResult> Activate(Guid id, CancellationToken ct) =>
+        Execute(async () =>
+        {
+            await service.ActivateAsync(id, ct);
+            return NoContent();
+        });
 
     // Deactivate: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [CoreDataAdmin]

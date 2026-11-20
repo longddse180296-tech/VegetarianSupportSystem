@@ -1,4 +1,5 @@
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// BE2-05 | Mô hình nghiệp vụ lưu địa chỉ, tọa độ, chế độ ăn công bố và trạng thái nhà hàng.
+// Lưu nhà hàng chay, vị trí, khoảng giá và tiện ích.
 using Domain.Enums;
 
 namespace Domain.Entities;
@@ -54,6 +55,7 @@ public sealed class RestaurantFeaturedDish
     public Guid RestaurantId { get; set; }
     public Restaurant? Restaurant { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public int DisplayOrder { get; set; }
 }

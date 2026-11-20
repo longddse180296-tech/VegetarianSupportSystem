@@ -1,3 +1,4 @@
+// BE2-08 | Client của API tủ bếp, đồng thời chứa quy tắc từ khóa để giao diện đề xuất nguyên liệu thay thế.
 // Chức năng: tủ bếp và nguyên liệu sẵn có. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { apiClient } from '../../../shared/api/apiClient'
 import type {
@@ -21,17 +22,6 @@ export const CATEGORY_ORDER: Array<{ key: PantryCategory | 'all'; emoji: string;
   { key: 'sua-hat', emoji: '🥛', label: 'Sữa hạt' },
   { key: 'thuc-pham-che-bien', emoji: '🍱', label: 'TP chế biến' },
   { key: 'khac', emoji: '📦', label: 'Khác' },
-]
-
-export const QUICK_ADD_CHIPS: Array<{ name: string; emoji: string; cls: string }> = [
-  { name: 'Đậu hũ chiên', emoji: '🫘', cls: 'bg-[#FEF3C7] text-[#92400E]' },
-  { name: 'Đậu hũ non', emoji: '🫘', cls: 'bg-[#FEF3C7] text-[#92400E]' },
-  { name: 'Nấm rơm', emoji: '🍄', cls: 'bg-[#FEF3C7] text-[#92400E]' },
-  { name: 'Cà chua', emoji: '🍅', cls: 'bg-[#FEF3C7] text-[#92400E]' },
-  { name: 'Bí đỏ', emoji: '🎃', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
-  { name: 'Đậu cô ve', emoji: '🌰', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
-  { name: 'Hạt sen', emoji: '🌰', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
-  { name: 'Dầu mè', emoji: '🍱', cls: 'bg-[#FCE7F3] text-[#9D174D]' },
 ]
 
 export const INGREDIENT_RECIPE_MAP: Record<string, string[]> = {
@@ -92,9 +82,15 @@ export async function getPantryCategories(): Promise<
 
 // Ghi nhận thay đổi dữ liệu và cập nhật kết quả cho bên gọi (getQuickAddChips); thuộc tủ bếp và nguyên liệu sẵn có.
 export async function getQuickAddChips(): Promise<
-  Array<{ name: string; emoji: string; cls: string }>
+  Array<CatalogIngredient & { emoji: string }>
 > {
-  return QUICK_ADD_CHIPS
+  const result = await apiClient.get<{ items: CatalogIngredient[] }>(
+    '/api/ingredients?pageNumber=1&pageSize=8', { requiresAuth: false },
+  )
+  return (result.items || []).map(ingredient => ({
+    ...ingredient,
+    emoji: CATEGORY_ORDER.find(category => category.key === inferCategoryFromName(ingredient.name))?.emoji || '📦',
+  }))
 }
 
 // ---------- 4 Core Vegetarian Diet Types & Evaluation Logic ----------
@@ -191,6 +187,7 @@ export function evaluateIngredientForDiet(
 }
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getSubstitutionForIngredient); thuộc tủ bếp và nguyên liệu sẵn có.
+// BE2-08 | Gợi ý thay thế hiển thị trên tủ bếp tra từ khóa trong tên nguyên liệu và trả lựa chọn viết sẵn.
 export function getSubstitutionForIngredient(
   name: string,
   _diet?: CoreDietType,
@@ -320,6 +317,13 @@ interface BackendPantryItem {
 
 // Cấu trúc BackendPantryRecipeSuggestion quy định dữ liệu trao đổi trong tủ bếp và nguyên liệu sẵn có.
 interface BackendPantryRecipeSuggestion {
+  isCompatible?: boolean
+  incompatibilityReason?: string | null
+  nutritionWarning?: string | null
+  lastEatenOn?: string | null
+  proteinGramPerServing?: number | null
+  carbohydrateGramPerServing?: number | null
+  fatGramPerServing?: number | null
   recipeId: string
   recipeName: string
   imageUrl: string | null
@@ -402,7 +406,6 @@ export interface CatalogIngredient {
   aliases?: string | null
   defaultUnit?: string | null
   caloriesPer100Gram?: number | null
-  origin?: string
   allergens?: string | null
   recipeNames?: string[]
 }
@@ -476,14 +479,14 @@ export async function searchCatalogIngredients(keyword: string): Promise<Catalog
 export async function addPantryItem(
   form: AddIngredientFormState & { ingredientId?: string },
 ): Promise<PantryItem> {
-  const qty = Number(form.quantity)
+  const qty = form.quantity.trim() ? Number(form.quantity) : null
   const unitStr = form.unit.trim()
-  if (!Number.isFinite(qty) || qty <= 0 || !unitStr)
+  if (qty !== null && (!Number.isFinite(qty) || qty <= 0 || !unitStr) || qty === null && unitStr)
     throw new Error('Vui lòng nhập số lượng lớn hơn 0 và chọn đơn vị trước khi lưu.')
 
-  const payload: { name?: string; ingredientId?: string; quantity: number; unit: string } = {
+  const payload: { name?: string; ingredientId?: string; quantity: number | null; unit: string | null } = {
     quantity: qty,
-    unit: unitStr,
+    unit: unitStr || null,
   }
 
   if (form.ingredientId) {
@@ -536,19 +539,26 @@ export async function updatePantryItem(
 }
 
 // Đọc dữ liệu cần thiết và trả kết quả cho bước xử lý tiếp theo (getRecipeMatches); thuộc tủ bếp và nguyên liệu sẵn có.
-export async function getRecipeMatches(_pantry: PantryItem[]): Promise<RecipeMatch[]> {
-  const url = '/api/pantry/recipe-suggestions'
+export async function getRecipeMatches(_pantry: PantryItem[], includeAll = false): Promise<RecipeMatch[]> {
+  const url = `/api/pantry/recipe-suggestions?limit=50&includeAll=${includeAll}`
   try {
     const suggestions = await apiClient.get<BackendPantryRecipeSuggestion[]>(url)
     if (suggestions && Array.isArray(suggestions) && suggestions.length > 0) {
-      return suggestions.map((s) => ({
+      return suggestions.filter(s => s.availableIngredients.length > 0).map((s) => ({
         id: s.recipeId,
+        isCompatible: s.isCompatible,
+        incompatibilityReason: s.incompatibilityReason,
+        nutritionWarning: s.nutritionWarning,
+        lastEatenOn: s.lastEatenOn,
         title: s.recipeName,
-        subtitle: `${s.totalTimeMinutes} phút · ${s.servings} khẩu phần`,
+        subtitle: `${s.totalTimeMinutes} phút · Dành cho 1 người`,
         // Gợi ý chỉ dùng ảnh thật của công thức; không tự bổ sung ảnh ngoài dữ liệu.
         cover: s.imageUrl?.trim() || '',
         timeMin: s.totalTimeMinutes,
         kcal: s.caloriesPerServing === null ? null : Math.round(s.caloriesPerServing),
+        proteinG: s.proteinGramPerServing ?? null,
+        carbsG: s.carbohydrateGramPerServing ?? null,
+        fatG: s.fatGramPerServing ?? null,
         tag: 'Gợi ý từ tủ bếp',
         matchedIngredients: s.availableIngredients.map((i) => i.name),
         totalIngredients: s.availableIngredients.length + s.missingIngredients.length,

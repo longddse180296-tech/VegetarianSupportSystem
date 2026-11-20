@@ -1,7 +1,6 @@
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-03 | Kiểm tra dữ liệu đầu vào theo quy tắc nghiệp vụ (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
+// Kiểm tra dữ liệu đầu vào của nguyên liệu, nguồn gốc, đơn vị và dinh dưỡng trước khi thực hiện nghiệp vụ.
 using Application.Common.Validation;
-using System.ComponentModel.DataAnnotations;
-using Domain.Enums;
 
 namespace Application.Features.Ingredients;
 
@@ -12,12 +11,5 @@ internal static class IngredientValidation
     public static void Validate(IngredientRequest request)
     {
         RequestValidation.Validate(request);
-        // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
-        if (request.Origin == IngredientOrigin.Plant && (request.ContainsEgg || request.ContainsMilk || request.ContainsHoney || request.ContainsOtherAnimalProducts == true))
-        {
-            throw new ValidationException(new ValidationResult(
-                "Nguyên liệu có thành phần từ động vật không thể chọn nguồn gốc thực vật. Vui lòng kiểm tra nguồn gốc nguyên liệu.",
-                [nameof(request.Origin)]), null, request.Origin);
-        }
     }
 }

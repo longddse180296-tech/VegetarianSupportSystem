@@ -1,3 +1,4 @@
+// Kiểm thử gửi và xử lý báo cáo vi phạm qua API.
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;

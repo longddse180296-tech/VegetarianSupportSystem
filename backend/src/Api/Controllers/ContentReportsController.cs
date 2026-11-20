@@ -1,4 +1,4 @@
-// Chức năng: báo cáo nội dung cần xem xét. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nhận báo cáo vi phạm, cho người dùng xem trạng thái và cho Admin xử lý báo cáo.
 using Api.Authorization;
 using Application.Features.Moderation;
 using Domain.Enums;
@@ -13,7 +13,7 @@ namespace Api.Controllers;
 public sealed class ContentReportsController(ContentReportService service) : ControllerBase
 {
     // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpPost("/api/content-reports")]
     [EnableRateLimiting("content-reports")]
     [RequestSizeLimit(16 * 1024)]
@@ -24,7 +24,7 @@ public sealed class ContentReportsController(ContentReportService service) : Con
     });
 
     // GetMyReportStatus: Kiểm tra người dùng hiện tại đã gửi báo cáo cho nội dung này chưa.
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [HttpGet("/api/content-reports/status")]
     public Task<IActionResult> GetMyReportStatus([FromQuery] ModeratedContentType targetType,
         [FromQuery] Guid targetId, CancellationToken ct) => Execute(async () =>

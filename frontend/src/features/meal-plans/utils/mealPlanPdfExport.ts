@@ -1,3 +1,4 @@
+// BE2-09 | Xử lý thao tác tải hoặc xuất PDF thực đơn trên giao diện.
 // Chức năng: thực đơn bảy ngày và danh sách đi chợ. Cấu hình hoặc hỗ trợ luồng xử lý của các thành phần trong ứng dụng.
 import {
   addPlanDays,
@@ -251,13 +252,14 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
     const dayDate = formatPlanDate(addPlanDays(plan.weekStartDate, dayNum - 1))
     const dayMeals = plan.meals.filter((m) => m.dayNumber === dayNum)
 
+    if (!dayMeals.length) continue
     let mealRows = ''
     dayMeals.forEach((m) => {
       mealRows += `<tr>
         <td style="width: 90px;"><span class="slot-badge slot-${m.slot}">${slotLabels[m.slot]}</span></td>
         <td><strong>${m.recipeName}</strong></td>
         <td style="width: 75px; color: #64748b;">${m.totalTimeMinutes} phút</td>
-        <td style="width: 70px;">${m.servings} phần</td>
+
         <td style="width: 80px; font-weight: 600; color: #92400e;">${mealNutrition(m.caloriesPerServing, m.servings)} kcal</td>
         <td style="width: 140px; color: #475569; font-size: 8pt;">Đạm: ${mealNutrition(m.proteinGramPerServing, m.servings)}g · Carbs: ${mealNutrition(m.carbohydrateGramPerServing, m.servings)}g · Béo: ${mealNutrition(m.fatGramPerServing, m.servings)}g</td>
       </tr>`
@@ -267,7 +269,7 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
       <div class="day-block">
         <div class="day-header">
           <span>Ngày ${dayNum} · ${dayDate}</span>
-          <span style="font-size: 8.5pt; font-weight: normal; color: #64748b;">3 bữa chính</span>
+          <span style="font-size: 8.5pt; font-weight: normal; color: #64748b;">${dayMeals.length} bữa chưa thực hiện</span>
         </div>
         <table class="meals-table">
           <thead>
@@ -275,7 +277,7 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
               <th>Bữa</th>
               <th>Món ăn</th>
               <th>Thời gian</th>
-              <th>Khẩu phần</th>
+
               <th>Năng lượng</th>
               <th>Dinh dưỡng</th>
             </tr>
@@ -303,14 +305,14 @@ export function exportMealPlanPdf(plan: SavedPlan): void {
     <h1 class="doc-title">${plan.name}</h1>
     <div class="info-card">
       <div class="info-item">Chế độ ăn: <strong>${PLAN_DIET_LABELS[plan.profileDiet]}</strong></div>
-      <div class="info-item">Thời gian: <strong>${startDateStr} – ${endDateStr}</strong> (7 ngày)</div>
+      <div class="info-item">Thời gian: <strong>${startDateStr} – ${endDateStr}</strong></div>
       <div class="info-item">Tổng số bữa: <strong>${plan.meals.length} bữa ăn</strong></div>
     </div>
 
     ${daysHtml}
 
     <div class="nutrition-summary">
-      <strong style="color: #166534; font-size: 11pt;">📊 Tổng hợp dinh dưỡng cả tuần (7 ngày)</strong>
+      <strong style="color: #166534; font-size: 11pt;">📊 Tổng dinh dưỡng các bữa được xuất</strong>
       <div class="nutrition-grid">
         <div class="nutri-box">
           <div class="nutri-val">${mealNutrition(plan.nutrition.calories, 1)}</div>
@@ -344,14 +346,14 @@ export function exportShoppingListPdf(plan: SavedPlan, items: PlanShoppingItem[]
   const period = day === null
     ? `Tuần: ${startDateStr} – ${endDateStr}`
     : `Ngày ${day}: ${formatPlanDate(addPlanDays(plan.weekStartDate, day - 1))}`
+  const mealCount = plan.meals?.filter(meal => !meal.checkedInAt && (day === null || meal.dayNumber === day)).length
+  const scope = day === null ? 'Cả tuần' : `Ngày ${day}`
+  const remainingLabel = mealCount == null ? 'Các bữa chưa thực hiện' : `${mealCount} bữa chưa thực hiện`
   const itemsToBuy = items.filter((item) => item.quantityToBuy > 0)
 
   let itemsHtml = ''
-  itemsToBuy.forEach((item, index) => {
+  items.forEach((item, index) => {
     itemsHtml += `<tr>
-      <td style="width: 40px; text-align: center;">
-        <span class="checkbox-box"></span>
-      </td>
       <td style="width: 30px; color: #94a3b8; font-size: 8pt;">${index + 1}</td>
       <td>
         <strong style="color: #0f172a; font-size: 9.5pt;">${item.ingredientName}</strong>
@@ -362,13 +364,13 @@ export function exportShoppingListPdf(plan: SavedPlan, items: PlanShoppingItem[]
       <td style="color: #64748b; font-size: 8.5pt;">
         Cần: ${item.requiredQuantity} ${item.unit} · Tủ bếp có: ${item.pantryQuantity} ${item.unit}
       </td>
-      <td style="width: 90px; text-align: right; font-size: 8pt; color: ${item.isPurchased ? '#166534' : '#d97706'}; font-weight: 600;">
-        ${item.isPurchased ? 'Đã mua ✓' : 'Cần mua'}
+      <td style="width: 90px; text-align: right; font-size: 8pt; color: ${item.quantityToBuy === 0 ? '#166534' : '#d97706'}; font-weight: 600;">
+        ${item.quantityToBuy === 0 ? 'Đã có đủ' : item.pantryQuantity > 0 ? 'Cần mua thêm' : 'Cần mua'}
       </td>
     </tr>`
   })
   if (!itemsHtml) {
-    itemsHtml = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: #64748b;">Bạn đã có đủ nguyên liệu cho thực đơn này.</td></tr>'
+    itemsHtml = '<tr><td colspan="5" style="padding: 24px; text-align: center; color: #64748b;">Danh sách nguyên liệu trống.</td></tr>'
   }
 
   const htmlBody = `
@@ -383,17 +385,16 @@ export function exportShoppingListPdf(plan: SavedPlan, items: PlanShoppingItem[]
       </div>
     </div>
 
-    <h1 class="doc-title">Danh sách nguyên liệu cần mua (${day === null ? '21 bữa' : `Ngày ${day} · 3 bữa`})</h1>
+    <h1 class="doc-title">Danh sách nguyên liệu cần mua (${scope} · ${remainingLabel})</h1>
     <div class="info-card">
       <div class="info-item">Tổng số loại nguyên liệu cần mua: <strong>${itemsToBuy.length} loại</strong></div>
       <div class="info-item">Chế độ ăn: <strong>${PLAN_DIET_LABELS[plan.profileDiet]}</strong></div>
-      <div class="info-item" style="color: #2E7D32;">✓ Đã tự động đối soát và trừ số lượng sẵn có trong Tủ bếp</div>
+      <div class="info-item" style="color: #2E7D32;">Chỉ tính bữa chưa thực hiện từ hôm nay. Nguyên liệu dùng chung vẫn được giữ với lượng cần cho các bữa còn lại.</div>
     </div>
 
     <table class="checklist-table">
       <thead>
         <tr>
-          <th style="width: 40px; text-align: center;">Tích</th>
           <th style="width: 30px;">#</th>
           <th>Tên nguyên liệu</th>
           <th>Số lượng cần mua</th>

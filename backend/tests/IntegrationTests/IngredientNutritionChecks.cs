@@ -1,3 +1,5 @@
+// Kiểm thử đơn vị dinh dưỡng, độ chính xác và kiểm tra đầu vào nguyên liệu.
+// BE2-03/04/07 | Kiểm tra mốc và đơn vị dinh dưỡng được lưu, đọc và dùng để tính khẩu phần.
 using System.Net;
 using System.Net.Http.Json;
 using Application.Features.Ingredients;

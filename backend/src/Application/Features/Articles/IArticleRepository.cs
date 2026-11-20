@@ -1,4 +1,4 @@
-// Chức năng: bài viết và phiên bản gửi duyệt. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất bài viết, bản nháp và phiên bản gửi duyệt mà nghiệp vụ sử dụng.
 using Domain.Entities;
 using Domain.Enums;
 
@@ -8,6 +8,7 @@ namespace Application.Features.Articles;
 public interface IArticleRepository
 {
     Task<bool> HasDuplicatePublishedTitleAsync(Guid excludingArticleId, string title, CancellationToken ct);
+    Task<bool> HasInactiveCategoryAsync(IReadOnlyCollection<string> names, CancellationToken ct);
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<Article?> GetAsync(Guid id, CancellationToken ct);
     // ListMineAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

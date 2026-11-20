@@ -1,3 +1,5 @@
+// Kiểm thử phân quyền và luồng quản lý danh mục, nguyên liệu, công thức và nhà hàng qua HTTP.
+// BE2-07 | Kiểm tra luồng HTTP và SQL của các API dữ liệu thực phẩm, nhà hàng, tủ bếp và thực đơn.
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -46,6 +48,33 @@ internal static class CoreDataApiChecks
             client.DefaultRequestHeaders.Remove("Test-Role");
         }
         client.DefaultRequestHeaders.Add("Test-Role", "Admin");
+        var filterIngredients = new[]
+        {
+            new Domain.Entities.Ingredient { Name = "FilterProbe Plant" },
+            new Domain.Entities.Ingredient { Name = "FilterProbe Egg", ContainsEgg = true },
+            new Domain.Entities.Ingredient { Name = "FilterProbe Milk", ContainsMilk = true },
+            new Domain.Entities.Ingredient { Name = "FilterProbe Both", ContainsEgg = true, ContainsMilk = true, IsActive = false }
+        };
+        db.Ingredients.AddRange(filterIngredients);
+        await db.SaveChangesAsync(ct);
+        foreach (var (filter, expected) in new[] { ("component=plant", 1), ("component=egg", 2),
+            ("component=milk", 2), ("component=egg-milk", 1), ("isActive=true", 3),
+            ("isActive=false&component=egg-milk", 1), ("isActive=true&component=egg-milk", 0) })
+        {
+            var result = await client.GetFromJsonAsync<System.Text.Json.JsonElement>(
+                "/api/admin/ingredients?search=FilterProbe&pageSize=1&" + filter);
+            Check(result.GetProperty("totalCount").GetInt32() == expected &&
+                result.GetProperty("items").GetArrayLength() == Math.Min(expected, 1),
+                "ingredient filters apply before pagination: " + filter);
+        }
+        Check((await client.GetAsync("/api/admin/ingredients?component=invalid")).StatusCode == HttpStatusCode.BadRequest,
+            "ingredient rejects invalid component filter");
+        var publicFiltered = await client.GetFromJsonAsync<System.Text.Json.JsonElement>(
+            "/api/ingredients?search=FilterProbe&isActive=false");
+        Check(publicFiltered.GetProperty("totalCount").GetInt32() == 0,
+            "public ingredient filter cannot expose inactive records");
+        db.Ingredients.RemoveRange(filterIngredients);
+        await db.SaveChangesAsync(ct);
         var legacyModeration = await client.PostAsJsonAsync("/api/moderation/submissions", new {
             contentType = ModeratedContentType.Article, title = "Legacy route test", textContent = "Test only"
         });
@@ -62,28 +91,61 @@ internal static class CoreDataApiChecks
         Check((await client.PutAsJsonAsync("/api/admin/categories/" + Guid.NewGuid(), new CategoryRequest { Name = "Missing" })).StatusCode == HttpStatusCode.NotFound, "update missing category 404");
         Check((await client.PostAsJsonAsync("/api/admin/categories", new CategoryRequest { Name = "main" })).StatusCode == HttpStatusCode.Conflict, "case-insensitive duplicate 409");
         Check((await client.PostAsJsonAsync("/api/admin/categories", new CategoryRequest { Name = "  " })).StatusCode == HttpStatusCode.BadRequest, "blank name 400");
+        const string articleScope = "?kind=Article";
+        var articleCategoryResult = await client.PostAsJsonAsync("/api/admin/categories" + articleScope,
+            new CategoryRequest { Name = "Main" });
+        Check(articleCategoryResult.StatusCode == HttpStatusCode.Created &&
+            (await client.GetAsync(articleCategoryResult.Headers.Location)).IsSuccessStatusCode,
+            "article category allows the same name as a recipe category and returns a scoped Location");
+        var articleCategory = (await articleCategoryResult.Content.ReadFromJsonAsync<CategoryResponse>())!;
+        var articleCategoryPath = "/api/categories/" + articleCategory.Id;
+        var adminArticleCategoryPath = "/api/admin/categories/" + articleCategory.Id;
+        Check((await client.GetAsync(articleCategoryPath)).StatusCode == HttpStatusCode.NotFound &&
+            (await client.GetFromJsonAsync<CategoryPage>("/api/categories" + articleScope))!.Items.Any(item => item.Id == articleCategory.Id),
+            "article categories appear only in their own public scope");
+        Check((await client.PatchAsync(adminArticleCategoryPath + "/deactivate" + articleScope, null)).StatusCode == HttpStatusCode.NoContent &&
+            (await client.GetAsync(articleCategoryPath + articleScope)).StatusCode == HttpStatusCode.NotFound,
+            "deactivated article category is removed from public choices");
+        Check((await client.PatchAsync(adminArticleCategoryPath + "/activate" + articleScope, null)).StatusCode == HttpStatusCode.NoContent &&
+            (await client.GetAsync(articleCategoryPath + articleScope)).IsSuccessStatusCode,
+            "reactivated article category becomes available again");
+        const string videoScope = "?kind=Video";
+        var videoCategoryResult = await client.PostAsJsonAsync("/api/admin/categories" + videoScope,
+            new CategoryRequest { Name = "Main" });
+        Check(videoCategoryResult.StatusCode == HttpStatusCode.Created, "video has a separate category scope");
+        var videoCategory = (await videoCategoryResult.Content.ReadFromJsonAsync<CategoryResponse>())!;
+        var videoChoices = (await client.GetFromJsonAsync<CategoryPage>("/api/categories" + videoScope))!.Items;
+        Check(videoChoices.Any(item => item.Id == videoCategory.Id) &&
+            videoChoices.All(item => item.Id != category.Id && item.Id != articleCategory.Id),
+            "video picker excludes recipe and article categories even when names match");
+        Check((await client.PatchAsync($"/api/admin/categories/{category.Id}/deactivate", null)).StatusCode == HttpStatusCode.NoContent &&
+            (await client.GetAsync($"/api/categories/{category.Id}")).StatusCode == HttpStatusCode.NotFound &&
+            (await client.GetAsync($"/api/categories/{videoCategory.Id}{videoScope}")).IsSuccessStatusCode &&
+            (await client.GetAsync(articleCategoryPath + articleScope)).IsSuccessStatusCode,
+            "locking a recipe category leaves the same-name video and article categories active");
+        Check((await client.PatchAsync($"/api/admin/categories/{category.Id}/activate", null)).StatusCode == HttpStatusCode.NoContent,
+            "recipe category can be reactivated independently");
         var tofuResult = await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest
         {
-            Name = "Tofu", Aliases = "bean curd", Origin = IngredientOrigin.Plant, DefaultUnit = "g",
+            Name = "Tofu", Aliases = "bean curd", DefaultUnit = "g",
             Calories = 100, ProteinGram = 10, CarbohydrateGram = 5, FatGram = 3
         });
         var tofu = (await tofuResult.Content.ReadFromJsonAsync<IngredientResponse>())!;
         var riceResult = await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest
         {
-            Name = "Rice", Origin = IngredientOrigin.Plant, DefaultUnit = "g",
+            Name = "Rice", DefaultUnit = "g",
             Calories = 100, ProteinGram = 2, CarbohydrateGram = 20, FatGram = 0
         });
         var rice = (await riceResult.Content.ReadFromJsonAsync<IngredientResponse>())!;
         Check((await client.PutAsJsonAsync("/api/admin/ingredients/" + rice.Id, new IngredientRequest
         {
-            Name = "Rice", Origin = IngredientOrigin.Plant, DefaultUnit = "g", Calories = 100,
+            Name = "Rice", DefaultUnit = "g", Calories = 100,
             ProteinGram = 2, CarbohydrateGram = 20, FatGram = 0
         })).IsSuccessStatusCode, "update ingredient nutrition");
-        Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Invalid origin", Origin = (IngredientOrigin)99 })).StatusCode == HttpStatusCode.BadRequest, "invalid origin 400");
         Check((await client.PostAsJsonAsync("/api/admin/ingredients", new IngredientRequest { Name = "Negative calories", DefaultUnit = "g", Calories = -1, ProteinGram = 0, CarbohydrateGram = 0, FatGram = 0 })).StatusCode == HttpStatusCode.BadRequest, "negative nutrition 400");
-        RecipeRequest Recipe(string name, params RecipeIngredientRequest[] rows) => new()
+        RecipeRequest RecipeInCategory(Guid categoryId, string name, RecipeIngredientRequest[] rows) => new()
         {
-            CategoryId = category.Id,
+            CategoryId = categoryId,
             Name = name,
             Description = "Đậu hũ và cơm dùng kèm rau xanh.",
             Servings = 2,
@@ -95,7 +157,10 @@ internal static class CoreDataApiChecks
             Ingredients = rows,
             CaloriesPerServing = 123.456m
         };
+        RecipeRequest Recipe(string name, params RecipeIngredientRequest[] rows) => RecipeInCategory(category.Id, name, rows);
         RecipeIngredientRequest Row(Guid id, decimal quantity = 100) => new() { IngredientId = id, Quantity = quantity, Unit = "g" };
+        Check((await client.PostAsJsonAsync("/api/admin/recipes", RecipeInCategory(videoCategory.Id, "Invalid category", [Row(tofu.Id)])))
+            .StatusCode == HttpStatusCode.BadRequest, "recipe cannot use a video category");
         foreach (var resource in new[] { "categories", "ingredients", "recipes" })
         {
             object payload = resource switch
@@ -169,7 +234,7 @@ internal static class CoreDataApiChecks
             Amenities = ["Wi-Fi", "Parking"],
             FeaturedDishes =
             [
-                new RestaurantFeaturedDishRequest { Name = "Cơm đậu hũ", ImageUrl = "https://images.example.com/com-dau-hu.jpg" },
+                new RestaurantFeaturedDishRequest { Name = "Cơm đậu hũ", Description = "  Đậu hũ sốt nấm.\nĂn kèm rau củ.  ", ImageUrl = "https://images.example.com/com-dau-hu.jpg" },
                 new RestaurantFeaturedDishRequest { Name = "Canh nấm", ImageUrl = "https://images.example.com/canh-nam.jpg" },
                 new RestaurantFeaturedDishRequest { Name = "Gỏi rau củ", ImageUrl = "https://images.example.com/goi-rau-cu.jpg" }
             ]
@@ -181,6 +246,10 @@ internal static class CoreDataApiChecks
             restaurant.FeaturedDishes.Select(dish => dish.Name).SequenceEqual(["Cơm đậu hũ", "Canh nấm", "Gỏi rau củ"]) &&
             restaurant.DietaryType == DietaryType.Vegan,
             "restaurant trims data and retains three featured dishes");
+        var dishDetail = (await client.GetFromJsonAsync<RestaurantResponse>("/api/restaurants/" + restaurant.Id))!;
+        Check(dishDetail.FeaturedDishes[0].Description == "Đậu hũ sốt nấm.\nĂn kèm rau củ." &&
+            dishDetail.FeaturedDishes[1].Description is null,
+            "featured dish description persists, trims and is returned publicly; old dishes allow no description");
         var nearby = await client.GetFromJsonAsync<RestaurantPage>("/api/restaurants?latitude=10.776889&longitude=106.700806&maxDistanceKm=1");
         Check(nearby!.Items.Single().Id == restaurant.Id && nearby.Items.Single().DistanceKm == 0m, "restaurant distance filter uses supplied location");
         Check(nearby.Items.Single().Latitude == restaurantRequest.Latitude && nearby.Items.Single().Longitude == restaurantRequest.Longitude,
@@ -221,6 +290,29 @@ internal static class CoreDataApiChecks
         Check(multiUpdated.IsSuccessStatusCode &&
             (await multiUpdated.Content.ReadFromJsonAsync<RestaurantResponse>())!.DietaryTypes.SequenceEqual([DietaryType.OvoVegetarian]),
             "restaurant update removes deselected diets and retains selected diet");
+        restaurantRequest.FeaturedDishes[0] = new RestaurantFeaturedDishRequest
+        {
+            Name = "Cơm đậu hũ", Description = "Mô tả mới", ImageUrl = "https://images.example.com/com-dau-hu.jpg"
+        };
+        Check((await client.PutAsJsonAsync("/api/admin/restaurants/" + multi.Id,
+            MultiDietRequest(DietaryType.OvoVegetarian))).IsSuccessStatusCode &&
+            (await client.GetFromJsonAsync<RestaurantResponse>("/api/restaurants/" + multi.Id))!.FeaturedDishes[0].Description == "Mô tả mới",
+            "editing a featured dish replaces its public description");
+        restaurantRequest.FeaturedDishes[0] = new RestaurantFeaturedDishRequest
+        {
+            Name = "Cơm đậu hũ", Description = new string('x', 1001), ImageUrl = "https://images.example.com/com-dau-hu.jpg"
+        };
+        Check((await client.PutAsJsonAsync("/api/admin/restaurants/" + multi.Id,
+            MultiDietRequest(DietaryType.OvoVegetarian))).StatusCode == HttpStatusCode.BadRequest,
+            "featured dish rejects descriptions over 1000 characters");
+        restaurantRequest.FeaturedDishes[0] = new RestaurantFeaturedDishRequest
+        {
+            Name = "Cơm đậu hũ", Description = "  ", ImageUrl = "https://images.example.com/com-dau-hu.jpg"
+        };
+        Check((await client.PutAsJsonAsync("/api/admin/restaurants/" + multi.Id,
+            MultiDietRequest(DietaryType.OvoVegetarian))).IsSuccessStatusCode &&
+            (await client.GetFromJsonAsync<RestaurantResponse>("/api/restaurants/" + multi.Id))!.FeaturedDishes[0].Description is null,
+            "clearing a featured dish description removes it publicly");
         Check(!(await client.GetFromJsonAsync<RestaurantPage>("/api/restaurants?dietaryType=1"))!.Items.Any(item => item.Id == multi.Id),
             "removed restaurant diet no longer matches public filter");
         foreach (var invalid in new[] { Array.Empty<DietaryType>(), new[] { (DietaryType)99 }, new[] { DietaryType.Vegan, DietaryType.Vegan } })
@@ -301,8 +393,15 @@ internal static class CoreDataApiChecks
             "pantry item update");
         var suggestions = await client.GetFromJsonAsync<List<PantryRecipeSuggestionResponse>>("/api/pantry/recipe-suggestions");
         var recipeSuggestion = suggestions!.Single(item => item.RecipeId == recipe.Id);
+        Check(suggestions.All(item => item.AvailableIngredients.Count > 0),
+            "pantry excludes recipes without any available ingredient");
         Check(recipeSuggestion.MatchPercent == 50 && recipeSuggestion.AvailableIngredients.Single().IngredientId == tofu.Id,
             "pantry recipe suggestion separates available and missing ingredients");
+        var nutritionSource = await db.Recipes.AsNoTracking().SingleAsync(x => x.Id == recipe.Id, ct);
+        Check(recipeSuggestion.ProteinGramPerServing == nutritionSource.ProteinGramPerServing &&
+            recipeSuggestion.CarbohydrateGramPerServing == nutritionSource.CarbohydrateGramPerServing &&
+            recipeSuggestion.FatGramPerServing == nutritionSource.FatGramPerServing,
+            "pantry suggestions return saved per-serving protein, carbs and fat");
         var substitutions = await client.GetFromJsonAsync<List<PantrySubstitutionCandidateResponse>>(
             "/api/pantry/items/" + pantryTofu.Id + "/substitution-candidates");
         Check(substitutions!.Any(item => item.IngredientId == rice.Id), "pantry substitution candidates use compatible catalog data");
@@ -316,38 +415,80 @@ internal static class CoreDataApiChecks
             (await client.GetAsync("/api/pantry/items/" + customPantryItem.Id)).StatusCode == HttpStatusCode.NotFound,
             "pantry custom item delete");
         client.DefaultRequestHeaders.Add("Test-UserId", testUser.Id);
+        var todayInVietnam = DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime);
+        var pastPlan = await client.PostAsJsonAsync("/api/meal-plans/generate", new MealPlanGenerateRequest
+        {
+            Name = "Past week", WeekStartDate = todayInVietnam.AddDays(-1)
+        });
+        Check(pastPlan.StatusCode == HttpStatusCode.BadRequest, "meal plan rejects a past start date");
         var generatePlan = await client.PostAsJsonAsync("/api/meal-plans/generate", new MealPlanGenerateRequest
         {
             Name = "Vegan week",
-            WeekStartDate = new DateOnly(2026, 10, 12)
+            WeekStartDate = todayInVietnam
         });
         var mealPlan = (await generatePlan.Content.ReadFromJsonAsync<MealPlanResponse>())!;
         Check(generatePlan.StatusCode == HttpStatusCode.Created && mealPlan.Meals.Count == 21 &&
             mealPlan.Meals.GroupBy(meal => meal.DayNumber).All(day => day.Count() == 3) && mealPlan.Nutrition.Calories > 0,
             "meal plan generates 7 days with 3 meals and nutrition totals");
+        var duplicatePlan = await client.PostAsJsonAsync("/api/meal-plans/generate",
+            new MealPlanGenerateRequest { Name = "Duplicate week", WeekStartDate = todayInVietnam });
+        Check(duplicatePlan.StatusCode == HttpStatusCode.Conflict, "creating a second plan for the same week returns 409");
+        var partialCopy = await client.PostAsJsonAsync($"/api/meal-plans/{mealPlan.Id}/apply-to-week",
+            new MealPlanCopyToWeekRequest { WeekStartDate = todayInVietnam.AddDays(6) });
+        Check(partialCopy.StatusCode == HttpStatusCode.Conflict, "copying a plan with one overlapping day returns 409");
         var plans = await client.GetFromJsonAsync<MealPlanPage>("/api/meal-plans?page=1&pageSize=20");
         Check(plans!.TotalCount == 1 && plans.Items.Single().Id == mealPlan.Id, "meal plan list is paginated and user scoped");
         var replacement = await client.PutAsJsonAsync("/api/meal-plans/" + mealPlan.Id + "/meals/1/Breakfast",
-            new MealReplacementRequest { RecipeId = recipe.Id, Servings = 2 });
+            new MealReplacementRequest { RecipeId = recipe.Id, Servings = 1 });
         mealPlan = (await replacement.Content.ReadFromJsonAsync<MealPlanResponse>())!;
-        Check(replacement.IsSuccessStatusCode && mealPlan.Meals.Single(meal => meal.DayNumber == 1 && meal.Slot == MealSlot.Breakfast).Servings == 2 &&
+        Check(replacement.IsSuccessStatusCode && mealPlan.Meals.Single(meal => meal.DayNumber == 1 && meal.Slot == MealSlot.Breakfast).Servings == 1 &&
             mealPlan.ShoppingItems.Any(item => item.QuantityToBuy > 0), "meal replacement updates the plan and shopping list");
         var shoppingItem = mealPlan.ShoppingItems.First();
         var purchased = await client.PutAsJsonAsync("/api/meal-plans/" + mealPlan.Id + "/shopping-list/" + shoppingItem.Id + "/purchase",
             new ShoppingPurchaseRequest { IsPurchased = true });
         Check(purchased.IsSuccessStatusCode && (await purchased.Content.ReadFromJsonAsync<List<ShoppingItemResponse>>())!.Single(item => item.Id == shoppingItem.Id).IsPurchased,
             "shopping list purchase state persists");
+        var dayOneBefore = (await client.GetFromJsonAsync<List<ShoppingItemResponse>>(
+            $"/api/meal-plans/{mealPlan.Id}/shopping-list?day=1"))!.First();
+        var dayTwoBefore = (await client.GetFromJsonAsync<List<ShoppingItemResponse>>(
+            $"/api/meal-plans/{mealPlan.Id}/shopping-list?day=2"))!.Single(item => item.Id == dayOneBefore.Id);
+        var dayUpdate = await client.PutAsJsonAsync(
+            $"/api/meal-plans/{mealPlan.Id}/shopping-list/{dayOneBefore.Id}/purchase",
+            new ShoppingPurchaseRequest { Day = 1, PantryQuantity = dayOneBefore.RequiredQuantity - 1 });
+        Check(dayUpdate.IsSuccessStatusCode, "daily shopping reconciliation accepts available quantity");
+        var dayOneAfter = (await client.GetFromJsonAsync<List<ShoppingItemResponse>>(
+            $"/api/meal-plans/{mealPlan.Id}/shopping-list?day=1"))!.Single(item => item.Id == dayOneBefore.Id);
+        var dayTwoAfter = (await client.GetFromJsonAsync<List<ShoppingItemResponse>>(
+            $"/api/meal-plans/{mealPlan.Id}/shopping-list?day=2"))!.Single(item => item.Id == dayOneBefore.Id);
+        Check(dayOneAfter.QuantityToBuy == 1 && !dayOneAfter.IsPurchased &&
+            dayOneAfter.PantryQuantity == dayOneAfter.RequiredQuantity - 1,
+            "daily shopping reconciliation survives a new HTTP request and SQL reload");
+        Check(dayTwoBefore == dayTwoAfter, "editing day one leaves day two shopping quantities and purchase status unchanged");
+        var savedWeek = (await client.GetFromJsonAsync<MealPlanResponse>($"/api/meal-plans/{mealPlan.Id}"))!;
+        var savedItem = savedWeek.ShoppingItems.Single(item => item.Id == dayOneBefore.Id);
+        Check(savedItem.QuantityToBuy == savedItem.RequiredQuantity - savedItem.PantryQuantity,
+            "weekly response contains consistent totals after daily reconciliation");
         var regenerated = await client.PostAsync("/api/meal-plans/" + mealPlan.Id + "/regenerate", null);
         Check(regenerated.IsSuccessStatusCode && (await regenerated.Content.ReadFromJsonAsync<MealPlanResponse>())!.Meals.Count == 21,
             "meal plan regenerates all 21 positions");
+        var pastCopy = await client.PostAsJsonAsync("/api/meal-plans/" + mealPlan.Id + "/apply-to-week",
+            new MealPlanCopyToWeekRequest { WeekStartDate = todayInVietnam.AddDays(-1) });
+        Check(pastCopy.StatusCode == HttpStatusCode.BadRequest, "copying a meal plan rejects a past start date");
         var copied = await client.PostAsJsonAsync("/api/meal-plans/" + mealPlan.Id + "/apply-to-week", new MealPlanCopyToWeekRequest
         {
-            WeekStartDate = new DateOnly(2026, 10, 19),
+            WeekStartDate = todayInVietnam.AddDays(7),
             Name = "Next vegan week"
         });
         var nextWeek = (await copied.Content.ReadFromJsonAsync<MealPlanResponse>())!;
         Check(copied.StatusCode == HttpStatusCode.Created && nextWeek.Id != mealPlan.Id && nextWeek.Meals.Count == 21,
             "meal plan applies saved snapshot to a new week");
+        var concurrentDates = todayInVietnam.AddDays(14);
+        var concurrent = await Task.WhenAll(
+            client.PostAsJsonAsync("/api/meal-plans/generate", new MealPlanGenerateRequest { Name = "Concurrent A", WeekStartDate = concurrentDates }),
+            client.PostAsJsonAsync("/api/meal-plans/generate", new MealPlanGenerateRequest { Name = "Concurrent B", WeekStartDate = concurrentDates }));
+        Check(concurrent.Count(response => response.StatusCode == HttpStatusCode.Created) == 1 &&
+            concurrent.Count(response => response.StatusCode == HttpStatusCode.Conflict) == 1,
+            "concurrent requests persist exactly one plan for an overlapping week");
         var pdf = await client.GetAsync("/api/meal-plans/" + mealPlan.Id + "/pdf");
         Check(pdf.Content.Headers.ContentType?.MediaType == "application/pdf" && (await pdf.Content.ReadAsByteArrayAsync()).AsSpan().StartsWith("%PDF"u8),
             "meal plan exports a real PDF document");

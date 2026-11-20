@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Khai báo các tập bản ghi của EF Core và nạp cấu hình ánh xạ entity sang SQL Server.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,6 +40,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<FeaturedContent> FeaturedContent => Set<FeaturedContent>();
     public DbSet<MealPlan> MealPlans => Set<MealPlan>();
     public DbSet<MealPlanMeal> MealPlanMeals => Set<MealPlanMeal>();
+    public DbSet<MealCheckIn> MealCheckIns => Set<MealCheckIn>();
     public DbSet<MealPlanMealIngredient> MealPlanMealIngredients => Set<MealPlanMealIngredient>();
     public DbSet<MealPlanShoppingItem> MealPlanShoppingItems => Set<MealPlanShoppingItem>();
 

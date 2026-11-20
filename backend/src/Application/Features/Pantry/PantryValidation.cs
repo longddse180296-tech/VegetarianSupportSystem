@@ -1,4 +1,5 @@
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-08 | Kiểm tra dữ liệu đầu vào theo quy tắc nghiệp vụ (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
+// Kiểm tra dữ liệu đầu vào của nguyên liệu trong tủ bếp cá nhân trước khi thực hiện nghiệp vụ.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 

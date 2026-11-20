@@ -1,4 +1,5 @@
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-08/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu nguyên liệu trong tủ của từng tài khoản.
+// Ánh xạ nguyên liệu và định lượng trong tủ bếp cá nhân sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

@@ -1,4 +1,5 @@
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// BE2-09 | Mô hình nghiệp vụ lưu lịch tuần và bản chụp món, nguyên liệu, số lượng mua.
+// Lưu thực đơn theo ngày và bữa cùng danh sách mua sắm.
 using Domain.Enums;
 
 namespace Domain.Entities;
@@ -31,12 +32,25 @@ public sealed class MealPlanMeal
     public string? ImageUrl { get; set; }
     public int Servings { get; set; } = 1;
     public int SwapCount { get; set; }
+    public DateTimeOffset? CheckedInAt { get; set; }
+    public byte[] RowVersion { get; set; } = [];
     public int TotalTimeMinutes { get; set; }
     public decimal? CaloriesPerServing { get; set; }
     public decimal? ProteinGramPerServing { get; set; }
     public decimal? CarbohydrateGramPerServing { get; set; }
     public decimal? FatGramPerServing { get; set; }
     public ICollection<MealPlanMealIngredient> Ingredients { get; set; } = new List<MealPlanMealIngredient>();
+}
+
+// Nhật ký ăn thực tế được giữ riêng để lịch sử không mất khi người dùng xóa thực đơn.
+public sealed class MealCheckIn
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string UserId { get; set; } = string.Empty;
+    public Guid MealId { get; set; }
+    public Guid RecipeId { get; set; }
+    public DateOnly EatenOn { get; set; }
+    public DateTimeOffset CheckedInAt { get; set; }
 }
 
 // MealPlanMealIngredient: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
@@ -54,6 +68,8 @@ public sealed class MealPlanMealIngredient
 // MealPlanShoppingItem: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.
 public sealed class MealPlanShoppingItem
 {
+    // Lưu đối soát và trạng thái mua riêng từng ngày. Null cho lịch cũ chỉ lưu tổng tuần.
+    public string? DailyShoppingJson { get; set; }
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid MealPlanId { get; set; }
     public MealPlan? MealPlan { get; set; }

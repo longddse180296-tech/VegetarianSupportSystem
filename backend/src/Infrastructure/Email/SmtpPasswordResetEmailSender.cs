@@ -1,4 +1,4 @@
-// Chức năng: gửi thư khôi phục tài khoản. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Gửi email chứa liên kết đặt lại mật khẩu qua SMTP.
 using System.Net;
 using System.Net.Mail;
 using System.Text;

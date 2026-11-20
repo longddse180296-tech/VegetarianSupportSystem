@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Khai báo nhóm thành phần và trạng thái đánh giá trong tính năng quét.
 namespace Domain.Enums;
 
 // IngredientKind: định nghĩa các giá trị trạng thái được phép.

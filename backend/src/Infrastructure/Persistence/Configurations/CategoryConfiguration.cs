@@ -1,4 +1,5 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-02/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu danh mục và trạng thái còn sử dụng.
+// Ánh xạ bảng Categories và đặt ràng buộc duy nhất theo cặp loại và tên. Hai loại có thể dùng cùng một tên.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -15,7 +16,7 @@ public sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Name).UseCollation("Latin1_General_100_CI_AS");
-        builder.HasIndex(x => x.Name).IsUnique();
+        builder.HasIndex(x => new { x.Kind, x.Name }).IsUnique();
         builder.Property(x => x.Name).HasMaxLength(120).IsRequired();
         builder.Property(x => x.Description).HasMaxLength(500);
     }

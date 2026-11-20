@@ -1,4 +1,5 @@
-// Chức năng: công thức và định lượng nguyên liệu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-01/04 | Tính calo, đạm, tinh bột và chất béo trên mỗi khẩu phần (công thức: bộ lọc public, định lượng và dinh dưỡng theo khẩu phần).
+// Tính dinh dưỡng theo định lượng nguyên liệu và số khẩu phần cho form công thức.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 using Application.Features.Ingredients;
@@ -10,7 +11,7 @@ namespace Application.Features.Recipes;
 // RecipeNutritionService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
 public sealed class RecipeNutritionService(IIngredientRepository ingredients)
 {
-    // CalculateAsync: Tính kết quả từ dữ liệu đã khai báo; kiểm tra điều kiện trước khi trả chỉ số.
+    // Đọc nguyên liệu được chọn rồi tính dinh dưỡng theo khẩu phần, kèm lý do cho từng dòng thiếu dữ liệu.
     public async Task<RecipeNutritionResponse> CalculateAsync(RecipeNutritionRequest request, CancellationToken ct)
     {
         Validate(request);

@@ -1,3 +1,5 @@
+// Kiểm thử độ tương thích với các chế độ ăn dựa trên thành phần đã biết.
+// BE2-03/07 | Đối chiếu kết quả phân loại bốn chế độ ăn với nguồn gốc và bằng chứng nguyên liệu.
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Rules;
@@ -8,30 +10,21 @@ internal static class DietaryChecks
 {
     public static void Run(Action<bool, string> check)
     {
-        Ingredient Plant() => new() { Origin = IngredientOrigin.Plant };
-        Ingredient Animal(bool egg = false, bool milk = false, bool honey = false, bool? other = false) =>
+        Ingredient Plant() => new();
+        Ingredient WithComponents(bool egg = false, bool milk = false, bool honey = false) =>
             new()
             {
-                Origin = IngredientOrigin.Animal,
                 ContainsEgg = egg,
                 ContainsMilk = milk,
-                ContainsHoney = honey,
-                ContainsOtherAnimalProducts = other
+                ContainsHoney = honey
             };
-        var unknown = new Ingredient { Origin = IngredientOrigin.Unknown };
         var cases = new (string Name, Ingredient[] Ingredients, int[] Expected)[]
         {
             ("plant", [Plant()], [1, 1, 1, 1]),
-            ("egg", [Plant(), Animal(egg: true)], [2, 2, 1, 1]),
-            ("milk", [Animal(milk: true)], [2, 1, 2, 1]),
-            ("egg and milk", [Animal(egg: true), Animal(milk: true)], [2, 2, 2, 1]),
-            ("honey", [Animal(honey: true)], [2, 1, 1, 1]),
-            ("other animal", [Animal(other: true)], [2, 2, 2, 2]),
-            ("unknown", [unknown], [0, 0, 0, 0]),
-            ("known violation wins over unknown", [unknown, Animal(egg: true)], [2, 2, 0, 0]),
-            ("meat and unknown", [unknown, Animal(other: true)], [2, 2, 2, 2]),
-            ("unclassified animal", [Animal()], [0, 0, 0, 0]),
-            ("egg without other animal evidence", [Animal(egg: true, other: null)], [2, 2, 0, 0]),
+            ("egg", [Plant(), WithComponents(egg: true)], [2, 2, 1, 1]),
+            ("milk", [WithComponents(milk: true)], [2, 1, 2, 1]),
+            ("egg and milk", [WithComponents(egg: true), WithComponents(milk: true)], [2, 2, 2, 1]),
+            ("honey", [WithComponents(honey: true)], [2, 1, 1, 1]),
             ("empty recipe", [], [0, 0, 0, 0])
         };
 

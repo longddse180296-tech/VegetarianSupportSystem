@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định dữ liệu hồ sơ mà AI Chat có thể đọc để tạo ngữ cảnh cho câu trả lời.
 namespace Application.Features.AiChat;
 
 // ChatRecipeSuggestion: định nghĩa dữ liệu trao đổi của tính năng.

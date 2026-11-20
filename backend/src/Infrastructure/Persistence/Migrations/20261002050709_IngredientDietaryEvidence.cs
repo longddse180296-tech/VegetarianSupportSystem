@@ -1,5 +1,6 @@
+// BE2-07 | Thêm dữ liệu bằng chứng dùng để phân loại chế độ ăn của nguyên liệu.
 // Lịch sử cơ sở dữ liệu do EF Core sinh; giữ cấu trúc nâng cấp/hạ cấp và không chỉnh tay phần ánh xạ tự sinh.
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Bổ sung bằng chứng về thành phần động vật để đánh giá chế độ ăn.
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable

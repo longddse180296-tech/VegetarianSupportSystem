@@ -1,4 +1,4 @@
-// Chức năng: đăng ký, đăng nhập và khôi phục mật khẩu. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Đăng ký, kiểm tra thông tin đăng nhập, đọc tài khoản hiện tại và thu hồi token lúc đăng xuất.
 using System.ComponentModel.DataAnnotations;
 using Domain.Entities;
 
@@ -11,7 +11,7 @@ public sealed class AuthService(
     IRevokedAccessTokenRepository revokedTokens,
     AccountSessionService sessions)
 {
-    // RegisterAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Kiểm tra dữ liệu đăng ký, tạo tài khoản với mật khẩu băm và bắt đầu phiên.
     public async Task<AuthResult> RegisterAsync(
         string? fullName, string? email, string? password, string? confirmPassword,
         CancellationToken cancellationToken)
@@ -40,7 +40,7 @@ public sealed class AuthService(
             ?? throw new InvalidOperationException("Không thể tạo phiên đăng nhập. Vui lòng đăng nhập lại.");
     }
 
-    // LoginAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Tìm tài khoản từ email chuẩn hóa và xác minh mật khẩu đã băm trước khi bắt đầu phiên.
     public async Task<AuthResult?> LoginAsync(string? email, string? password, CancellationToken cancellationToken)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.

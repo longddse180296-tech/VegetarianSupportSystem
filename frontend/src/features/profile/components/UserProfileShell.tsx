@@ -95,7 +95,7 @@ export const UserProfileShell: React.FC<UserProfileShellProps> = ({
       icon: Bookmark,
       path: '/favorites',
     },
-    { id: 'pantry', label: 'Tủ bếp AI', icon: ShoppingBasket, path: '/profile/pantry' },
+    { id: 'pantry', label: 'Gợi ý Tủ bếp', icon: ShoppingBasket, path: '/profile/pantry' },
   ]
 
   const displayName = userName || user?.fullName || 'Thành viên'

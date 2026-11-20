@@ -1,4 +1,5 @@
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-05 | Tham số lọc, phân trang hoặc giới hạn kết quả (nhà hàng: danh mục public và quản trị, vị trí và chế độ ăn).
+// Nhận bộ lọc và phân trang cho danh sách nhà hàng chay, vị trí, khoảng giá và tiện ích.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Validation;
 using Domain.Enums;

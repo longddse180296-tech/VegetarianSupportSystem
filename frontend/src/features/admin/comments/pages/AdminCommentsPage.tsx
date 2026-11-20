@@ -1,5 +1,6 @@
 // Chức năng: bình luận và tương tác cộng đồng. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
 import { useState } from 'react'
+import { AutoGrowTextarea } from '../../../../shared/components/AutoGrowTextarea'
 import { RefreshCw, Search } from 'lucide-react'
 import {
   SharedDataTable,
@@ -249,7 +250,7 @@ export const AdminCommentsPage = ({
                 />
                 <label className="block">
                   Lý do
-                  <textarea
+                  <AutoGrowTextarea
                     required
                     disabled={busy}
                     maxLength={1000}

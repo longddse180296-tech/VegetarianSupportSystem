@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất hội thoại hỗ trợ ăn chay mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.AiChat;
@@ -6,6 +6,7 @@ namespace Application.Features.AiChat;
 // IAiChatRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IAiChatRepository
 {
+    Task<bool> DeleteConversationAsync(Guid conversationId, string userId, CancellationToken cancellationToken);
     // CreateConversationAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     Task<AiChatConversation> CreateConversationAsync(
         string userId,

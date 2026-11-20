@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Lưu đầu vào, kết quả, hồ sơ tại lúc quét và liên kết với lần quét trước nếu có chỉnh sửa.
 namespace Domain.Entities;
 
 // FoodScanRecord: định nghĩa dữ liệu hoặc hành vi nghiệp vụ của tính năng.

@@ -1,4 +1,4 @@
-// Chức năng: kiểm duyệt nội dung và kết quả kiểm tra AI. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Định nghĩa dữ liệu về thông tin nội dung đích cần đối chiếu trước khi nhận báo cáo để các bước xử lý dùng chung.
 namespace Application.Features.Moderation;
 
 // ReportableContent: định nghĩa dữ liệu trao đổi của tính năng.

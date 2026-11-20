@@ -1,4 +1,4 @@
-// Chức năng: quản lý thành viên. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp API Admin để tìm thành viên, xem lịch sử trạng thái và khóa hoặc mở khóa.
 using System.Text.Json.Serialization;
 using Api.Authorization;
 using Application.Features.Administration;

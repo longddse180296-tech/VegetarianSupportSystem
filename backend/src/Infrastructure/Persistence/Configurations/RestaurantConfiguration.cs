@@ -1,4 +1,5 @@
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-05/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu địa chỉ, tọa độ, chế độ ăn công bố và trạng thái nhà hàng.
+// Ánh xạ nhà hàng chay, vị trí, khoảng giá và tiện ích sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -76,6 +77,7 @@ public sealed class RestaurantFeaturedDishConfiguration : IEntityTypeConfigurati
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Name).UseCollation("Latin1_General_100_CI_AS").HasMaxLength(120).IsRequired();
         builder.Property(x => x.ImageUrl).HasMaxLength(2048).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(1000);
         builder.HasIndex(x => new { x.RestaurantId, x.DisplayOrder }).IsUnique();
         builder.HasIndex(x => new { x.RestaurantId, x.Name }).IsUnique();
         builder.HasOne(x => x.Restaurant).WithMany(x => x.FeaturedDishes)

@@ -1,4 +1,5 @@
-// Chức năng: danh mục nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-02 | Tham số lọc, phân trang hoặc giới hạn kết quả (danh mục: tên, mô tả và trạng thái sử dụng).
+// Nhận bộ lọc và phân trang cho danh sách danh mục theo loại nội dung.
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.Features.Categories;

@@ -1,4 +1,4 @@
-// Chức năng: video, bản nháp và nội dung công khai. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Nhận yêu cầu tạo bản nháp, tải video hoặc ảnh bìa, gửi duyệt và xem video công khai.
 using System.Security.Claims;
 using Application.Features.Moderation;
 using Application.Features.Videos;
@@ -51,7 +51,7 @@ public sealed class VideosController(VideoService videos, ModerationService mode
 
     // ListMine: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("me/videos")]
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     public async Task<ActionResult<VideoPage>> ListMine(int page = 1, int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
@@ -63,7 +63,7 @@ public sealed class VideosController(VideoService videos, ModerationService mode
 
     // GetMine: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet("me/videos/{id:guid}")]
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     public async Task<ActionResult<VideoDetails>> GetMine(Guid id, CancellationToken cancellationToken)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
@@ -74,7 +74,7 @@ public sealed class VideosController(VideoService videos, ModerationService mode
 
     // Create: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPost("me/videos")]
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     public async Task<ActionResult<VideoDetails>> Create(VideoMetadataRequest request, CancellationToken ct)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
@@ -90,7 +90,7 @@ public sealed class VideosController(VideoService videos, ModerationService mode
 
     // Edit: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
     [HttpPut("me/videos/{id:guid}")]
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     public async Task<ActionResult<VideoDetails>> Edit(Guid id, VideoMetadataRequest request, CancellationToken ct)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.
@@ -108,7 +108,7 @@ public sealed class VideosController(VideoService videos, ModerationService mode
     // Upload: Tiếp nhận và kiểm tra tệp trước khi lưu nội dung.
     [HttpPost("me/videos/{id:guid}/media")]
     [HttpPost("me/videos/{id:guid}/thumbnail")]
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxVideoBytes + 1024 * 1024)]
     public async Task<ActionResult<VideoDetails>> Upload(Guid id, [FromForm] IFormFile? file,
@@ -168,7 +168,7 @@ public sealed class VideosController(VideoService videos, ModerationService mode
 
     // Chỉ chủ sở hữu được xóa; nội dung đã gửi được giữ lịch sử và ngừng công khai.
     [HttpDelete("me/videos/{id:guid}")]
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     public async Task<IActionResult> Delete(Guid id, [FromServices] OwnerContentDeletionService deletion, CancellationToken ct)
     {
         if (UserId is null) return Unauthorized();
@@ -182,7 +182,7 @@ public sealed class VideosController(VideoService videos, ModerationService mode
 
     // Submit: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
     [HttpPost("me/videos/{id:guid}/submit")]
-    [Authorize(Roles = "User,Admin")]
+    [Authorize(Roles = "User")]
     public async Task<IActionResult> Submit(Guid id, CancellationToken ct)
     {
         // Kiểm tra trường hợp thiếu dữ liệu hoặc trạng thái không phù hợp trước khi tiếp tục.

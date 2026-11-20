@@ -1,4 +1,4 @@
-// Chức năng: video, bản nháp và nội dung công khai. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất video, tệp đính kèm và trạng thái công khai mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.Videos;

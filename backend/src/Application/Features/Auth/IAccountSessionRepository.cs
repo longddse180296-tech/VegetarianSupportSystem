@@ -1,4 +1,4 @@
-// Chức năng: lưu một phiên trình duyệt cho mỗi tài khoản và thu hồi đúng phiên khi đăng xuất.
+// Quy định các thao tác truy xuất phiên trình duyệt và mã làm mới mà nghiệp vụ sử dụng.
 using Domain.Entities;
 
 namespace Application.Features.Auth;

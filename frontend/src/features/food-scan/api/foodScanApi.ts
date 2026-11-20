@@ -231,3 +231,6 @@ export async function getScanDetail(id: string): Promise<SavedFoodScan> {
     throw err
   }
 }
+
+export const deleteScanHistory = (id: string) =>
+  apiClient.delete<void>(`/api/food-scans/${encodeURIComponent(id)}`)

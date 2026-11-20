@@ -1,6 +1,8 @@
-// Chức năng: thực đơn bảy ngày và danh sách đi chợ. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// BE2-09 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (thực đơn tuần, dinh dưỡng, danh sách mua và PDF).
+// Cung cấp API tạo, xem, đổi món, lấy danh sách mua sắm và tải PDF thực đơn.
 using Api.Authorization;
 using Application.Features.MealPlans;
+using Application.Features.Recipes;
 using Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,8 +17,14 @@ namespace Api.Controllers;
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-public sealed class MealPlansController(MealPlanService service, IMealPlanPdfRenderer pdfRenderer) : CoreDataControllerBase
+public sealed class MealPlansController(MealPlanService service, IMealPlanPdfRenderer pdfRenderer, RecipeService recipes) : CoreDataControllerBase
 {
+    [HttpGet("{id:guid}/recipes/{recipeId:guid}")]
+    public Task<IActionResult> SavedRecipe(Guid id, Guid recipeId, CancellationToken ct) => Execute(async () =>
+    {
+        await service.RequireSavedRecipeAsync(CurrentUserId, id, recipeId, ct);
+        return Ok(await recipes.GetAsync(recipeId, includeInactive: true, ct));
+    });
     // List: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     [HttpGet]
     [ProducesResponseType<MealPlanPage>(StatusCodes.Status200OK)]
@@ -87,12 +95,32 @@ public sealed class MealPlansController(MealPlanService service, IMealPlanPdfRen
     [HttpGet("{id:guid}/pdf")]
     [Produces("application/pdf")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public Task<IActionResult> ExportPdf(Guid id, CancellationToken ct) =>
+    public Task<IActionResult> ExportPdf(Guid id, [FromQuery] int? day, CancellationToken ct) =>
         Execute(async () =>
         {
-            var plan = await service.GetAsync(CurrentUserId, id, ct);
+            var plan = await service.GetExportAsync(CurrentUserId, id, day, ct);
             return File(pdfRenderer.Render(plan), "application/pdf", "meal-plan-" + plan.WeekStartDate.ToString("yyyy-MM-dd") + ".pdf");
         });
+
+    [HttpGet("{id:guid}/export")]
+    public Task<IActionResult> ExportData(Guid id, [FromQuery] int? day, CancellationToken ct) =>
+        Execute(async () => Ok(await service.GetExportAsync(CurrentUserId, id, day, ct)));
+
+    [HttpGet("{id:guid}/meals/{day:int}/{slot}/choices")]
+    public Task<IActionResult> Choices(Guid id, int day, MealSlot slot, [FromQuery] MealChoiceQuery query, CancellationToken ct) =>
+        Execute(async () => Ok(await service.GetChoicesAsync(CurrentUserId, id, day, slot, query, ct)));
+
+    [HttpPost("{id:guid}/review")]
+    public Task<IActionResult> Review(Guid id, CancellationToken ct) =>
+        Execute(async () => Ok(await service.ApplyCurrentProfileAsync(CurrentUserId, id, ct)));
+
+    [HttpPost("{id:guid}/meals/{day:int}/{slot}/check-in")]
+    public Task<IActionResult> CheckIn(Guid id, int day, MealSlot slot, CancellationToken ct) =>
+        Execute(async () => Ok(await service.CheckInAsync(CurrentUserId, id, day, slot, ct)));
+
+    [HttpDelete("{id:guid}/meals/{day:int}/{slot}/check-in")]
+    public Task<IActionResult> UndoCheckIn(Guid id, int day, MealSlot slot, CancellationToken ct) =>
+        Execute(async () => Ok(await service.UndoCheckInAsync(CurrentUserId, id, day, slot, ct)));
 
     private string CurrentUserId => User.FindFirst("sub")!.Value;
 }

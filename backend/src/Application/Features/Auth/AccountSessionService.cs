@@ -1,4 +1,4 @@
-// Chức năng: cấp/gia hạn phiên trình duyệt; không phát lại token cho tài khoản khóa, hết phiên hoặc phiên đã bị thay thế.
+// Quản lý một phiên trình duyệt đang hoạt động và luân chuyển mã làm mới khi cấp access token mới.
 using System.Security.Cryptography;
 using System.Text;
 using Domain.Entities;
@@ -8,6 +8,7 @@ namespace Application.Features.Auth;
 public sealed class AccountSessionService(IAccountSessionRepository sessions, IAccessTokenIssuer issuer)
 {
     // Bí mật ngẫu nhiên chỉ trả về API để đặt cookie HttpOnly, không đưa vào JSON hoặc log.
+    // Tạo phiên trình duyệt mới và phát access token cùng mã làm mới nếu tài khoản được phép.
     public async Task<AuthResult?> StartAsync(User user, CancellationToken ct)
     {
         var id = Guid.NewGuid().ToString("N");
@@ -19,6 +20,7 @@ public sealed class AccountSessionService(IAccountSessionRepository sessions, IA
         return new(AuthService.ToAuthenticatedUser(user), issuer.Issue(user), secret, expires);
     }
 
+    // Dùng mã làm mới để luân chuyển thông tin phiên và cấp access token tiếp theo.
     public async Task<AuthResult?> RefreshAsync(string? secret, CancellationToken ct)
     {
         if (secret is null || secret.Length != 97 || secret[32] != '.' || !Guid.TryParseExact(secret[..32], "N", out _)) return null;

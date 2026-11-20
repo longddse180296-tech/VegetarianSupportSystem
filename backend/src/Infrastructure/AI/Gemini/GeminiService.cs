@@ -1,4 +1,4 @@
-// Chức năng: kết nối Gemini để phân tích nội dung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Gọi Gemini cho chat, đọc nhãn, nhận diện món và kiểm duyệt. Xử lý mã lỗi HTTP, phản hồi thiếu dữ liệu và trường hợp bị bộ lọc an toàn chặn.
 using System.Net.Http.Json;
 using System.Net;
 using System.Text.Json;
@@ -27,7 +27,7 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         ? configuredImageModel
         : "gemini-2.5-flash";
 
-    // AnalyzeDishImageAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Phân tích ảnh món ăn để tách tên món, thành phần thấy được và thông tin cần người dùng xác nhận.
     public async Task<GeminiDishImageResponse> AnalyzeDishImageAsync(
         GeminiDishImageRequest request,
         CancellationToken cancellationToken = default)
@@ -83,7 +83,7 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         }
     }
 
-    // ReadIngredientLabelAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
+    // Yêu cầu Gemini đọc nhãn và kiểm tra cấu trúc danh sách thành phần trả về.
     public async Task<GeminiLabelResponse> ReadIngredientLabelAsync(
         GeminiDishImageRequest request, CancellationToken cancellationToken = default)
     {
@@ -185,7 +185,7 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
             && Enum.IsDefined(kind) ? kind : IngredientKind.Unknown).ToArray();
     }
 
-    // GenerateChatReplyAsync: Tạo kết quả dựa trên đầu vào và các ràng buộc đang áp dụng.
+    // Tạo lời nhắc tiếng Việt từ hồ sơ khai báo, lịch sử hội thoại và câu hỏi hiện tại.
     public async Task<GeminiChatResponse> GenerateChatReplyAsync(
         GeminiChatRequest request,
         CancellationToken cancellationToken = default)
@@ -207,7 +207,8 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
             : new GeminiChatResponse(false, null, result.ErrorCode);
     }
 
-    // CheckContentAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // BE2-10 | Kiểm tra văn bản và ảnh bìa. Ghi nhận kiểm tra một phần nếu chỉ xử lý được văn bản.
+    // Dùng schema phản hồi kiểm duyệt để đọc loại cờ, tóm tắt và phần Gemini đã kiểm tra.
     public async Task<GeminiModerationResponse> CheckContentAsync(
         GeminiModerationRequest request,
         CancellationToken cancellationToken = default)
@@ -336,6 +337,11 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
         JsonElement? responseSchema = null,
         string? apiKeyOverride = null)
     {
+        // Kiểm duyệt có schema được chờ tối đa 3 phút, gồm cả các lần thử lại.
+        // Chat và nhận diện ảnh giữ giới hạn 45 giây.
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(responseSchema is not null ? TimeSpan.FromMinutes(3) : TimeSpan.FromSeconds(45));
+        var operationToken = timeout.Token;
         var generationConfig = jsonResponse
             ? new Dictionary<string, object>
             {
@@ -387,13 +393,13 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
                 message.Headers.TryAddWithoutValidation("x-goog-api-key", apiKeyOverride ?? apiKey);
                 message.Content = JsonContent.Create(payload);
 
-                using var response = await httpClient.SendAsync(message, cancellationToken);
+                using var response = await httpClient.SendAsync(message, operationToken);
                 if (attempt < 2 && response.StatusCode is
                     (HttpStatusCode.ServiceUnavailable or HttpStatusCode.BadGateway or HttpStatusCode.GatewayTimeout))
                 {
                     var delay = TimeSpan.FromMilliseconds(
                         (1 << attempt) * 1000 + Random.Shared.Next(0, 500));
-                    await Task.Delay(delay, cancellationToken);
+                    await Task.Delay(delay, operationToken);
                     continue;
                 }
 
@@ -401,8 +407,8 @@ public sealed class GeminiService(HttpClient httpClient, IConfiguration configur
                     return GenerateResult.Unavailable($"ProviderHttp{(int)response.StatusCode}");
 
                 using var document = await JsonDocument.ParseAsync(
-                    await response.Content.ReadAsStreamAsync(cancellationToken),
-                    cancellationToken: cancellationToken);
+                    await response.Content.ReadAsStreamAsync(operationToken),
+                    cancellationToken: operationToken);
                 // Bộ lọc provider chặn đầu vào/đầu ra không phải một lần kiểm tra đạt; không giảm cấu hình an toàn.
                 if (document.RootElement.TryGetProperty("promptFeedback", out var feedback)
                     && !string.IsNullOrWhiteSpace(ReadString(feedback, "blockReason")))

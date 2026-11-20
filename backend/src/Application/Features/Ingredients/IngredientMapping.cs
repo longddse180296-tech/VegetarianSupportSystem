@@ -1,4 +1,5 @@
-// Chức năng: danh mục nguyên liệu và dữ liệu dinh dưỡng. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-03 | Chuyển dữ liệu nghiệp vụ sang dạng API trả về (nguyên liệu: nguồn gốc, dị nguyên và dinh dưỡng theo đơn vị).
+// Chuyển dữ liệu về nguyên liệu, nguồn gốc, đơn vị và dinh dưỡng từ entity sang cấu trúc API trả về.
 using Domain.Entities;
 
 namespace Application.Features.Ingredients;
@@ -11,11 +12,9 @@ internal static class IngredientMapping
         entity.Id,
         entity.Name,
         entity.Aliases,
-        entity.Origin,
         entity.ContainsEgg,
         entity.ContainsMilk,
         entity.ContainsHoney,
-        entity.ContainsOtherAnimalProducts,
         entity.Allergens,
         entity.DefaultUnit,
         Per100Gram(entity.Calories, entity),

@@ -1,4 +1,4 @@
-// Chức năng: phân tích ảnh món ăn và nhãn thành phần. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Quy định các thao tác truy xuất lịch sử và kết quả quét thực phẩm mà nghiệp vụ sử dụng.
 using Domain.Entities;
 using Domain.Enums;
 
@@ -14,6 +14,7 @@ public sealed record ScanIngredientEvidence(Guid IngredientId, string Name, Ingr
 // IFoodScanRepository: định nghĩa hợp đồng xử lý giữa các tầng.
 public interface IFoodScanRepository
 {
+    Task<bool> DeleteOwnedAsync(Guid id, string userId, CancellationToken ct);
     // GetProfileAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     Task<ScanProfileSnapshot> GetProfileAsync(string userId, CancellationToken ct);
     // FindIngredientEvidenceAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.

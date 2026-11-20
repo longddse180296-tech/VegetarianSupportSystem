@@ -1,4 +1,5 @@
-// Chức năng: lưu trữ và kiểm tra tệp tải lên. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-04 (dùng chung) | Lưu và mở ảnh công khai bằng khóa lưu trữ do hệ thống cấp.
+// Lưu ảnh công khai theo mã tệp và mở ảnh để API trả lại cho trình duyệt.
 using Application.Features.Media;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;

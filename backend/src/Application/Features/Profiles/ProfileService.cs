@@ -1,12 +1,13 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Đọc và cập nhật hồ sơ, dị ứng, thực phẩm muốn tránh và mục tiêu dinh dưỡng.
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Rules;
+using Application.Features.Ingredients;
 
 namespace Application.Features.Profiles;
 
 // ProfileService: điều phối các bước nghiệp vụ và xử lý kết quả cho bên gọi.
-public sealed class ProfileService(IUserProfileRepository profiles) : IProfileContextReader
+public sealed class ProfileService(IUserProfileRepository profiles, IIngredientRepository? ingredients = null) : IProfileContextReader
 {
     // GetContextAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<ProfileContext?> GetContextAsync(string userId, CancellationToken cancellationToken)
@@ -24,14 +25,14 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
             estimate.AdultBmiCategory, estimate.EstimatedTdeeKcal,
             profile.Allergies.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
             profile.AvoidedFoods.OrderBy(x => x.Name).Select(x => x.Name).ToArray(),
-            profile.UpdatedAtUtc);
+            profile.UpdatedAtUtc, estimate.DailyNutritionTarget);
     }
 
     // GetAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<ProfileDetails?> GetAsync(string userId, CancellationToken cancellationToken)
     {
         var user = await profiles.FindByIdAsync(userId, cancellationToken);
-        return user?.Profile is null ? null : Map(user);
+        return user?.Profile is null ? null : await MapWithCatalogAsync(user, cancellationToken);
     }
 
     // UpdateAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
@@ -54,7 +55,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
         user.SetPhoneNumber(request.PhoneNumber, now);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await profiles.SaveChangesAsync(cancellationToken);
-        return Map(user);
+        return await MapWithCatalogAsync(user, cancellationToken);
     }
 
     // UpdatePersonalAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
@@ -74,7 +75,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
         user.UpdateContact(fullName, user.Email, now);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await profiles.SaveChangesAsync(cancellationToken);
-        return Map(user);
+        return await MapWithCatalogAsync(user, cancellationToken);
     }
 
     // UpdateBodyAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
@@ -89,7 +90,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
             DateTimeOffset.UtcNow);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await profiles.SaveChangesAsync(cancellationToken);
-        return Map(user);
+        return await MapWithCatalogAsync(user, cancellationToken);
     }
 
     // PreviewBodyAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
@@ -107,7 +108,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
         var result = ProfileNutritionEstimator.Calculate(candidate,
             DateOnly.FromDateTime(now.UtcDateTime));
         return new ProfileEstimate(result.Bmi, result.AdultBmiCategory,
-            result.EstimatedTdeeKcal);
+            result.EstimatedTdeeKcal, result.DailyNutritionTarget);
     }
 
     // SetDietAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
@@ -120,7 +121,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
         user.Profile.SetDiet(diet, DateTimeOffset.UtcNow);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await profiles.SaveChangesAsync(cancellationToken);
-        return Map(user);
+        return await MapWithCatalogAsync(user, cancellationToken);
     }
 
     // AddAllergyAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
@@ -132,7 +133,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
         var item = profile.AddAllergy(name ?? string.Empty, DateTimeOffset.UtcNow);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await profiles.SaveChangesAsync(cancellationToken);
-        return new ProfileItem(item.Id, item.Name);
+        return await CatalogItemAsync(item.Id, item.Name, true, cancellationToken);
     }
 
     // AddAvoidedFoodAsync: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
@@ -144,7 +145,7 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
         var item = profile.AddAvoidedFood(name ?? string.Empty, DateTimeOffset.UtcNow);
         // Lưu thay đổi sau khi các điều kiện nghiệp vụ đã được kiểm tra.
         await profiles.SaveChangesAsync(cancellationToken);
-        return new ProfileItem(item.Id, item.Name);
+        return await CatalogItemAsync(item.Id, item.Name, false, cancellationToken);
     }
 
     // RenameAllergyAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
@@ -200,6 +201,27 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
         (await profiles.FindByIdAsync(userId, cancellationToken))?.Profile;
 
     // Map: Chuyển dữ liệu nội bộ sang cấu trúc trả về cho bên gọi.
+    // Không từ chối tên chưa có trong catalog. Trạng thái nhận diện được tính lại khi đọc, nên Admin thêm/sửa sau vẫn được nhận ra.
+    private async Task<ProfileItem> CatalogItemAsync(Guid id, string name, bool allergy, CancellationToken ct)
+    {
+        if (ingredients is null) return new(id, name);
+        var catalog = await ingredients.GetRestrictionCatalogAsync(ct);
+        return new(id, name, catalog.Any(x => allergy ? IngredientRestrictionRules.MatchesAllergy(x, name)
+            : IngredientRestrictionRules.MatchesNameOrAlias(x, name)));
+    }
+
+    private async Task<ProfileDetails> MapWithCatalogAsync(User user, CancellationToken ct)
+    {
+        var details = Map(user);
+        if (ingredients is null) return details;
+        var catalog = await ingredients.GetRestrictionCatalogAsync(ct);
+        return details with
+        {
+            Allergies = details.Allergies.Select(x => x with { IsKnownInCatalog = catalog.Any(i => IngredientRestrictionRules.MatchesAllergy(i, x.Name)) }).ToArray(),
+            AvoidedFoods = details.AvoidedFoods.Select(x => x with { IsKnownInCatalog = catalog.Any(i => IngredientRestrictionRules.MatchesNameOrAlias(i, x.Name)) }).ToArray()
+        };
+    }
+
     private static ProfileDetails Map(User user)
     {
         var profile = user.Profile!;
@@ -213,6 +235,6 @@ public sealed class ProfileService(IUserProfileRepository profiles) : IProfileCo
             profile.RestaurantArea,
             profile.Allergies.OrderBy(x => x.Name).Select(x => new ProfileItem(x.Id, x.Name)).ToArray(),
             profile.AvoidedFoods.OrderBy(x => x.Name).Select(x => new ProfileItem(x.Id, x.Name)).ToArray(),
-            profile.UpdatedAtUtc);
+            profile.UpdatedAtUtc, estimate.DailyNutritionTarget);
     }
 }

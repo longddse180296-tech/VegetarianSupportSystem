@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Đọc và ghi tài khoản phục vụ đăng ký và đăng nhập bằng EF Core.
 using Application.Features.Auth;
 using Domain.Entities;
 using Domain.Enums;

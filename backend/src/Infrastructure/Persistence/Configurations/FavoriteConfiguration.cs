@@ -1,4 +1,5 @@
-// Chức năng: danh sách nội dung yêu thích. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-06/07 | Cấu hình EF Core cho khóa, cột hoặc quan hệ lưu mục yêu thích và chủ sở hữu.
+// Ánh xạ nội dung do người dùng lưu vào yêu thích sang bảng SQL cùng các ràng buộc dữ liệu.
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

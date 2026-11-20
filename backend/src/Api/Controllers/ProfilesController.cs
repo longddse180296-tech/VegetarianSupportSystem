@@ -1,4 +1,4 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Cung cấp API xem hoặc cập nhật hồ sơ, thông tin ăn uống và các danh sách cần tránh.
 using System.Text.Json.Serialization;
 using Application.Features.Profiles;
 using Domain.Enums;
@@ -9,7 +9,7 @@ namespace Api.Controllers;
 
 // ProfilesController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
-[Authorize(Roles = "User,Admin")]
+[Authorize(Roles = "User")]
 [Route("api/profile/me")]
 public sealed class ProfilesController(ProfileService profiles) : ControllerBase
 {

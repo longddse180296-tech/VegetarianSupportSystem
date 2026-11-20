@@ -1,4 +1,5 @@
-// Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-06 | Kết quả danh sách và thông tin phân trang (yêu thích: công thức, video và nhà hàng theo tài khoản).
+// Trả một trang nội dung do người dùng lưu vào yêu thích kèm thông tin phân trang.
 namespace Application.Features.Favorites;
 
 // FavoritePage: định nghĩa dữ liệu trao đổi của tính năng.

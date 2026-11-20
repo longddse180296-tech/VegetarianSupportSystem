@@ -1,25 +1,21 @@
+// BE2-06 | Trang chủ đọc công thức, nhà hàng, video và nội dung nổi bật qua API public.
 // Chức năng: trang chủ và thông tin giới thiệu. Ghép dữ liệu, thao tác và các trạng thái tải/lỗi cho màn hình.
-import { ContentImage } from '../../../shared/components/ContentImage'
+import { FeaturedSection, FeaturedRecipeCard, FeaturedCommunityCard, type HomeRecipeItem } from '../components/FeaturedContent'
 import { useEffect, useState, type FormEvent } from 'react'
 import {
-  ArrowRight,
   Check,
-  Clock,
-  Flame,
   Leaf,
-  MapPin,
-  Play,
   Search,
   Send,
   Sparkles,
 } from 'lucide-react'
-import { BACKEND_DIETARY_TYPE_LABELS, toBackendDietaryType } from '../../../shared/constants'
+
 import { apiClient } from '../../../shared/api/apiClient'
-import { getPublicFeaturedContent, type FeaturedContentItem } from '../../../shared/api/featuredContentApi'
+import { getPopularFeaturedContent, type FeaturedContentItem } from '../../../shared/api/featuredContentApi'
 import { Badge, EmptyState, SkeletonLoader } from '../../../shared/components'
 import AlertError from '../../../shared/components/AlertError'
 
-import { inferVideoDietType } from '../../videos/api/backendVideos'
+
 
 // Cấu trúc HomePageProps quy định dữ liệu trao đổi trong trang chủ và thông tin giới thiệu.
 interface HomePageProps {
@@ -37,38 +33,13 @@ const AI_SAMPLE_QUESTIONS = [
 
 
 // Cấu trúc HomeRecipeItem quy định dữ liệu trao đổi trong trang chủ và thông tin giới thiệu.
-interface HomeRecipeItem {
-  id: string
-  title: string
-  tag: string
-  cookTime: string
-  calories: string
-  imageUrl: string
-  dietaryTypes: string[]
-}
+
 
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (extractRecipeDietaryTypes); thuộc trang chủ và thông tin giới thiệu.
-function extractRecipeDietaryTypes(
-  assessments?: Array<{ dietaryType: number | string; status: number | string }>,
-): string[] {
-  if (assessments && assessments.length > 0) {
-    // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (isCompat); thuộc trang chủ và thông tin giới thiệu.
-    const isCompat = (typeNum: number, name: string) =>
-      assessments.some(
-        (a) =>
-          (a.dietaryType === typeNum || String(a.dietaryType).toLowerCase() === name.toLowerCase()) &&
-          (a.status === 1 || String(a.status).toLowerCase() === 'compatible'),
-      )
-
-    const list: string[] = []
-    if (isCompat(1, 'Vegan')) list.push('Vegan')
-    if (isCompat(2, 'LactoVegetarian')) list.push('LactoVegetarian')
-    if (isCompat(3, 'OvoVegetarian')) list.push('OvoVegetarian')
-    if (isCompat(4, 'LactoOvoVegetarian')) list.push('LactoOvoVegetarian')
-    if (list.length > 0) return list
-  }
-
-  return []
+function extractRecipeDietaryTypes(declared?: number | string | null): string[] {
+  const types = ['Vegan', 'LactoVegetarian', 'OvoVegetarian', 'LactoOvoVegetarian']
+  const type = typeof declared === 'number' ? types[declared - 1] : declared
+  return type && types.includes(type) ? [type] : []
 }
 
 // Cấu trúc HomeSection quy định dữ liệu trao đổi trong trang chủ và thông tin giới thiệu.
@@ -82,11 +53,7 @@ const SECTION_LABELS: Record<HomeSection, string> = {
 }
 
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (publishedDate); thuộc trang chủ và thông tin giới thiệu.
-function publishedDate(value: string | null) {
-  if (!value) return null
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString('vi-VN')
-}
+
 
 // Lấy hoặc lọc danh sách theo điều kiện và phạm vi hiện tại (HomePage); thuộc trang chủ và thông tin giới thiệu.
 export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePageProps) {
@@ -107,13 +74,13 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
     void (async () => {
         const results = await Promise.allSettled([
           apiClient.get<{ items: Array<{
-            id: string; name: string; categoryName: string; cookTimeMinutes: number
+            id: string; name: string; categoryName: string; cookTimeMinutes: number; prepTimeMinutes?: number
             caloriesPerServing: number | null; imageUrl: string | null
-            dietaryAssessments?: Array<{ dietaryType: number | string; status: number | string }>
-          }> }>('/api/recipes?pageNumber=1&pageSize=4', { requiresAuth: false, signal: controller.signal }),
-          getPublicFeaturedContent('Restaurant', controller.signal),
-          getPublicFeaturedContent('Video', controller.signal),
-          getPublicFeaturedContent('Article', controller.signal),
+            declaredDietaryType?: number | string | null
+          }> }>('/api/recipes?pageNumber=1&pageSize=4&rankByPopularity=true', { requiresAuth: false, signal: controller.signal }),
+          getPopularFeaturedContent('Restaurant', controller.signal),
+          getPopularFeaturedContent('Video', controller.signal),
+          getPopularFeaturedContent('Article', controller.signal),
         ])
         if (controller.signal.aborted) return
         const [recipeResult, restaurantResult, videoResult, articleResult] = results
@@ -124,96 +91,17 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
               id: r.id,
               title: r.name,
               tag: r.categoryName,
-              cookTime: `${r.cookTimeMinutes} phút`,
+              cookTime: `${(r.prepTimeMinutes ?? 0) + r.cookTimeMinutes} phút`,
               calories: r.caloriesPerServing == null ? 'Chưa có dữ liệu calo' : `${Math.round(r.caloriesPerServing)} kcal`,
               imageUrl: r.imageUrl || '',
-              dietaryTypes: extractRecipeDietaryTypes(r.dietaryAssessments),
+              dietaryTypes: extractRecipeDietaryTypes(r.declaredDietaryType),
             })),
           )
         }
 
-        if (restaurantResult.status === 'fulfilled') {
-          setRestaurants(restaurantResult.value.slice(0, 3))
-          if (restaurantResult.value.length === 0) {
-            try {
-              const fallback = await apiClient.get<{ items: Array<{
-                id: string; name: string; address: string | null; imageUrl: string | null
-                dietaryTypes?: string[]
-              }> }>('/api/restaurants?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
-              setRestaurants(fallback.items.map((restaurant) => ({
-                id: restaurant.id,
-                contentType: 'Restaurant' as const,
-                title: restaurant.name,
-                description: null,
-                imageUrl: restaurant.imageUrl,
-                isPinned: false,
-                authorName: null,
-                publishedAt: null,
-                viewCount: null,
-                address: restaurant.address,
-                dietaryTypes: restaurant.dietaryTypes || [],
-              })))
-            } catch {
-              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'restaurants'])])
-            }
-          }
-        }
-
-        if (videoResult.status === 'fulfilled') {
-          setVideos(videoResult.value.slice(0, 3))
-          if (videoResult.value.length === 0) {
-            try {
-              const fallback = await apiClient.get<{ items: Array<{
-                id: string; title: string; description: string | null; thumbnailUrl: string | null
-                viewCount: number | null; createdAtUtc: string | null; authorName: string | null
-              }> }>('/api/videos?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
-              setVideos(fallback.items.map((video) => ({
-                id: video.id,
-                contentType: 'Video' as const,
-                title: video.title,
-                description: video.description,
-                imageUrl: video.thumbnailUrl,
-                isPinned: false,
-                authorName: video.authorName,
-                publishedAt: video.createdAtUtc,
-                viewCount: video.viewCount,
-                address: null,
-                dietaryTypes: [],
-              })))
-            } catch {
-              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'videos'])])
-            }
-          }
-        }
-
-        if (articleResult.status === 'fulfilled') {
-          setArticles(articleResult.value.slice(0, 3))
-          if (articleResult.value.length === 0) {
-            try {
-              const fallback = await apiClient.get<{ items: Array<{
-                id: string; title: string; category: string; categories?: string[]
-                coverImageUrl: string | null; publishedAt: string | null; authorName: string | null
-                dietaryTypes?: string[]
-              }> }>('/api/articles?page=1&pageSize=3', { requiresAuth: false, signal: controller.signal })
-              setArticles(fallback.items.map((article) => ({
-                id: article.id,
-                contentType: 'Article' as const,
-                title: article.title,
-                description: article.category,
-                imageUrl: article.coverImageUrl,
-                isPinned: false,
-                // Giữ tác giả bài viết khi dùng danh sách mới nhất thay cho nội dung được ghim.
-                authorName: article.authorName,
-                publishedAt: article.publishedAt,
-                viewCount: null,
-                address: null,
-                dietaryTypes: article.dietaryTypes || [],
-              })))
-            } catch {
-              if (!controller.signal.aborted) setLoadErrors((current) => [...new Set<HomeSection>([...current, 'articles'])])
-            }
-          }
-        }
+        if (restaurantResult.status === 'fulfilled') setRestaurants(restaurantResult.value)
+        if (videoResult.status === 'fulfilled') setVideos(videoResult.value)
+        if (articleResult.status === 'fulfilled') setArticles(articleResult.value)
         const sections: HomeSection[] = ['recipes', 'restaurants', 'videos', 'articles']
         setLoadErrors(results.flatMap((result, index) => result.status === 'rejected' ? [sections[index]] : []))
         setLoading(false)
@@ -234,7 +122,7 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
   function sectionState(section: HomeSection, count: number) {
     if (loading && count === 0) return <SkeletonLoader count={3} variant="card" />
     if (loadErrors.includes(section)) return <AlertError title={`Chưa tải được ${SECTION_LABELS[section]}`} message="Vui lòng thử lại để xem nội dung mới nhất." onRetry={retryContent} />
-    if (!loading && count === 0) return <EmptyState title={`Chưa có ${SECTION_LABELS[section]}`} description={section === 'recipes' ? 'Công thức sẽ xuất hiện khi được cập nhật và công khai.' : 'Nội dung sẽ xuất hiện khi được quản trị viên ghim và vẫn đang công khai.'} />
+    if (!loading && count === 0) return <EmptyState title={`Chưa có ${SECTION_LABELS[section]}`} description={section === 'recipes' ? 'Công thức sẽ xuất hiện khi được cập nhật và công khai.' : 'Nội dung đang công khai sẽ xuất hiện tại đây.'} />
     return null
   }
 
@@ -385,409 +273,33 @@ export default function HomePage({ onNavigate, isLoggedIn: _isLoggedIn }: HomePa
         </div>
       </section>
 
-      {/* =========================================================================
-       * 3. SECTION: CÔNG THỨC NỔI BẬT
-       * ========================================================================= */}
-        <section className="ui-page-container py-16">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                Công thức nổi bật
-              </h2>
-              <p className="mt-1 text-[14px] text-[#6B7280]">
-                Tham khảo công thức trong hệ thống và lựa chọn món phù hợp với bạn.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/recipes')}
-              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
-            >
-              Xem tất cả công thức
-              <ArrowRight size={15} />
-            </button>
-          </div>
-
-          {sectionState('recipes', recipes.length)}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {recipes.map((recipe) => (
-              <article
-                key={recipe.id}
-                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
-              >
-                {/* Image & Tag */}
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
-                  {recipe.imageUrl ? <ContentImage
-                    src={recipe.imageUrl}
-                    alt={recipe.title}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  /> : <div className="flex h-44 items-center justify-center text-sm text-slate-500">Chưa có ảnh</div>}
-                  <span className="absolute left-3 top-3 rounded-full bg-white/95 backdrop-blur px-2.5 py-0.5 text-[11px] font-bold text-[#2E7D32] shadow-xs">
-                    {recipe.tag}
-                  </span>
-                </div>
-
-                {/* Details */}
-                <div className="flex flex-1 flex-col justify-between p-4">
-                  <div>
-                    {/* Dietary tags */}
-                    <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
-                      {recipe.dietaryTypes.map((diet) => {
-                        const dietaryType = toBackendDietaryType(diet)
-                        // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
-                        return (
-                          <span
-                            key={diet}
-                            className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]"
-                          >
-                            {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
-                          </span>
-                        )
-                      })}
-                    </div>
-
-                    <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-1.5 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} />
-                        {recipe.cookTime}
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Flame size={12} />
-                        {recipe.calories}
-                      </span>
-                    </div>
-                    <h3
-                      onClick={() => onNavigate?.(`/recipes/${recipe.id}`)}
-                      className="text-[15px] font-bold text-[#111827] hover:text-[#2E7D32] cursor-pointer transition line-clamp-1"
-                    >
-                      {recipe.title}
-                    </h3>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
-                    <button
-                      type="button"
-                      onClick={() => onNavigate?.(`/recipes/${recipe.id}`)}
-                      className="w-full rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition text-center"
-                    >
-                      Xem công thức
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-
-      {/* =========================================================================
-       * 5. SECTION: VIDEO NẤU ĂN NỔI BẬT
-       * ========================================================================= */}
-        <section className="ui-page-container py-16">
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                Video nổi bật
-              </h2>
-              <p className="mt-1 text-[14px] text-[#6B7280]">
-                Video được quản trị viên chọn để giới thiệu tới cộng đồng.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('/videos')}
-              className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
-            >
-              Xem tất cả video
-              <ArrowRight size={15} />
-            </button>
-          </div>
-
-          {sectionState('videos', videos.length)}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {videos.slice(0, 3).map((vid) => {
-              const vidDietaryTypes = (vid.dietaryTypes && vid.dietaryTypes.length > 0)
-                ? vid.dietaryTypes
-                : [inferVideoDietType(vid.title, vid.description ?? undefined)]
-
-              // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
-              return (
-              <article
-                key={vid.id}
-                className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
-              >
-                <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900">
-                  {vid.imageUrl ? (
-                    <ContentImage
-                      src={vid.imageUrl}
-                      alt={vid.title}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-white">Chưa có ảnh bìa</div>
-                  )}
-
-                  {/* Center Play Button */}
-                  <button
-                    type="button"
-                    onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)}
-                    aria-label={`Xem video ${vid.title}`}
-                    className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                  >
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-[#2E7D32] shadow-xl group-hover:scale-110 transition duration-200">
-                      <Play size={18} className="fill-[#2E7D32] ml-0.5" />
-                    </span>
-                  </button>
-                </div>
-
-                <div className="flex flex-1 flex-col justify-between p-5">
-                  <div>
-                    {/* Dietary tags */}
-                    <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
-                      {vidDietaryTypes.map((diet) => {
-                        const dietaryType = toBackendDietaryType(diet)
-                        // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
-                        return (
-                          <span
-                            key={diet}
-                            className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]"
-                          >
-                            {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
-                          </span>
-                        )
-                      })}
-                    </div>
-
-                    <h3 className="text-[16px] font-bold text-[#111827] leading-snug line-clamp-2 min-h-[44px]">
-                      <button
-                        type="button"
-                        onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)}
-                        className="text-left hover:text-[#2E7D32] transition"
-                      >
-                        {vid.title}
-                      </button>
-                    </h3>
-
-                    {vid.authorName && (
-                      <p className="mt-1.5 text-[12px] text-[#2E7D32] font-semibold">{vid.authorName}</p>
-                    )}
-
-                    {vid.description && (
-                      <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 leading-relaxed min-h-[38px]">
-                        {vid.description}
-                      </p>
-                    )}
-
-                    {(vid.viewCount != null || publishedDate(vid.publishedAt)) && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-[#6B7280] font-medium">
-                        {vid.viewCount != null && <span>{vid.viewCount.toLocaleString('vi-VN')} lượt xem</span>}
-                        {publishedDate(vid.publishedAt) && <span>• {publishedDate(vid.publishedAt)}</span>}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
-                    <button
-                      type="button"
-                      onClick={() => onNavigate?.(`/videos/${encodeURIComponent(vid.id)}`)}
-                      className="w-full flex items-center justify-center gap-1.5 rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition text-center"
-                    >
-                      <span>Xem video</span>
-                      <Play size={13} className="fill-current ml-0.5" />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            )})}
-          </div>
-        </section>
-
-      {/* =========================================================================
-       * 6. SECTION: NHÀ HÀNG CHAY
-       * ========================================================================= */}
-        <section className="bg-[#F8FAF8] border-y border-[#E5E7EB] py-16">
-          <div className="ui-page-container">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-                  Nhà hàng nổi bật
-                </h2>
-                <p className="mt-1 text-[14px] text-[#6B7280]">
-                  Khám phá các nhà hàng được quản trị viên giới thiệu.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onNavigate?.('/restaurants')}
-                className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline"
-              >
-                Xem tất cả nhà hàng
-                <ArrowRight size={15} />
-              </button>
-            </div>
-
-            {sectionState('restaurants', restaurants.length)}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {restaurants.slice(0, 3).map((res) => (
-                <article
-                  key={res.id}
-                  className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200"
-                >
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
-                    {res.imageUrl ? (
-                      <ContentImage
-                        src={res.imageUrl}
-                        alt={res.title}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                        Chưa có ảnh
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col justify-between p-5">
-                    <div>
-                      {/* Dietary tags */}
-                      <div className="flex flex-wrap items-start content-start gap-1.5 min-h-[52px] mb-2.5">
-                        {res.dietaryTypes.map((diet) => {
-                          const dietaryType = toBackendDietaryType(diet)
-                          // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
-                          return (
-                            <span
-                              key={diet}
-                              className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]"
-                            >
-                              {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
-                            </span>
-                          )
-                        })}
-                      </div>
-
-                      <h3 className="text-[16px] font-bold text-[#111827] min-h-[24px]">
-                        <button
-                          type="button"
-                          onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)}
-                          className="text-left hover:text-[#2E7D32] transition line-clamp-1"
-                        >
-                          {res.title}
-                        </button>
-                      </h3>
-                      {res.address && (
-                        <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-[#6B7280] line-clamp-2 leading-relaxed min-h-[36px]">
-                          <MapPin size={13} className="text-[#2E7D32] shrink-0 mt-0.5" />
-                          <span>{res.address}</span>
-                        </p>
-                      )}
-                      {res.description && (
-                        <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 leading-relaxed min-h-[38px]">
-                          {res.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-[#F3F4F6]">
-                      {/* Uniform Xem chi tiet button */}
-                      <button
-                        type="button"
-                        onClick={() => onNavigate?.(`/restaurants/${encodeURIComponent(res.id)}`)}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-[8px] bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#2E7D32] hover:text-white py-2 text-[13px] font-bold transition duration-150 text-center"
-                      >
-                        <span>Xem chi tiết</span>
-                        <ArrowRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-      {/* =========================================================================
-       * 6b. SECTION: BÀI VIẾT NỔI BẬT
-       * ========================================================================= */}
-      <section className="ui-page-container my-16">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-[#111827]">
-              Bài viết nổi bật
-            </h2>
-            <p className="mt-1 text-[14px] text-[#6B7280]">
-              Chia sẻ kiến thức, kinh nghiệm và lối sống ăn chay khoa học từ cộng đồng.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onNavigate?.('/articles')}
-            className="inline-flex items-center gap-1 text-[14px] font-bold text-[#2E7D32] hover:underline cursor-pointer"
-          >
-            Xem tất cả bài viết
-            <ArrowRight size={15} />
-          </button>
+      <FeaturedSection title="Công thức nổi bật" description="Những món chay được yêu thích, cho bữa ăn mỗi ngày thêm phong phú." path="/recipes" linkLabel="Tất cả công thức" onNavigate={onNavigate}>
+        {sectionState('recipes', recipes.length)}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {recipes.map(recipe => <FeaturedRecipeCard key={recipe.id} recipe={recipe} onNavigate={onNavigate} />)}
         </div>
+      </FeaturedSection>
 
+      <FeaturedSection title="Video nổi bật" description="Theo dõi từng bước nấu ăn và thử thêm một món mới cùng cộng đồng." path="/videos" linkLabel="Tất cả video" onNavigate={onNavigate} muted>
+        {sectionState('videos', videos.length)}
+        <div className={videos.length === 1 ? 'grid gap-5' : videos.length === 2 ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3'}>
+          {videos.map(item => <FeaturedCommunityCard key={item.id} item={item} onNavigate={onNavigate} />)}
+        </div>
+      </FeaturedSection>
+
+      <FeaturedSection title="Nhà hàng nổi bật" description="Tìm một địa chỉ ăn chay cho buổi hẹn và những ngày muốn đổi vị." path="/restaurants" linkLabel="Tất cả nhà hàng" onNavigate={onNavigate}>
+        {sectionState('restaurants', restaurants.length)}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {restaurants.map(item => <FeaturedCommunityCard key={item.id} item={item} onNavigate={onNavigate} />)}
+        </div>
+      </FeaturedSection>
+
+      <FeaturedSection title="Bài viết nổi bật" description="Chuyện ăn chay, kiến thức dinh dưỡng và những chia sẻ từ cộng đồng." path="/articles" linkLabel="Tất cả bài viết" onNavigate={onNavigate} muted>
         {sectionState('articles', articles.length)}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articles.slice(0, 3).map((art) => (
-            <article
-              key={art.id}
-              onClick={() => onNavigate?.(`/articles/${encodeURIComponent(art.id)}`)}
-              className="group flex flex-col rounded-[16px] border border-[#E5E7EB] bg-white overflow-hidden shadow-xs hover:shadow-md hover:border-[#C8E6C9] transition duration-200 cursor-pointer"
-            >
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
-                {art.imageUrl ? (
-                  <ContentImage
-                    src={art.imageUrl}
-                    alt={art.title}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center bg-emerald-50 text-emerald-700">
-                    <Leaf size={32} />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-1 flex-col justify-between p-5 space-y-3">
-                <div>
-                  <div className="flex flex-wrap items-start content-start gap-1.5 mb-2.5 min-h-[52px]">
-                    {art.dietaryTypes?.map((diet) => {
-                      const dietaryType = toBackendDietaryType(diet)
-                      // Hiển thị giao diện trang chủ và thông tin giới thiệu từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
-                      return (
-                        <span
-                          key={diet}
-                          className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-0.5 text-[11px] font-semibold text-[#2E7D32]"
-                        >
-                          {dietaryType ? BACKEND_DIETARY_TYPE_LABELS[dietaryType] : diet}
-                        </span>
-                      )
-                    })}
-                  </div>
-
-                  <h3 className="text-[16px] font-bold text-[#111827] line-clamp-2 min-h-[44px] group-hover:text-[#2E7D32] transition">
-                    {art.title}
-                  </h3>
-
-                  {art.description && (
-                    <p className="mt-2 text-[13px] text-[#6B7280] line-clamp-2 min-h-[38px] leading-relaxed">
-                      {art.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-[#F3F4F6] flex items-center justify-between text-xs text-slate-500">
-                  <span className="font-medium text-slate-700">{art.authorName?.trim() || 'Chưa có thông tin tác giả'}</span>
-                  {publishedDate(art.publishedAt) && <span>{publishedDate(art.publishedAt)}</span>}
-                </div>
-              </div>
-            </article>
-          ))}
+        <div className={articles.length === 1 ? 'grid gap-5' : articles.length === 2 ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3'}>
+          {articles.map(item => <FeaturedCommunityCard key={item.id} item={item} wide={articles.length === 1} onNavigate={onNavigate} />)}
         </div>
-      </section>
+      </FeaturedSection>
 
       {/* =========================================================================
        * 7. SECTION: HỎI TRỢ LÝ DINH DƯỠNG AI

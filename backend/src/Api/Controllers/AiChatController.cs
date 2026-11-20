@@ -1,4 +1,4 @@
-// Chức năng: hội thoại hỗ trợ ăn chay. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Tiếp nhận request HTTP và trả dữ liệu về hội thoại hỗ trợ ăn chay.
 using System.Security.Claims;
 using System.Text.Json;
 using Application.Features.AiChat;
@@ -9,7 +9,7 @@ namespace Api.Controllers;
 
 // AiChatController: cung cấp endpoint HTTP, kiểm tra danh tính và chuyển yêu cầu cho tầng Application.
 [ApiController]
-[Authorize(Roles = "User,Admin")]
+[Authorize(Roles = "User")]
 [Route("api/ai-chat")]
 public sealed class AiChatController(
     AiChatService chatService,
@@ -17,6 +17,13 @@ public sealed class AiChatController(
 {
     private const int MaxPromptLength = 4000;
     private const string GuestSessionKey = "AiChat.GuestState.v1";
+    [HttpDelete("conversations/{conversationId:guid}")]
+    public async Task<IActionResult> DeleteConversation(Guid conversationId, CancellationToken ct)
+    {
+        var userId = CurrentUserId();
+        if (userId is null) return Unauthorized();
+        return await chatService.DeleteConversationAsync(conversationId, userId, ct) ? NoContent() : NotFound();
+    }
 
     // CreateConversation: Tạo hoặc cập nhật dữ liệu theo các điều kiện của tính năng.
     [HttpPost("conversations")]
@@ -142,7 +149,7 @@ public sealed class AiChatController(
         return Ok(guestChatService.GetSessionInfo(ReadGuestState()));
     }
 
-    // SubmitGuestMessage: Chuyển bản nội dung hợp lệ sang quy trình gửi duyệt.
+    // Xử lý câu hỏi chưa đăng nhập và trả số lượt còn lại. Chỉ ghi phiên khi AI trả lời thành công.
     [HttpPost("guest/messages")]
     [AllowAnonymous]
     public async Task<ActionResult<GuestChatResponse>> SubmitGuestMessage(

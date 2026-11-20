@@ -1,3 +1,4 @@
+// Chuẩn bị nội dung và tài khoản thử nghiệm cho luồng gửi và xử lý báo cáo.
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;

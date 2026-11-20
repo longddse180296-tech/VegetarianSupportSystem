@@ -32,6 +32,8 @@ export interface RecipeInput {
 }
 // Cấu trúc RecipeSummary quy định dữ liệu trao đổi trong công thức và định lượng nguyên liệu.
 export interface RecipeSummary {
+  requiresReview?: boolean
+  inferredDietaryType?: DietaryType | null
   id: string
   name: string
   categoryId: string
@@ -63,6 +65,8 @@ export const recipeApi = {
     apiClient.post<RecipeDetail>('/api/admin/recipes', input),
   update: (id: string, input: RecipeInput) =>
     apiClient.put<RecipeDetail>(`/api/admin/recipes/${id}`, input),
+  activate: (id: string) =>
+    apiClient.post<void>(`/api/admin/recipes/${id}/activate`),
   deactivate: (id: string) =>
     apiClient.post<void>(`/api/admin/recipes/${id}/deactivate`),
 }

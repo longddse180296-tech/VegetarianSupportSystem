@@ -1,4 +1,5 @@
-// Chức năng: tủ bếp và nguyên liệu sẵn có. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// BE2-08 | Khai báo endpoint, kiểm tra quyền và chuyển yêu cầu sang service (tủ bếp cá nhân và gợi ý từ nguyên liệu đang có).
+// Tiếp nhận request HTTP và trả dữ liệu về nguyên liệu trong tủ bếp cá nhân.
 using Api.Authorization;
 using Application.Features.Pantry;
 using Microsoft.AspNetCore.Mvc;

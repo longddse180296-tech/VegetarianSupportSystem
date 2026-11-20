@@ -11,3 +11,11 @@ export interface AdminCategoryItem {
 
 // Cấu trúc CategoryFormData quy định dữ liệu trao đổi trong danh mục nội dung.
 export interface CategoryFormData { name: string; description: string }
+
+export const categoryKindLabels = {
+  Recipe: 'Công thức',
+  Video: 'Video',
+  Article: 'Bài viết',
+}
+
+export type CategoryKind = keyof typeof categoryKindLabels

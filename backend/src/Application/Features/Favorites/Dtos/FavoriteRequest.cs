@@ -1,4 +1,5 @@
-// Chức năng: danh sách nội dung yêu thích. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// BE2-06 | Dữ liệu đầu vào từ API (yêu thích: công thức, video và nhà hàng theo tài khoản).
+// Nhận dữ liệu từ frontend để thực hiện thao tác với nội dung do người dùng lưu vào yêu thích.
 using System.ComponentModel.DataAnnotations;
 using Domain.Enums;
 

@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng API nhận yêu cầu, kiểm tra quyền và chuyển xử lý cho Application.
+// Dùng chung cách chuyển ngoại lệ nghiệp vụ của danh mục, công thức và dữ liệu liên quan thành mã HTTP.
 using System.ComponentModel.DataAnnotations;
 using Application.Common.Exceptions;
 using Microsoft.AspNetCore.Mvc;

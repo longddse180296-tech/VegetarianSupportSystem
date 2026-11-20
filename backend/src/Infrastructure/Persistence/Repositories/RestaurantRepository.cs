@@ -1,4 +1,5 @@
-// Chức năng: tra cứu và quản lý nhà hàng. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// BE2-05 | Triển khai truy vấn và lưu dữ liệu EF Core cho địa chỉ, tọa độ, chế độ ăn công bố và trạng thái nhà hàng.
+// Đọc và ghi nhà hàng chay, vị trí, khoảng giá và tiện ích bằng EF Core.
 using Application.Common.Exceptions;
 using Application.Features.Restaurants;
 using Domain.Entities;

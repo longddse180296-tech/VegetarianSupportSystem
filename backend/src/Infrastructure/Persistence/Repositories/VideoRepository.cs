@@ -1,4 +1,4 @@
-// Chức năng: video, bản nháp và nội dung công khai. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Truy vấn bản video theo tác giả hoặc trạng thái công khai và kiểm tra danh mục có thuộc loại Video đang hoạt động.
 using Application.Features.Videos;
 using Domain.Entities;
 using Domain.Enums;
@@ -13,9 +13,9 @@ public sealed class VideoRepository(AppDbContext db) : IVideoRepository, IVideoP
     public Task<Video?> GetAsync(Guid id, CancellationToken cancellationToken) =>
         db.Videos.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
-    // CategoryExistsAsync: Thực hiện bước nghiệp vụ riêng cho luồng xử lý của lớp này.
+    // Chấp nhận mã danh mục khi bản ghi còn hoạt động và thuộc riêng nhóm Video.
     public Task<bool> CategoryExistsAsync(Guid id, CancellationToken cancellationToken) =>
-        db.Categories.AnyAsync(x => x.Id == id && x.IsActive, cancellationToken);
+        db.Categories.AnyAsync(x => x.Id == id && x.IsActive && x.Kind == CategoryKind.Video, cancellationToken);
 
     // ListAsync: Đọc dữ liệu theo bộ lọc, danh tính hoặc phạm vi được truyền vào.
     public async Task<(IReadOnlyList<Video> Items, int Total)> ListAsync(string? owner,

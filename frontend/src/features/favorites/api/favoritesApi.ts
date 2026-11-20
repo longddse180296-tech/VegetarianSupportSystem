@@ -1,3 +1,4 @@
+// BE2-06 | Đọc, lưu và bỏ yêu thích trên tài khoản đang đăng nhập.
 // Chức năng: danh sách nội dung yêu thích. Giao tiếp máy chủ và chuyển dữ liệu về kiểu dùng trong tính năng.
 import { ApiError, apiClient } from '../../../shared/api/apiClient'
 
@@ -15,6 +16,7 @@ export interface FavoriteItem {
   durationSeconds?: number | null
   createdAt: string
   savedFrom?: FavoriteSaveSource | null
+  dietaryWarning?: string | null
 }
 
 // Cấu trúc FavoritePage quy định dữ liệu trao đổi trong danh sách nội dung yêu thích.

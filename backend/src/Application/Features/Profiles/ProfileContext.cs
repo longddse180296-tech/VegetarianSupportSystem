@@ -1,5 +1,6 @@
-// Chức năng: hồ sơ và nhu cầu dinh dưỡng cá nhân. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Đóng gói dữ liệu hồ sơ cho các tính năng cần lọc công thức theo người dùng.
 using Domain.Enums;
+using Domain.Rules;
 
 namespace Application.Features.Profiles;
 
@@ -28,4 +29,5 @@ public sealed record ProfileContext(
     int? EstimatedTdeeKcal,
     IReadOnlyList<string> Allergies,
     IReadOnlyList<string> AvoidedFoods,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    DailyNutritionTarget? DailyNutritionTarget = null);

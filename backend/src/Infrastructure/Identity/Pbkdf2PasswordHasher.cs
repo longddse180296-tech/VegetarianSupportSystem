@@ -1,4 +1,4 @@
-// Chức năng: xác thực danh tính và mã truy cập. Tầng Infrastructure thực hiện truy vấn, lưu trữ hoặc giao tiếp dịch vụ ngoài.
+// Băm mật khẩu bằng PBKDF2 và kiểm tra mật khẩu nhập ở lần đăng nhập.
 using System.Security.Cryptography;
 using Application.Features.Auth;
 

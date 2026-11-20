@@ -41,14 +41,33 @@ const emptyForm = (): VideoForm => ({
 // Thực hiện bước xử lý riêng được các thành phần trong tính năng sử dụng (statusOf); thuộc video, bản nháp và nội dung công khai.
 function statusOf(video: VideoDetails): { key: string; label: string; color: string } {
   switch (video.adminReviewStatus) {
-    case 'Published': return { key: 'published', label: 'Đã xuất bản', color: 'bg-emerald-100 text-emerald-800' }
+    case 'Published': return { key: 'published', label: 'Đã được chấp nhận', color: 'bg-emerald-100 text-emerald-800' }
     case 'PendingAdminReview':
-    case 'Submitted': return { key: 'pending', label: 'Chờ Admin duyệt', color: 'bg-amber-100 text-amber-800' }
-    case 'RevisionRequested': return { key: 'draft', label: 'Cần chỉnh sửa', color: 'bg-orange-100 text-orange-800' }
-    case 'Rejected': return { key: 'draft', label: 'Bị từ chối', color: 'bg-red-100 text-red-800' }
-    case 'Removed': return { key: 'draft', label: 'Đã gỡ', color: 'bg-gray-100 text-gray-700' }
+    case 'Submitted': return { key: 'pending', label: 'Đang đợi duyệt', color: 'bg-amber-100 text-amber-800' }
+    case 'RevisionRequested':
+    case 'Rejected':
+    case 'Removed': return { key: 'rejected', label: 'Đã bị từ chối', color: 'bg-red-100 text-red-800' }
     default: return { key: 'draft', label: 'Bản nháp', color: 'bg-slate-100 text-slate-700' }
   }
+}
+
+function VideoReadOnly({ video }: { video: VideoDetails }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    let objectUrl: string | null = null
+    if (video.mediaUrl) void getPrivateMediaUrl(video.mediaUrl).then(value => {
+      objectUrl = value
+      if (active) setUrl(value); else URL.revokeObjectURL(value)
+    }).catch(() => { if (active) setError('Không thể tải video lúc này.') })
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [video.mediaUrl])
+  return <div className="space-y-4">
+    {url ? <video src={url} controls className="aspect-video w-full rounded-xl bg-black" /> : <p className="text-sm text-slate-500">{error || 'Đang tải video...'}</p>}
+    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-600">{video.description}</p>
+    <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">Nội dung này chỉ được xem.</p>
+  </div>
 }
 
 // Kiểm tra điều kiện hợp lệ trước khi cho phép xử lý tiếp (validateFile); thuộc video, bản nháp và nội dung công khai.
@@ -96,6 +115,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
+  const [viewing, setViewing] = useState<VideoDetails | null>(null)
   const [tab, setTab] = useState('all')
   const [keyword, setKeyword] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -156,6 +176,9 @@ export default function MyVideosPage({ onNavigate }: Props) {
   const save = async () => {
     const title = form.title.trim()
     if (!title) { setError('Vui lòng nhập tiêu đề video.'); return }
+    if (!form.thumbnail && !editing?.thumbnailUrl) {
+      setError('Vui lòng chọn ảnh bìa video.'); return
+    }
     if (form.media) {
       const fileError = validateFile(form.media, false)
       if (fileError) { setError(fileError); return }
@@ -231,7 +254,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
         {error && <div className="my-4"><AlertError title="Không thể xử lý video" message={error} onRetry={() => setRefresh((value) => value + 1)} /></div>}
 
         <div className="my-6 flex flex-wrap gap-2">
-          {([['all', 'Tất cả'], ['published', 'Đã xuất bản'], ['pending', 'Chờ duyệt'], ['draft', 'Bản nháp / cần sửa']] as const).map(([key, label]) => (
+          {([['all', 'Tất cả'], ['published', 'Đã được chấp nhận'], ['pending', 'Đang đợi duyệt'], ['rejected', 'Đã bị từ chối'], ['draft', 'Bản nháp']] as const).map(([key, label]) => (
             <button key={key} type="button" onClick={() => { setTab(key); setPage(1) }}
               className={`rounded-xl px-4 py-2 text-sm font-semibold ${tab === key ? 'bg-emerald-100 text-emerald-800' : 'text-slate-600 hover:bg-slate-50'}`}>
               {label}
@@ -250,7 +273,7 @@ export default function MyVideosPage({ onNavigate }: Props) {
           <div className="space-y-4">
             {visible.map((video) => {
               const status = statusOf(video)
-              const editable = status.key !== 'pending' && video.adminReviewStatus !== 'Removed'
+              const editable = !['Rejected', 'RevisionRequested', 'Removed'].includes(video.adminReviewStatus || '')
               // Hiển thị giao diện video, bản nháp và nội dung công khai từ dữ liệu và các trạng thái đã chuẩn bị ở trên.
               return <article key={video.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm:flex-row">
                 <VideoThumbnail video={video} />
@@ -264,9 +287,8 @@ export default function MyVideosPage({ onNavigate }: Props) {
                   </div>
                   <h2 className="mt-2 text-lg font-bold text-slate-900">{video.title}</h2>
                   <p className="mt-1 line-clamp-2 text-sm text-slate-600">{video.description}</p>
-                  {video.adminReason && <p className="mt-2 rounded-lg bg-orange-50 p-2 text-sm text-orange-800">Phản hồi Admin: {video.adminReason}</p>}
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {video.adminReviewStatus !== 'Removed' && <Button size="sm" variant="ghost" disabled={saving}
+                    {editable && <Button size="sm" variant="ghost" disabled={saving}
                       className="text-rose-600 hover:bg-rose-50" onClick={async () => {
                         if (!window.confirm('Xóa video này? Video sẽ ngừng hiển thị công khai và không thể khôi phục trên giao diện.')) return
                         setSaving(true)
@@ -279,9 +301,10 @@ export default function MyVideosPage({ onNavigate }: Props) {
                         } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể xóa video.') }
                         finally { setSaving(false) }
                       }}>Xóa video</Button>}
+                    {status.key !== 'published' && <Button size="sm" variant="outline" onClick={() => setViewing(video)}>Xem video</Button>}
                     {status.key === 'published' && <Button size="sm" variant="outline" onClick={() => onNavigate?.(`/videos/${video.id}`)}>Xem video</Button>}
                     {editable && <Button size="sm" variant="outline" disabled={saving} onClick={() => startEdit(video)}>Chỉnh sửa / tải tệp</Button>}
-                    {editable && video.uploadStatus === 'Ready' && status.key !== 'published' &&
+                    {editable && video.uploadStatus === 'Ready' && status.key === 'draft' &&
                       <Button size="sm" variant="primary" disabled={saving} onClick={() => void sendDraft(video)}>Gửi Admin duyệt</Button>}
                   </div>
                 </div>
@@ -296,6 +319,9 @@ export default function MyVideosPage({ onNavigate }: Props) {
         </div>}
       </div>
 
+      <Modal isOpen={!!viewing} onClose={() => setViewing(null)} title={viewing?.title || 'Xem video'}>
+        {viewing && <VideoReadOnly key={viewing.id} video={viewing} />}
+      </Modal>
       <Modal isOpen={open} onClose={() => { if (!saving) setOpen(false) }}
         title={editing ? 'Chỉnh sửa video' : 'Tải video mới'}
         description="Video sẽ chỉ công khai sau khi Admin duyệt. MP4/WEBM tối đa 200 MB."
@@ -317,10 +343,11 @@ export default function MyVideosPage({ onNavigate }: Props) {
           </label>
           {editing?.mediaUrl && <p className="text-xs text-emerald-700">Video hiện tại đã có tệp. Chọn tệp mới để thay thế.</p>}
           <VideoFileMetadata file={form.media} />
-          <label className="block text-sm font-semibold text-slate-700">Ảnh bìa (JPG/PNG/WEBP, tối đa 10 MB)
+          <label className="block text-sm font-semibold text-slate-700">Ảnh bìa * (JPG/PNG/WEBP, tối đa 10 MB)
             <input className="mt-2 block w-full text-sm" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
               onChange={(event) => setForm((value) => ({ ...value, thumbnail: event.target.files?.[0] ?? null }))} />
           </label>
+          {editing?.thumbnailUrl && <p className="text-xs text-emerald-700">Đã có ảnh bìa. Chọn ảnh mới nếu muốn thay thế.</p>}
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={form.submitNow} onChange={(event) => setForm((value) => ({ ...value, submitNow: event.target.checked }))} />
             Gửi Admin duyệt sau khi tải tệp thành công

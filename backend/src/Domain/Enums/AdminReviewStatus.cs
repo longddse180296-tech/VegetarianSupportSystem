@@ -1,4 +1,4 @@
-// Chức năng: hạ tầng và quy tắc dùng chung. Tầng Domain mô tả dữ liệu hoặc quy tắc nghiệp vụ, không phụ thuộc HTTP hay cơ sở dữ liệu.
+// Định nghĩa các trạng thái xử lý của Admin trong vòng đời nội dung.
 namespace Domain.Enums;
 
 // AdminReviewStatus: định nghĩa các giá trị trạng thái được phép.

@@ -1,4 +1,4 @@
-// Chức năng: kết nối Gemini để phân tích nội dung. Tầng Application điều phối nghiệp vụ, kiểm tra dữ liệu và định nghĩa hợp đồng với hạ tầng.
+// Định nghĩa đầu vào và kết quả cho các khả năng Gemini mà tầng Application sử dụng.
 using Domain.Enums;
 
 namespace Application.Abstractions.AI;
