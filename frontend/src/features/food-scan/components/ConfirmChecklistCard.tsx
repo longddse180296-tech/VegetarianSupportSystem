@@ -261,12 +261,12 @@ export default function ConfirmChecklistCard({
                   </span>
                   {item.kind === 'Plant' ? (
                     <span className="text-emerald-700 font-semibold text-[11px]">✓ Gốc thực vật</span>
+                  ) : item.kind === 'Vegetarian' ? (
+                    <span className="text-emerald-700 font-semibold text-[11px]">✓ Nguyên liệu chay</span>
                   ) : item.kind === 'Animal' ? (
                     <span className="text-rose-700 font-semibold text-[11px]">✗ Nguồn gốc động vật</span>
                   ) : item.kind === 'Dairy' || item.kind === 'Egg' ? (
                     <span className="text-amber-700 font-semibold text-[11px]">Trứng / Sữa</span>
-                  ) : item.kind === 'Honey' ? (
-                    <span className="text-amber-700 font-semibold text-[11px]">Mật ong</span>
                   ) : null}
                 </div>
 

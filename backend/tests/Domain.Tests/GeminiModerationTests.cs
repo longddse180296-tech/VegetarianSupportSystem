@@ -233,6 +233,26 @@ public sealed class GeminiModerationTests
         Assert.NotNull(result.FlagReason);
     }
 
+    [Fact]
+    public async Task ChatPromptRestrictsScopeToVegetarianSupportAndRejectsOffTopic()
+    {
+        using var handler = new ProviderHandler("STOP");
+        using var client = new HttpClient(handler);
+        var response = await CreateService(client).GenerateChatReplyAsync(new("#c là ji", []));
+
+        Assert.True(response.IsAvailable);
+        using var payload = JsonDocument.Parse(handler.Payload!);
+        var sentPrompt = payload.RootElement
+            .GetProperty("contents")[0]
+            .GetProperty("parts")[0]
+            .GetProperty("text")
+            .GetString()!;
+        Assert.Contains("PHẠM VI BẮT BUỘC", sentPrompt);
+        Assert.Contains("TUYỆT ĐỐI TỪ CHỐI mọi chủ đề ngoài lề", sentPrompt);
+        Assert.Contains("lập trình", sentPrompt);
+        Assert.Contains("Người dùng: #c là ji", sentPrompt);
+    }
+
     private const string CoverUrl = "http://localhost:5173/api/public-images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png";
     private sealed class CoverStore : IPublicImageStore
     {

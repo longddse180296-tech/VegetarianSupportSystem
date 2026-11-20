@@ -88,6 +88,44 @@ public sealed class Be3FoodScanServiceTests
             result.SuggestedIngredients.Select(item => item.Name));
     }
 
+    [Fact]
+    public async Task SaltAndWaterResolveToVegetarianAndHoneyIsDroppedFromSuggestions()
+    {
+        var service = new FoodScanningService(new SaltAndHoneyAi(), new MemoryScanRepository());
+
+        var label = await service.AnalyzeLabelAsync([1], "image/png", CancellationToken.None);
+        Assert.Equal(
+            [IngredientKind.Plant, IngredientKind.Vegetarian, IngredientKind.Vegetarian,
+                IngredientKind.Unknown, IngredientKind.Animal],
+            label.SuggestedIngredients.Select(item => item.Kind));
+
+        var dish = await service.AnalyzeDishAsync([1], "image/png", CancellationToken.None);
+        Assert.Equal(
+            [IngredientKind.Vegetarian, IngredientKind.Vegetarian, IngredientKind.Unknown],
+            dish.SuggestedIngredientKinds);
+    }
+
+    private sealed class SaltAndHoneyAi : IGeminiService
+    {
+        public Task<GeminiDishImageResponse> AnalyzeDishImageAsync(GeminiDishImageRequest request,
+            CancellationToken cancellationToken = default) => Task.FromResult(new GeminiDishImageResponse(
+            true, "Khoai tây luộc", ["Muối i-ốt", "Nước", "Nước dùng"], [], [],
+            SuggestedIngredientKinds: [IngredientKind.Unknown, IngredientKind.Unknown, IngredientKind.Unknown]));
+        public Task<GeminiModerationResponse> CheckContentAsync(GeminiModerationRequest request,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<GeminiChatResponse> GenerateChatReplyAsync(GeminiChatRequest request,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<GeminiLabelResponse> ReadIngredientLabelAsync(GeminiDishImageRequest request,
+            CancellationToken cancellationToken = default) => Task.FromResult(new GeminiLabelResponse(
+            true, "Khoai tây, Muối i-ốt, Nước tinh khiết, Mật ong, Nước mắm cá", false,
+            SuggestedIngredients: [
+                new("Khoai tây", IngredientKind.Plant),
+                new("Muối i-ốt", IngredientKind.Unknown),
+                new("Nước tinh khiết", IngredientKind.Vegetarian),
+                new("Mật ong", IngredientKind.Honey),
+                new("Nước mắm cá", IngredientKind.Animal)]));
+    }
+
     private sealed class MemoryScanRepository : IFoodScanRepository
     {
         public Task<bool> DeleteOwnedAsync(Guid id, string owner, CancellationToken ct) => throw new NotSupportedException();

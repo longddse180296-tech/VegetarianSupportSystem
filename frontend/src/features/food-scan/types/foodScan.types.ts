@@ -4,7 +4,7 @@ export type ScanStatus = 'suitable' | 'unsuitable' | 'insufficient'
 // Cấu trúc ScanSourceType quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export type ScanSourceType = 'Dish' | 'Label'
 // Cấu trúc IngredientKind quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
-export type IngredientKind = 'Plant' | 'Egg' | 'Dairy' | 'Honey' | 'Animal' | 'Unknown'
+export type IngredientKind = 'Plant' | 'Vegetarian' | 'Egg' | 'Dairy' | 'Animal' | 'Unknown'
 // Cấu trúc IngredientSource quy định dữ liệu trao đổi trong phân tích ảnh món ăn và nhãn thành phần.
 export type IngredientSource = 'AiSuggested' | 'LabelOcr' | 'UserConfirmed' | 'UserEdited'
 
